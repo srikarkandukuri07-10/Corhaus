@@ -25,6 +25,9 @@ interface AttendanceData {
   class_id: string;
   attendance_token: string;
   attendance_status: string;
+  classes?: {
+    class_date: string;
+  };
 }
 
 // IST constant
@@ -42,28 +45,7 @@ function parseAsIst(dateStr: string, timeStr: string): number {
   return istTime;
 }
 
-function debugTiming(cls: ClassData, label: string) {
-  const classStart = parseAsIst(cls.class_date, cls.class_time);
-  const qrRelease = classStart - 30 * 60 * 1000;
-  const now = Date.now();
 
-  const fmt = (ms: number) => {
-    const d = new Date(ms + IST_OFFSET_MS);
-    return d.toISOString().replace("Z", " IST").replace("T", " ");
-  };
-
-  console.log(`%c[QR DEBUG ${label}]`, "color:blue;font-weight:bold", {
-    CLASS: cls.title,
-    RAW_DATE: cls.class_date,
-    RAW_TIME: cls.class_time,
-    CLASS_START: fmt(classStart),
-    QR_RELEASE: fmt(qrRelease),
-    CURRENT: fmt(now),
-    QR_VISIBLE: now >= qrRelease && now < classStart,
-    DIFF_TO_RELEASE: ((qrRelease - now) / 1000).toFixed(0) + "s",
-    DIFF_TO_START: ((classStart - now) / 1000).toFixed(0) + "s",
-  });
-}
 
 function shouldShowQr(cls: ClassData, now: number): boolean {
   const classStart = parseAsIst(cls.class_date, cls.class_time);
@@ -107,7 +89,7 @@ export default function MemberDashboard() {
     const [cr, br, ar] = await Promise.all([
       supabase.from("classes").select("*").gte("class_date", today).order("class_date", { ascending: true }).order("class_time", { ascending: true }),
       supabase.from("bookings").select("id, class_id, booking_status").eq("member_id", user.id).eq("booking_status", "booked"),
-      supabase.from("attendance").select("*").eq("member_id", user.id),
+      supabase.from("attendance").select("*, classes(class_date)").eq("member_id", user.id),
     ]);
 
     if (cr.data) {
@@ -220,7 +202,6 @@ export default function MemberDashboard() {
         if (qrDataUrlsRef.current[cls.id]) continue;
         if (generatingRef.current.has(cls.id)) continue;
 
-        debugTiming(cls, "TRIGGER");
         generateQrForClass(cls);
       }
     }, 3000);
@@ -239,7 +220,6 @@ export default function MemberDashboard() {
       if (now < qrRelease || now >= classStart) continue;
       if (qrDataUrls[cls.id]) continue;
       if (generatingRef.current.has(cls.id)) continue;
-      debugTiming(cls, "RENDER");
       generateQrForClass(cls);
     }
   });
@@ -305,22 +285,14 @@ export default function MemberDashboard() {
     return new Date(dateStr + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
   }
 
-  // Build debug info
-  const debugInfo = (() => {
-    if (!currentTime) return [];
-    const nowIst = new Date(currentTime + IST_OFFSET_MS).toISOString().replace("Z", "").replace("T", " ");
-    const lines: string[] = [`CURRENT: ${nowIst} IST`];
-    for (const cls of classes) {
-      if (!bookings.some(b => b.class_id === cls.id && b.booking_status === "booked")) continue;
-      const cs = parseAsIst(cls.class_date, cls.class_time);
-      const qr = cs - 1800000;
-      const show = currentTime >= qr && currentTime < cs;
-      const csStr = new Date(cs + IST_OFFSET_MS).toISOString().replace("Z", "").replace("T", " ");
-      const qrStr = new Date(qr + IST_OFFSET_MS).toISOString().replace("Z", "").replace("T", " ");
-      lines.push(`${cls.title}: QR=${qrStr} | START=${csStr} | VISIBLE=${show ? "YES" : "NO"} | hasQR=${!!qrDataUrls[cls.id]}`);
-    }
-    return lines;
-  })();
+  const currentMonthCount = attendanceRecords.filter(a => {
+    if (a.attendance_status !== "attended") return false;
+    if (!a.classes || !a.classes.class_date) return false;
+    if (!currentTime) return false;
+    const now = new Date(currentTime + IST_OFFSET_MS);
+    const currentYearMonth = now.toISOString().substring(0, 7);
+    return a.classes.class_date.startsWith(currentYearMonth);
+  }).length;
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -334,9 +306,17 @@ export default function MemberDashboard() {
         <p className="text-sm text-brand-navy/50 mt-1">Book your next Pilates session</p>
       </div>
 
-      {/* Debug panel — shows timing info */}
-      <div className="bg-brand-navy/5 border border-brand-navy/10 rounded-xl p-4 text-xs font-mono text-brand-navy/70 space-y-0.5">
-        {debugInfo.map((l, i) => <div key={i}>{l}</div>)}
+      {/* Monthly Attendance Card */}
+      <div className="bg-white rounded-2xl border border-brand-sand/50 p-6 shadow-sm flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-medium text-brand-navy/60 uppercase tracking-wide">Classes Attended This Month</h2>
+          <p className="text-4xl font-light text-brand-navy mt-1">{currentMonthCount}</p>
+        </div>
+        <div className="w-12 h-12 bg-brand-brown/10 rounded-full flex items-center justify-center text-brand-brown">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
       </div>
 
       {message && (
