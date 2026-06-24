@@ -58,6 +58,16 @@ function isClassStarted(cls: ClassData, now: number): boolean {
   return now >= classStart;
 }
 
+function isClassOngoing(cls: ClassData, now: number): boolean {
+  const classStart = parseAsIst(cls.class_date, cls.class_time);
+  return now >= classStart && now < classStart + 60 * 60 * 1000;
+}
+
+function isClassOver(cls: ClassData, now: number): boolean {
+  const classStart = parseAsIst(cls.class_date, cls.class_time);
+  return now >= classStart + 60 * 60 * 1000;
+}
+
 export default function MemberDashboard() {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [bookings, setBookings] = useState<BookingData[]>([]);
@@ -228,6 +238,11 @@ export default function MemberDashboard() {
     const uid = userIdRef.current;
     if (!uid) return;
 
+    if (isClassStarted(cls, currentTime)) {
+      setMessage({ type: "error", text: "Cannot book — class has already started." });
+      return;
+    }
+
     const sameDate = bookings.some(b =>
       b.booking_status === "booked" && b.class_id !== cls.id &&
       classes.some(c => c.id === b.class_id && c.class_date === cls.class_date)
@@ -335,12 +350,13 @@ export default function MemberDashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {classes.map((cls) => {
+          {classes.filter(cls => !isClassOver(cls, currentTime)).map((cls) => {
             const booked = bookings.some(b => b.class_id === cls.id && b.booking_status === "booked");
             const attendance = attendanceRecords.find(a => a.class_id === cls.id);
             const showQr = booked && shouldShowQr(cls, currentTime) && !isClassStarted(cls, currentTime);
             const qrUrl = qrDataUrls[cls.id];
             const started = isClassStarted(cls, currentTime);
+            const ongoing = isClassOngoing(cls, currentTime);
 
             return (
               <div key={cls.id} className="bg-white rounded-2xl border border-brand-sand/50 p-5 hover:shadow-md transition-all">
@@ -349,7 +365,8 @@ export default function MemberDashboard() {
                     <h3 className="font-medium text-brand-navy text-lg">{cls.title}</h3>
                     <p className="text-sm text-brand-navy/50 mt-1">{cls.instructor}</p>
                   </div>
-                  {booked && <span className="text-xs font-medium text-brand-success bg-brand-success/10 px-2 py-1 rounded-full">Booked</span>}
+                  {ongoing && booked && <span className="text-xs font-medium text-brand-accent bg-brand-accent/10 px-2 py-1 rounded-full">Ongoing</span>}
+                  {!ongoing && booked && <span className="text-xs font-medium text-brand-success bg-brand-success/10 px-2 py-1 rounded-full">Booked</span>}
                 </div>
 
                 <div className="mt-4 space-y-2">
@@ -392,19 +409,27 @@ export default function MemberDashboard() {
                 )}
 
                 <div className="mt-4 space-y-2">
-                  <button onClick={() => handleBook(cls)} disabled={booked || bookingLoading === cls.id}
-                    className={`w-full py-2.5 rounded-xl text-sm font-medium transition-all ${booked ? "bg-brand-beige text-brand-navy/40 cursor-not-allowed" : "bg-brand-navy text-white hover:bg-brand-navy/90"} disabled:opacity-50`}>
-                    {bookingLoading === cls.id ? "Booking..." : booked ? "Already Booked" : "Book Class"}
-                  </button>
-                  {booked && canCancel(cls, currentTime) && (
-                    <button onClick={() => handleCancel(cls)} disabled={bookingLoading === cls.id}
-                      className="w-full py-2.5 rounded-xl text-sm font-medium border border-brand-error/30 text-brand-error hover:bg-brand-error/5 transition-all disabled:opacity-50">
-                      {bookingLoading === cls.id ? "Cancelling..." : "Cancel Booking"}
-                    </button>
-                  )}
-                  {booked && !canCancel(cls, currentTime) && (
-                    <p className="text-xs text-brand-navy/40 text-center">Cancellation closed (&lt; 6hr before class)</p>
-                  )}
+                  {ongoing && booked ? (
+                    <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-brand-accent/10 text-brand-accent border border-brand-accent/20">
+                      Ongoing Class
+                    </div>
+                  ) : !started ? (
+                    <>
+                      <button onClick={() => handleBook(cls)} disabled={booked || bookingLoading === cls.id}
+                        className={`w-full py-2.5 rounded-xl text-sm font-medium transition-all ${booked ? "bg-brand-beige text-brand-navy/40 cursor-not-allowed" : "bg-brand-navy text-white hover:bg-brand-navy/90"} disabled:opacity-50`}>
+                        {bookingLoading === cls.id ? "Booking..." : booked ? "Already Booked" : "Book Class"}
+                      </button>
+                      {booked && canCancel(cls, currentTime) && (
+                        <button onClick={() => handleCancel(cls)} disabled={bookingLoading === cls.id}
+                          className="w-full py-2.5 rounded-xl text-sm font-medium border border-brand-error/30 text-brand-error hover:bg-brand-error/5 transition-all disabled:opacity-50">
+                          {bookingLoading === cls.id ? "Cancelling..." : "Cancel Booking"}
+                        </button>
+                      )}
+                      {booked && !canCancel(cls, currentTime) && (
+                        <p className="text-xs text-brand-navy/40 text-center">Cancellation closed (&lt; 6hr before class)</p>
+                      )}
+                    </>
+                  ) : null}
                 </div>
               </div>
             );
