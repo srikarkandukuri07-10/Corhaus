@@ -138,10 +138,17 @@ export default function MemberDashboard() {
     return () => { supabase.removeChannel(channel); };
   }, [supabase, fetchData]);
 
-  // Poll every 5s
+  // Poll every 3s
   useEffect(() => {
-    const id = setInterval(fetchData, 5000);
+    const id = setInterval(fetchData, 3000);
     return () => clearInterval(id);
+  }, [fetchData]);
+
+  // Re-fetch when tab becomes visible (user returns to dashboard after scan)
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === "visible") fetchData(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, [fetchData]);
 
   // Current time interval
