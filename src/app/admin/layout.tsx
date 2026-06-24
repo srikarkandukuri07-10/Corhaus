@@ -80,6 +80,7 @@ export default function AdminLayout({
     { href: "/admin/scanner", label: "Scanner", exact: true },
     { href: "/admin/cancelled", label: "Cancelled", exact: true },
     { href: "/admin/members", label: "View Members", exact: false },
+    { href: "/admin/previous-classes", label: "Previous Classes", exact: false },
   ];
 
   return (

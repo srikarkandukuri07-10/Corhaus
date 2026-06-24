@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Link from "next/link";
 
 interface ClassData {
   id: string;
@@ -44,7 +43,7 @@ function parseAsIst(dateStr: string, timeStr: string): number {
   return d.getTime() + (IST_OFFSET_MS - browserOffset);
 }
 
-export default function AdminDashboard() {
+export default function PreviousClasses() {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [bookings, setBookings] = useState<BookingWithProfile[]>([]);
@@ -66,8 +65,9 @@ export default function AdminDashboard() {
     if (!error && data) {
       startTransition(() => {
         const now = Date.now();
-        const upcoming = data.filter(c => parseAsIst(c.class_date, c.class_time) + 60 * 60 * 1000 > now);
-        setClasses(upcoming);
+        const previous = data.filter(c => parseAsIst(c.class_date, c.class_time) + 60 * 60 * 1000 <= now);
+        previous.sort((a, b) => parseAsIst(b.class_date, b.class_time) - parseAsIst(a.class_date, a.class_time));
+        setClasses(previous);
         setLoading(false);
       });
     }
@@ -209,24 +209,18 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-light text-brand-navy">
-            Admin <span className="font-medium">Dashboard</span>
+            Previous <span className="font-medium">Classes</span>
           </h1>
           <p className="text-sm text-brand-navy/50 mt-1">
-            Manage your classes and bookings
+            View completed classes and attendance records
           </p>
         </div>
-        <Link
-          href="/admin/classes/new"
-          className="px-5 py-2.5 rounded-xl bg-brand-brown text-white text-sm font-medium hover:bg-brand-brown-dark transition-colors"
-        >
-          + New Class
-        </Link>
       </div>
 
       {/* Classes Grid */}
       <div>
         <h2 className="text-lg font-medium text-brand-navy mb-4">
-          Upcoming Classes
+          Past Classes
         </h2>
         {loading || isPending ? (
           <div className="flex items-center justify-center py-12">
@@ -234,13 +228,7 @@ export default function AdminDashboard() {
           </div>
         ) : classes.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-2xl border border-brand-sand/50">
-            <p className="text-brand-navy/40 mb-3">No classes created yet</p>
-            <Link
-              href="/admin/classes/new"
-              className="text-sm text-brand-brown font-medium hover:text-brand-brown-dark"
-            >
-              Create your first class
-            </Link>
+            <p className="text-brand-navy/40 mb-3">No past classes found</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
