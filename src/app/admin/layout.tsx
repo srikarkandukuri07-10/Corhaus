@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "@/components/logo";
 import LogoutButton from "@/components/logout-button";
+import NotificationsButton from "@/components/notifications-button";
 
 export default function AdminLayout({
   children,
@@ -111,10 +112,9 @@ export default function AdminLayout({
                 })}
               </nav>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-medium text-brand-brown bg-brand-brown/10 px-2.5 py-1 rounded-full">
-                Admin
-              </span>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-brand-navy/60 font-medium hidden sm:block">Admin View</span>
+              <NotificationsButton role="admin" />
               <LogoutButton />
             </div>
           </div>

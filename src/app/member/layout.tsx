@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import Logo from "@/components/logo";
 import LogoutButton from "@/components/logout-button";
 import ProfileModal from "@/components/profile-modal";
+import NotificationsButton from "@/components/notifications-button";
 
 export default function MemberLayout({
   children,
@@ -110,6 +111,7 @@ export default function MemberLayout({
               </nav>
             </div>
             <div className="flex items-center gap-3">
+              <NotificationsButton role="member" />
               <span className="text-xs font-medium text-brand-success bg-brand-success/10 px-2.5 py-1 rounded-full flex items-center gap-1.5">
                 Member
                 <button
