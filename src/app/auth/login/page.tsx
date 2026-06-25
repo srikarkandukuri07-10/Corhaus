@@ -54,7 +54,7 @@ function LoginForm() {
     setError(null);
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim().toLowerCase(),
         password,
       });
 
