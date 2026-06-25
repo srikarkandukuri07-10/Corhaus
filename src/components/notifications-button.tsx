@@ -22,9 +22,25 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
   useEffect(() => {
     async function fetchNotifications() {
       if (role === "admin") {
-        // Admin notifications are currently cleared out per request, 
-        // they just check active/inactive on the members list instead.
-        setNotifications([]);
+        const { data, error } = await supabase
+          .from("admin_notifications")
+          .select("id, message, created_at, is_read")
+          .eq("is_read", false)
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        if (!error && data) {
+          setNotifications(
+            data.map((n) => ({
+              id: n.id,
+              message: n.message,
+              time: new Date(n.created_at).toLocaleTimeString("en-IN", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            }))
+          );
+        }
         return;
       }
 
@@ -32,9 +48,7 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
         const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) return;
 
-        // Fetch today's bookings
         const today = new Date();
-        // Adjust for local timezone to get YYYY-MM-DD
         const todayStr = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, '0') + "-" + String(today.getDate()).padStart(2, '0');
 
         const { data, error } = await supabase
@@ -49,18 +63,16 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
           const now = new Date();
           
           data.forEach((booking: any) => {
-            const classTimeStr = booking.classes.class_time; // "HH:MM:SS"
+            const classTimeStr = booking.classes.class_time;
             if (!classTimeStr) return;
             
             const [hours, minutes] = classTimeStr.split(':').map(Number);
             const classDate = new Date();
             classDate.setHours(hours, minutes, 0, 0);
 
-            // Calculate difference in minutes
             const diffMs = classDate.getTime() - now.getTime();
             const diffMins = Math.floor(diffMs / 60000);
 
-            // If class is within the next 45 minutes and hasn't started yet
             if (diffMins > 0 && diffMins <= 45) {
               newNotifications.push({
                 id: booking.id,
@@ -77,12 +89,22 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
 
     fetchNotifications();
 
-    // Check every minute
-    const interval = setInterval(fetchNotifications, 60000);
+    const interval = setInterval(fetchNotifications, role === "admin" ? 15000 : 60000);
     return () => clearInterval(interval);
   }, [role, supabase]);
 
-  // Handle outside click to close dropdown
+  async function markAllRead() {
+    if (role !== "admin") return;
+    const unreadIds = notifications.map((n) => n.id);
+    if (unreadIds.length === 0) return;
+    await supabase
+      .from("admin_notifications")
+      .update({ is_read: true })
+      .in("id", unreadIds);
+    setNotifications([]);
+    setIsOpen(false);
+  }
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -109,9 +131,14 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-brand-sand/50 overflow-hidden z-50">
-          <div className="px-4 py-3 border-b border-brand-sand/50 bg-brand-cream/30">
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-brand-sand/50 overflow-hidden z-50">
+          <div className="px-4 py-3 border-b border-brand-sand/50 bg-brand-cream/30 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-brand-navy">Notifications</h3>
+            {role === "admin" && notifications.length > 0 && (
+              <button onClick={markAllRead} className="text-xs text-brand-brown hover:text-brand-brown-dark font-medium">
+                Mark all read
+              </button>
+            )}
           </div>
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
