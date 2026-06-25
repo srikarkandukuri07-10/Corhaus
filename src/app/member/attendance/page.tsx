@@ -29,6 +29,7 @@ export default function AttendancePage() {
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceData[]>([]);
   const [allPastClasses, setAllPastClasses] = useState<{class_date: string}[]>([]);
+  const [startDate, setStartDate] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const supabase = createClient();
@@ -40,18 +41,23 @@ export default function AttendancePage() {
     userIdRef.current = user.id;
 
     const today = new Date(Date.now() + IST_OFFSET_MS).toISOString().split("T")[0];
-    const thirtyDaysAgo = new Date(Date.now() + IST_OFFSET_MS - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+    const { data: profile } = await supabase.from("profiles").select("created_at").eq("id", user.id).single();
+    const joinedDate = profile?.created_at 
+      ? new Date(new Date(profile.created_at).getTime() + IST_OFFSET_MS).toISOString().split("T")[0]
+      : new Date(Date.now() + IST_OFFSET_MS - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
     const [br, ar, allCr] = await Promise.all([
       supabase.from("bookings").select("id, class_id, booking_status, classes(class_date)").eq("member_id", user.id),
       supabase.from("attendance").select("id, booking_id, class_id, attendance_status, classes(class_date)").eq("member_id", user.id),
-      supabase.from("classes").select("class_date").gte("class_date", thirtyDaysAgo).lte("class_date", today)
+      supabase.from("classes").select("class_date").gte("class_date", joinedDate).lte("class_date", today)
     ]);
 
     if (br.data) setBookings(br.data as unknown as BookingData[]);
     if (ar.data) setAttendanceRecords(ar.data as unknown as AttendanceData[]);
     if (allCr.data) setAllPastClasses(allCr.data as {class_date: string}[]);
     
+    setStartDate(joinedDate);
     setLoading(false);
   }, [supabase]);
 
@@ -94,6 +100,7 @@ export default function AttendancePage() {
           bookings={bookings}
           pastClasses={allPastClasses}
           currentTime={currentTime}
+          startDate={startDate}
         />
       )}
     </div>

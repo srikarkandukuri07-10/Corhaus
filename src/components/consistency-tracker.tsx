@@ -26,6 +26,7 @@ interface ConsistencyTrackerProps {
   bookings: BookingData[];
   pastClasses: { class_date: string }[];
   currentTime: number;
+  startDate: string;
 }
 
 export default function ConsistencyTracker({
@@ -33,6 +34,7 @@ export default function ConsistencyTracker({
   bookings,
   pastClasses,
   currentTime,
+  startDate,
 }: ConsistencyTrackerProps) {
   const [tooltip, setTooltip] = useState<{
     date: string;
@@ -150,12 +152,19 @@ export default function ConsistencyTracker({
     );
     
     const classOfferedDates = new Set(pastClasses.map(c => c.class_date));
+    const todayStr = now.toISOString().split("T")[0];
 
-    // Last 30 days
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
+    let current = new Date(startDate + "T00:00:00");
+    const end = new Date(todayStr + "T00:00:00");
+    
+    // Fallback if startDate is somehow invalid or in the future
+    if (isNaN(current.getTime()) || current > end) {
+      current = new Date(end);
+      current.setDate(current.getDate() - 29);
+    }
+
+    while (current <= end) {
+      const dateStr = current.toISOString().split("T")[0];
       
       let status: "attended" | "not-attended" | "no-class" = "no-class";
       
@@ -167,12 +176,14 @@ export default function ConsistencyTracker({
 
       days.push({
         dateStr,
-        displayDate: d.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" }),
+        displayDate: current.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" }),
         status,
       });
+
+      current.setDate(current.getDate() + 1);
     }
     return days;
-  }, [attendanceRecords, pastClasses, currentTime]);
+  }, [attendanceRecords, pastClasses, currentTime, startDate]);
 
   const getColor = (status: string) => {
     switch (status) {
