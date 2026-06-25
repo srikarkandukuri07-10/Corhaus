@@ -22,24 +22,23 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
   useEffect(() => {
     async function fetchNotifications() {
       if (role === "admin") {
-        const { data, error } = await supabase
-          .from("admin_notifications")
-          .select("id, message, created_at, is_read")
-          .eq("is_read", false)
-          .order("created_at", { ascending: false })
-          .limit(20);
-
-        if (!error && data) {
-          setNotifications(
-            data.map((n) => ({
-              id: n.id,
-              message: n.message,
-              time: new Date(n.created_at).toLocaleTimeString("en-IN", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-            }))
-          );
+        try {
+          const res = await fetch("/api/admin/notifications");
+          const json = await res.json();
+          if (json.notifications) {
+            setNotifications(
+              json.notifications.map((n: any) => ({
+                id: n.id,
+                message: n.message,
+                time: new Date(n.created_at).toLocaleTimeString("en-IN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+              }))
+            );
+          }
+        } catch {
+          // ignore fetch errors
         }
         return;
       }
@@ -97,10 +96,13 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
     if (role !== "admin") return;
     const unreadIds = notifications.map((n) => n.id);
     if (unreadIds.length === 0) return;
-    await supabase
-      .from("admin_notifications")
-      .update({ is_read: true })
-      .in("id", unreadIds);
+    try {
+      await fetch("/api/admin/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: unreadIds }),
+      });
+    } catch { }
     setNotifications([]);
     setIsOpen(false);
   }
