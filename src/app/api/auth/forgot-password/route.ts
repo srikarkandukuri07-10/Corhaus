@@ -28,18 +28,29 @@ export async function POST(request: Request) {
   }
 
   const code = String(Math.floor(Math.random() * 100)).padStart(2, "0");
+  const normalizedEmail = email.toLowerCase().trim();
+  console.log("[ForgotPassword] generating code for:", normalizedEmail, "code:", code);
 
-  await serviceClient.from("forgot_login_requests").insert({
-    email: email.toLowerCase().trim(),
+  const { error: insertError } = await serviceClient.from("forgot_login_requests").insert({
+    email: normalizedEmail,
     code,
     expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
   });
+  if (insertError) {
+    console.error("[ForgotPassword] insert request error:", insertError);
+    return NextResponse.json({ error: insertError.message }, { status: 500 });
+  }
 
-  await serviceClient.from("admin_notifications").insert({
+  const { error: notifError } = await serviceClient.from("admin_notifications").insert({
     type: "forgot_password",
-    email: email.toLowerCase().trim(),
-    message: `${code} is the confirmation code for login to ${email.toLowerCase().trim()}`,
+    email: normalizedEmail,
+    message: `${code} is the confirmation code for login to ${normalizedEmail}`,
   });
+  if (notifError) {
+    console.error("[ForgotPassword] insert notification error:", notifError);
+    return NextResponse.json({ error: notifError.message }, { status: 500 });
+  }
 
+  console.log("[ForgotPassword] success for:", normalizedEmail);
   return NextResponse.json({ success: true });
 }
