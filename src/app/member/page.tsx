@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import QRCode from "qrcode";
+import ConsistencyTracker from "@/components/consistency-tracker";
 
 interface ClassData {
   id: string;
@@ -18,6 +19,9 @@ interface BookingData {
   id: string;
   class_id: string;
   booking_status: string;
+  classes?: {
+    class_date: string;
+  };
 }
 
 interface AttendanceData {
@@ -73,6 +77,7 @@ export default function MemberDashboard() {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceData[]>([]);
+  const [allPastClasses, setAllPastClasses] = useState<{class_date: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
   const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
@@ -95,13 +100,15 @@ export default function MemberDashboard() {
     userIdRef.current = user.id;
 
     const today = new Date(Date.now() + IST_OFFSET_MS).toISOString().split("T")[0];
+    const thirtyDaysAgo = new Date(Date.now() + IST_OFFSET_MS - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
     console.log("FETCH: today (IST) =", today);
 
-    const [cr, br, ar] = await Promise.all([
+    const [cr, br, ar, allCr] = await Promise.all([
       supabase.from("classes").select("*").gte("class_date", today).order("class_date", { ascending: true }).order("class_time", { ascending: true }),
-      supabase.from("bookings").select("id, class_id, booking_status").eq("member_id", user.id).eq("booking_status", "booked"),
+      supabase.from("bookings").select("id, class_id, booking_status, classes(class_date)").eq("member_id", user.id),
       supabase.from("attendance").select("*, classes(class_date)").eq("member_id", user.id),
+      supabase.from("classes").select("class_date").gte("class_date", thirtyDaysAgo).lte("class_date", today)
     ]);
 
     if (cr.data) {
@@ -109,10 +116,11 @@ export default function MemberDashboard() {
       classesRef.current = cr.data;
     }
     if (br.data) {
-      setBookings(br.data);
-      bookingsRef.current = br.data;
+      setBookings(br.data as unknown as BookingData[]);
+      bookingsRef.current = br.data as unknown as BookingData[];
     }
     if (ar.data) setAttendanceRecords(ar.data as AttendanceData[]);
+    if (allCr.data) setAllPastClasses(allCr.data as {class_date: string}[]);
     setLoading(false);
   }, [supabase]);
 
@@ -303,14 +311,6 @@ export default function MemberDashboard() {
     return new Date(dateStr + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
   }
 
-  const currentMonthCount = attendanceRecords.filter(a => {
-    if (a.attendance_status !== "attended") return false;
-    if (!a.classes || !a.classes.class_date) return false;
-    if (!currentTime) return false;
-    const now = new Date(currentTime + IST_OFFSET_MS);
-    const currentYearMonth = now.toISOString().substring(0, 7);
-    return a.classes.class_date.startsWith(currentYearMonth);
-  }).length;
 
   return (
     <>
@@ -325,18 +325,12 @@ export default function MemberDashboard() {
         <p className="text-sm text-brand-navy/50 mt-1">Book your next Pilates session</p>
       </div>
 
-      {/* Monthly Attendance Card */}
-      <div className="bg-white rounded-2xl border border-brand-sand/50 p-6 shadow-sm flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-medium text-brand-navy/60 uppercase tracking-wide">Classes Attended This Month</h2>
-          <p className="text-4xl font-light text-brand-navy mt-1">{currentMonthCount}</p>
-        </div>
-        <div className="w-12 h-12 bg-brand-brown/10 rounded-full flex items-center justify-center text-brand-brown">
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-      </div>
+      <ConsistencyTracker 
+        attendanceRecords={attendanceRecords}
+        bookings={bookings}
+        pastClasses={allPastClasses}
+        currentTime={currentTime}
+      />
 
       {message && (
         <div className={`p-4 rounded-xl text-sm ${message.type === "success" ? "bg-brand-success/10 border border-brand-success/20 text-brand-success" : "bg-brand-error/10 border border-brand-error/20 text-brand-error"}`}>
