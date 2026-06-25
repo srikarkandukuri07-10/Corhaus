@@ -65,17 +65,19 @@ export async function updateSession(request: NextRequest) {
     if (!profile) {
       const { data: userData } = await supabase.auth.getUser();
       if (userData?.user) {
+        const rawEmail = userData.user.email ?? "";
+        const userEmail = rawEmail.trim().toLowerCase();
         await supabase.from("profiles").insert({
           id: userData.user.id,
           full_name: userData.user.user_metadata?.full_name ?? "",
           phone_number: userData.user.user_metadata?.phone_number ?? "",
-          email: userData.user.email ?? "",
+          email: userEmail,
           role:
-            userData.user.email === process.env.ADMIN_EMAIL
+            rawEmail === process.env.ADMIN_EMAIL
               ? "admin"
               : "member",
         });
-        console.log("CREATED MISSING PROFILE for:", userData.user.email);
+        console.log("CREATED MISSING PROFILE for:", userEmail);
       }
     }
   }
@@ -148,21 +150,27 @@ export async function updateSession(request: NextRequest) {
     // Member on /member route -> check approved_members
     if (pathname.startsWith("/member") && profile?.role === "member") {
       let approved = false;
-      const phone = profile?.phone_number ?? "";
+      const googleEmail = user.email ?? "";
+      const normalizedEmail = googleEmail.trim().toLowerCase();
+
+      console.log("APPROVED_MEMBER_EMAIL:", "(querying approved_members)");
+      console.log("GOOGLE_EMAIL:", googleEmail);
+      console.log("NORMALIZED_EMAIL:", normalizedEmail);
+
       try {
         const { data: result } = await serviceClient
           .from("approved_members")
           .select("id")
-          .eq("email", user.email)
-          .eq("phone_number", phone)
+          .ilike("email", normalizedEmail)
           .eq("membership_status", "active")
           .maybeSingle();
         approved = !!result;
+        console.log("MATCH_FOUND:", !!result);
       } catch (e) {
         console.log("APPROVED MEMBER CHECK ERROR:", e);
       }
 
-      console.log("APPROVED MEMBER CHECK: email=", user.email, "phone=", phone, "approved=", approved);
+      console.log("APPROVED MEMBER CHECK: email=", googleEmail, "normalized=", normalizedEmail, "approved=", approved);
 
       if (!approved) {
         console.log("DECISION: member not approved -> redirect to /auth/login");
@@ -176,6 +184,8 @@ export async function updateSession(request: NextRequest) {
         });
         return redirectRes;
       }
+
+      console.log("ACCESS_GRANTED:", normalizedEmail);
     }
 
     // Admin trying to access member routes (redirect to admin)
