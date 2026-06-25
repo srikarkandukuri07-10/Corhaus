@@ -61,82 +61,99 @@ export async function updateSession(request: NextRequest) {
     console.log("PROFILE FOUND:", !!profile);
     console.log("ROLE:", profile?.role);
 
-    // If no profile exists, create one on-the-fly
-    if (!profile) {
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData?.user) {
-        const rawEmail = userData.user.email ?? "";
-        const userEmail = rawEmail.trim().toLowerCase();
-        await supabase.from("profiles").insert({
-          id: userData.user.id,
-          full_name: userData.user.user_metadata?.full_name ?? "",
-          phone_number: userData.user.user_metadata?.phone_number ?? "",
-          email: userEmail,
-          role:
-            rawEmail === process.env.ADMIN_EMAIL
-              ? "admin"
-              : "member",
-        });
-        console.log("CREATED MISSING PROFILE for:", userEmail);
+    let userRole = profile?.role;
+    let isApproved = false;
+    let matchedMemberEmail = "none";
+    const googleEmail = user.email ?? "";
+    const normalizedEmail = googleEmail.trim().toLowerCase();
+
+    // Check if they are admin first
+    if (googleEmail === process.env.ADMIN_EMAIL || userRole === "admin") {
+      isApproved = true;
+      userRole = "admin";
+    } else {
+      // Check approved_members for everyone else!
+      try {
+        const { data: results } = await serviceClient
+          .from("approved_members")
+          .select("id, email")
+          .eq("membership_status", "active");
+
+        const match = results?.find(
+          (r) => r.email.trim().toLowerCase() === normalizedEmail
+        );
+        isApproved = !!match;
+        if (match) {
+          matchedMemberEmail = match.email;
+        }
+      } catch (e) {
+        console.log("APPROVED MEMBER CHECK ERROR:", e);
       }
     }
-  }
 
-  // Protected routes that require authentication
-  const protectedRoutes = ["/admin", "/member"];
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
+    // Required Debug Logs
+    console.log("GOOGLE_EMAIL:", googleEmail);
+    console.log("NORMALIZED_EMAIL:", normalizedEmail);
+    console.log("APPROVED_MEMBER_EMAIL:", matchedMemberEmail);
+    console.log("MATCH_FOUND:", isApproved);
 
-  // Auth routes (login/signup) - redirect to dashboard if already logged in
-  const authRoutes = ["/auth/login", "/auth/signup"];
-  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+    if (!isApproved) {
+      console.log("DECISION: member not approved -> redirect to /auth/login");
+      try {
+        await supabase.auth.signOut();
+      } catch {}
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/login";
+      url.searchParams.set("error", "not_approved");
+      const redirectRes = NextResponse.redirect(url);
+      supabaseResponse.cookies.getAll().forEach((c) => {
+        redirectRes.cookies.set(c.name, c.value);
+      });
+      return redirectRes;
+    }
 
-  // If not logged in and trying to access protected route
-  if (!user && isProtectedRoute) {
-    console.log("DECISION: not authenticated on protected route -> redirect to /auth/login");
-    const url = request.nextUrl.clone();
-    url.pathname = "/auth/login";
-    const redirectRes = NextResponse.redirect(url);
-    supabaseResponse.cookies.getAll().forEach((c) => {
-      redirectRes.cookies.set(c.name, c.value);
-    });
-    return redirectRes;
-  }
+    console.log("ACCESS_GRANTED: true");
 
-  // If logged in and trying to access auth routes, redirect to appropriate dashboard
-  if (user && isAuthRoute) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
+    // Now if they don't have a profile, create it (since they are approved)
+    if (!profile) {
+      console.log("PROFILE_CREATED: true");
+      userRole = userRole || "member";
+      await supabase.from("profiles").insert({
+        id: user.id,
+        full_name: user.user_metadata?.full_name ?? "",
+        phone_number: user.user_metadata?.phone_number ?? "",
+        email: normalizedEmail,
+        role: userRole,
+      });
+    } else {
+      console.log("PROFILE_CREATED: false");
+    }
 
-    const target = profile?.role === "admin" ? "/admin" : "/member";
-    console.log("DECISION: on auth route, role is", profile?.role, "-> redirect to", target);
-    const url = request.nextUrl.clone();
-    url.pathname = target;
-    const redirectRes = NextResponse.redirect(url);
-    supabaseResponse.cookies.getAll().forEach((c) => {
-      redirectRes.cookies.set(c.name, c.value);
-    });
-    return redirectRes;
-  }
+    // Protected routes that require authentication
+    const protectedRoutes = ["/admin", "/member"];
+    const isProtectedRoute = protectedRoutes.some((route) =>
+      pathname.startsWith(route)
+    );
 
-  // If logged in, check role-based access
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, phone_number")
-      .eq("id", user.id)
-      .maybeSingle();
+    // Auth routes (login/signup) - redirect to dashboard if already logged in
+    const authRoutes = ["/auth/login", "/auth/signup"];
+    const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+
+    // If logged in and trying to access auth routes, redirect to appropriate dashboard
+    if (isAuthRoute) {
+      const target = userRole === "admin" ? "/admin" : "/member";
+      console.log("DECISION: on auth route, role is", userRole, "-> redirect to", target);
+      const url = request.nextUrl.clone();
+      url.pathname = target;
+      const redirectRes = NextResponse.redirect(url);
+      supabaseResponse.cookies.getAll().forEach((c) => {
+        redirectRes.cookies.set(c.name, c.value);
+      });
+      return redirectRes;
+    }
 
     // Member trying to access admin routes
-    if (
-      pathname.startsWith("/admin") &&
-      profile?.role !== "admin" &&
-      profile !== null
-    ) {
+    if (pathname.startsWith("/admin") && userRole !== "admin") {
       console.log("DECISION: non-admin on /admin -> redirect to /member");
       const url = request.nextUrl.clone();
       url.pathname = "/member";
@@ -147,49 +164,8 @@ export async function updateSession(request: NextRequest) {
       return redirectRes;
     }
 
-    // Member on /member route -> check approved_members
-    if (pathname.startsWith("/member") && profile?.role === "member") {
-      let approved = false;
-      const googleEmail = user.email ?? "";
-      const normalizedEmail = googleEmail.trim().toLowerCase();
-
-      console.log("APPROVED_MEMBER_EMAIL:", "(querying approved_members)");
-      console.log("GOOGLE_EMAIL:", googleEmail);
-      console.log("NORMALIZED_EMAIL:", normalizedEmail);
-
-      try {
-        const { data: result } = await serviceClient
-          .from("approved_members")
-          .select("id")
-          .ilike("email", normalizedEmail)
-          .eq("membership_status", "active")
-          .maybeSingle();
-        approved = !!result;
-        console.log("MATCH_FOUND:", !!result);
-      } catch (e) {
-        console.log("APPROVED MEMBER CHECK ERROR:", e);
-      }
-
-      console.log("APPROVED MEMBER CHECK: email=", googleEmail, "normalized=", normalizedEmail, "approved=", approved);
-
-      if (!approved) {
-        console.log("DECISION: member not approved -> redirect to /auth/login");
-        try { await supabase.auth.signOut(); } catch { }
-        const url = request.nextUrl.clone();
-        url.pathname = "/auth/login";
-        url.searchParams.set("error", "not_approved");
-        const redirectRes = NextResponse.redirect(url);
-        supabaseResponse.cookies.getAll().forEach((c) => {
-          redirectRes.cookies.set(c.name, c.value);
-        });
-        return redirectRes;
-      }
-
-      console.log("ACCESS_GRANTED:", normalizedEmail);
-    }
-
     // Admin trying to access member routes (redirect to admin)
-    if (pathname.startsWith("/member") && profile?.role === "admin") {
+    if (pathname.startsWith("/member") && userRole === "admin") {
       console.log("DECISION: admin on /member -> redirect to /admin");
       const url = request.nextUrl.clone();
       url.pathname = "/admin";
@@ -201,12 +177,42 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // Protected routes that require authentication (when not logged in)
+  const protectedRoutes = ["/admin", "/member"];
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
+  if (!user && isProtectedRoute) {
+    console.log("DECISION: not authenticated on protected route -> redirect to /auth/login");
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/login";
+    const redirectRes = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((c) => {
+      redirectRes.cookies.set(c.name, c.value);
+    });
+    return redirectRes;
+  }
+
   // Redirect root to appropriate page
   if (pathname === "/") {
     if (!user) {
       console.log("DECISION: root, not authenticated -> redirect to /auth/login");
       const url = request.nextUrl.clone();
       url.pathname = "/auth/login";
+      const redirectRes = NextResponse.redirect(url);
+      supabaseResponse.cookies.getAll().forEach((c) => {
+        redirectRes.cookies.set(c.name, c.value);
+      });
+      return redirectRes;
+    } else {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      const target = profile?.role === "admin" || user.email === process.env.ADMIN_EMAIL ? "/admin" : "/member";
+      const url = request.nextUrl.clone();
+      url.pathname = target;
       const redirectRes = NextResponse.redirect(url);
       supabaseResponse.cookies.getAll().forEach((c) => {
         redirectRes.cookies.set(c.name, c.value);
