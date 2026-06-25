@@ -87,6 +87,7 @@ export default function MemberLayout({
   const navItems = [
     { href: "/member", label: "Classes", exact: true },
     { href: "/member/bookings", label: "My Bookings", exact: true },
+    { href: "/member/attendance", label: "Attendance Tracker", exact: false },
   ];
 
   return (

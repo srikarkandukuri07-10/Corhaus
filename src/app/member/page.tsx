@@ -4,8 +4,6 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import QRCode from "qrcode";
-import ConsistencyTracker from "@/components/consistency-tracker";
-
 interface ClassData {
   id: string;
   title: string;
@@ -77,7 +75,6 @@ export default function MemberDashboard() {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceData[]>([]);
-  const [allPastClasses, setAllPastClasses] = useState<{class_date: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
   const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
@@ -100,15 +97,13 @@ export default function MemberDashboard() {
     userIdRef.current = user.id;
 
     const today = new Date(Date.now() + IST_OFFSET_MS).toISOString().split("T")[0];
-    const thirtyDaysAgo = new Date(Date.now() + IST_OFFSET_MS - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
     console.log("FETCH: today (IST) =", today);
 
-    const [cr, br, ar, allCr] = await Promise.all([
+    const [cr, br, ar] = await Promise.all([
       supabase.from("classes").select("*").gte("class_date", today).order("class_date", { ascending: true }).order("class_time", { ascending: true }),
       supabase.from("bookings").select("id, class_id, booking_status, classes(class_date)").eq("member_id", user.id),
       supabase.from("attendance").select("*, classes(class_date)").eq("member_id", user.id),
-      supabase.from("classes").select("class_date").gte("class_date", thirtyDaysAgo).lte("class_date", today)
     ]);
 
     if (cr.data) {
@@ -120,7 +115,6 @@ export default function MemberDashboard() {
       bookingsRef.current = br.data as unknown as BookingData[];
     }
     if (ar.data) setAttendanceRecords(ar.data as AttendanceData[]);
-    if (allCr.data) setAllPastClasses(allCr.data as {class_date: string}[]);
     setLoading(false);
   }, [supabase]);
 
@@ -324,13 +318,6 @@ export default function MemberDashboard() {
         <h1 className="text-2xl font-light text-brand-navy">Available <span className="font-medium">Classes</span></h1>
         <p className="text-sm text-brand-navy/50 mt-1">Book your next Pilates session</p>
       </div>
-
-      <ConsistencyTracker 
-        attendanceRecords={attendanceRecords}
-        bookings={bookings}
-        pastClasses={allPastClasses}
-        currentTime={currentTime}
-      />
 
       {message && (
         <div className={`p-4 rounded-xl text-sm ${message.type === "success" ? "bg-brand-success/10 border border-brand-success/20 text-brand-success" : "bg-brand-error/10 border border-brand-error/20 text-brand-error"}`}>
