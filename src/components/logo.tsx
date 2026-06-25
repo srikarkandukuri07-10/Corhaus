@@ -2,9 +2,9 @@ import Link from "next/link";
 
 export default function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const textSize =
-    size === "lg" ? "text-3xl" : size === "md" ? "text-2xl" : "text-lg";
+    size === "lg" ? "text-3xl" : size === "md" ? "text-2xl" : "text-xl";
   const subtextSize =
-    size === "lg" ? "text-xs" : size === "md" ? "text-[10px]" : "text-[9px]";
+    size === "lg" ? "text-xs" : size === "md" ? "text-[11px]" : "text-[10px]";
 
   return (
     <Link href="/" className="inline-block">
