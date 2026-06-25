@@ -58,7 +58,6 @@ export default function ConsistencyTracker({
     const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
     const now = new Date(currentTime + IST_OFFSET_MS);
     const todayStr = now.toISOString().split("T")[0];
-    const currentMonthPrefix = todayStr.substring(0, 7);
 
     // Get all unique attended dates (historical)
     const attendedDates = Array.from(
@@ -109,31 +108,31 @@ export default function ConsistencyTracker({
       }
     }
 
-    // 3. This Month Attended
-    const attendedThisMonth = attendedDates.filter((d) => d.startsWith(currentMonthPrefix)).length;
+    // 3. Lifetime Attended
+    const attendedLifetime = attendedDates.length;
 
-    // 4. Attendance Rate
-    const uniqueBookedDatesThisMonth = new Set<string>();
+    // 4. Lifetime Attendance Rate
+    const uniqueBookedDatesLifetime = new Set<string>();
     
     bookings.forEach(b => {
-      if (b.booking_status === "booked" && b.classes?.class_date?.startsWith(currentMonthPrefix)) {
-        uniqueBookedDatesThisMonth.add(b.classes.class_date);
+      if (b.booking_status === "booked" && b.classes?.class_date) {
+        uniqueBookedDatesLifetime.add(b.classes.class_date);
       }
     });
 
     attendanceRecords.forEach(a => {
-      if (a.attendance_status === "attended" && a.classes?.class_date?.startsWith(currentMonthPrefix)) {
-        uniqueBookedDatesThisMonth.add(a.classes.class_date);
+      if (a.attendance_status === "attended" && a.classes?.class_date) {
+        uniqueBookedDatesLifetime.add(a.classes.class_date);
       }
     });
 
-    const totalBookedThisMonth = uniqueBookedDatesThisMonth.size;
-    const rate = totalBookedThisMonth === 0 ? (attendedThisMonth > 0 ? 100 : 0) : Math.round((attendedThisMonth / totalBookedThisMonth) * 100);
+    const totalBookedLifetime = uniqueBookedDatesLifetime.size;
+    const rate = totalBookedLifetime === 0 ? (attendedLifetime > 0 ? 100 : 0) : Math.round((attendedLifetime / totalBookedLifetime) * 100);
 
     return {
       currentStreak,
       longestStreak,
-      attendedThisMonth,
+      attendedLifetime,
       rate,
     };
   }, [attendanceRecords, bookings, currentTime]);
@@ -215,8 +214,8 @@ export default function ConsistencyTracker({
           <p className="text-2xl font-light text-brand-navy">{stats.longestStreak} <span className="text-sm font-medium text-brand-navy/60">Days</span></p>
         </div>
         <div className="p-4 rounded-xl bg-brand-cream/50 border border-brand-sand/50">
-          <p className="text-xs font-medium text-brand-navy/50 uppercase tracking-wider mb-1">Classes This Month</p>
-          <p className="text-2xl font-light text-brand-navy">{stats.attendedThisMonth}</p>
+          <p className="text-xs font-medium text-brand-navy/50 uppercase tracking-wider mb-1">Total Classes</p>
+          <p className="text-2xl font-light text-brand-navy">{stats.attendedLifetime}</p>
         </div>
         <div className="p-4 rounded-xl bg-brand-cream/50 border border-brand-sand/50">
           <p className="text-xs font-medium text-brand-navy/50 uppercase tracking-wider mb-1">Attendance Rate</p>
