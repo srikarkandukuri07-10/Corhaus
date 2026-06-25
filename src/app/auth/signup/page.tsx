@@ -139,7 +139,7 @@ export default function SignupPage() {
 
             <div>
               <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
-                Password
+                Set a password for your dashboard
               </label>
               <input
                 type="password"

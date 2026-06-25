@@ -42,10 +42,6 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<"login" | "forgot" | "code">("login");
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const supabase = createClient();
   const searchParams = useSearchParams();
 
@@ -103,51 +99,6 @@ function LoginForm() {
     }
   }
 
-  async function handleForgotPassword() {
-    setLoading(true);
-    setError(null);
-    setSuccessMsg(null);
-    try {
-      const res = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: forgotEmail }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Something went wrong");
-        setLoading(false);
-        return;
-      }
-      setSuccessMsg("If the email is registered with an active membership, a confirmation code has been sent to the admin.");
-      setMode("code");
-    } catch {
-      setError("Network error. Please try again.");
-      setLoading(false);
-    }
-  }
-
-  async function handleVerifyCode() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/auth/forgot-password/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: forgotEmail, code }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Invalid code");
-        setLoading(false);
-        return;
-      }
-      window.location.href = data.redirectUrl;
-    } catch {
-      setError("Network error. Please try again.");
-      setLoading(false);
-    }
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-cream px-4">
@@ -162,9 +113,7 @@ function LoginForm() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg shadow-brand-navy/5 p-8 border border-brand-sand/50">
-          {mode === "login" && (
-            <>
-              <h2 className="text-xl font-medium text-brand-navy mb-6">Welcome back</h2>
+          <h2 className="text-xl font-medium text-brand-navy mb-6">Welcome back</h2>
 
               {notApprovedError && (
                 <div className="mb-4 p-4 rounded-xl bg-brand-error/10 border border-brand-error/20 text-brand-error text-sm leading-relaxed">
@@ -211,15 +160,6 @@ function LoginForm() {
                 </button>
               </form>
 
-              <div className="mt-3 text-center">
-                <button
-                  type="button"
-                  onClick={() => { setMode("forgot"); setError(null); }}
-                  className="text-sm text-brand-brown hover:text-brand-brown-dark font-medium transition-colors"
-                >
-                  Forgot password?
-                </button>
-              </div>
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
@@ -259,99 +199,6 @@ function LoginForm() {
                   Sign up
                 </Link>
               </p>
-            </>
-          )}
-
-          {mode === "forgot" && (
-            <>
-              <h2 className="text-xl font-medium text-brand-navy mb-2">Forgot password</h2>
-              <p className="text-sm text-brand-navy/50 mb-6">Enter your email below. The admin will provide a confirmation code.</p>
-
-              {error && (
-                <div className="mb-4 p-3 rounded-lg bg-brand-error/10 border border-brand-error/20 text-brand-error text-sm">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={(e) => { e.preventDefault(); handleForgotPassword(); }} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">Email</label>
-                  <input
-                    type="email"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all"
-                    placeholder="you@example.com"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 rounded-xl bg-brand-navy text-white font-medium hover:bg-brand-navy/90 transition-colors disabled:opacity-50"
-                >
-                  {loading ? "Checking..." : "Send Request"}
-                </button>
-              </form>
-
-              <button
-                type="button"
-                onClick={() => { setMode("login"); setError(null); }}
-                className="mt-4 w-full text-center text-sm text-brand-navy/50 hover:text-brand-navy transition-colors"
-              >
-                Back to login
-              </button>
-            </>
-          )}
-
-          {mode === "code" && (
-            <>
-              <h2 className="text-xl font-medium text-brand-navy mb-2">Enter confirmation code</h2>
-              {successMsg && (
-                <div className="mb-4 p-3 rounded-xl bg-brand-success/10 border border-brand-success/20 text-brand-success text-sm">
-                  {successMsg}
-                </div>
-              )}
-
-              {error && (
-                <div className="mb-4 p-3 rounded-lg bg-brand-error/10 border border-brand-error/20 text-brand-error text-sm">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={(e) => { e.preventDefault(); handleVerifyCode(); }} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
-                    2-digit confirmation code
-                  </label>
-                  <input
-                    type="text"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 2))}
-                    required
-                    maxLength={2}
-                    className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all text-center text-2xl tracking-widest"
-                    placeholder="00"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading || code.length !== 2}
-                  className="w-full py-3 rounded-xl bg-brand-navy text-white font-medium hover:bg-brand-navy/90 transition-colors disabled:opacity-50"
-                >
-                  {loading ? "Verifying..." : "Sign In"}
-                </button>
-              </form>
-
-              <button
-                type="button"
-                onClick={() => { setMode("forgot"); setError(null); setSuccessMsg(null); }}
-                className="mt-3 w-full text-center text-sm text-brand-navy/50 hover:text-brand-navy transition-colors"
-              >
-                Resend request
-              </button>
-            </>
-          )}
         </div>
       </div>
     </div>

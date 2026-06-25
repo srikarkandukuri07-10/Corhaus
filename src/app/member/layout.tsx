@@ -18,6 +18,8 @@ export default function MemberLayout({
   const [loading, setLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [showPasswordBanner, setShowPasswordBanner] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
@@ -39,6 +41,11 @@ export default function MemberLayout({
       }
 
       console.log("AUTH USER EMAIL:", user.email);
+
+      const providers = user.app_metadata?.providers || [];
+      if (providers.includes("google") && !providers.includes("email")) {
+        setNeedsPassword(true);
+      }
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -152,6 +159,22 @@ export default function MemberLayout({
           })}
         </div>
       </header>
+
+      {needsPassword && showPasswordBanner && (
+        <div className="bg-brand-navy text-white px-4 py-3 flex items-center justify-between animate-fade-in relative z-40">
+          <div className="flex-1 text-center text-sm font-medium">
+            Please secure your account by setting a password in your Profile Settings.
+          </div>
+          <button 
+            onClick={() => setShowPasswordBanner(false)}
+            className="p-1 hover:bg-white/10 rounded-lg transition-colors absolute right-4"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}

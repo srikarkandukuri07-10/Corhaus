@@ -24,6 +24,10 @@ export default function ProfileModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [hasEmailProvider, setHasEmailProvider] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
@@ -36,6 +40,8 @@ export default function ProfileModal({
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      setHasEmailProvider(user.app_metadata?.providers?.includes("email") || false);
 
       const { data } = await supabase
         .from("profiles")
@@ -74,6 +80,31 @@ export default function ProfileModal({
     setEditing(false);
     setSuccess(true);
     setSaving(false);
+  }
+
+  async function handlePasswordChange() {
+    if (!newPassword || newPassword.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    setPasswordSuccess(false);
+    setSuccess(false);
+
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+
+    if (updateError) {
+      setError(updateError.message);
+      setSaving(false);
+      return;
+    }
+
+    setPasswordSuccess(true);
+    setNewPassword("");
+    setIsChangingPassword(false);
+    setSaving(false);
+    setHasEmailProvider(true); // they now have an email provider link
   }
 
   if (!open) return null;
@@ -176,6 +207,51 @@ export default function ProfileModal({
                 </button>
               )}
             </div>
+
+            <div className="pt-4 border-t border-brand-sand/50 mt-4">
+              <label className="block text-sm font-medium text-brand-navy/60 mb-2">Security</label>
+              
+              {passwordSuccess && (
+                <p className="text-sm text-brand-success bg-brand-success/10 px-3 py-2 rounded-lg mb-3">
+                  Password updated successfully!
+                </p>
+              )}
+
+              {isChangingPassword ? (
+                <div className="space-y-3">
+                  <input
+                    type="password"
+                    placeholder="New password (min 6 chars)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-brand-sand bg-white text-brand-navy text-sm transition-all"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setIsChangingPassword(false); setNewPassword(""); }}
+                      className="flex-1 px-3 py-2 rounded-xl border border-brand-sand text-brand-navy/60 font-medium hover:bg-brand-beige transition-colors text-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handlePasswordChange}
+                      disabled={saving || newPassword.length < 6}
+                      className="flex-1 px-3 py-2 rounded-xl bg-brand-navy text-white font-medium hover:bg-brand-navy/90 transition-colors disabled:opacity-50 text-sm"
+                    >
+                      {saving ? "Saving..." : "Save Password"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setIsChangingPassword(true); setSuccess(false); setPasswordSuccess(false); setError(null); }}
+                  className="w-full px-4 py-2.5 rounded-xl border border-brand-sand text-brand-navy font-medium hover:bg-brand-beige transition-colors text-sm"
+                >
+                  {hasEmailProvider ? "Change Password" : "Set Password"}
+                </button>
+              )}
+            </div>
+
           </div>
         )}
       </div>
