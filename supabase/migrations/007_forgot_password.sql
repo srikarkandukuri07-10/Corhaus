@@ -50,4 +50,12 @@ DROP POLICY IF EXISTS "Service role can manage forgot requests" ON forgot_login_
 CREATE POLICY "Service role can manage forgot requests" ON forgot_login_requests
   FOR ALL USING (true);
 
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS admin_notifications;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'admin_notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE admin_notifications;
+  END IF;
+END $$;
