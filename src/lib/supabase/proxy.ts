@@ -39,17 +39,22 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  console.log("=== PROXY (SERVER) ===");
-  console.log("REQUEST PATH:", pathname);
+  const isDev = process.env.NODE_ENV === "development";
+  const devLog = (...args: any[]) => {
+    if (isDev) console.log(...args);
+  };
+
+  devLog("=== PROXY (SERVER) ===");
+  devLog("REQUEST PATH:", pathname);
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    console.log("AUTH USER: null (not authenticated)");
+    devLog("AUTH USER: null (not authenticated)");
   } else {
-    console.log("AUTH USER EMAIL:", user.email);
+    devLog("AUTH USER EMAIL:", user.email);
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
@@ -57,9 +62,9 @@ export async function updateSession(request: NextRequest) {
       .eq("id", user.id)
       .maybeSingle();
 
-    console.log("PROFILE QUERY ERROR:", profileError);
-    console.log("PROFILE FOUND:", !!profile);
-    console.log("ROLE:", profile?.role);
+    devLog("PROFILE QUERY ERROR:", profileError);
+    devLog("PROFILE FOUND:", !!profile);
+    devLog("ROLE:", profile?.role);
 
     let userRole = profile?.role;
     let isApproved = false;
@@ -87,18 +92,18 @@ export async function updateSession(request: NextRequest) {
           matchedMemberEmail = match.email;
         }
       } catch (e) {
-        console.log("APPROVED MEMBER CHECK ERROR:", e);
+        devLog("APPROVED MEMBER CHECK ERROR:", e);
       }
     }
 
     // Required Debug Logs
-    console.log("GOOGLE_EMAIL:", googleEmail);
-    console.log("NORMALIZED_EMAIL:", normalizedEmail);
-    console.log("APPROVED_MEMBER_EMAIL:", matchedMemberEmail);
-    console.log("MATCH_FOUND:", isApproved);
+    devLog("GOOGLE_EMAIL:", googleEmail);
+    devLog("NORMALIZED_EMAIL:", normalizedEmail);
+    devLog("APPROVED_MEMBER_EMAIL:", matchedMemberEmail);
+    devLog("MATCH_FOUND:", isApproved);
 
     if (!isApproved) {
-      console.log("DECISION: member not approved -> redirect to /auth/login");
+      devLog("DECISION: member not approved -> redirect to /auth/login");
       try {
         await supabase.auth.signOut();
       } catch {}
@@ -112,11 +117,11 @@ export async function updateSession(request: NextRequest) {
       return redirectRes;
     }
 
-    console.log("ACCESS_GRANTED: true");
+    devLog("ACCESS_GRANTED: true");
 
     // Now if they don't have a profile, create it (since they are approved)
     if (!profile) {
-      console.log("PROFILE_CREATED: true");
+      devLog("PROFILE_CREATED: true");
       userRole = userRole || "member";
       await supabase.from("profiles").insert({
         id: user.id,
@@ -126,7 +131,7 @@ export async function updateSession(request: NextRequest) {
         role: userRole,
       });
     } else {
-      console.log("PROFILE_CREATED: false");
+      devLog("PROFILE_CREATED: false");
     }
 
     // Protected routes that require authentication
@@ -142,7 +147,7 @@ export async function updateSession(request: NextRequest) {
     // If logged in and trying to access auth routes, redirect to appropriate dashboard
     if (isAuthRoute) {
       const target = userRole === "admin" ? "/admin" : "/member";
-      console.log("DECISION: on auth route, role is", userRole, "-> redirect to", target);
+      devLog("DECISION: on auth route, role is", userRole, "-> redirect to", target);
       const url = request.nextUrl.clone();
       url.pathname = target;
       const redirectRes = NextResponse.redirect(url);
@@ -154,7 +159,7 @@ export async function updateSession(request: NextRequest) {
 
     // Member trying to access admin routes
     if (pathname.startsWith("/admin") && userRole !== "admin") {
-      console.log("DECISION: non-admin on /admin -> redirect to /member");
+      devLog("DECISION: non-admin on /admin -> redirect to /member");
       const url = request.nextUrl.clone();
       url.pathname = "/member";
       const redirectRes = NextResponse.redirect(url);
@@ -166,7 +171,7 @@ export async function updateSession(request: NextRequest) {
 
     // Admin trying to access member routes (redirect to admin)
     if (pathname.startsWith("/member") && userRole === "admin") {
-      console.log("DECISION: admin on /member -> redirect to /admin");
+      devLog("DECISION: admin on /member -> redirect to /admin");
       const url = request.nextUrl.clone();
       url.pathname = "/admin";
       const redirectRes = NextResponse.redirect(url);
@@ -183,7 +188,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith(route)
   );
   if (!user && isProtectedRoute) {
-    console.log("DECISION: not authenticated on protected route -> redirect to /auth/login");
+    devLog("DECISION: not authenticated on protected route -> redirect to /auth/login");
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
     const redirectRes = NextResponse.redirect(url);
@@ -196,7 +201,7 @@ export async function updateSession(request: NextRequest) {
   // Redirect root to appropriate page
   if (pathname === "/") {
     if (!user) {
-      console.log("DECISION: root, not authenticated -> redirect to /auth/login");
+      devLog("DECISION: root, not authenticated -> redirect to /auth/login");
       const url = request.nextUrl.clone();
       url.pathname = "/auth/login";
       const redirectRes = NextResponse.redirect(url);
@@ -221,6 +226,6 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  console.log("DECISION: allow request to proceed");
+  devLog("DECISION: allow request to proceed");
   return supabaseResponse;
 }

@@ -28,9 +28,6 @@ export default function CreateClassPage() {
       return;
     }
 
-    console.log("=== ADMIN CREATE CLASS ===");
-    console.log("INSERT PAYLOAD:", { title, instructor, class_date: classDate, class_time: classTime, max_capacity: capacity });
-
     const { data: insertData, error: insertError } = await supabase
       .from("classes")
       .insert({
@@ -41,10 +38,6 @@ export default function CreateClassPage() {
         max_capacity: capacity,
       })
       .select();
-
-    console.log("INSERT RESPONSE ERROR:", insertError);
-    console.log("INSERT RESPONSE DATA:", insertData);
-    console.log("INSERTED CLASS ID:", insertData?.[0]?.id);
 
     if (insertError) {
       setError(insertError.message);

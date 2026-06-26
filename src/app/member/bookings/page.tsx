@@ -85,10 +85,14 @@ export default function BookingsPage() {
     setCancellingId(bookingId);
     setMessage(null);
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { error } = await supabase
       .from("bookings")
       .update({ booking_status: "cancelled" })
-      .eq("id", bookingId);
+      .eq("id", bookingId)
+      .eq("member_id", user.id);
 
     if (error) {
       setMessage({ type: "error", text: error.message });

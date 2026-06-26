@@ -98,8 +98,6 @@ export default function MemberDashboard() {
 
     const today = new Date(Date.now() + IST_OFFSET_MS).toISOString().split("T")[0];
 
-    console.log("FETCH: today (IST) =", today);
-
     const [cr, br, ar] = await Promise.all([
       supabase.from("classes").select("*").gte("class_date", today).order("class_date", { ascending: true }).order("class_time", { ascending: true }),
       supabase.from("bookings").select("id, class_id, booking_status, classes(class_date)").eq("member_id", user.id),
@@ -257,7 +255,7 @@ export default function MemberDashboard() {
       return;
     }
 
-    const { count } = await supabase.from("bookings").select("*", { count: "exact", head: true }).eq("class_id", cls.id).eq("booking_status", "booked");
+    const { data: count } = await supabase.rpc("get_booking_count", { p_class_id: cls.id });
     if (count !== null && count >= cls.max_capacity) {
       setMessage({ type: "error", text: "Class is fully booked." });
       return;
@@ -288,7 +286,7 @@ export default function MemberDashboard() {
     const booking = bookings.find(b => b.class_id === cls.id && b.booking_status === "booked");
     if (!booking) return;
     setBookingLoading(cls.id);
-    const { error } = await supabase.from("bookings").update({ booking_status: "cancelled" }).eq("id", booking.id);
+    const { error } = await supabase.from("bookings").update({ booking_status: "cancelled" }).eq("id", booking.id).eq("member_id", uid);
     setBookingLoading(null);
     if (error) { setMessage({ type: "error", text: error.message }); return; }
     setMessage({ type: "success", text: "Booking cancelled successfully!" });

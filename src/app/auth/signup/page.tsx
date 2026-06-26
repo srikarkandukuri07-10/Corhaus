@@ -20,7 +20,6 @@ export default function SignupPage() {
   }
 
   async function handleSignup(e: React.FormEvent) {
-    console.log("BUTTON_CLICKED");
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -52,7 +51,6 @@ export default function SignupPage() {
   }
 
   async function handleGoogleSignup() {
-    console.log("GOOGLE_BUTTON_CLICKED");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -176,7 +174,6 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              onClick={() => console.log("CREATE_ACCOUNT_CLICKED")}
               className="w-full py-3 rounded-xl bg-brand-navy text-white font-medium hover:bg-brand-navy/90 transition-colors disabled:opacity-50 [touch-action:manipulation]"
             >
               {loading ? "Creating account..." : "Create Account"}
@@ -221,7 +218,6 @@ export default function SignupPage() {
             Already have an account?{" "}
             <Link
               href="/auth/login"
-              onClick={() => console.log("SIGNIN_LINK_CLICKED")}
               className="text-brand-brown font-medium hover:text-brand-brown-dark transition-colors"
             >
               Sign in

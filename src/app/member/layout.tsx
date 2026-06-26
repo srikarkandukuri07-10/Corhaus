@@ -28,42 +28,28 @@ export default function MemberLayout({
     async function checkAuth() {
       const {
         data: { user },
-        error: userError,
       } = await supabase.auth.getUser();
 
-      console.log("=== MEMBER LAYOUT (CLIENT) ===");
-      console.log("GETUSER ERROR:", userError);
-
       if (!user) {
-        console.log("AUTH USER: null -> redirecting to /auth/login");
         router.push("/auth/login");
         return;
       }
-
-      console.log("AUTH USER EMAIL:", user.email);
 
       const providers = user.app_metadata?.providers || [];
       if (providers.includes("google") && !providers.includes("email")) {
         setNeedsPassword(true);
       }
 
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from("profiles")
         .select("role, phone_number")
         .eq("id", user.id)
         .maybeSingle();
 
-      console.log("PROFILE QUERY ERROR:", profileError);
-      console.log("PROFILE FOUND:", !!profile);
-      console.log("ROLE:", profile?.role);
-
       if (profile?.role === "admin") {
-        console.log("DECISION: role is admin -> redirect to /admin");
         router.push("/admin");
         return;
       }
-
-      console.log("DECISION: role is member or null -> staying on /member");
       setIsMember(true);
       setLoading(false);
     }

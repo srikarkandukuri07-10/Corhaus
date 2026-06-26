@@ -39,7 +39,6 @@ export default function ScannerPage() {
   }
 
   async function markAttendance(bookingId: string, token: string) {
-    console.log("ATTENDANCE_LOOKUP", { bookingId, token });
     try {
       const res = await fetch("/api/attendance/scan", {
         method: "POST",
@@ -50,7 +49,6 @@ export default function ScannerPage() {
       const data = await res.json();
 
       if (res.ok) {
-        console.log("ATTENDANCE_MARKED", data.member);
         playSuccess();
         setResult({ success: true, member: data.member });
         setLastScanned((prev) => [{ success: true, member: data.member }, ...prev].slice(0, 10));
@@ -81,8 +79,6 @@ export default function ScannerPage() {
   async function onScanSuccess(decodedText: string) {
     const scanner = scannerRef.current;
     if (!scanner || !isRunningRef.current) return;
-
-    console.log("QR_DECODE_SUCCESS", decodedText);
 
     let bookingId: string;
     let token: string;
@@ -145,21 +141,14 @@ export default function ScannerPage() {
     setScanningFile(true);
     setResult(null);
 
-    console.log("IMAGE_RECEIVED", { name: file.name, size: file.size, type: file.type });
-
     try {
       const imageData = await readFileAsImageData(file);
-      console.log("IMAGE_DIMENSIONS", { width: imageData.width, height: imageData.height });
 
       const code = jsQR(imageData.data, imageData.width, imageData.height);
       if (!code) {
-        console.log("QR_DECODE_FAILED", "jsQR returned null — no QR found in image");
         setResult({ success: false, error: "Could not read QR code from image. Try a clearer image." });
         return;
       }
-
-      console.log("QR_DECODE_SUCCESS", code.data);
-      console.log("QR_PAYLOAD", code.data);
 
       // Pause camera so it doesn't keep firing scans
       if (isRunningRef.current) {

@@ -25,7 +25,6 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
         try {
           const res = await fetch("/api/admin/notifications");
           const json = await res.json();
-          console.log("[Admin Notifications] response:", json);
           if (json.notifications) {
             setNotifications(
               json.notifications.map((n: any) => ({

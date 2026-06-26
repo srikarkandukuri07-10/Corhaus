@@ -23,6 +23,7 @@ export default function MembersPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [selectedMember, setSelectedMember] = useState<ApprovedMember | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const supabase = createClient();
   const [isPending, startTransition] = useTransition();
 
@@ -74,7 +75,6 @@ export default function MembersPage() {
       return;
     }
 
-    // Check for duplicate email
     const { data: existingEmail } = await supabase
       .from("approved_members")
       .select("id")
@@ -87,7 +87,6 @@ export default function MembersPage() {
       return;
     }
 
-    // Check for duplicate phone
     const { data: existingPhone } = await supabase
       .from("approved_members")
       .select("id")
@@ -119,6 +118,39 @@ export default function MembersPage() {
     setShowForm(false);
     fetchMembers();
     setFormLoading(false);
+  }
+
+  async function handleToggleStatus(member: ApprovedMember) {
+    const newStatus = member.membership_status === "active" ? "inactive" : "active";
+
+    if (newStatus === "inactive") {
+      const confirmed = window.confirm(
+        `Deactivate ${member.full_name}? They will lose access to the member portal until reactivated.`
+      );
+      if (!confirmed) return;
+    }
+
+    setTogglingId(member.id);
+    setMembers((prev) =>
+      prev.map((m) =>
+        m.id === member.id ? { ...m, membership_status: newStatus } : m
+      )
+    );
+
+    const { error } = await supabase
+      .from("approved_members")
+      .update({ membership_status: newStatus })
+      .eq("id", member.id);
+
+    if (error) {
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.id === member.id ? { ...m, membership_status: member.membership_status } : m
+        )
+      );
+    }
+
+    setTogglingId(null);
   }
 
   function formatDate(dateStr: string) {
@@ -228,7 +260,7 @@ export default function MembersPage() {
                   <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Full Name</th>
                   <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Email</th>
                   <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Phone Number</th>
-                  <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Membership Status</th>
+                  <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Membership</th>
                   <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Date Added</th>
                   <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Action</th>
                 </tr>
@@ -240,13 +272,31 @@ export default function MembersPage() {
                     <td className="py-3 px-5 text-brand-navy/60">{m.email}</td>
                     <td className="py-3 px-5 text-brand-navy/60">{m.phone_number}</td>
                     <td className="py-3 px-5">
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                        m.membership_status === "active"
-                          ? "text-brand-success bg-brand-success/10"
-                          : "text-brand-error bg-brand-error/10"
-                      }`}>
-                        {m.membership_status}
-                      </span>
+                      {togglingId === m.id ? (
+                        <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+                      ) : (
+                        <button
+                          onClick={() => handleToggleStatus(m)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            m.membership_status === "active"
+                              ? "bg-brand-success"
+                              : "bg-brand-navy/20"
+                          }`}
+                          title={
+                            m.membership_status === "active"
+                              ? "Active — click to deactivate"
+                              : "Inactive — click to activate"
+                          }
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              m.membership_status === "active"
+                                ? "translate-x-6"
+                                : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      )}
                     </td>
                     <td className="py-3 px-5 text-brand-navy/50 text-xs">{formatDate(m.created_at)}</td>
                     <td className="py-3 px-5">
@@ -254,7 +304,7 @@ export default function MembersPage() {
                         onClick={() => setSelectedMember(m)}
                         className="text-xs font-medium text-brand-brown hover:text-brand-brown-dark underline underline-offset-2"
                       >
-                        Membership Details
+                        Details
                       </button>
                     </td>
                   </tr>

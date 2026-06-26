@@ -24,37 +24,23 @@ export default function AdminLayout({
     async function checkAuth() {
       const {
         data: { user },
-        error: userError,
       } = await supabase.auth.getUser();
 
-      console.log("=== ADMIN LAYOUT (CLIENT) ===");
-      console.log("GETUSER ERROR:", userError);
-
       if (!user) {
-        console.log("AUTH USER: null -> redirecting to /auth/login");
         router.push("/auth/login");
         return;
       }
 
-      console.log("AUTH USER EMAIL:", user.email);
-
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
         .maybeSingle();
 
-      console.log("PROFILE QUERY ERROR:", profileError);
-      console.log("PROFILE FOUND:", !!profile);
-      console.log("ROLE:", profile?.role);
-
       if (profile?.role !== "admin") {
-        console.log("DECISION: role is NOT admin -> redirect to /member");
         router.push("/member");
         return;
       }
-
-      console.log("DECISION: role IS admin -> rendering admin dashboard");
       setIsAdmin(true);
       setLoading(false);
     }
