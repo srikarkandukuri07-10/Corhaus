@@ -25,6 +25,8 @@ export default function MemberLayout({
   const supabase = createClient();
 
   useEffect(() => {
+    let activeChannel: any = null;
+
     async function checkAuth() {
       const {
         data: { user },
@@ -50,11 +52,52 @@ export default function MemberLayout({
         router.push("/admin");
         return;
       }
+
+      // Check if membership is active in approved_members table
+      const { data: memberRecord, error: memberError } = await supabase
+        .from("approved_members")
+        .select("id, membership_status")
+        .eq("email", user.email || "")
+        .maybeSingle();
+
+      if (memberError || !memberRecord || memberRecord.membership_status !== "active") {
+        await supabase.auth.signOut();
+        router.push("/auth/login?error=not_approved");
+        return;
+      }
+
       setIsMember(true);
       setLoading(false);
+
+      // Subscribe to membership changes for this user
+      activeChannel = supabase
+        .channel(`membership-status-${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "approved_members",
+            filter: `id=eq.${memberRecord.id}`,
+          },
+          (payload: any) => {
+            if (payload.new?.membership_status === "inactive") {
+              supabase.auth.signOut().then(() => {
+                router.push("/auth/login?error=not_approved");
+              });
+            }
+          }
+        )
+        .subscribe();
     }
 
     checkAuth();
+
+    return () => {
+      if (activeChannel) {
+        supabase.removeChannel(activeChannel);
+      }
+    };
   }, [router, supabase]);
 
   if (loading) {

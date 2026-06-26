@@ -24,6 +24,7 @@ export default function MembersPage() {
   const [formLoading, setFormLoading] = useState(false);
   const [selectedMember, setSelectedMember] = useState<ApprovedMember | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deactivatingMember, setDeactivatingMember] = useState<ApprovedMember | null>(null);
   const supabase = createClient();
   const [isPending, startTransition] = useTransition();
 
@@ -120,26 +121,25 @@ export default function MembersPage() {
     setFormLoading(false);
   }
 
-  async function handleToggleStatus(member: ApprovedMember) {
-    const newStatus = member.membership_status === "active" ? "inactive" : "active";
-
-    if (newStatus === "inactive") {
-      const confirmed = window.confirm(
-        `Deactivate ${member.full_name}? They will lose access to the member portal until reactivated.`
-      );
-      if (!confirmed) return;
+  function handleToggleClick(member: ApprovedMember) {
+    if (member.membership_status === "active") {
+      setDeactivatingMember(member);
+    } else {
+      handleToggleStatus(member, "active");
     }
+  }
 
+  async function handleToggleStatus(member: ApprovedMember, targetStatus: "active" | "inactive") {
     setTogglingId(member.id);
     setMembers((prev) =>
       prev.map((m) =>
-        m.id === member.id ? { ...m, membership_status: newStatus } : m
+        m.id === member.id ? { ...m, membership_status: targetStatus } : m
       )
     );
 
     const { error } = await supabase
       .from("approved_members")
-      .update({ membership_status: newStatus })
+      .update({ membership_status: targetStatus })
       .eq("id", member.id);
 
     if (error) {
@@ -272,31 +272,40 @@ export default function MembersPage() {
                     <td className="py-3 px-5 text-brand-navy/60">{m.email}</td>
                     <td className="py-3 px-5 text-brand-navy/60">{m.phone_number}</td>
                     <td className="py-3 px-5">
-                      {togglingId === m.id ? (
-                        <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
-                      ) : (
-                        <button
-                          onClick={() => handleToggleStatus(m)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                            m.membership_status === "active"
-                              ? "bg-brand-success"
-                              : "bg-brand-navy/20"
-                          }`}
-                          title={
-                            m.membership_status === "active"
-                              ? "Active — click to deactivate"
-                              : "Inactive — click to activate"
-                          }
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      <div className="flex items-center gap-3">
+                        {togglingId === m.id ? (
+                          <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+                        ) : (
+                          <button
+                            onClick={() => handleToggleClick(m)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
                               m.membership_status === "active"
-                                ? "translate-x-6"
-                                : "translate-x-1"
+                                ? "bg-brand-success"
+                                : "bg-brand-navy/20"
                             }`}
-                          />
-                        </button>
-                      )}
+                            title={
+                              m.membership_status === "active"
+                                ? "Active — click to deactivate"
+                                : "Inactive — click to activate"
+                            }
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                m.membership_status === "active"
+                                  ? "translate-x-6"
+                                  : "translate-x-1"
+                              }`}
+                            />
+                          </button>
+                        )}
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                          m.membership_status === "active"
+                            ? "text-brand-success bg-brand-success/10"
+                            : "text-brand-error bg-brand-error/10"
+                        }`}>
+                          {m.membership_status === "active" ? "Active" : "Inactive"}
+                        </span>
+                      </div>
                     </td>
                     <td className="py-3 px-5 text-brand-navy/50 text-xs">{formatDate(m.created_at)}</td>
                     <td className="py-3 px-5">
@@ -368,6 +377,50 @@ export default function MembersPage() {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {deactivatingMember && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in"
+          onClick={() => setDeactivatingMember(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 border border-brand-sand/50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 text-brand-error mb-4">
+              <div className="w-10 h-10 rounded-full bg-brand-error/10 flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-brand-navy">Confirm Deactivation</h3>
+            </div>
+            
+            <p className="text-sm text-brand-navy/70 mb-6 leading-relaxed">
+              Are you sure you want to deactivate <span className="font-semibold text-brand-navy">{deactivatingMember.full_name}</span>? 
+              They will be instantly logged out and blocked from accessing the member portal.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeactivatingMember(null)}
+                className="flex-1 py-2.5 rounded-xl border border-brand-sand text-brand-navy/60 font-medium hover:bg-brand-beige transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  handleToggleStatus(deactivatingMember, "inactive");
+                  setDeactivatingMember(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-brand-error text-white font-medium hover:bg-brand-error/90 transition-colors text-sm"
+              >
+                Deactivate Member
+              </button>
+            </div>
           </div>
         </div>
       )}
