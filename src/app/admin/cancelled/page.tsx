@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 interface CancelledBooking {
   id: string;
   created_at: string;
+  cancelled_at: string | null;
   class_id: string;
   member_id: string;
   classes: {
@@ -148,7 +149,9 @@ export default function CancelledBookingsPage() {
                         : "N/A"}
                     </td>
                     <td className="py-3 px-5 text-brand-navy/50 text-xs">
-                      {new Date(item.created_at).toLocaleString("en-IN")}
+                      {item.cancelled_at
+                        ? new Date(item.cancelled_at).toLocaleString("en-IN")
+                        : new Date(item.created_at).toLocaleString("en-IN")}
                     </td>
                   </tr>
                 ))}

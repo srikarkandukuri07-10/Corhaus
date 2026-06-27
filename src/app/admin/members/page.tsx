@@ -25,6 +25,7 @@ export default function MembersPage() {
   const [selectedMember, setSelectedMember] = useState<ApprovedMember | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deactivatingMember, setDeactivatingMember] = useState<ApprovedMember | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const supabase = createClient();
   const [isPending, startTransition] = useTransition();
 
@@ -130,6 +131,7 @@ export default function MembersPage() {
   }
 
   async function handleToggleStatus(member: ApprovedMember, targetStatus: "active" | "inactive") {
+    setActionError(null);
     setTogglingId(member.id);
     setMembers((prev) =>
       prev.map((m) =>
@@ -143,6 +145,7 @@ export default function MembersPage() {
       .eq("id", member.id);
 
     if (error) {
+      setActionError(`Failed to update membership: ${error.message}`);
       setMembers((prev) =>
         prev.map((m) =>
           m.id === member.id ? { ...m, membership_status: member.membership_status } : m
@@ -179,6 +182,13 @@ export default function MembersPage() {
           {showForm ? "Cancel" : "+ Add Member"}
         </button>
       </div>
+
+      {actionError && (
+        <div className="p-4 rounded-xl text-sm bg-brand-error/10 border border-brand-error/20 text-brand-error flex items-center justify-between">
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-brand-error hover:text-brand-error/80 font-medium text-xs">Dismiss</button>
+        </div>
+      )}
 
       {showForm && (
         <div className="bg-white rounded-2xl border border-brand-sand/50 p-6">

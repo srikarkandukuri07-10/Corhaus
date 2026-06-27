@@ -8,6 +8,7 @@ interface BookingWithClass {
   class_id: string;
   booking_status: string;
   created_at: string;
+  cancelled_at: string | null;
   classes: {
     id: string;
     title: string;
@@ -296,9 +297,16 @@ export default function BookingsPage() {
                           </span>
                         </div>
                       </div>
-                      <span className="text-xs font-medium text-brand-error bg-brand-error/10 px-2.5 py-1 rounded-full">
-                        Cancelled
-                      </span>
+                      <div className="text-right flex flex-col items-end">
+                        <span className="text-xs font-medium text-brand-error bg-brand-error/10 px-2.5 py-1 rounded-full">
+                          Cancelled
+                        </span>
+                        {booking.cancelled_at && (
+                          <span className="text-[10px] text-brand-navy/40 mt-1">
+                            on {new Date(booking.cancelled_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
