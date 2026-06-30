@@ -26,6 +26,9 @@ export default function MembersPage() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deactivatingMember, setDeactivatingMember] = useState<ApprovedMember | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [deletingMember, setDeletingMember] = useState<ApprovedMember | null>(null);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const supabase = createClient();
   const [isPending, startTransition] = useTransition();
 
@@ -154,6 +157,29 @@ export default function MembersPage() {
     }
 
     setTogglingId(null);
+  }
+
+  async function handleDeleteMember(member: ApprovedMember) {
+    if (deleteConfirmEmail.trim().toLowerCase() !== member.email.trim().toLowerCase()) {
+      setActionError("Confirm email matches the member's email.");
+      return;
+    }
+
+    setDeleteLoading(true);
+    setActionError(null);
+
+    const { error } = await supabase.rpc("delete_member_completely", {
+      p_email: member.email,
+    });
+
+    setDeleteLoading(false);
+
+    if (error) {
+      setActionError(`Failed to delete member: ${error.message}`);
+    } else {
+      setDeletingMember(null);
+      fetchMembers();
+    }
   }
 
   function formatDate(dateStr: string) {
@@ -319,12 +345,23 @@ export default function MembersPage() {
                     </td>
                     <td className="py-3 px-5 text-brand-navy/50 text-xs">{formatDate(m.created_at)}</td>
                     <td className="py-3 px-5">
-                      <button
-                        onClick={() => setSelectedMember(m)}
-                        className="text-xs font-medium text-brand-brown hover:text-brand-brown-dark underline underline-offset-2"
-                      >
-                        Details
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setSelectedMember(m)}
+                          className="text-xs font-medium text-brand-brown hover:text-brand-brown-dark underline underline-offset-2"
+                        >
+                          Details
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDeleteConfirmEmail("");
+                            setDeletingMember(m);
+                          }}
+                          className="text-xs font-medium text-brand-error hover:text-brand-error-dark underline underline-offset-2"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -429,6 +466,65 @@ export default function MembersPage() {
                 className="flex-1 py-2.5 rounded-xl bg-brand-error text-white font-medium hover:bg-brand-error/90 transition-colors text-sm"
               >
                 Deactivate Member
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deletingMember && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in"
+          onClick={() => { if (!deleteLoading) setDeletingMember(null); }}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4 border border-brand-sand/50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 text-brand-error mb-4">
+              <div className="w-10 h-10 rounded-full bg-brand-error/10 flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-brand-navy">Delete Member Completely</h3>
+            </div>
+            
+            <p className="text-sm text-brand-navy/70 mb-4 leading-relaxed">
+              This action will permanently delete <span className="font-semibold text-brand-navy">{deletingMember.full_name}</span>. 
+              Their login account, profile, bookings, and attendance records will be removed forever.
+            </p>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-xs font-medium text-brand-navy/50 uppercase tracking-wide mb-1.5">
+                  To confirm, type <span className="font-semibold select-all text-brand-navy">{deletingMember.email}</span> below:
+                </label>
+                <input
+                  type="email"
+                  value={deleteConfirmEmail}
+                  onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy text-sm focus:outline-none focus:ring-1 focus:ring-brand-error"
+                  placeholder="Enter email address"
+                  disabled={deleteLoading}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeletingMember(null)}
+                disabled={deleteLoading}
+                className="flex-1 py-2.5 rounded-xl border border-brand-sand text-brand-navy/60 font-medium hover:bg-brand-beige transition-colors text-sm disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteMember(deletingMember)}
+                disabled={deleteLoading || deleteConfirmEmail.trim().toLowerCase() !== deletingMember.email.trim().toLowerCase()}
+                className="flex-1 py-2.5 rounded-xl bg-brand-error text-white font-medium hover:bg-brand-error/90 transition-colors text-sm disabled:opacity-50"
+              >
+                {deleteLoading ? "Deleting..." : "Permanently Delete"}
               </button>
             </div>
           </div>
