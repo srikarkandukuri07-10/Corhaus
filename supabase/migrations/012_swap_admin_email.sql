@@ -30,3 +30,6 @@ WHERE email = 'kandukurisrikar10@gmail.com';
 UPDATE public.profiles
 SET role = 'admin'
 WHERE email = 'srikarkandukuri07@gmail.com';
+
+DELETE FROM public.approved_members
+WHERE email = 'kandukurisrikar10@gmail.com';
