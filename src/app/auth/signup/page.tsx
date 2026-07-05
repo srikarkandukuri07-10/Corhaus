@@ -59,6 +59,24 @@ export default function SignupPage() {
     });
 
     if (error) {
+      const errMsg = error.message.toLowerCase();
+      if (errMsg.includes("already registered") || errMsg.includes("already exists") || errMsg.includes("already taken")) {
+        try {
+          const { data: member } = await supabase
+            .from("approved_members")
+            .select("membership_status")
+            .eq("email", normalizedEmail)
+            .maybeSingle();
+
+          if (member && member.membership_status === "active") {
+            setError("This email is already registered and approved. Please go to the Login page to sign in with your password.");
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error("Error checking member approval during signup error:", e);
+        }
+      }
       setError(error.message);
       setLoading(false);
       return;

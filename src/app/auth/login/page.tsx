@@ -60,6 +60,31 @@ function LoginForm() {
       });
 
       if (error) {
+        const normalizedEmail = email.trim().toLowerCase();
+        try {
+          const { data: member } = await supabase
+            .from("approved_members")
+            .select("membership_status")
+            .eq("email", normalizedEmail)
+            .maybeSingle();
+
+          if (member && member.membership_status === "active") {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("id")
+              .eq("email", normalizedEmail)
+              .maybeSingle();
+
+            if (!profile) {
+              setError("Your membership is approved! However, you haven't created a login account yet. Please go to the Sign Up page to set your password.");
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error("Error checking login pre-approval:", e);
+        }
+
         setError(error.message);
         setLoading(false);
         return;
