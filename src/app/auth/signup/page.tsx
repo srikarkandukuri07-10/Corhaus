@@ -12,11 +12,21 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const supabase = createClient();
 
   function validatePhone(phone: string): boolean {
     const phoneRegex = /^\d{10}$/;
     return phoneRegex.test(phone);
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    }
   }
 
   async function handleSignup(e: React.FormEvent) {
@@ -30,7 +40,7 @@ export default function SignupPage() {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -45,6 +55,33 @@ export default function SignupPage() {
       setError(error.message);
       setLoading(false);
       return;
+    }
+
+    if (data?.user && avatarFile) {
+      try {
+        const fileExt = avatarFile.name.split(".").pop();
+        const filePath = `${data.user.id}/avatar.${fileExt}`;
+
+        // Upload avatar file to Supabase storage avatars bucket
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, avatarFile, { cacheControl: "3600", upsert: true });
+
+        if (!uploadError) {
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(filePath);
+
+          // Update profiles table
+          await supabase
+            .from("profiles")
+            .update({ avatar_url: publicUrl })
+            .eq("id", data.user.id);
+        }
+      } catch (err) {
+        console.error("Avatar upload failed during signup:", err);
+      }
     }
 
     window.location.href = "/member";
@@ -87,6 +124,32 @@ export default function SignupPage() {
           )}
 
           <form onSubmit={handleSignup} className="space-y-4">
+            <div className="flex flex-col items-center justify-center pb-4 pt-2">
+              <div className="relative group w-20 h-20 rounded-full overflow-hidden border border-brand-sand bg-brand-cream/50 flex items-center justify-center shadow-inner">
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Profile Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <svg className="w-10 h-10 text-brand-navy/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                )}
+                <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[9px] font-medium">
+                  <svg className="w-4 h-4 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>Upload</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              <p className="text-[10px] text-brand-navy/40 mt-1.5 font-medium">Profile Photo (Optional)</p>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
                 Full Name
