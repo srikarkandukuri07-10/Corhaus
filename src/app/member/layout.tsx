@@ -141,7 +141,7 @@ export default function MemberLayout({
                         className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-300 transform active:scale-95 ${
                           isActive
                             ? "bg-gradient-to-r from-[#007BBF] via-[#6A22DF] to-[#D10066] text-white shadow-md shadow-[#6A22DF]/25"
-                            : "bg-gradient-to-r from-[#007BBF]/8 via-[#6A22DF]/8 to-[#D10066]/8 text-brand-navy/80 hover:from-[#007BBF]/15 hover:via-[#6A22DF]/15 hover:to-[#D10066]/15 border border-brand-sand/30"
+                            : "bg-gradient-to-r from-[#007BBF]/15 via-[#6A22DF]/15 to-[#D10066]/15 text-brand-navy/80 hover:from-[#007BBF]/25 hover:via-[#6A22DF]/25 hover:to-[#D10066]/25 border border-brand-sand/30"
                         }`}
                       >
                         {item.label}
@@ -200,7 +200,7 @@ export default function MemberLayout({
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-300 active:scale-95 ${
                     isActive
                       ? "bg-gradient-to-r from-[#007BBF] via-[#6A22DF] to-[#D10066] text-white shadow-sm"
-                      : "bg-gradient-to-r from-[#007BBF]/8 via-[#6A22DF]/8 to-[#D10066]/8 text-brand-navy/80 border border-brand-sand/30"
+                      : "bg-gradient-to-r from-[#007BBF]/15 via-[#6A22DF]/15 to-[#D10066]/15 text-brand-navy/80 border border-brand-sand/30"
                   }`}
                 >
                   {item.label}
