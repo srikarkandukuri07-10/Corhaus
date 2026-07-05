@@ -96,11 +96,11 @@ export default function ProfileModal({
     try {
       const file = e.target.files[0];
       const fileExt = file.name.split(".").pop();
-      const filePath = `${profile.id}/avatar.${fileExt}`;
+      const filePath = `${profile.id}/photo.${fileExt}`;
 
-      // Upload file to Supabase storage avatars bucket
+      // Upload file to Supabase storage profile-photos bucket
       const { error: uploadError } = await supabase.storage
-        .from("avatars")
+        .from("profile-photos")
         .upload(filePath, file, { cacheControl: "3600", upsert: true });
 
       if (uploadError) {
@@ -111,7 +111,7 @@ export default function ProfileModal({
 
       // Get public URL of the uploaded image
       const { data: { publicUrl } } = supabase.storage
-        .from("avatars")
+        .from("profile-photos")
         .getPublicUrl(filePath);
 
       // Update avatar_url in profiles table

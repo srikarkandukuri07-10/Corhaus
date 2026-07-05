@@ -60,17 +60,17 @@ export default function SignupPage() {
     if (data?.user && avatarFile) {
       try {
         const fileExt = avatarFile.name.split(".").pop();
-        const filePath = `${data.user.id}/avatar.${fileExt}`;
+        const filePath = `${data.user.id}/photo.${fileExt}`;
 
-        // Upload avatar file to Supabase storage avatars bucket
+        // Upload avatar file to Supabase storage profile-photos bucket
         const { error: uploadError } = await supabase.storage
-          .from("avatars")
+          .from("profile-photos")
           .upload(filePath, avatarFile, { cacheControl: "3600", upsert: true });
 
         if (!uploadError) {
           // Get public URL
           const { data: { publicUrl } } = supabase.storage
-            .from("avatars")
+            .from("profile-photos")
             .getPublicUrl(filePath);
 
           // Update profiles table
