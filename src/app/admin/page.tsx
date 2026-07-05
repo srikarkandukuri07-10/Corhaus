@@ -23,6 +23,7 @@ interface BookingWithProfile {
     full_name: string;
     email: string;
     phone_number: string;
+    avatar_url: string | null;
   } | null;
 }
 
@@ -33,6 +34,7 @@ interface AttendanceWithProfile {
   profiles: {
     full_name: string;
     email: string;
+    avatar_url: string | null;
   } | null;
 }
 
@@ -78,7 +80,7 @@ export default function AdminDashboard() {
       setBookingsLoading(true);
       const { data, error } = await supabase
         .from("bookings")
-        .select("*, profiles(full_name, email, phone_number)")
+        .select("*, profiles(full_name, email, phone_number, avatar_url)")
         .eq("class_id", classId)
         .eq("booking_status", "booked")
         .order("created_at", { ascending: true });
@@ -100,7 +102,7 @@ export default function AdminDashboard() {
       setAttendanceLoading(true);
       const { data, error } = await supabase
         .from("attendance")
-        .select("*, profiles!inner(full_name, email)")
+        .select("*, profiles!inner(full_name, email, avatar_url)")
         .eq("class_id", classId)
         .eq("attendance_status", "attended")
         .order("scanned_at", { ascending: true });
@@ -369,7 +371,18 @@ export default function AdminDashboard() {
                   {bookings.map((booking) => (
                     <tr key={booking.id} className="border-b border-brand-sand/30 last:border-0">
                       <td className="py-3 px-4 text-brand-navy font-medium">
-                        {booking.profiles?.full_name || "N/A"}
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full overflow-hidden border border-brand-sand/50 bg-brand-cream/50 flex-shrink-0 flex items-center justify-center">
+                            {booking.profiles?.avatar_url ? (
+                              <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-[10px] font-semibold text-brand-navy/40">
+                                {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <span>{booking.profiles?.full_name || "N/A"}</span>
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-brand-navy/60">
                         {booking.profiles?.email || "N/A"}
@@ -422,7 +435,18 @@ export default function AdminDashboard() {
                       {attended.map((a) => (
                         <tr key={a.id} className="border-b border-brand-sand/30 last:border-0">
                           <td className="py-3 px-4 text-brand-navy font-medium">
-                            {a.profiles?.full_name || "N/A"}
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-full overflow-hidden border border-brand-sand/50 bg-brand-cream/50 flex-shrink-0 flex items-center justify-center">
+                                {a.profiles?.avatar_url ? (
+                                  <img src={a.profiles.avatar_url} alt={a.profiles.full_name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-[10px] font-semibold text-brand-navy/40">
+                                    {(a.profiles?.full_name || "N").charAt(0).toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              <span>{a.profiles?.full_name || "N/A"}</span>
+                            </div>
                           </td>
                           <td className="py-3 px-4 text-brand-navy/60">
                             {a.profiles?.email || "N/A"}

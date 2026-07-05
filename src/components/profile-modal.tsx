@@ -8,6 +8,7 @@ interface ProfileData {
   full_name: string;
   phone_number: string;
   email: string;
+  avatar_url?: string | null;
 }
 
 export default function ProfileModal({
@@ -29,6 +30,8 @@ export default function ProfileModal({
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [hasEmailProvider, setHasEmailProvider] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -46,7 +49,7 @@ export default function ProfileModal({
 
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, phone_number, email")
+        .select("id, full_name, phone_number, email, avatar_url")
         .eq("id", user.id)
         .single();
 
@@ -54,6 +57,7 @@ export default function ProfileModal({
         setProfile(data);
         setFullName(data.full_name);
         setPhoneNumber(data.phone_number);
+        setAvatarUrl(data.avatar_url || null);
       }
     }
 
@@ -81,6 +85,57 @@ export default function ProfileModal({
     setEditing(false);
     setSuccess(true);
     setSaving(false);
+  }
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!profile || !e.target.files || e.target.files.length === 0) return;
+    setUploading(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      const file = e.target.files[0];
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${profile.id}/avatar.${fileExt}`;
+
+      // Upload file to Supabase storage avatars bucket
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { cacheControl: "3600", upsert: true });
+
+      if (uploadError) {
+        setError(`Failed to upload photo: ${uploadError.message}`);
+        setUploading(false);
+        return;
+      }
+
+      // Get public URL of the uploaded image
+      const { data: { publicUrl } } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      // Update avatar_url in profiles table
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl })
+        .eq("id", profile.id);
+
+      if (updateError) {
+        setError(`Failed to update profile photo: ${updateError.message}`);
+        setUploading(false);
+        return;
+      }
+
+      // Add cache buster query parameter to force image reload
+      const newAvatarUrl = `${publicUrl}?t=${Date.now()}`;
+      setAvatarUrl(newAvatarUrl);
+      setProfile({ ...profile, avatar_url: newAvatarUrl });
+      setSuccess(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function handlePasswordChange() {
@@ -142,6 +197,37 @@ export default function ProfileModal({
                 {error}
               </p>
             )}
+
+            <div className="flex flex-col items-center justify-center pb-4 pt-2">
+              <div className="relative group w-24 h-24 rounded-full overflow-hidden border-2 border-brand-sand/50 bg-brand-cream/50 flex items-center justify-center shadow-inner">
+                {uploading ? (
+                  <div className="w-6 h-6 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+                ) : avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile Photo" className="w-full h-full object-cover" />
+                ) : (
+                  <svg className="w-12 h-12 text-brand-navy/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                )}
+                
+                {!uploading && (
+                  <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-medium">
+                    <svg className="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>Change</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+              <p className="text-[10px] text-brand-navy/40 mt-1.5 font-medium">Click photo to update</p>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-brand-navy/60 mb-1">Email</label>

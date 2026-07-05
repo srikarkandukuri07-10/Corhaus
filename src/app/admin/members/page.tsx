@@ -10,6 +10,7 @@ interface ApprovedMember {
   phone_number: string;
   membership_status: string;
   created_at: string;
+  avatar_url?: string | null;
 }
 
 export default function MembersPage() {
@@ -33,14 +34,28 @@ export default function MembersPage() {
   const [isPending, startTransition] = useTransition();
 
   const fetchMembers = useCallback(async () => {
-    const { data, error } = await supabase
+    const { data: approvedData, error: approvedError } = await supabase
       .from("approved_members")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (!error && data) {
+    if (approvedError) {
+      setActionError(approvedError.message);
+      return;
+    }
+
+    const { data: profilesData } = await supabase
+      .from("profiles")
+      .select("email, avatar_url");
+
+    if (approvedData) {
+      const avatarMap = new Map(profilesData?.map(p => [p.email.toLowerCase(), p.avatar_url]) || []);
+      const membersWithAvatars = approvedData.map(m => ({
+        ...m,
+        avatar_url: avatarMap.get(m.email.toLowerCase()) || null
+      }));
       startTransition(() => {
-        setMembers(data);
+        setMembers(membersWithAvatars);
         setLoading(false);
       });
     }
@@ -304,7 +319,20 @@ export default function MembersPage() {
               <tbody>
                 {members.map((m) => (
                   <tr key={m.id} className="border-b border-brand-sand/30 last:border-0 hover:bg-brand-cream/30 transition-colors">
-                    <td className="py-3 px-5 font-medium text-brand-navy">{m.full_name}</td>
+                    <td className="py-3 px-5 font-medium text-brand-navy">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full overflow-hidden border border-brand-sand/50 bg-brand-cream/50 flex-shrink-0 flex items-center justify-center">
+                          {m.avatar_url ? (
+                            <img src={m.avatar_url} alt={m.full_name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-semibold text-brand-navy/40">
+                              {m.full_name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <span>{m.full_name}</span>
+                      </div>
+                    </td>
                     <td className="py-3 px-5 text-brand-navy/60">{m.email}</td>
                     <td className="py-3 px-5 text-brand-navy/60">{m.phone_number}</td>
                     <td className="py-3 px-5">
