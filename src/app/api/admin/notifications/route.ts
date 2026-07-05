@@ -43,7 +43,7 @@ export async function GET() {
 
     const { data, error } = await serviceClient
       .from("admin_notifications")
-      .select("id, message, created_at, is_read")
+      .select("id, type, email, message, created_at, is_read")
       .eq("is_read", false)
       .order("created_at", { ascending: false })
       .limit(20);

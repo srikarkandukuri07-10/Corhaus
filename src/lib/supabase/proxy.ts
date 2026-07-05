@@ -102,7 +102,9 @@ export async function updateSession(request: NextRequest) {
     devLog("APPROVED_MEMBER_EMAIL:", matchedMemberEmail);
     devLog("MATCH_FOUND:", isApproved);
 
-    if (!isApproved) {
+    const isReferralPage = pathname.startsWith("/referral");
+
+    if (!isApproved && !isReferralPage) {
       devLog("DECISION: member not approved -> redirect to /auth/login");
       try {
         await supabase.auth.signOut();
@@ -120,7 +122,8 @@ export async function updateSession(request: NextRequest) {
     devLog("ACCESS_GRANTED: true");
 
     // Now if they don't have a profile, create it (since they are approved)
-    if (!profile) {
+    // Only create profile if they are approved (don't create for referral visitors)
+    if (!profile && isApproved) {
       devLog("PROFILE_CREATED: true");
       userRole = userRole || "member";
       await supabase.from("profiles").insert({

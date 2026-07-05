@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback, useTransition } from "react";
+import { useEffect, useState, useCallback, useTransition, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useSearchParams } from "next/navigation";
 
 interface ApprovedMember {
   id: string;
@@ -13,7 +14,7 @@ interface ApprovedMember {
   avatar_url?: string | null;
 }
 
-export default function MembersPage() {
+function MembersPageContent() {
   const [members, setMembers] = useState<ApprovedMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -32,6 +33,19 @@ export default function MembersPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const supabase = createClient();
   const [isPending, startTransition] = useTransition();
+
+  const [prefilledReferralCode, setPrefilledReferralCode] = useState("");
+  const [prefilledReferrerName, setPrefilledReferrerName] = useState("");
+  const [prefilledReferrerEmail, setPrefilledReferrerEmail] = useState("");
+  const [selectedReferral, setSelectedReferral] = useState<{
+    code: string;
+    successful_referrals: number;
+    reward_eligible: boolean;
+    reward_redeemed: boolean;
+  } | null>(null);
+  const [redeemingReward, setRedeemingReward] = useState(false);
+
+  const searchParams = useSearchParams();
 
   const fetchMembers = useCallback(async () => {
     const { data: approvedData, error: approvedError } = await supabase
@@ -65,12 +79,34 @@ export default function MembersPage() {
     fetchMembers();
   }, [fetchMembers]);
 
+  useEffect(() => {
+    const prefillName = searchParams.get("prefill_name");
+    const prefillEmail = searchParams.get("prefill_email");
+    const prefillPhone = searchParams.get("prefill_phone");
+    const refCode = searchParams.get("referral_code");
+    const refName = searchParams.get("referrer_name");
+    const refEmail = searchParams.get("referrer_email");
+
+    if (prefillName || prefillEmail || prefillPhone) {
+      setFormName(prefillName || "");
+      setFormEmail(prefillEmail || "");
+      setFormPhone(prefillPhone || "");
+      setPrefilledReferralCode(refCode || "");
+      setPrefilledReferrerName(refName || "");
+      setPrefilledReferrerEmail(refEmail || "");
+      setShowForm(true);
+    }
+  }, [searchParams]);
+
   function resetForm() {
     setFormName("");
     setFormEmail("");
     setFormPhone("");
     setFormStatus("active");
     setFormError(null);
+    setPrefilledReferralCode("");
+    setPrefilledReferrerName("");
+    setPrefilledReferrerEmail("");
   }
 
   async function handleAddMember(e: React.FormEvent) {
@@ -153,6 +189,29 @@ export default function MembersPage() {
       return;
     }
 
+    if (prefilledReferralCode && prefilledReferrerEmail) {
+      try {
+        const { data: rc, error: rcError } = await supabase
+          .from("referral_codes")
+          .select("id, successful_referrals")
+          .eq("member_email", prefilledReferrerEmail.toLowerCase())
+          .maybeSingle();
+
+        if (!rcError && rc) {
+          const newCount = rc.successful_referrals + 1;
+          await supabase
+            .from("referral_codes")
+            .update({
+              successful_referrals: newCount,
+              reward_eligible: newCount >= 3,
+            })
+            .eq("id", rc.id);
+        }
+      } catch (err) {
+        console.error("Failed to update referral code count:", err);
+      }
+    }
+
     resetForm();
     setShowForm(false);
     fetchMembers();
@@ -224,6 +283,46 @@ export default function MembersPage() {
     });
   }
 
+  async function handleShowDetails(member: ApprovedMember) {
+    setSelectedMember(member);
+    setSelectedReferral(null);
+    try {
+      const { data, error } = await supabase
+        .from("referral_codes")
+        .select("code, successful_referrals, reward_eligible, reward_redeemed")
+        .eq("member_email", member.email.toLowerCase())
+        .maybeSingle();
+
+      if (!error && data) {
+        setSelectedReferral(data);
+      }
+    } catch (err) {
+      console.error("Failed to load referral details:", err);
+    }
+  }
+
+  async function handleRedeemReward(email: string) {
+    setRedeemingReward(true);
+    try {
+      const { error } = await supabase
+        .from("referral_codes")
+        .update({ reward_redeemed: true })
+        .eq("member_email", email.toLowerCase());
+
+      if (error) {
+        alert("Failed to redeem reward: " + error.message);
+      } else {
+        setSelectedReferral((prev) =>
+          prev ? { ...prev, reward_redeemed: true } : null
+        );
+      }
+    } catch (err: any) {
+      alert("Failed to redeem reward: " + err.message);
+    } finally {
+      setRedeemingReward(false);
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -253,6 +352,18 @@ export default function MembersPage() {
       {showForm && (
         <div className="bg-white rounded-2xl border border-brand-sand/50 p-6">
           <h3 className="text-lg font-medium text-brand-navy mb-4">Add New Member</h3>
+          
+          {prefilledReferralCode && (
+            <div className="p-4 rounded-xl bg-brand-brown/10 border border-brand-brown/20 text-brand-brown mb-4 text-xs leading-relaxed max-w-lg">
+              <div>
+                <span className="font-semibold">Referred By:</span> {prefilledReferrerName} ({prefilledReferrerEmail})
+              </div>
+              <div className="mt-0.5">
+                <span className="font-semibold">Referral Code:</span> {prefilledReferralCode}
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleAddMember} className="space-y-4 max-w-lg">
             {formError && (
               <p className="text-sm text-brand-error bg-brand-error/10 px-3 py-2 rounded-lg">{formError}</p>
@@ -278,6 +389,9 @@ export default function MembersPage() {
                 className="w-full px-4 py-2.5 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy text-sm"
                 placeholder="member@example.com"
               />
+              <p className="text-xs text-brand-navy/50 mt-1.5 leading-normal">
+                <span className="text-brand-error font-medium">Important:</span> Ensure this email address is correct. The member must use this exact email address when logging in to avoid future authentication issues.
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-brand-navy/70 mb-1">Phone Number</label>
@@ -394,7 +508,7 @@ export default function MembersPage() {
                     <td className="py-3 px-5">
                       <div className="flex items-center gap-3">
                         <button
-                          onClick={() => setSelectedMember(m)}
+                          onClick={() => handleShowDetails(m)}
                           className="text-xs font-medium text-brand-brown hover:text-brand-brown-dark underline underline-offset-2"
                         >
                           Details
@@ -463,6 +577,43 @@ export default function MembersPage() {
                   })()}
                 </span>
               </div>
+
+              {/* Referral Details section */}
+              {selectedReferral && (
+                <div className="pt-4 border-t border-brand-sand/30 space-y-3">
+                  <div>
+                    <span className="text-brand-navy/50 block text-xs uppercase tracking-wide">Referral Code</span>
+                    <span className="text-brand-navy font-mono font-medium">{selectedReferral.code}</span>
+                  </div>
+                  <div>
+                    <span className="text-brand-navy/50 block text-xs uppercase tracking-wide">Referrals Made</span>
+                    <span className="text-brand-navy">{selectedReferral.successful_referrals} / 3</span>
+                  </div>
+                  <div>
+                    <span className="text-brand-navy/50 block text-xs uppercase tracking-wide">Reward Status</span>
+                    {selectedReferral.reward_eligible && !selectedReferral.reward_redeemed ? (
+                      <div className="mt-1 space-y-2">
+                        <span className="inline-block text-xs font-semibold text-brand-success bg-brand-success/10 px-2 py-0.5 rounded-full">
+                          🎉 15% Discount Eligible
+                        </span>
+                        <button
+                          onClick={() => handleRedeemReward(selectedMember.email)}
+                          disabled={redeemingReward}
+                          className="block w-full py-1.5 px-3 rounded-lg bg-brand-brown text-white text-xs font-medium hover:bg-brand-brown-dark transition-colors disabled:opacity-50 text-center"
+                        >
+                          {redeemingReward ? "Redeeming..." : "Mark Discount Redeemed"}
+                        </button>
+                      </div>
+                    ) : selectedReferral.reward_redeemed ? (
+                      <span className="inline-block text-xs font-medium text-brand-navy/50 bg-brand-sand/30 px-2 py-0.5 rounded-full mt-1">
+                        Discount Redeemed
+                      </span>
+                    ) : (
+                      <span className="text-brand-navy/40 text-xs">Not eligible for discount yet</span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button
@@ -578,5 +729,19 @@ export default function MembersPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function MembersPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="w-8 h-8 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <MembersPageContent />
+    </Suspense>
   );
 }

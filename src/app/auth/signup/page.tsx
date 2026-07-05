@@ -250,6 +250,15 @@ export default function SignupPage() {
             </button>
           </form>
 
+          <div className="mt-2">
+            <Link
+              href="/referral"
+              className="block w-full py-3 rounded-xl border border-brand-sand bg-white text-brand-navy text-center font-medium hover:bg-brand-cream/50 transition-colors [touch-action:manipulation]"
+            >
+              Have a Referral Code?
+            </Link>
+          </div>
+
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-brand-sand" />
