@@ -140,8 +140,8 @@ export default function MemberLayout({
                         href={item.href}
                         className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-300 transform active:scale-95 ${
                           isActive
-                            ? "bg-gradient-to-r from-[#00D2FF] via-[#9A4BFF] to-[#FF007F] text-white shadow-md shadow-[#9A4BFF]/20"
-                            : "bg-gradient-to-r from-[#00D2FF]/8 via-[#9A4BFF]/8 to-[#FF007F]/8 text-brand-navy/80 hover:from-[#00D2FF]/15 hover:via-[#9A4BFF]/15 hover:to-[#FF007F]/15 border border-brand-sand/30"
+                            ? "bg-gradient-to-r from-[#007BBF] via-[#6A22DF] to-[#D10066] text-white shadow-md shadow-[#6A22DF]/25"
+                            : "bg-gradient-to-r from-[#007BBF]/8 via-[#6A22DF]/8 to-[#D10066]/8 text-brand-navy/80 hover:from-[#007BBF]/15 hover:via-[#6A22DF]/15 hover:to-[#D10066]/15 border border-brand-sand/30"
                         }`}
                       >
                         {item.label}
@@ -199,8 +199,8 @@ export default function MemberLayout({
                   href={item.href}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-300 active:scale-95 ${
                     isActive
-                      ? "bg-gradient-to-r from-[#00D2FF] via-[#9A4BFF] to-[#FF007F] text-white shadow-sm"
-                      : "bg-gradient-to-r from-[#00D2FF]/8 via-[#9A4BFF]/8 to-[#FF007F]/8 text-brand-navy/80 border border-brand-sand/30"
+                      ? "bg-gradient-to-r from-[#007BBF] via-[#6A22DF] to-[#D10066] text-white shadow-sm"
+                      : "bg-gradient-to-r from-[#007BBF]/8 via-[#6A22DF]/8 to-[#D10066]/8 text-brand-navy/80 border border-brand-sand/30"
                   }`}
                 >
                   {item.label}
