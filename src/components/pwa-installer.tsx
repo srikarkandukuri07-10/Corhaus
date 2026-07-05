@@ -35,7 +35,7 @@ export default function PWAInstaller() {
       setDeferredPrompt(e);
       
       // Only show if user has not dismissed it before
-      const isDismissed = localStorage.getItem("pwa-prompt-dismissed") === "true";
+      const isDismissed = sessionStorage.getItem("pwa-prompt-dismissed") === "true";
       if (!isDismissed) {
         setIsVisible(true);
       }
@@ -47,7 +47,7 @@ export default function PWAInstaller() {
     const handleAppInstalled = () => {
       setIsVisible(false);
       setDeferredPrompt(null);
-      localStorage.setItem("pwa-prompt-dismissed", "true");
+      sessionStorage.setItem("pwa-prompt-dismissed", "true");
       console.log("PWA was installed successfully!");
     };
 
@@ -74,13 +74,13 @@ export default function PWAInstaller() {
     setIsVisible(false);
     
     if (outcome === "accepted") {
-      localStorage.setItem("pwa-prompt-dismissed", "true");
+      sessionStorage.setItem("pwa-prompt-dismissed", "true");
     }
   };
 
   const handleDismissClick = () => {
     setIsVisible(false);
-    localStorage.setItem("pwa-prompt-dismissed", "true");
+    sessionStorage.setItem("pwa-prompt-dismissed", "true");
   };
 
   if (!isVisible) return null;
