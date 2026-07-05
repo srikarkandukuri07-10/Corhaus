@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
-export default function SignupPage() {
+function SignupForm() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -15,6 +16,35 @@ export default function SignupPage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const [emailReadOnly, setEmailReadOnly] = useState(false);
+
+  useEffect(() => {
+    const emailParam = searchParams.get("email");
+    if (emailParam) {
+      const normalizedEmail = emailParam.trim().toLowerCase();
+      setEmail(normalizedEmail);
+      setEmailReadOnly(true);
+
+      async function prefillFromApproval() {
+        try {
+          const { data, error } = await supabase
+            .from("approved_members")
+            .select("full_name, phone_number")
+            .eq("email", normalizedEmail)
+            .maybeSingle();
+
+          if (!error && data) {
+            setFullName(data.full_name);
+            setPhoneNumber(data.phone_number);
+          }
+        } catch (e) {
+          console.error("Failed to prefill from approved_members:", e);
+        }
+      }
+      prefillFromApproval();
+    }
+  }, [searchParams, supabase]);
 
   function validatePhone(phone: string): boolean {
     const phoneRegex = /^\d{10}$/;
@@ -142,6 +172,12 @@ export default function SignupPage() {
             Create your account
           </h2>
 
+          {emailReadOnly && (
+            <div className="mb-4 p-4 rounded-xl bg-brand-success/10 border border-brand-success/20 text-brand-success text-xs leading-relaxed">
+              Your membership is approved! Choose a password below to activate your account.
+            </div>
+          )}
+
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-brand-error/10 border border-brand-error/20 text-brand-error text-sm">
               {error}
@@ -189,7 +225,7 @@ export default function SignupPage() {
               />
             </div>
 
-            <div>
+             <div>
               <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
                 Email
               </label>
@@ -199,7 +235,10 @@ export default function SignupPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="off"
-                className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all"
+                readOnly={emailReadOnly}
+                className={`w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all ${
+                  emailReadOnly ? "opacity-70 cursor-not-allowed border-brand-sand bg-brand-sand/10" : ""
+                }`}
                 placeholder="you@example.com"
               />
             </div>
@@ -323,5 +362,19 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-brand-cream">
+          <div className="w-8 h-8 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <SignupForm />
+    </Suspense>
   );
 }

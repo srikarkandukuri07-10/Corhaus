@@ -43,6 +43,7 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [prefillEmail, setPrefillEmail] = useState<string | null>(null);
   const supabase = createClient();
   const searchParams = useSearchParams();
 
@@ -53,6 +54,7 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setPrefillEmail(null);
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
@@ -76,7 +78,8 @@ function LoginForm() {
               .maybeSingle();
 
             if (!profile) {
-              setError("Your membership is approved! However, you haven't created a login account yet. Please go to the Sign Up page to set your password.");
+              setPrefillEmail(normalizedEmail);
+              setError("Your membership is approved! However, you haven't created a login account yet. Please complete registration to set your password.");
               setLoading(false);
               return;
             }
@@ -149,6 +152,20 @@ function LoginForm() {
               {error && (
                 <div className="mb-4 p-3 rounded-lg bg-brand-error/10 border border-brand-error/20 text-brand-error text-sm">
                   {error}
+                </div>
+              )}
+
+              {prefillEmail && (
+                <div className="mb-4 p-4 rounded-xl bg-brand-brown/10 border border-brand-brown/20 text-center space-y-3">
+                  <p className="text-sm text-brand-navy">
+                    Set up your password now to activate your dashboard.
+                  </p>
+                  <Link
+                    href={`/auth/signup?email=${encodeURIComponent(prefillEmail)}`}
+                    className="inline-block px-5 py-2.5 rounded-xl bg-brand-brown text-white text-xs font-medium hover:bg-brand-brown-dark transition-colors"
+                  >
+                    Set Password & Activate
+                  </Link>
                 </div>
               )}
 
