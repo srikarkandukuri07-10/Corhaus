@@ -94,6 +94,25 @@ export default function MembersPage() {
       setFormLoading(false);
       return;
     }
+    const normalizedEmail = formEmail.trim().toLowerCase();
+    if (normalizedEmail === "srikarkandukuri07@gmail.com") {
+      setFormError("This email belongs to an administrator and cannot be added as a member.");
+      setFormLoading(false);
+      return;
+    }
+
+    const { data: existingAdmin } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("email", normalizedEmail)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (existingAdmin) {
+      setFormError("This email belongs to an administrator and cannot be added as a member.");
+      setFormLoading(false);
+      return;
+    }
 
     const { data: existingEmail } = await supabase
       .from("approved_members")

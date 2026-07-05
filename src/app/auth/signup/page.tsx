@@ -40,6 +40,13 @@ export default function SignupPage() {
       return;
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail === "srikarkandukuri07@gmail.com") {
+      setError("This email belongs to an administrator and cannot be registered as a member.");
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
