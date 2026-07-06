@@ -28,14 +28,17 @@ export default function MemberLayout({
     let activeChannel: any = null;
 
     async function checkAuth() {
+      console.log("[DEBUG MemberLayout] checkAuth started. URL:", window.location.href);
       try {
         const {
           data: { user },
           error: userError,
         } = await supabase.auth.getUser();
 
+        console.log("[DEBUG MemberLayout] getUser completed. User:", user ? user.email : "null", "Error:", userError);
+
         if (userError || !user) {
-          console.error("Member layout getUser error:", userError);
+          console.warn("[DEBUG MemberLayout] redirecting to /auth/login because no user or error");
           router.push("/auth/login");
           return;
         }
@@ -51,14 +54,17 @@ export default function MemberLayout({
           .eq("id", user.id)
           .maybeSingle();
 
+        console.log("[DEBUG MemberLayout] profile query completed. Profile:", profile, "Error:", profileError);
+
         if (profileError) {
-          console.error("Member layout profile query error:", profileError);
+          console.error("[DEBUG MemberLayout] profile query error, redirecting to login:", profileError);
           await supabase.auth.signOut();
           router.push("/auth/login");
           return;
         }
 
         if (profile?.role === "admin") {
+          console.warn("[DEBUG MemberLayout] user is admin, redirecting to /admin");
           router.push("/admin");
           return;
         }
@@ -70,13 +76,16 @@ export default function MemberLayout({
           .eq("email", user.email || "")
           .maybeSingle();
 
+        console.log("[DEBUG MemberLayout] approved_members check completed. Record:", memberRecord, "Error:", memberError);
+
         if (memberError || !memberRecord || memberRecord.membership_status !== "active") {
-          console.error("Member layout approval check error or inactive:", memberError, memberRecord);
+          console.error("[DEBUG MemberLayout] approval check failed or inactive. Status:", memberRecord?.membership_status, "Error:", memberError);
           await supabase.auth.signOut();
           router.push("/auth/login?error=not_approved");
           return;
         }
 
+        console.log("[DEBUG MemberLayout] auth verification passed. Setting isMember=true, loading=false");
         setIsMember(true);
         setLoading(false);
 
@@ -101,7 +110,7 @@ export default function MemberLayout({
           )
           .subscribe();
       } catch (err) {
-        console.error("Member layout auth check exception:", err);
+        console.error("[DEBUG MemberLayout] checkAuth caught exception:", err);
         await supabase.auth.signOut();
         router.push("/auth/login");
       }

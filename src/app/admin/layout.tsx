@@ -22,14 +22,17 @@ export default function AdminLayout({
 
   useEffect(() => {
     async function checkAuth() {
+      console.log("[DEBUG AdminLayout] checkAuth started. URL:", window.location.href);
       try {
         const {
           data: { user },
           error: userError,
         } = await supabase.auth.getUser();
 
+        console.log("[DEBUG AdminLayout] getUser completed. User:", user ? user.email : "null", "Error:", userError);
+
         if (userError || !user) {
-          console.error("Layout auth getUser error:", userError);
+          console.warn("[DEBUG AdminLayout] redirecting to /auth/login because no user or error");
           router.push("/auth/login");
           return;
         }
@@ -40,16 +43,19 @@ export default function AdminLayout({
           .eq("id", user.id)
           .maybeSingle();
 
+        console.log("[DEBUG AdminLayout] profile query completed. Profile:", profile, "Error:", profileError);
+
         if (profileError || !profile || profile.role !== "admin") {
-          console.error("Layout profile check error or not admin:", profileError, profile);
+          console.warn("[DEBUG AdminLayout] redirecting to /member because not admin. Role:", profile?.role);
           router.push("/member");
           return;
         }
 
+        console.log("[DEBUG AdminLayout] auth verification passed. Setting isAdmin=true, loading=false");
         setIsAdmin(true);
         setLoading(false);
       } catch (err) {
-        console.error("Layout auth check exception:", err);
+        console.error("[DEBUG AdminLayout] checkAuth caught exception:", err);
         router.push("/auth/login");
       }
     }
