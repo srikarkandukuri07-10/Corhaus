@@ -10,6 +10,7 @@ interface BookingData {
   booking_status: string;
   classes?: {
     class_date: string;
+    class_time?: string;
   };
 }
 
@@ -30,6 +31,8 @@ export default function AttendancePage() {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceData[]>([]);
   const [allPastClasses, setAllPastClasses] = useState<{class_date: string}[]>([]);
   const [startDate, setStartDate] = useState<string>("");
+  const [membershipLevel, setMembershipLevel] = useState("Beginner");
+  const [totalCredits, setTotalCredits] = useState(6);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const supabase = createClient();
@@ -42,13 +45,24 @@ export default function AttendancePage() {
 
     const today = new Date(Date.now() + IST_OFFSET_MS).toISOString().split("T")[0];
 
-    const { data: profile } = await supabase.from("profiles").select("created_at").eq("id", user.id).single();
-    const joinedDate = profile?.created_at 
-      ? new Date(new Date(profile.created_at).getTime() + IST_OFFSET_MS).toISOString().split("T")[0]
+    const [am, tiers] = await Promise.all([
+      supabase.from("approved_members").select("created_at, membership_level").eq("email", user.email).maybeSingle(),
+      supabase.from("membership_credit_tiers").select("*")
+    ]);
+
+    const joinedDate = am.data?.created_at 
+      ? new Date(new Date(am.data.created_at).getTime() + IST_OFFSET_MS).toISOString().split("T")[0]
       : new Date(Date.now() + IST_OFFSET_MS - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
+    const level = am.data?.membership_level || "Beginner";
+    setMembershipLevel(level);
+
+    const activeTier = tiers.data?.find((t: any) => t.level === level);
+    const credits = activeTier ? activeTier.credits : 6;
+    setTotalCredits(credits);
+
     const [br, ar, allCr] = await Promise.all([
-      supabase.from("bookings").select("id, class_id, booking_status, classes(class_date)").eq("member_id", user.id),
+      supabase.from("bookings").select("id, class_id, booking_status, classes(class_date, class_time)").eq("member_id", user.id),
       supabase.from("attendance").select("id, booking_id, class_id, attendance_status, classes(class_date)").eq("member_id", user.id),
       supabase.from("classes").select("class_date").gte("class_date", joinedDate).lte("class_date", today)
     ]);
@@ -101,6 +115,8 @@ export default function AttendancePage() {
           pastClasses={allPastClasses}
           currentTime={currentTime}
           startDate={startDate}
+          membershipLevel={membershipLevel}
+          totalCredits={totalCredits}
         />
       )}
     </div>

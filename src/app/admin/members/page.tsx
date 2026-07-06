@@ -12,6 +12,7 @@ interface ApprovedMember {
   membership_status: string;
   created_at: string;
   avatar_url?: string | null;
+  membership_level: string;
 }
 
 function MembersPageContent() {
@@ -22,9 +23,11 @@ function MembersPageContent() {
   const [formEmail, setFormEmail] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formStatus, setFormStatus] = useState("active");
+  const [formLevel, setFormLevel] = useState("Beginner");
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [selectedMember, setSelectedMember] = useState<ApprovedMember | null>(null);
+  const [updatingLevelId, setUpdatingLevelId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deactivatingMember, setDeactivatingMember] = useState<ApprovedMember | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -103,6 +106,7 @@ function MembersPageContent() {
     setFormEmail("");
     setFormPhone("");
     setFormStatus("active");
+    setFormLevel("Beginner");
     setFormError(null);
     setPrefilledReferralCode("");
     setPrefilledReferrerName("");
@@ -181,6 +185,7 @@ function MembersPageContent() {
         email: formEmail.trim(),
         phone_number: phoneDigits,
         membership_status: formStatus,
+        membership_level: formLevel,
       });
 
     if (insertError) {
@@ -250,6 +255,30 @@ function MembersPageContent() {
     }
 
     setTogglingId(null);
+  }
+
+  async function handleUpdateLevel(member: ApprovedMember, newLevel: string) {
+    setActionError(null);
+    setUpdatingLevelId(member.id);
+
+    const { error } = await supabase
+      .from("approved_members")
+      .update({ membership_level: newLevel })
+      .eq("id", member.id);
+
+    if (error) {
+      setActionError(`Failed to update membership level: ${error.message}`);
+    } else {
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.id === member.id ? { ...m, membership_level: newLevel } : m
+        )
+      );
+      setSelectedMember((prev) =>
+        prev && prev.id === member.id ? { ...prev, membership_level: newLevel } : prev
+      );
+    }
+    setUpdatingLevelId(null);
   }
 
   async function handleDeleteMember(member: ApprovedMember) {
@@ -416,6 +445,18 @@ function MembersPageContent() {
                 <option value="inactive">Inactive</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-brand-navy/70 mb-1">Membership Level</label>
+              <select
+                value={formLevel}
+                onChange={(e) => setFormLevel(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy text-sm"
+              >
+                <option value="Beginner">Beginner (6 classes/month)</option>
+                <option value="Intermediate">Intermediate (10 classes/month)</option>
+                <option value="Advanced">Advanced (14 classes/month)</option>
+              </select>
+            </div>
             <button
               type="submit"
               disabled={formLoading}
@@ -444,6 +485,7 @@ function MembersPageContent() {
                   <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Full Name</th>
                   <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Email</th>
                   <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Phone Number</th>
+                  <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Level</th>
                   <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Membership</th>
                   <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Date Added</th>
                   <th className="text-left py-3 px-5 font-medium text-brand-navy/60">Action</th>
@@ -468,6 +510,7 @@ function MembersPageContent() {
                     </td>
                     <td className="py-3 px-5 text-brand-navy/60">{m.email}</td>
                     <td className="py-3 px-5 text-brand-navy/60">{m.phone_number}</td>
+                    <td className="py-3 px-5 text-brand-navy/60 font-medium">{m.membership_level || "Beginner"}</td>
                     <td className="py-3 px-5">
                       <div className="flex items-center gap-3">
                         {togglingId === m.id ? (
@@ -562,6 +605,22 @@ function MembersPageContent() {
                 }`}>
                   {selectedMember.membership_status}
                 </span>
+              </div>
+              <div>
+                <span className="text-brand-navy/50 block text-xs uppercase tracking-wide mb-1">Membership Level</span>
+                {updatingLevelId === selectedMember.id ? (
+                  <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+                ) : (
+                  <select
+                    value={selectedMember.membership_level || "Beginner"}
+                    onChange={(e) => handleUpdateLevel(selectedMember, e.target.value)}
+                    className="w-full px-3 py-1.5 rounded-lg border border-brand-sand bg-brand-cream/50 text-brand-navy text-sm focus:outline-none"
+                  >
+                    <option value="Beginner">Beginner (6 credits)</option>
+                    <option value="Intermediate">Intermediate (10 credits)</option>
+                    <option value="Advanced">Advanced (14 credits)</option>
+                  </select>
+                )}
               </div>
               <div>
                 <span className="text-brand-navy/50 block text-xs uppercase tracking-wide">Membership Start</span>

@@ -19,6 +19,7 @@ interface BookingWithProfile {
   booking_status: string;
   created_at: string;
   member_id: string;
+  cancelled_at?: string | null;
   profiles: {
     full_name: string;
     email: string;
@@ -59,19 +60,32 @@ export default function AdminDashboard() {
   const [isPending, startTransition] = useTransition();
 
   const loadClasses = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("classes")
-      .select("*")
-      .order("class_date", { ascending: true })
-      .order("class_time", { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from("classes")
+        .select("*")
+        .order("class_date", { ascending: true })
+        .order("class_time", { ascending: true });
 
-    if (!error && data) {
-      startTransition(() => {
-        const now = Date.now();
-        const upcoming = data.filter(c => parseAsIst(c.class_date, c.class_time) + 60 * 60 * 1000 > now);
-        setClasses(upcoming);
+      if (error) {
+        console.error("Failed to load classes:", error);
         setLoading(false);
-      });
+        return;
+      }
+
+      if (data) {
+        startTransition(() => {
+          const now = Date.now();
+          const upcoming = data.filter(c => parseAsIst(c.class_date, c.class_time) + 60 * 60 * 1000 > now);
+          setClasses(upcoming);
+          setLoading(false);
+        });
+      } else {
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("loadClasses exception:", err);
+      setLoading(false);
     }
   }, [supabase]);
 
@@ -82,7 +96,6 @@ export default function AdminDashboard() {
         .from("bookings")
         .select("*, profiles(full_name, email, phone_number, avatar_url)")
         .eq("class_id", classId)
-        .eq("booking_status", "booked")
         .order("created_at", { ascending: true });
 
       if (!error && data) {
@@ -344,7 +357,7 @@ export default function AdminDashboard() {
               </p>
             </div>
             <span className="text-sm text-brand-navy/60">
-              {bookings.length} / {selectedClassData.max_capacity} spots filled
+              {bookings.filter((b) => b.booking_status === "booked").length} / {selectedClassData.max_capacity} spots filled
             </span>
           </div>
 
@@ -352,9 +365,9 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-center py-8">
               <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
             </div>
-          ) : bookings.length === 0 ? (
+          ) : bookings.filter((b) => b.booking_status === "booked").length === 0 ? (
             <p className="text-center py-8 text-brand-navy/40 text-sm">
-              No bookings yet
+              No active bookings yet
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -368,35 +381,87 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {bookings.map((booking) => (
-                    <tr key={booking.id} className="border-b border-brand-sand/30 last:border-0">
-                      <td className="py-3 px-4 text-brand-navy font-medium">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full overflow-hidden border border-brand-sand/50 bg-brand-cream/50 flex-shrink-0 flex items-center justify-center">
-                            {booking.profiles?.avatar_url ? (
-                              <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-[10px] font-semibold text-brand-navy/40">
-                                {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
-                              </span>
-                            )}
+                  {bookings
+                    .filter((b) => b.booking_status === "booked")
+                    .map((booking) => (
+                      <tr key={booking.id} className="border-b border-brand-sand/30 last:border-0">
+                        <td className="py-3 px-4 text-brand-navy font-medium">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-full overflow-hidden border border-brand-sand/50 bg-brand-cream/50 flex-shrink-0 flex items-center justify-center">
+                              {booking.profiles?.avatar_url ? (
+                                <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-[10px] font-semibold text-brand-navy/40">
+                                  {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <span>{booking.profiles?.full_name || "N/A"}</span>
                           </div>
-                          <span>{booking.profiles?.full_name || "N/A"}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-brand-navy/60">
-                        {booking.profiles?.email || "N/A"}
-                      </td>
-                      <td className="py-3 px-4 text-brand-navy/60">
-                        {booking.profiles?.phone_number || "N/A"}
-                      </td>
-                      <td className="py-3 px-4 text-brand-navy/50 text-xs">
-                        {new Date(booking.created_at).toLocaleString("en-IN")}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-3 px-4 text-brand-navy/60">
+                          {booking.profiles?.email || "N/A"}
+                        </td>
+                        <td className="py-3 px-4 text-brand-navy/60">
+                          {booking.profiles?.phone_number || "N/A"}
+                        </td>
+                        <td className="py-3 px-4 text-brand-navy/50 text-xs">
+                          {new Date(booking.created_at).toLocaleString("en-IN")}
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Cancelled Bookings list */}
+          {!bookingsLoading && bookings.filter((b) => b.booking_status === "cancelled").length > 0 && (
+            <div className="mt-6 pt-6 border-t border-brand-sand/50 animate-fade-in">
+              <h4 className="text-base font-medium text-brand-navy mb-3">Cancelled Bookings</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-brand-sand/50">
+                      <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Name</th>
+                      <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Email</th>
+                      <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Phone</th>
+                      <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Cancelled At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bookings
+                      .filter((b) => b.booking_status === "cancelled")
+                      .map((booking) => (
+                        <tr key={booking.id} className="border-b border-brand-sand/30 last:border-0 hover:bg-brand-cream/10 transition-colors">
+                          <td className="py-3 px-4 text-brand-navy/60 font-medium">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-full overflow-hidden border border-brand-sand/50 bg-brand-cream/50 flex-shrink-0 flex items-center justify-center opacity-70">
+                                {booking.profiles?.avatar_url ? (
+                                  <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-[10px] font-semibold text-brand-navy/40">
+                                    {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="line-through">{booking.profiles?.full_name || "N/A"}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-brand-navy/40">
+                            {booking.profiles?.email || "N/A"}
+                          </td>
+                          <td className="py-3 px-4 text-brand-navy/40">
+                            {booking.profiles?.phone_number || "N/A"}
+                          </td>
+                          <td className="py-3 px-4 text-brand-navy/40 text-xs">
+                            {booking.cancelled_at ? new Date(booking.cancelled_at).toLocaleString("en-IN") : new Date(booking.created_at).toLocaleString("en-IN")}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 

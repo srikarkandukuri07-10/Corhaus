@@ -28,67 +28,83 @@ export default function MemberLayout({
     let activeChannel: any = null;
 
     async function checkAuth() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
 
-      if (!user) {
-        router.push("/auth/login");
-        return;
-      }
+        if (userError || !user) {
+          console.error("Member layout getUser error:", userError);
+          router.push("/auth/login");
+          return;
+        }
 
-      const providers = user.app_metadata?.providers || [];
-      if (providers.includes("google") && !providers.includes("email")) {
-        setNeedsPassword(true);
-      }
+        const providers = user.app_metadata?.providers || [];
+        if (providers.includes("google") && !providers.includes("email")) {
+          setNeedsPassword(true);
+        }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role, phone_number")
-        .eq("id", user.id)
-        .maybeSingle();
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role, phone_number")
+          .eq("id", user.id)
+          .maybeSingle();
 
-      if (profile?.role === "admin") {
-        router.push("/admin");
-        return;
-      }
+        if (profileError) {
+          console.error("Member layout profile query error:", profileError);
+          await supabase.auth.signOut();
+          router.push("/auth/login");
+          return;
+        }
 
-      // Check if membership is active in approved_members table
-      const { data: memberRecord, error: memberError } = await supabase
-        .from("approved_members")
-        .select("id, membership_status")
-        .eq("email", user.email || "")
-        .maybeSingle();
+        if (profile?.role === "admin") {
+          router.push("/admin");
+          return;
+        }
 
-      if (memberError || !memberRecord || memberRecord.membership_status !== "active") {
-        await supabase.auth.signOut();
-        router.push("/auth/login?error=not_approved");
-        return;
-      }
+        // Check if membership is active in approved_members table
+        const { data: memberRecord, error: memberError } = await supabase
+          .from("approved_members")
+          .select("id, membership_status")
+          .eq("email", user.email || "")
+          .maybeSingle();
 
-      setIsMember(true);
-      setLoading(false);
+        if (memberError || !memberRecord || memberRecord.membership_status !== "active") {
+          console.error("Member layout approval check error or inactive:", memberError, memberRecord);
+          await supabase.auth.signOut();
+          router.push("/auth/login?error=not_approved");
+          return;
+        }
 
-      // Subscribe to membership changes for this user
-      activeChannel = supabase
-        .channel(`membership-status-${user.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "approved_members",
-            filter: `id=eq.${memberRecord.id}`,
-          },
-          (payload: any) => {
-            if (payload.new?.membership_status === "inactive") {
-              supabase.auth.signOut().then(() => {
-                router.push("/auth/login?error=not_approved");
-              });
+        setIsMember(true);
+        setLoading(false);
+
+        // Subscribe to membership changes for this user
+        activeChannel = supabase
+          .channel(`membership-status-${user.id}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "approved_members",
+              filter: `id=eq.${memberRecord.id}`,
+            },
+            (payload: any) => {
+              if (payload.new?.membership_status === "inactive") {
+                supabase.auth.signOut().then(() => {
+                  router.push("/auth/login?error=not_approved");
+                });
+              }
             }
-          }
-        )
-        .subscribe();
+          )
+          .subscribe();
+      } catch (err) {
+        console.error("Member layout auth check exception:", err);
+        await supabase.auth.signOut();
+        router.push("/auth/login");
+      }
     }
 
     checkAuth();

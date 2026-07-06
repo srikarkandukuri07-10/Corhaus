@@ -1,8 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
+const PREDEFINED_CLASS_TYPES = [
+  "Reformer Pilates",
+  "Mat Pilates",
+  "Beginner Pilates",
+  "Intermediate Pilates",
+  "Advanced Pilates",
+  "Tower Pilates",
+  "Cadillac Pilates",
+  "Chair Pilates",
+  "Barrel Pilates",
+  "Prenatal Pilates",
+  "Postnatal Pilates",
+  "Senior Pilates",
+  "Therapeutic / Rehab Pilates",
+  "Private Session",
+  "Duet Session",
+  "Small Group Reformer",
+  "Stretch & Mobility",
+  "Core & Strength Pilates",
+  "Pilates + Cardio",
+  "Pilates Fusion",
+  "Athletic Pilates"
+];
 
 export default function CreateClassPage() {
   const [title, setTitle] = useState("");
@@ -10,11 +34,25 @@ export default function CreateClassPage() {
   const [classDate, setClassDate] = useState("");
   const [classTime, setClassTime] = useState("");
   const [maxCapacity, setMaxCapacity] = useState("");
+  const [classTypes, setClassTypes] = useState<string[]>(PREDEFINED_CLASS_TYPES);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    async function fetchClassTypes() {
+      const { data, error } = await supabase
+        .from("class_types")
+        .select("name")
+        .order("name", { ascending: true });
+      if (!error && data && data.length > 0) {
+        setClassTypes(data.map((d: any) => d.name));
+      }
+    }
+    fetchClassTypes();
+  }, [supabase]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -99,16 +137,21 @@ export default function CreateClassPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
-              Class Name
+              Class Type
             </label>
-            <input
-              type="text"
+            <select
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all"
-              placeholder="e.g. Reformer Pilates"
-            />
+              className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy focus:outline-none focus:ring-1 focus:ring-brand-brown transition-all text-sm"
+            >
+              <option value="" disabled>Select Class Type</option>
+              {classTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

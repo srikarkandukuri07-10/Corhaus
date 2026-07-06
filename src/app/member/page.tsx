@@ -86,6 +86,11 @@ export default function MemberDashboard() {
   const [currentTime, setCurrentTime] = useState(0);
   const [mounted, setMounted] = useState(false);
 
+  const [membershipLevel, setMembershipLevel] = useState("Beginner");
+  const [totalCredits, setTotalCredits] = useState(6);
+  const [usedCredits, setUsedCredits] = useState(0);
+  const [classTypes, setClassTypes] = useState<Record<string, string>>({});
+
   // Store latest data in refs for interval access
   const classesRef = useRef<ClassData[]>([]);
   const bookingsRef = useRef<BookingData[]>([]);
@@ -98,21 +103,74 @@ export default function MemberDashboard() {
 
     const today = new Date(Date.now() + IST_OFFSET_MS).toISOString().split("T")[0];
 
-    const [cr, br, ar] = await Promise.all([
+    const [cr, br, ar, ct, am, tiers] = await Promise.all([
       supabase.from("classes").select("*").gte("class_date", today).order("class_date", { ascending: true }).order("class_time", { ascending: true }),
       supabase.from("bookings").select("id, class_id, booking_status, classes(class_date)").eq("member_id", user.id),
       supabase.from("attendance").select("*, classes(class_date)").eq("member_id", user.id),
+      supabase.from("class_types").select("*"),
+      supabase.from("approved_members").select("membership_level, created_at").eq("email", user.email).maybeSingle(),
+      supabase.from("membership_credit_tiers").select("*")
     ]);
+
+    // Map class types to descriptions
+    if (ct.data) {
+      const descMap: Record<string, string> = {};
+      ct.data.forEach((t: any) => {
+        descMap[t.name] = t.description;
+      });
+      setClassTypes(descMap);
+    }
+
+    // Determine membership tier and level
+    let level = "Beginner";
+    let joinDateStr = user.created_at; // fallback
+    if (am.data) {
+      level = am.data.membership_level || "Beginner";
+      joinDateStr = am.data.created_at;
+    }
+    setMembershipLevel(level);
+
+    const activeTier = tiers.data?.find((t: any) => t.level === level);
+    const credits = activeTier ? activeTier.credits : 6;
+    setTotalCredits(credits);
 
     if (cr.data) {
       setClasses(cr.data);
       classesRef.current = cr.data;
     }
+
+    let userBookings: BookingData[] = [];
     if (br.data) {
-      setBookings(br.data as unknown as BookingData[]);
-      bookingsRef.current = br.data as unknown as BookingData[];
+      userBookings = br.data as unknown as BookingData[];
+      setBookings(userBookings);
+      bookingsRef.current = userBookings;
     }
     if (ar.data) setAttendanceRecords(ar.data as AttendanceData[]);
+
+    // Calculate monthly usage
+    if (joinDateStr) {
+      // Find current membership month range
+      const joinDate = new Date(joinDateStr);
+      const currentDate = new Date();
+      let monthStart = new Date(joinDate);
+      let monthEnd = new Date(joinDate);
+      monthEnd.setMonth(monthEnd.getMonth() + 1);
+
+      while (currentDate >= monthEnd) {
+        monthStart = new Date(monthEnd);
+        monthEnd.setMonth(monthEnd.getMonth() + 1);
+      }
+
+      // Count active bookings in the current membership month
+      const currentMonthActiveBookings = userBookings.filter((b) => {
+        if (b.booking_status !== "booked" || !b.classes?.class_date) return false;
+        const classDate = new Date(b.classes.class_date + "T00:00:00");
+        return classDate >= monthStart && classDate < monthEnd;
+      });
+
+      setUsedCredits(currentMonthActiveBookings.length);
+    }
+
     setLoading(false);
   }, [supabase]);
 
@@ -312,9 +370,42 @@ export default function MemberDashboard() {
           <div className="w-8 h-8 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
         </div>
       )}
-      <div>
-        <h1 className="text-2xl font-light text-brand-navy">Available <span className="font-medium">Classes</span></h1>
-        <p className="text-sm text-brand-navy/50 mt-1">Book your next Pilates session</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-light text-brand-navy">Available <span className="font-medium">Classes</span></h1>
+          <p className="text-sm text-brand-navy/50 mt-1">Book your next Pilates session</p>
+        </div>
+        
+        {!loading && (
+          <div className="w-full md:w-80 bg-gradient-to-br from-brand-navy to-brand-navy/90 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden flex-shrink-0">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-brown/20 rounded-full blur-xl -mr-6 -mt-6" />
+            <div className="flex items-center justify-between mb-3 relative z-10">
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">Monthly Plan</span>
+                <h4 className="text-base font-medium mt-0.5">{membershipLevel}</h4>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                <svg className="w-4 h-4 text-brand-beige" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/10 relative z-10 text-center">
+              <div>
+                <span className="text-[10px] text-white/50 block">Total</span>
+                <span className="text-lg font-medium text-brand-beige">{totalCredits}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-white/50 block">Used</span>
+                <span className="text-lg font-medium text-brand-success">{usedCredits}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-white/50 block">Remaining</span>
+                <span className="text-lg font-medium text-white">{Math.max(0, totalCredits - usedCredits)}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {message && (
@@ -342,15 +433,23 @@ export default function MemberDashboard() {
             const ongoing = isClassOngoing(cls, currentTime);
 
             return (
-              <div key={cls.id} className="bg-white rounded-2xl border border-brand-sand/50 p-5 hover:shadow-md transition-all">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-medium text-brand-navy text-lg">{cls.title}</h3>
-                    <p className="text-sm text-brand-navy/50 mt-1">{cls.instructor}</p>
+              <div key={cls.id} className="bg-white rounded-2xl border border-brand-sand/50 p-5 hover:shadow-md transition-all flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-brand-navy text-lg">{cls.title}</h3>
+                      <p className="text-sm text-brand-navy/50 mt-1">{cls.instructor}</p>
+                      {classTypes[cls.title] && (
+                        <p className="text-xs text-brand-navy/60 mt-2 italic leading-relaxed">
+                          "{classTypes[cls.title]}"
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0 ml-2">
+                      {ongoing && booked && <span className="text-xs font-medium text-brand-accent bg-brand-accent/10 px-2 py-1 rounded-full">Ongoing</span>}
+                      {!ongoing && booked && <span className="text-xs font-medium text-brand-success bg-brand-success/10 px-2 py-1 rounded-full">Booked</span>}
+                    </div>
                   </div>
-                  {ongoing && booked && <span className="text-xs font-medium text-brand-accent bg-brand-accent/10 px-2 py-1 rounded-full">Ongoing</span>}
-                  {!ongoing && booked && <span className="text-xs font-medium text-brand-success bg-brand-success/10 px-2 py-1 rounded-full">Booked</span>}
-                </div>
 
                 <div className="mt-4 space-y-2">
                   <div className="flex items-center gap-2 text-sm text-brand-navy/60">
@@ -390,6 +489,7 @@ export default function MemberDashboard() {
                     <p className="text-xs font-medium text-brand-success">✓ Attendance recorded</p>
                   </div>
                 )}
+                </div>
 
                 <div className="mt-4 space-y-2">
                   {ongoing && booked ? (

@@ -22,27 +22,36 @@ export default function AdminLayout({
 
   useEffect(() => {
     async function checkAuth() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
 
-      if (!user) {
+        if (userError || !user) {
+          console.error("Layout auth getUser error:", userError);
+          router.push("/auth/login");
+          return;
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profileError || !profile || profile.role !== "admin") {
+          console.error("Layout profile check error or not admin:", profileError, profile);
+          router.push("/member");
+          return;
+        }
+
+        setIsAdmin(true);
+        setLoading(false);
+      } catch (err) {
+        console.error("Layout auth check exception:", err);
         router.push("/auth/login");
-        return;
       }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (profile?.role !== "admin") {
-        router.push("/member");
-        return;
-      }
-      setIsAdmin(true);
-      setLoading(false);
     }
 
     checkAuth();
