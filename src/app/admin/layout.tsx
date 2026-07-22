@@ -83,6 +83,7 @@ export default function AdminLayout({
     { href: "/admin/cancelled", label: "Cancelled", exact: true },
     { href: "/admin/members", label: "View Members", exact: false },
     { href: "/admin/previous-classes", label: "Previous Classes", exact: false },
+    { href: "/admin/billing", label: "Billing", exact: false },
   ];
 
   return (
