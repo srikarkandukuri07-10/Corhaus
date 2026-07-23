@@ -788,7 +788,7 @@ function MembersPageContent() {
                           </span>
                         ) : (
                           <span className="inline-block whitespace-nowrap bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg border border-emerald-100 font-semibold text-xs">
-                            Unlimited Access
+                            Full Membership
                           </span>
                         )}
                       </td>
@@ -896,7 +896,7 @@ function MembersPageContent() {
                   <span className="text-xs font-bold text-[#362B24]">
                     {selectedMember.activePlan?.sessions_total
                       ? `${selectedMember.activePlan.sessions_remaining} / ${selectedMember.activePlan.sessions_total} left`
-                      : "Unlimited Access"}
+                      : "Full Membership"}
                   </span>
                 </div>
                 <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0]">
@@ -921,7 +921,7 @@ function MembersPageContent() {
                 <span className="text-sm font-bold text-emerald-900">
                   {selectedMember.daysLeft !== null && selectedMember.daysLeft !== undefined
                     ? `${selectedMember.daysLeft} days remaining`
-                    : "Active Unlimited Plan"}
+                    : "Active Plan"}
                 </span>
               </div>
               <StatusBadge status={selectedMember.computedStatus || "Active"} />
