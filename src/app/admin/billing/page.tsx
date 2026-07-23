@@ -506,10 +506,10 @@ export default function CreateBillPage() {
       )}
 
       {/* 3-panel layout */}
-      <div className="flex gap-3 overflow-hidden" style={{ height: "calc(100vh - 13rem)" }}>
+      <div className="flex flex-col lg:flex-row gap-3 min-h-0 lg:h-[calc(100vh-12rem)] pb-2">
 
         {/* ── LEFT PANEL ─────────────────────────────────── */}
-        <div className="w-[260px] flex-shrink-0 bg-white rounded-2xl border border-brand-sand/50 flex flex-col overflow-hidden shadow-sm">
+        <div className="w-full lg:w-[260px] flex-shrink-0 bg-white rounded-2xl border border-brand-sand/50 flex flex-col overflow-y-auto shadow-sm">
 
           {/* Customer section */}
           <div className="p-4 border-b border-brand-sand/50 flex-shrink-0">
@@ -715,7 +715,7 @@ export default function CreateBillPage() {
         </div>
 
         {/* ── RIGHT PANEL ──────────────────────────────────── */}
-        <div className="w-[340px] flex-shrink-0 bg-white rounded-2xl border border-brand-sand/50 flex flex-col overflow-hidden shadow-sm">
+        <div className="w-full lg:w-[350px] flex-shrink-0 bg-white rounded-2xl border border-brand-sand/50 flex flex-col overflow-y-auto shadow-sm max-h-full">
 
           {/* Header — shows who the bill is for */}
           <div className="p-4 border-b border-brand-sand/50 flex-shrink-0">
