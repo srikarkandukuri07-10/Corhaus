@@ -51,13 +51,13 @@ type DiscountType = "percentage" | "flat";
 // ─── Category config ──────────────────────────────────────────────────────────
 
 const CATEGORIES = [
-  { id: "Membership Plans", label: "Membership Plans", icon: "📋" },
-  { id: "PT Packages",      label: "PT Packages",      icon: "💪" },
-  { id: "Class Packages",   label: "Classes",           icon: "🗓" },
-  { id: "Services",         label: "Services",          icon: "✦" },
-  { id: "Combo Packages",   label: "Combos",            icon: "📦" },
-  { id: "Products",         label: "Products",          icon: "🛍" },
-  { id: "Other Charges",    label: "Other Charges",     icon: "₹" },
+  { id: "Membership Plans", label: "Membership Plans" },
+  { id: "PT Packages",      label: "PT Packages" },
+  { id: "Class Packages",   label: "Classes" },
+  { id: "Services",         label: "Services" },
+  { id: "Combo Packages",   label: "Combos" },
+  { id: "Products",         label: "Products" },
+  { id: "Other Charges",    label: "Other Charges" },
 ];
 
 // ─── Billing Sub-Nav ──────────────────────────────────────────────────────────
@@ -615,14 +615,13 @@ export default function CreateBillPage() {
               const count = allItems.filter((i) => i.category === cat.id).length;
               return (
                 <button key={cat.id} onClick={() => handleCategoryChange(cat.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 ${
                     activeCategory === cat.id
-                      ? "bg-brand-navy text-white"
+                      ? "bg-brand-navy text-white font-semibold"
                       : "text-brand-navy/60 hover:text-brand-navy hover:bg-brand-beige"
                   }`}
                 >
-                  <span className="text-base leading-none">{cat.icon}</span>
-                  <span className="flex-1 text-left">{cat.label}</span>
+                  <span className="text-left">{cat.label}</span>
                   {count > 0 && (
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                       activeCategory === cat.id ? "bg-white/20 text-white" : "bg-brand-sand/60 text-brand-navy/40"
@@ -677,8 +676,10 @@ export default function CreateBillPage() {
               </div>
             ) : filteredItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <div className="w-12 h-12 rounded-full bg-brand-sand/40 flex items-center justify-center mb-3">
-                  <span className="text-2xl">{CATEGORIES.find((c) => c.id === activeCategory)?.icon}</span>
+                <div className="w-12 h-12 rounded-full bg-brand-sand/40 flex items-center justify-center mb-3 text-brand-navy/30">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
+                  </svg>
                 </div>
                 <p className="text-sm text-brand-navy/40">
                   {itemSearch ? "No items match your search" : "No items in this category yet"}

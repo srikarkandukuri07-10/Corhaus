@@ -297,99 +297,113 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Welcome Banner */}
-      <div>
-        <h1 className="text-3xl font-serif text-brand-navy flex items-center gap-2">
-          Good morning, Admin! <span className="text-2xl">👋</span>
-        </h1>
-        <p className="text-sm text-brand-navy/60 mt-1 font-sans">
-          Here&apos;s what&apos;s happening at Corhaus today.
-        </p>
+      {/* Welcome Banner + Top Right New Class Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-serif text-[#362B24]">
+            Good morning, Admin!
+          </h1>
+          <p className="text-sm text-[#4A3B32]/60 mt-1 font-sans">
+            Here&apos;s what&apos;s happening at Corhaus today.
+          </p>
+        </div>
+        <Link
+          href="/admin/classes/new"
+          className="px-5 py-2.5 rounded-xl bg-[#B89368] text-white text-sm font-semibold hover:bg-[#A68B6B] transition-colors shadow-sm flex items-center gap-1.5"
+        >
+          <span>+</span> New Class
+        </Link>
       </div>
 
-      {/* 4 Real Data KPI Cards */}
+      {/* 4 Real Data KPI Cards matching exact mockup colors */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Today's Classes */}
-        <div className="bg-white rounded-[20px] p-5 border border-brand-sand/60 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-[20px] p-5 border border-[#E5DDD0] shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-xs font-semibold text-brand-navy/50 tracking-wide uppercase">
+            <p className="text-xs font-semibold text-[#4A3B32]/50 tracking-wide uppercase">
               Today&apos;s Classes
             </p>
-            <p className="text-3xl font-bold text-brand-navy mt-2">
+            <p className="text-3xl font-bold text-[#362B24] mt-2">
               {loading ? "..." : todaysClassesCount}
             </p>
             <Link
               href="/admin/classes/new"
-              className="inline-flex items-center gap-1 text-xs font-medium text-brand-brown hover:underline mt-3"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#B89368] hover:underline mt-3"
             >
               View all classes &rarr;
             </Link>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-brand-cream text-brand-brown flex items-center justify-center text-xl flex-shrink-0">
-            🗓
+          <div className="w-12 h-12 rounded-2xl bg-[#FDF2F0] text-[#D97762] flex items-center justify-center flex-shrink-0">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
           </div>
         </div>
 
         {/* Total Members */}
-        <div className="bg-white rounded-[20px] p-5 border border-brand-sand/60 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-[20px] p-5 border border-[#E5DDD0] shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-xs font-semibold text-brand-navy/50 tracking-wide uppercase">
+            <p className="text-xs font-semibold text-[#4A3B32]/50 tracking-wide uppercase">
               Total Members
             </p>
-            <p className="text-3xl font-bold text-brand-navy mt-2">
+            <p className="text-3xl font-bold text-[#362B24] mt-2">
               {loading ? "..." : totalMembersCount}
             </p>
             <Link
               href="/admin/members"
-              className="inline-flex items-center gap-1 text-xs font-medium text-brand-brown hover:underline mt-3"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#8B5CF6] hover:underline mt-3"
             >
               View all members &rarr;
             </Link>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-brand-cream text-brand-brown flex items-center justify-center text-xl flex-shrink-0">
-            👥
+          <div className="w-12 h-12 rounded-2xl bg-[#F5F0FB] text-[#8B5CF6] flex items-center justify-center flex-shrink-0">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
           </div>
         </div>
 
         {/* Today's Revenue */}
-        <div className="bg-white rounded-[20px] p-5 border border-brand-sand/60 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-[20px] p-5 border border-[#E5DDD0] shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-xs font-semibold text-brand-navy/50 tracking-wide uppercase">
+            <p className="text-xs font-semibold text-[#4A3B32]/50 tracking-wide uppercase">
               Today&apos;s Revenue
             </p>
-            <p className="text-3xl font-bold text-brand-navy mt-2">
+            <p className="text-3xl font-bold text-[#362B24] mt-2">
               {loading ? "..." : `₹${todaysRevenue.toLocaleString("en-IN")}`}
             </p>
             <Link
               href="/admin/billing/invoices"
-              className="inline-flex items-center gap-1 text-xs font-medium text-brand-brown hover:underline mt-3"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#D97706] hover:underline mt-3"
             >
               View details &rarr;
             </Link>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-brand-cream text-brand-brown flex items-center justify-center text-xl flex-shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-[#FFF9EE] text-[#D97706] flex items-center justify-center flex-shrink-0 font-bold text-xl">
             ₹
           </div>
         </div>
 
         {/* Check-ins Today */}
-        <div className="bg-white rounded-[20px] p-5 border border-brand-sand/60 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-[20px] p-5 border border-[#E5DDD0] shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-xs font-semibold text-brand-navy/50 tracking-wide uppercase">
+            <p className="text-xs font-semibold text-[#4A3B32]/50 tracking-wide uppercase">
               Check-ins Today
             </p>
-            <p className="text-3xl font-bold text-brand-navy mt-2">
+            <p className="text-3xl font-bold text-[#362B24] mt-2">
               {loading ? "..." : checkInsTodayCount}
             </p>
             <Link
               href="/admin/scanner"
-              className="inline-flex items-center gap-1 text-xs font-medium text-brand-brown hover:underline mt-3"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#16A34A] hover:underline mt-3"
             >
               View scanner &rarr;
             </Link>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-brand-cream text-brand-success flex items-center justify-center text-xl flex-shrink-0">
-            ☑️
+          <div className="w-12 h-12 rounded-2xl bg-[#F0FDF4] text-[#16A34A] flex items-center justify-center flex-shrink-0">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
         </div>
       </div>
@@ -397,34 +411,34 @@ export default function AdminDashboard() {
       {/* Full-width Upcoming Classes Table */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-serif text-brand-navy">
+          <h2 className="text-xl font-serif text-[#362B24]">
             Upcoming Classes
           </h2>
           <Link
             href="/admin/classes/new"
-            className="text-xs font-semibold text-brand-brown hover:underline"
+            className="text-xs font-semibold text-[#B89368] hover:underline flex items-center gap-1"
           >
             + Create Class
           </Link>
         </div>
 
         {loading || isPending ? (
-          <div className="flex items-center justify-center py-16 bg-white rounded-[20px] border border-brand-sand/60">
-            <div className="w-6 h-6 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+          <div className="flex items-center justify-center py-16 bg-white rounded-[20px] border border-[#E5DDD0]">
+            <div className="w-6 h-6 border-2 border-[#B89368]/30 border-t-[#B89368] rounded-full animate-spin" />
           </div>
         ) : classes.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-[20px] border border-brand-sand/60">
-            <p className="text-brand-navy/40 mb-3 text-sm">No upcoming classes scheduled</p>
+          <div className="text-center py-16 bg-white rounded-[20px] border border-[#E5DDD0]">
+            <p className="text-[#4A3B32]/40 mb-3 text-sm">No upcoming classes scheduled</p>
             <Link
               href="/admin/classes/new"
-              className="text-sm text-brand-brown font-medium hover:text-brand-brown-dark"
+              className="text-sm text-[#B89368] font-medium hover:underline"
             >
               Create your first class
             </Link>
           </div>
         ) : (
-          <div className="bg-white rounded-[20px] border border-brand-sand/60 overflow-hidden shadow-sm">
-            <div className="divide-y divide-brand-sand/40">
+          <div className="bg-white rounded-[20px] border border-[#E5DDD0] overflow-hidden shadow-sm">
+            <div className="divide-y divide-[#E5DDD0]/60">
               {classes.map((cls) => {
                 const spotsFilled = bookingsCountMap[cls.id] || 0;
                 const isSelected = selectedClass === cls.id;
@@ -435,19 +449,19 @@ export default function AdminDashboard() {
                     onClick={() => handleClassClick(cls.id)}
                     className={`p-4.5 transition-colors cursor-pointer flex items-center justify-between ${
                       isSelected
-                        ? "bg-brand-navy/5 border-l-4 border-l-brand-brown"
-                        : "hover:bg-brand-cream/30"
+                        ? "bg-[#4A3B32]/5 border-l-4 border-l-[#B89368]"
+                        : "hover:bg-[#FAF7F2]"
                     }`}
                   >
                     <div className="flex items-center gap-5">
-                      <div className="text-xs font-semibold text-brand-navy/70 bg-brand-cream px-3.5 py-2 rounded-xl border border-brand-sand/50">
+                      <div className="text-xs font-semibold text-[#4A3B32] bg-[#F4EFE6] px-3.5 py-2 rounded-xl border border-[#E5DDD0]">
                         {formatTime(cls.class_time)}
                       </div>
                       <div>
-                        <h3 className="font-semibold text-brand-navy text-base">
+                        <h3 className="font-semibold text-[#362B24] text-base">
                           {cls.title}
                         </h3>
-                        <p className="text-xs text-brand-navy/50 mt-0.5">
+                        <p className="text-xs text-[#4A3B32]/50 mt-0.5">
                           with {cls.instructor} &bull; {formatDate(cls.class_date)}
                         </p>
                       </div>
@@ -455,10 +469,10 @@ export default function AdminDashboard() {
 
                     <div className="flex items-center gap-6">
                       <div className="text-right">
-                        <span className="text-sm font-bold text-brand-navy">
+                        <span className="text-sm font-bold text-[#362B24]">
                           {spotsFilled} / {cls.max_capacity}
                         </span>
-                        <span className="text-[11px] text-brand-navy/40 block">
+                        <span className="text-[11px] text-[#4A3B32]/40 block">
                           spots filled
                         </span>
                       </div>
@@ -468,7 +482,7 @@ export default function AdminDashboard() {
                       <button
                         onClick={(e) => handleDeleteClass(e, cls.id)}
                         disabled={deletingId === cls.id}
-                        className="p-2 rounded-lg text-brand-navy/30 hover:text-brand-error hover:bg-brand-error/10 transition-colors"
+                        className="p-2 rounded-lg text-[#4A3B32]/30 hover:text-red-600 hover:bg-red-50 transition-colors"
                         title="Remove class"
                       >
                         {deletingId === cls.id ? (
@@ -488,36 +502,36 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* Enrolled Members Details Modal/Panel */}
+      {/* Enrolled Members Details Panel */}
       {selectedClass && selectedClassData && (
-        <div className="bg-white rounded-[20px] border border-brand-sand/60 p-6 animate-slide-up shadow-sm">
+        <div className="bg-white rounded-[20px] border border-[#E5DDD0] p-6 animate-slide-up shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-serif text-brand-navy">
+              <h3 className="text-lg font-serif text-[#362B24]">
                 Enrolled Members
               </h3>
-              <p className="text-sm text-brand-navy/50 font-sans">
+              <p className="text-sm text-[#4A3B32]/50 font-sans">
                 {selectedClassData.title} &bull; with {selectedClassData.instructor}
               </p>
             </div>
-            <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-brand-cream text-brand-navy border border-brand-sand">
+            <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-[#FAF7F2] text-[#4A3B32] border border-[#E5DDD0]">
               {bookings.filter((b) => b.booking_status === "booked").length} / {selectedClassData.max_capacity} spots filled
             </span>
           </div>
 
           {bookingsLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-[#B89368]/30 border-t-[#B89368] rounded-full animate-spin" />
             </div>
           ) : bookings.filter((b) => b.booking_status === "booked").length === 0 ? (
-            <p className="text-center py-8 text-brand-navy/40 text-sm font-sans">
+            <p className="text-center py-8 text-[#4A3B32]/40 text-sm font-sans">
               No active bookings yet for this class
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm font-sans">
                 <thead>
-                  <tr className="border-b border-brand-sand/50 text-xs font-semibold text-brand-navy/50 uppercase">
+                  <tr className="border-b border-[#E5DDD0] text-xs font-semibold text-[#4A3B32]/50 uppercase">
                     <th className="text-left py-3 px-4">Name</th>
                     <th className="text-left py-3 px-4">Email</th>
                     <th className="text-left py-3 px-4">Phone</th>
@@ -528,14 +542,14 @@ export default function AdminDashboard() {
                   {bookings
                     .filter((b) => b.booking_status === "booked")
                     .map((booking) => (
-                      <tr key={booking.id} className="border-b border-brand-sand/30 last:border-0 hover:bg-brand-cream/20">
-                        <td className="py-3 px-4 text-brand-navy font-medium">
+                      <tr key={booking.id} className="border-b border-[#E5DDD0]/50 last:border-0 hover:bg-[#FAF7F2]">
+                        <td className="py-3 px-4 text-[#362B24] font-medium">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full overflow-hidden border border-brand-sand/50 bg-brand-cream/50 flex-shrink-0 flex items-center justify-center">
+                            <div className="w-7 h-7 rounded-full overflow-hidden border border-[#E5DDD0] bg-[#FAF7F2] flex-shrink-0 flex items-center justify-center">
                               {booking.profiles?.avatar_url ? (
                                 <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
                               ) : (
-                                <span className="text-[10px] font-semibold text-brand-navy/40">
+                                <span className="text-[10px] font-semibold text-[#4A3B32]/50">
                                   {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
                                 </span>
                               )}
@@ -543,13 +557,13 @@ export default function AdminDashboard() {
                             <span>{booking.profiles?.full_name || "N/A"}</span>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-brand-navy/60">
+                        <td className="py-3 px-4 text-[#4A3B32]/60">
                           {booking.profiles?.email || "N/A"}
                         </td>
-                        <td className="py-3 px-4 text-brand-navy/60">
+                        <td className="py-3 px-4 text-[#4A3B32]/60">
                           {booking.profiles?.phone_number || "N/A"}
                         </td>
-                        <td className="py-3 px-4 text-brand-navy/50 text-xs">
+                        <td className="py-3 px-4 text-[#4A3B32]/50 text-xs">
                           {new Date(booking.created_at).toLocaleString("en-IN")}
                         </td>
                       </tr>
@@ -561,12 +575,12 @@ export default function AdminDashboard() {
 
           {/* Cancelled Bookings */}
           {!bookingsLoading && bookings.filter((b) => b.booking_status === "cancelled").length > 0 && (
-            <div className="mt-6 pt-6 border-t border-brand-sand/50">
-              <h4 className="text-base font-serif text-brand-navy mb-3">Cancelled Bookings</h4>
+            <div className="mt-6 pt-6 border-t border-[#E5DDD0]">
+              <h4 className="text-base font-serif text-[#362B24] mb-3">Cancelled Bookings</h4>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm font-sans">
                   <thead>
-                    <tr className="border-b border-brand-sand/50 text-xs font-semibold text-brand-navy/50 uppercase">
+                    <tr className="border-b border-[#E5DDD0] text-xs font-semibold text-[#4A3B32]/50 uppercase">
                       <th className="text-left py-3 px-4">Name</th>
                       <th className="text-left py-3 px-4">Email</th>
                       <th className="text-left py-3 px-4">Phone</th>
@@ -577,14 +591,14 @@ export default function AdminDashboard() {
                     {bookings
                       .filter((b) => b.booking_status === "cancelled")
                       .map((booking) => (
-                        <tr key={booking.id} className="border-b border-brand-sand/30 last:border-0 hover:bg-brand-cream/10">
-                          <td className="py-3 px-4 text-brand-navy/60 font-medium">
+                        <tr key={booking.id} className="border-b border-[#E5DDD0]/50 last:border-0 hover:bg-[#FAF7F2]">
+                          <td className="py-3 px-4 text-[#4A3B32]/60 font-medium">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full overflow-hidden border border-brand-sand/50 bg-brand-cream/50 flex-shrink-0 flex items-center justify-center opacity-70">
+                              <div className="w-7 h-7 rounded-full overflow-hidden border border-[#E5DDD0] bg-[#FAF7F2] flex-shrink-0 flex items-center justify-center opacity-70">
                                 {booking.profiles?.avatar_url ? (
                                   <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
                                 ) : (
-                                  <span className="text-[10px] font-semibold text-brand-navy/40">
+                                  <span className="text-[10px] font-semibold text-[#4A3B32]/50">
                                     {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
                                   </span>
                                 )}
@@ -592,13 +606,13 @@ export default function AdminDashboard() {
                               <span className="line-through">{booking.profiles?.full_name || "N/A"}</span>
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-brand-navy/40">
+                          <td className="py-3 px-4 text-[#4A3B32]/40">
                             {booking.profiles?.email || "N/A"}
                           </td>
-                          <td className="py-3 px-4 text-brand-navy/40">
+                          <td className="py-3 px-4 text-[#4A3B32]/40">
                             {booking.profiles?.phone_number || "N/A"}
                           </td>
-                          <td className="py-3 px-4 text-brand-navy/40 text-xs">
+                          <td className="py-3 px-4 text-[#4A3B32]/40 text-xs">
                             {booking.cancelled_at ? new Date(booking.cancelled_at).toLocaleString("en-IN") : new Date(booking.created_at).toLocaleString("en-IN")}
                           </td>
                         </tr>
@@ -610,31 +624,31 @@ export default function AdminDashboard() {
           )}
 
           {/* Attended Members */}
-          <div className="mt-6 pt-6 border-t border-brand-sand/50">
-            <h4 className="text-base font-serif text-brand-navy mb-3">Attended Members</h4>
+          <div className="mt-6 pt-6 border-t border-[#E5DDD0]">
+            <h4 className="text-base font-serif text-[#362B24] mb-3">Attended Members</h4>
             {(() => {
               const classStart = new Date(`${selectedClassData.class_date}T${selectedClassData.class_time}`);
               const now = new Date();
               if (now < classStart) {
                 return (
-                  <p className="text-center py-6 text-brand-navy/40 text-sm font-sans">
+                  <p className="text-center py-6 text-[#4A3B32]/40 text-sm font-sans">
                     Attendance records will be available when the class begins.
                   </p>
                 );
               }
               return attendanceLoading ? (
                 <div className="flex items-center justify-center py-6">
-                  <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-[#B89368]/30 border-t-[#B89368] rounded-full animate-spin" />
                 </div>
               ) : attended.length === 0 ? (
-                <p className="text-center py-6 text-brand-navy/40 text-sm font-sans">
+                <p className="text-center py-6 text-[#4A3B32]/40 text-sm font-sans">
                   No attendance recorded yet
                 </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm font-sans">
                     <thead>
-                      <tr className="border-b border-brand-sand/50 text-xs font-semibold text-brand-navy/50 uppercase">
+                      <tr className="border-b border-[#E5DDD0] text-xs font-semibold text-[#4A3B32]/50 uppercase">
                         <th className="text-left py-3 px-4">Name</th>
                         <th className="text-left py-3 px-4">Email</th>
                         <th className="text-left py-3 px-4">Check-in Time</th>
@@ -642,14 +656,14 @@ export default function AdminDashboard() {
                     </thead>
                     <tbody>
                       {attended.map((a) => (
-                        <tr key={a.id} className="border-b border-brand-sand/30 last:border-0">
-                          <td className="py-3 px-4 text-brand-navy font-medium">
+                        <tr key={a.id} className="border-b border-[#E5DDD0]/50 last:border-0">
+                          <td className="py-3 px-4 text-[#362B24] font-medium">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full overflow-hidden border border-brand-sand/50 bg-brand-cream/50 flex-shrink-0 flex items-center justify-center">
+                              <div className="w-7 h-7 rounded-full overflow-hidden border border-[#E5DDD0] bg-[#FAF7F2] flex-shrink-0 flex items-center justify-center">
                                 {a.profiles?.avatar_url ? (
                                   <img src={a.profiles.avatar_url} alt={a.profiles.full_name} className="w-full h-full object-cover" />
                                 ) : (
-                                  <span className="text-[10px] font-semibold text-brand-navy/40">
+                                  <span className="text-[10px] font-semibold text-[#4A3B32]/50">
                                     {(a.profiles?.full_name || "N").charAt(0).toUpperCase()}
                                   </span>
                                 )}
@@ -657,10 +671,10 @@ export default function AdminDashboard() {
                               <span>{a.profiles?.full_name || "N/A"}</span>
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-brand-navy/60">
+                          <td className="py-3 px-4 text-[#4A3B32]/60">
                             {a.profiles?.email || "N/A"}
                           </td>
-                          <td className="py-3 px-4 text-brand-navy/50 text-xs">
+                          <td className="py-3 px-4 text-[#4A3B32]/50 text-xs">
                             {a.scanned_at ? new Date(a.scanned_at).toLocaleString("en-IN") : "N/A"}
                           </td>
                         </tr>
