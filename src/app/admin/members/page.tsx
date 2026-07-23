@@ -27,6 +27,41 @@ interface InvoiceRecord {
   created_at: string;
 }
 
+interface InvoiceItemDetail {
+  id: string;
+  invoice_id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  validity_days: number | null;
+  sessions: number | null;
+}
+
+interface FullInvoiceRecord {
+  id: string;
+  invoice_number: string;
+  customer_id: string | null;
+  customer_name: string;
+  customer_email: string | null;
+  customer_phone: string | null;
+  subtotal: number;
+  discount_type: string | null;
+  discount_value: number;
+  discount_amount: number;
+  grand_total: number;
+  payment_status: "paid" | "due" | "partial" | string;
+  payment_method: string | null;
+  amount_paid: number;
+  transaction_reference: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_by_name?: string | null;
+  created_at: string;
+  items?: InvoiceItemDetail[];
+}
+
 interface SessionLog {
   id: string;
   scanned_at: string;
@@ -51,6 +86,7 @@ interface ApprovedMember {
   allPlans?: PurchasedPlan[];
   latestInvoice?: InvoiceRecord | null;
   sessionLogs?: SessionLog[];
+  billingHistory?: FullInvoiceRecord[];
 
   // Computed status for filter
   computedStatus?: "Active" | "Frozen" | "Expiring Soon" | "Expired" | "Exhausted" | "Cancelled";
@@ -115,9 +151,24 @@ function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "N/A";
   return new Date(dateStr).toLocaleDateString("en-IN", {
     day: "2-digit",
-    month: "2-digit",
+    month: "short",
     year: "numeric",
   });
+}
+
+function formatDateTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "N/A";
+  return new Date(dateStr).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function fmt(n: number) {
+  return "₹" + Number(n).toLocaleString("en-IN");
 }
 
 function computeMemberStatus(
@@ -169,20 +220,24 @@ function computeMemberStatus(
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     Active: "bg-emerald-100 text-emerald-800 border-emerald-200",
+    paid: "bg-emerald-100 text-emerald-800 border-emerald-200",
     Frozen: "bg-blue-100 text-blue-800 border-blue-200",
     "Expiring Soon": "bg-amber-100 text-amber-800 border-amber-200",
+    due: "bg-amber-100 text-amber-800 border-amber-200",
     Expired: "bg-gray-100 text-gray-700 border-gray-200",
     Exhausted: "bg-orange-100 text-orange-800 border-orange-200",
     Cancelled: "bg-red-100 text-red-800 border-red-200",
   };
 
+  const label = status === "paid" ? "Paid" : status === "due" ? "Payment Due" : status;
+
   return (
     <span
-      className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+      className={`inline-block whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
         styles[status] || "bg-gray-100 text-gray-700 border-gray-200"
       }`}
     >
-      {status}
+      {label}
     </span>
   );
 }
@@ -215,6 +270,9 @@ function MembersPageContent() {
 
   // Selected member drawer detail
   const [selectedMember, setSelectedMember] = useState<ApprovedMember | null>(null);
+
+  // Selected bill detail modal
+  const [selectedInvoice, setSelectedInvoice] = useState<FullInvoiceRecord | null>(null);
 
   // Referral states
   const [prefilledReferralCode, setPrefilledReferralCode] = useState("");
@@ -481,11 +539,12 @@ function MembersPageContent() {
     setTogglingId(null);
   }
 
-  // Open Drawer Details for Selected Member
+  // Open Drawer Details for Selected Member (loads session logs & relational billing history!)
   async function handleOpenDetails(member: ApprovedMember) {
     setSelectedMember(member);
     setSelectedReferral(null);
 
+    // 1. Fetch attendance session logs
     const { data: logs } = await supabase
       .from("attendance")
       .select("id, scanned_at, attendance_status, classes(title)")
@@ -493,6 +552,7 @@ function MembersPageContent() {
       .order("scanned_at", { ascending: false })
       .limit(10);
 
+    // 2. Fetch referral info
     const { data: ref } = await supabase
       .from("referral_codes")
       .select("code, successful_referrals, reward_eligible, reward_redeemed")
@@ -508,7 +568,74 @@ function MembersPageContent() {
       classes: Array.isArray(l.classes) ? l.classes[0] || null : l.classes || null,
     }));
 
-    setSelectedMember((prev) => (prev ? { ...prev, sessionLogs: formattedLogs } : null));
+    // 3. Relational query: fetch all completed bills for this member (newest first)
+    const { data: custData } = await supabase
+      .from("customers")
+      .select("id")
+      .or(`approved_member_id.eq.${member.id},email.ilike.${member.email.toLowerCase()}`);
+
+    const custIds = custData?.map((c) => c.id) || [];
+
+    let invoiceQuery = supabase
+      .from("invoices")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (custIds.length > 0) {
+      invoiceQuery = invoiceQuery.or(`customer_id.in.(${custIds.join(",")}),customer_email.ilike.${member.email.toLowerCase()}`);
+    } else {
+      invoiceQuery = invoiceQuery.ilike("customer_email", member.email.toLowerCase());
+    }
+
+    const { data: invoicesData } = await invoiceQuery;
+
+    let fullBillingHistory: FullInvoiceRecord[] = [];
+
+    if (invoicesData && invoicesData.length > 0) {
+      const invIds = invoicesData.map((inv) => inv.id);
+      const createdByIds = [...new Set(invoicesData.map((inv) => inv.created_by).filter(Boolean))];
+
+      // Fetch invoice line items
+      const { data: itemsData } = await supabase
+        .from("invoice_items")
+        .select("*")
+        .in("invoice_id", invIds);
+
+      // Fetch staff member names who created the bills
+      const profilesMap = new Map<string, string>();
+      if (createdByIds.length > 0) {
+        const { data: staffProfiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", createdByIds);
+        if (staffProfiles) {
+          staffProfiles.forEach((p) => {
+            profilesMap.set(p.id, p.full_name || p.email);
+          });
+        }
+      }
+
+      const itemsByInvMap = new Map<string, InvoiceItemDetail[]>();
+      if (itemsData) {
+        itemsData.forEach((it) => {
+          const list = itemsByInvMap.get(it.invoice_id) || [];
+          list.push(it as InvoiceItemDetail);
+          itemsByInvMap.set(it.invoice_id, list);
+        });
+      }
+
+      fullBillingHistory = invoicesData.map((inv) => ({
+        ...inv,
+        created_by_name: inv.created_by ? profilesMap.get(inv.created_by) || "Super Admin" : "Super Admin",
+        items: itemsByInvMap.get(inv.id) || [],
+      }));
+    }
+
+    setSelectedMember((prev) => (prev ? {
+      ...prev,
+      sessionLogs: formattedLogs,
+      billingHistory: fullBillingHistory,
+    } : null));
   }
 
   return (
@@ -520,7 +647,7 @@ function MembersPageContent() {
             View <span className="font-semibold">Members</span>
           </h1>
           <p className="text-sm text-[#4A3B32]/60 mt-0.5">
-            Manage approved members, assigned packages, remaining sessions &amp; expiry dates
+            Manage approved members, assigned packages, remaining sessions &amp; billing history
           </p>
         </div>
         <button
@@ -872,7 +999,7 @@ function MembersPageContent() {
           onClick={() => setSelectedMember(null)}
         >
           <div
-            className="w-full max-w-md bg-white h-full shadow-2xl overflow-y-auto p-6 space-y-6 animate-slide-up"
+            className="w-full max-w-lg bg-white h-full shadow-2xl overflow-y-auto p-6 space-y-6 animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -936,7 +1063,7 @@ function MembersPageContent() {
               </div>
             </div>
 
-            {/* Days Left Highlight */}
+            {/* Validity Status Highlight */}
             <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-semibold text-emerald-800 block">Validity Status</span>
@@ -949,8 +1076,89 @@ function MembersPageContent() {
               <StatusBadge status={selectedMember.computedStatus || "Active"} />
             </div>
 
+            {/* ─── DEDICATED BILLING HISTORY SECTION ──────────────────────────── */}
+            <div className="space-y-3 pt-2 border-t border-[#E5DDD0]">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-[#8C7A6B] uppercase tracking-wider flex items-center gap-2">
+                  <span>Billing History</span>
+                  {selectedMember.billingHistory && selectedMember.billingHistory.length > 0 && (
+                    <span className="bg-[#4A3B32] text-white text-[10px] px-2 py-0.5 rounded-full font-sans">
+                      {selectedMember.billingHistory.length}
+                    </span>
+                  )}
+                </h4>
+                <span className="text-[11px] text-[#4A3B32]/40 font-medium">Newest first</span>
+              </div>
+
+              {selectedMember.billingHistory && selectedMember.billingHistory.length > 0 ? (
+                <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                  {selectedMember.billingHistory.map((inv) => (
+                    <div
+                      key={inv.id}
+                      onClick={() => setSelectedInvoice(inv)}
+                      className="p-3.5 rounded-xl bg-[#FAF7F2] border border-[#E5DDD0] hover:border-[#B89368] transition-all cursor-pointer space-y-2 group shadow-2xs"
+                    >
+                      {/* Row Header */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-[#362B24] group-hover:text-[#B89368] transition-colors">
+                            {inv.invoice_number}
+                          </span>
+                          <StatusBadge status={inv.payment_status} />
+                        </div>
+                        <span className="text-[11px] text-[#4A3B32]/50">
+                          {formatDate(inv.created_at)}
+                        </span>
+                      </div>
+
+                      {/* Items Summary */}
+                      <div className="space-y-1">
+                        {inv.items && inv.items.length > 0 ? (
+                          inv.items.map((it) => (
+                            <div key={it.id} className="flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-2 truncate pr-2">
+                                <span className="font-medium text-[#362B24] truncate">{it.name}</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white text-[#B89368] border border-[#E5DDD0] font-semibold flex-shrink-0">
+                                  {it.category}
+                                </span>
+                              </div>
+                              <span className="font-semibold text-[#4A3B32] flex-shrink-0">
+                                x{it.quantity} • {fmt(it.total_price)}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-medium text-[#362B24]">Pilates Plan</span>
+                            <span className="font-semibold text-[#4A3B32]">{fmt(inv.grand_total)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Payment & Staff Info Footer */}
+                      <div className="flex items-center justify-between text-[11px] text-[#4A3B32]/60 pt-1.5 border-t border-[#E5DDD0]/60">
+                        <div className="flex items-center gap-2">
+                          <span>Paid via <strong className="text-[#362B24]">{inv.payment_method || "UPI"}</strong></span>
+                          <span>•</span>
+                          <span>Staff: <strong className="text-[#362B24]">{inv.created_by_name}</strong></span>
+                        </div>
+                        <span className="font-bold text-[#362B24] text-xs leading-none">
+                          {fmt(inv.grand_total)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 px-4 bg-[#FAF7F2] rounded-xl border border-[#E5DDD0]">
+                  <p className="text-xs text-[#4A3B32]/50">No completed bills recorded for this member yet</p>
+                  <p className="text-[10px] text-[#4A3B32]/40 mt-1">Completed bills from POS will automatically sync here</p>
+                </div>
+              )}
+            </div>
+
             {/* Session Logs */}
-            <div className="space-y-3">
+            <div className="space-y-3 pt-2 border-t border-[#E5DDD0]">
               <h4 className="text-xs font-bold text-[#8C7A6B] uppercase tracking-wider">Session Logs</h4>
               {selectedMember.sessionLogs && selectedMember.sessionLogs.length > 0 ? (
                 <div className="space-y-1.5 max-h-40 overflow-y-auto">
@@ -996,6 +1204,159 @@ function MembersPageContent() {
                 className="w-full py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100"
               >
                 Delete Member
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── BILL DETAILS SUB-MODAL ────────────────────────────────────────────── */}
+      {selectedInvoice && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in"
+          onClick={() => setSelectedInvoice(null)}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 max-w-lg w-full space-y-5 shadow-2xl border border-[#E5DDD0] max-h-[90vh] overflow-y-auto animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[#E5DDD0] pb-4">
+              <div>
+                <span className="text-[10px] font-bold text-[#B89368] uppercase tracking-widest block">
+                  Invoice Details
+                </span>
+                <h3 className="text-lg font-serif text-[#362B24] font-bold">
+                  {selectedInvoice.invoice_number}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedInvoice(null)}
+                className="w-8 h-8 rounded-full bg-[#FAF7F2] text-[#4A3B32] hover:bg-[#E5DDD0] flex items-center justify-center font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Invoice Meta Grid */}
+            <div className="grid grid-cols-2 gap-3 text-xs bg-[#FAF7F2] p-4 rounded-2xl border border-[#E5DDD0]">
+              <div>
+                <span className="text-[10px] text-[#4A3B32]/50 block font-medium">Bill Date &amp; Time</span>
+                <span className="font-semibold text-[#362B24]">
+                  {formatDateTime(selectedInvoice.created_at)}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#4A3B32]/50 block font-medium">Created By Staff</span>
+                <span className="font-semibold text-[#362B24]">
+                  {selectedInvoice.created_by_name || "Super Admin"}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#4A3B32]/50 block font-medium">Member Name</span>
+                <span className="font-semibold text-[#362B24]">{selectedInvoice.customer_name}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#4A3B32]/50 block font-medium">Payment Status</span>
+                <StatusBadge status={selectedInvoice.payment_status} />
+              </div>
+            </div>
+
+            {/* Purchased Items List Table */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-[#8C7A6B] uppercase tracking-wider">
+                Purchased Items ({selectedInvoice.items?.length || 0})
+              </h4>
+              <div className="border border-[#E5DDD0] rounded-2xl overflow-hidden bg-white">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="bg-[#FAF7F2] border-b border-[#E5DDD0] text-[#4A3B32]/60 font-semibold uppercase tracking-wider">
+                      <th className="py-2.5 px-3">Item Name</th>
+                      <th className="py-2.5 px-3">Category</th>
+                      <th className="py-2.5 px-3 text-center">Qty</th>
+                      <th className="py-2.5 px-3 text-right">Unit Price</th>
+                      <th className="py-2.5 px-3 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E5DDD0]/50">
+                    {selectedInvoice.items && selectedInvoice.items.length > 0 ? (
+                      selectedInvoice.items.map((it) => (
+                        <tr key={it.id}>
+                          <td className="py-2.5 px-3 font-semibold text-[#362B24]">{it.name}</td>
+                          <td className="py-2.5 px-3">
+                            <span className="px-2 py-0.5 rounded-full bg-[#FAF7F2] text-[#B89368] font-medium text-[10px] border border-[#E5DDD0]">
+                              {it.category}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-bold">{it.quantity}</td>
+                          <td className="py-2.5 px-3 text-right text-[#4A3B32]/80">{fmt(it.unit_price)}</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-[#362B24]">{fmt(it.total_price)}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-4 text-center text-[#4A3B32]/50 text-xs">
+                          No line items found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Payment Summary */}
+            <div className="space-y-2 bg-[#FAF7F2] p-4 rounded-2xl border border-[#E5DDD0] text-xs">
+              <h4 className="text-xs font-bold text-[#8C7A6B] uppercase tracking-wider mb-2">
+                Payment Information
+              </h4>
+              <div className="flex justify-between text-[#4A3B32]/70">
+                <span>Subtotal</span>
+                <span className="font-semibold text-[#362B24]">{fmt(selectedInvoice.subtotal)}</span>
+              </div>
+              {selectedInvoice.discount_amount > 0 && (
+                <div className="flex justify-between text-emerald-700 font-semibold">
+                  <span>Discount ({selectedInvoice.discount_type === "percentage" ? `${selectedInvoice.discount_value}%` : fmt(selectedInvoice.discount_value)})</span>
+                  <span>− {fmt(selectedInvoice.discount_amount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-[#4A3B32]/70">
+                <span>Tax / GST</span>
+                <span>₹0 (Included)</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t border-[#E5DDD0] font-bold text-sm text-[#362B24]">
+                <span>Grand Total Paid</span>
+                <span className="text-[#B89368] text-base">{fmt(selectedInvoice.grand_total)}</span>
+              </div>
+
+              <div className="pt-2 border-t border-[#E5DDD0] grid grid-cols-2 gap-2 text-[11px]">
+                <div>
+                  <span className="text-[#4A3B32]/50 block">Payment Method</span>
+                  <span className="font-semibold text-[#362B24]">{selectedInvoice.payment_method || "UPI"}</span>
+                </div>
+                {selectedInvoice.transaction_reference && (
+                  <div>
+                    <span className="text-[#4A3B32]/50 block">Transaction Ref / UTR</span>
+                    <span className="font-mono font-semibold text-[#362B24]">{selectedInvoice.transaction_reference}</span>
+                  </div>
+                )}
+              </div>
+
+              {selectedInvoice.notes && (
+                <div className="pt-2 border-t border-[#E5DDD0] text-[11px]">
+                  <span className="text-[#4A3B32]/50 block">Notes</span>
+                  <p className="text-[#362B24] italic">{selectedInvoice.notes}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setSelectedInvoice(null)}
+                className="px-5 py-2 rounded-xl bg-[#4A3B32] text-white text-xs font-semibold hover:bg-[#362B24]"
+              >
+                Close
               </button>
             </div>
           </div>
