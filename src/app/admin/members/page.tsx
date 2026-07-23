@@ -765,13 +765,13 @@ function MembersPageContent() {
 
                       {/* Package / Plan */}
                       <td className="py-3.5 px-4 font-semibold text-[#362B24] max-w-[200px] truncate">
-                        {plan?.plan_name || "Standard Package"}
+                        {plan?.plan_name || m.membership_level || "Monthly"}
                       </td>
 
                       {/* Category */}
                       <td className="py-3.5 px-4">
                         <span className="inline-block whitespace-nowrap px-3 py-1 rounded-full bg-[#FAF7F2] text-[#B89368] font-semibold text-xs border border-[#E5DDD0]">
-                          {plan?.category || "Class Packages"}
+                          {plan?.category || "Membership Plans"}
                         </span>
                       </td>
 
@@ -783,7 +783,7 @@ function MembersPageContent() {
                           </span>
                         ) : (
                           <span className="inline-block whitespace-nowrap bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg border border-emerald-100 font-semibold text-xs">
-                            Unlimited Classes
+                            Unlimited Access
                           </span>
                         )}
                       </td>
@@ -891,7 +891,7 @@ function MembersPageContent() {
                   <span className="text-xs font-bold text-[#362B24]">
                     {selectedMember.activePlan?.sessions_total
                       ? `${selectedMember.activePlan.sessions_remaining} / ${selectedMember.activePlan.sessions_total} left`
-                      : "Unlimited Classes"}
+                      : "Unlimited Access"}
                   </span>
                 </div>
                 <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0]">
