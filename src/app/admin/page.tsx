@@ -394,181 +394,98 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Main Content Layout: Upcoming Classes + Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Left 2 columns: Upcoming Classes */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-serif text-brand-navy">
-              Upcoming Classes
-            </h2>
-            <Link
-              href="/admin/classes/new"
-              className="text-xs font-semibold text-brand-brown hover:underline"
-            >
-              + Create Class
-            </Link>
-          </div>
-
-          {loading || isPending ? (
-            <div className="flex items-center justify-center py-16 bg-white rounded-[20px] border border-brand-sand/60">
-              <div className="w-6 h-6 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
-            </div>
-          ) : classes.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-[20px] border border-brand-sand/60">
-              <p className="text-brand-navy/40 mb-3 text-sm">No upcoming classes scheduled</p>
-              <Link
-                href="/admin/classes/new"
-                className="text-sm text-brand-brown font-medium hover:text-brand-brown-dark"
-              >
-                Create your first class
-              </Link>
-            </div>
-          ) : (
-            <div className="bg-white rounded-[20px] border border-brand-sand/60 overflow-hidden shadow-sm">
-              <div className="divide-y divide-brand-sand/40">
-                {classes.map((cls) => {
-                  const spotsFilled = bookingsCountMap[cls.id] || 0;
-                  const isSelected = selectedClass === cls.id;
-
-                  return (
-                    <div
-                      key={cls.id}
-                      onClick={() => handleClassClick(cls.id)}
-                      className={`p-4 transition-colors cursor-pointer flex items-center justify-between ${
-                        isSelected
-                          ? "bg-brand-navy/5 border-l-4 border-l-brand-brown"
-                          : "hover:bg-brand-cream/30"
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="text-xs font-semibold text-brand-navy/70 bg-brand-cream px-3 py-1.5 rounded-xl border border-brand-sand/50">
-                          {formatTime(cls.class_time)}
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-brand-navy text-sm">
-                            {cls.title}
-                          </h3>
-                          <p className="text-xs text-brand-navy/50 mt-0.5">
-                            with {cls.instructor} &bull; {formatDate(cls.class_date)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <span className="text-xs font-semibold text-brand-navy">
-                            {spotsFilled} / {cls.max_capacity}
-                          </span>
-                          <span className="text-[10px] text-brand-navy/40 block">
-                            spots filled
-                          </span>
-                        </div>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          Upcoming
-                        </span>
-                        <button
-                          onClick={(e) => handleDeleteClass(e, cls.id)}
-                          disabled={deletingId === cls.id}
-                          className="p-1.5 rounded-lg text-brand-navy/30 hover:text-brand-error hover:bg-brand-error/10 transition-colors"
-                          title="Remove class"
-                        >
-                          {deletingId === cls.id ? (
-                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right 1 column: Quick Actions */}
-        <div className="space-y-4">
+      {/* Full-width Upcoming Classes Table */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
           <h2 className="text-xl font-serif text-brand-navy">
-            Quick Actions
+            Upcoming Classes
           </h2>
-          <div className="grid grid-cols-2 gap-3">
-            <Link
-              href="/admin/classes/new"
-              className="p-4 bg-amber-50/60 rounded-[20px] border border-amber-200/60 hover:bg-amber-100/50 transition-all flex flex-col items-start gap-3 group"
-            >
-              <div className="w-9 h-9 rounded-full bg-white text-amber-700 flex items-center justify-center font-bold text-lg shadow-sm">
-                +
-              </div>
-              <div>
-                <p className="font-semibold text-brand-navy text-sm">New Class</p>
-                <p className="text-[11px] text-brand-navy/50 mt-0.5">Create a new class</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/admin/scanner"
-              className="p-4 bg-emerald-50/60 rounded-[20px] border border-emerald-200/60 hover:bg-emerald-100/50 transition-all flex flex-col items-start gap-3 group"
-            >
-              <div className="w-9 h-9 rounded-full bg-white text-emerald-700 flex items-center justify-center font-bold text-lg shadow-sm">
-                ☑️
-              </div>
-              <div>
-                <p className="font-semibold text-brand-navy text-sm">Mark Attendance</p>
-                <p className="text-[11px] text-brand-navy/50 mt-0.5">Open QR scanner</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/admin/members"
-              className="p-4 bg-indigo-50/60 rounded-[20px] border border-indigo-200/60 hover:bg-indigo-100/50 transition-all flex flex-col items-start gap-3 group"
-            >
-              <div className="w-9 h-9 rounded-full bg-white text-indigo-700 flex items-center justify-center font-bold text-lg shadow-sm">
-                👤
-              </div>
-              <div>
-                <p className="font-semibold text-brand-navy text-sm">View Members</p>
-                <p className="text-[11px] text-brand-navy/50 mt-0.5">Manage accounts</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/admin/billing/invoices"
-              className="p-4 bg-rose-50/60 rounded-[20px] border border-rose-200/60 hover:bg-rose-100/50 transition-all flex flex-col items-start gap-3 group"
-            >
-              <div className="w-9 h-9 rounded-full bg-white text-rose-700 flex items-center justify-center font-bold text-lg shadow-sm">
-                📄
-              </div>
-              <div>
-                <p className="font-semibold text-brand-navy text-sm">Invoices</p>
-                <p className="text-[11px] text-brand-navy/50 mt-0.5">View transaction logs</p>
-              </div>
-            </Link>
-          </div>
-
-          {/* Featured Large Action Card */}
           <Link
-            href="/admin/billing"
-            className="p-5 bg-gradient-to-r from-brand-cream via-white to-brand-beige rounded-[20px] border border-brand-sand hover:border-brand-brown/40 shadow-sm transition-all flex items-center justify-between group mt-4 block"
+            href="/admin/classes/new"
+            className="text-xs font-semibold text-brand-brown hover:underline"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded-2xl bg-brand-navy text-white flex items-center justify-center font-bold text-lg shadow">
-                ₹
-              </div>
-              <div>
-                <p className="font-bold text-brand-navy text-base">New Bill / POS</p>
-                <p className="text-xs text-brand-navy/50">Create a new bill for member or walk-in</p>
-              </div>
-            </div>
-            <span className="text-brand-brown group-hover:translate-x-1 transition-transform font-bold text-lg">
-              &rarr;
-            </span>
+            + Create Class
           </Link>
         </div>
+
+        {loading || isPending ? (
+          <div className="flex items-center justify-center py-16 bg-white rounded-[20px] border border-brand-sand/60">
+            <div className="w-6 h-6 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+          </div>
+        ) : classes.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-[20px] border border-brand-sand/60">
+            <p className="text-brand-navy/40 mb-3 text-sm">No upcoming classes scheduled</p>
+            <Link
+              href="/admin/classes/new"
+              className="text-sm text-brand-brown font-medium hover:text-brand-brown-dark"
+            >
+              Create your first class
+            </Link>
+          </div>
+        ) : (
+          <div className="bg-white rounded-[20px] border border-brand-sand/60 overflow-hidden shadow-sm">
+            <div className="divide-y divide-brand-sand/40">
+              {classes.map((cls) => {
+                const spotsFilled = bookingsCountMap[cls.id] || 0;
+                const isSelected = selectedClass === cls.id;
+
+                return (
+                  <div
+                    key={cls.id}
+                    onClick={() => handleClassClick(cls.id)}
+                    className={`p-4.5 transition-colors cursor-pointer flex items-center justify-between ${
+                      isSelected
+                        ? "bg-brand-navy/5 border-l-4 border-l-brand-brown"
+                        : "hover:bg-brand-cream/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-5">
+                      <div className="text-xs font-semibold text-brand-navy/70 bg-brand-cream px-3.5 py-2 rounded-xl border border-brand-sand/50">
+                        {formatTime(cls.class_time)}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-brand-navy text-base">
+                          {cls.title}
+                        </h3>
+                        <p className="text-xs text-brand-navy/50 mt-0.5">
+                          with {cls.instructor} &bull; {formatDate(cls.class_date)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <span className="text-sm font-bold text-brand-navy">
+                          {spotsFilled} / {cls.max_capacity}
+                        </span>
+                        <span className="text-[11px] text-brand-navy/40 block">
+                          spots filled
+                        </span>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Upcoming
+                      </span>
+                      <button
+                        onClick={(e) => handleDeleteClass(e, cls.id)}
+                        disabled={deletingId === cls.id}
+                        className="p-2 rounded-lg text-brand-navy/30 hover:text-brand-error hover:bg-brand-error/10 transition-colors"
+                        title="Remove class"
+                      >
+                        {deletingId === cls.id ? (
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Enrolled Members Details Modal/Panel */}
