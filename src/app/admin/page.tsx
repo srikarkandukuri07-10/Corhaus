@@ -40,6 +40,7 @@ interface AttendanceWithProfile {
 }
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
 function parseAsIst(dateStr: string, timeStr: string): number {
   const iso = `${dateStr}T${timeStr}`;
   const d = new Date(iso);
@@ -47,44 +48,109 @@ function parseAsIst(dateStr: string, timeStr: string): number {
   return d.getTime() + (IST_OFFSET_MS - browserOffset);
 }
 
+function getTodayIstString(): string {
+  const now = new Date();
+  const istDate = new Date(now.getTime() + (IST_OFFSET_MS - (-now.getTimezoneOffset() * 60 * 1000)));
+  return istDate.toISOString().split("T")[0];
+}
+
 export default function AdminDashboard() {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [bookings, setBookings] = useState<BookingWithProfile[]>([]);
   const [attended, setAttended] = useState<AttendanceWithProfile[]>([]);
+  const [bookingsCountMap, setBookingsCountMap] = useState<Record<string, number>>({});
+  
+  // Real KPI Metrics
+  const [todaysClassesCount, setTodaysClassesCount] = useState<number>(0);
+  const [totalMembersCount, setTotalMembersCount] = useState<number>(0);
+  const [todaysRevenue, setTodaysRevenue] = useState<number>(0);
+  const [checkInsTodayCount, setCheckInsTodayCount] = useState<number>(0);
+
   const [loading, setLoading] = useState(true);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const supabase = createClient();
   const [isPending, startTransition] = useTransition();
 
-  const loadClasses = useCallback(async () => {
+  // Load KPI metrics and classes dynamically from Supabase
+  const loadDashboardData = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      const todayStr = getTodayIstString();
+
+      // 1. Fetch Classes
+      const { data: classData, error: classError } = await supabase
         .from("classes")
         .select("*")
         .order("class_date", { ascending: true })
         .order("class_time", { ascending: true });
 
-      if (error) {
-        console.error("Failed to load classes:", error);
-        setLoading(false);
-        return;
+      if (classError) {
+        console.error("Failed to load classes:", classError);
       }
 
-      if (data) {
-        startTransition(() => {
-          const now = Date.now();
-          const upcoming = data.filter(c => parseAsIst(c.class_date, c.class_time) + 60 * 60 * 1000 > now);
-          setClasses(upcoming);
-          setLoading(false);
-        });
-      } else {
-        setLoading(false);
+      let upcomingClasses: ClassData[] = [];
+      let todayCount = 0;
+
+      if (classData) {
+        const now = Date.now();
+        upcomingClasses = classData.filter(
+          (c) => parseAsIst(c.class_date, c.class_time) + 60 * 60 * 1000 > now
+        );
+        todayCount = classData.filter((c) => c.class_date === todayStr).length;
       }
+
+      // 2. Fetch Booking Counts for all active classes
+      const { data: allBookings } = await supabase
+        .from("bookings")
+        .select("class_id")
+        .eq("booking_status", "booked");
+
+      const bMap: Record<string, number> = {};
+      if (allBookings) {
+        allBookings.forEach((b) => {
+          bMap[b.class_id] = (bMap[b.class_id] || 0) + 1;
+        });
+      }
+
+      // 3. Fetch Total Members
+      const { count: membersCount } = await supabase
+        .from("approved_members")
+        .select("*", { count: "exact", head: true });
+
+      // 4. Fetch Today's Revenue from Paid Invoices
+      const { data: todaysInvoices } = await supabase
+        .from("invoices")
+        .select("amount_paid, grand_total, created_at")
+        .eq("payment_status", "paid")
+        .gte("created_at", `${todayStr}T00:00:00.000Z`);
+
+      let revTotal = 0;
+      if (todaysInvoices) {
+        revTotal = todaysInvoices.reduce((sum, inv) => sum + (inv.amount_paid || inv.grand_total || 0), 0);
+      }
+
+      // 5. Fetch Check-ins Today
+      const { count: checkInsCount } = await supabase
+        .from("attendance")
+        .select("*", { count: "exact", head: true })
+        .eq("attendance_status", "attended")
+        .gte("scanned_at", `${todayStr}T00:00:00.000Z`);
+
+      startTransition(() => {
+        setClasses(upcomingClasses);
+        setTodaysClassesCount(todayCount);
+        setBookingsCountMap(bMap);
+        setTotalMembersCount(membersCount || 0);
+        setTodaysRevenue(revTotal);
+        setCheckInsTodayCount(checkInsCount || 0);
+        setLoading(false);
+      });
     } catch (err) {
-      console.error("loadClasses exception:", err);
+      console.error("loadDashboardData exception:", err);
       setLoading(false);
     }
   }, [supabase]);
@@ -133,37 +199,41 @@ export default function AdminDashboard() {
   );
 
   useEffect(() => {
-    loadClasses();
-  }, [loadClasses]);
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   // Realtime subscriptions
   useEffect(() => {
     const channel = supabase
-      .channel("admin-bookings")
+      .channel("admin-dashboard-realtime")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "bookings" },
         () => {
-          loadClasses();
-          if (selectedClass) {
-            loadBookings(selectedClass);
-          }
+          loadDashboardData();
+          if (selectedClass) loadBookings(selectedClass);
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "classes" },
         () => {
-          loadClasses();
+          loadDashboardData();
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "attendance" },
         () => {
-          if (selectedClass) {
-            loadAttendance(selectedClass);
-          }
+          loadDashboardData();
+          if (selectedClass) loadAttendance(selectedClass);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "invoices" },
+        () => {
+          loadDashboardData();
         }
       )
       .subscribe();
@@ -171,12 +241,18 @@ export default function AdminDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, loadClasses, loadBookings, loadAttendance, selectedClass]);
+  }, [supabase, loadDashboardData, loadBookings, loadAttendance, selectedClass]);
 
   function handleClassClick(classId: string) {
-    setSelectedClass(classId);
-    loadBookings(classId);
-    loadAttendance(classId);
+    if (selectedClass === classId) {
+      setSelectedClass(null);
+      setBookings([]);
+      setAttended([]);
+    } else {
+      setSelectedClass(classId);
+      loadBookings(classId);
+      loadAttendance(classId);
+    }
   }
 
   async function handleDeleteClass(e: React.MouseEvent, classId: string) {
@@ -196,7 +272,7 @@ export default function AdminDashboard() {
       setSelectedClass(null);
       setBookings([]);
     }
-    loadClasses();
+    loadDashboardData();
   }
 
   function formatTime(time: string) {
@@ -221,142 +297,293 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-light text-brand-navy">
-            Admin <span className="font-medium">Dashboard</span>
-          </h1>
-          <p className="text-sm text-brand-navy/50 mt-1">
-            Manage your classes and bookings
-          </p>
-        </div>
-        <Link
-          href="/admin/classes/new"
-          className="px-5 py-2.5 rounded-xl bg-brand-brown text-white text-sm font-medium hover:bg-brand-brown-dark transition-colors"
-        >
-          + New Class
-        </Link>
+      {/* Welcome Banner */}
+      <div>
+        <h1 className="text-3xl font-serif text-brand-navy flex items-center gap-2">
+          Good morning, Admin! <span className="text-2xl">👋</span>
+        </h1>
+        <p className="text-sm text-brand-navy/60 mt-1 font-sans">
+          Here&apos;s what&apos;s happening at Corhaus today.
+        </p>
       </div>
 
-      {/* Classes Grid */}
-      <div>
-        <h2 className="text-lg font-medium text-brand-navy mb-4">
-          Upcoming Classes
-        </h2>
-        {loading || isPending ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
-          </div>
-        ) : classes.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl border border-brand-sand/50">
-            <p className="text-brand-navy/40 mb-3">No classes created yet</p>
+      {/* 4 Real Data KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Today's Classes */}
+        <div className="bg-white rounded-[20px] p-5 border border-brand-sand/60 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-xs font-semibold text-brand-navy/50 tracking-wide uppercase">
+              Today&apos;s Classes
+            </p>
+            <p className="text-3xl font-bold text-brand-navy mt-2">
+              {loading ? "..." : todaysClassesCount}
+            </p>
             <Link
               href="/admin/classes/new"
-              className="text-sm text-brand-brown font-medium hover:text-brand-brown-dark"
+              className="inline-flex items-center gap-1 text-xs font-medium text-brand-brown hover:underline mt-3"
             >
-              Create your first class
+              View all classes &rarr;
             </Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {classes.map((cls) => (
-              <div
-                key={cls.id}
-                className={`relative p-5 rounded-2xl border transition-all ${
-                  selectedClass === cls.id
-                    ? "bg-brand-navy text-white border-brand-navy shadow-lg"
-                    : "bg-white border-brand-sand/50 hover:border-brand-brown/30 hover:shadow-md"
-                }`}
-              >
-                <button
-                  onClick={() => handleClassClick(cls.id)}
-                  className="text-left w-full"
-                >
-                <h3
-                  className={`font-medium text-lg ${
-                    selectedClass === cls.id ? "text-white" : "text-brand-navy"
-                  }`}
-                >
-                  {cls.title}
-                </h3>
-                <p
-                  className={`text-sm mt-1 ${
-                    selectedClass === cls.id
-                      ? "text-white/70"
-                      : "text-brand-navy/50"
-                  }`}
-                >
-                  {cls.instructor}
-                </p>
-                <div className="mt-3 flex items-center gap-4 text-sm">
-                  <span
-                    className={
-                      selectedClass === cls.id
-                        ? "text-white/80"
-                        : "text-brand-navy/60"
-                    }
-                  >
-                    {formatDate(cls.class_date)}
-                  </span>
-                  <span
-                    className={
-                      selectedClass === cls.id
-                        ? "text-white/80"
-                        : "text-brand-navy/60"
-                    }
-                  >
-                    {formatTime(cls.class_time)}
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full ${
-                      selectedClass === cls.id
-                        ? "bg-white/20 text-white"
-                        : "bg-brand-beige text-brand-navy/60"
-                    }`}
-                  >
-                    Max {cls.max_capacity} spots
-                  </span>
-                </div>
-                </button>
-                <button
-                  onClick={(e) => handleDeleteClass(e, cls.id)}
-                  disabled={deletingId === cls.id}
-                  className={`absolute top-3 right-3 p-1.5 rounded-lg transition-colors ${
-                    selectedClass === cls.id
-                      ? "text-white/60 hover:text-white hover:bg-white/10"
-                      : "text-brand-navy/30 hover:text-brand-error hover:bg-brand-error/10"
-                  }`}
-                  title="Remove class"
-                >
-                  {deletingId === cls.id ? (
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            ))}
+          <div className="w-12 h-12 rounded-2xl bg-brand-cream text-brand-brown flex items-center justify-center text-xl flex-shrink-0">
+            🗓
           </div>
-        )}
+        </div>
+
+        {/* Total Members */}
+        <div className="bg-white rounded-[20px] p-5 border border-brand-sand/60 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-xs font-semibold text-brand-navy/50 tracking-wide uppercase">
+              Total Members
+            </p>
+            <p className="text-3xl font-bold text-brand-navy mt-2">
+              {loading ? "..." : totalMembersCount}
+            </p>
+            <Link
+              href="/admin/members"
+              className="inline-flex items-center gap-1 text-xs font-medium text-brand-brown hover:underline mt-3"
+            >
+              View all members &rarr;
+            </Link>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-brand-cream text-brand-brown flex items-center justify-center text-xl flex-shrink-0">
+            👥
+          </div>
+        </div>
+
+        {/* Today's Revenue */}
+        <div className="bg-white rounded-[20px] p-5 border border-brand-sand/60 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-xs font-semibold text-brand-navy/50 tracking-wide uppercase">
+              Today&apos;s Revenue
+            </p>
+            <p className="text-3xl font-bold text-brand-navy mt-2">
+              {loading ? "..." : `₹${todaysRevenue.toLocaleString("en-IN")}`}
+            </p>
+            <Link
+              href="/admin/billing/invoices"
+              className="inline-flex items-center gap-1 text-xs font-medium text-brand-brown hover:underline mt-3"
+            >
+              View details &rarr;
+            </Link>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-brand-cream text-brand-brown flex items-center justify-center text-xl flex-shrink-0">
+            ₹
+          </div>
+        </div>
+
+        {/* Check-ins Today */}
+        <div className="bg-white rounded-[20px] p-5 border border-brand-sand/60 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-xs font-semibold text-brand-navy/50 tracking-wide uppercase">
+              Check-ins Today
+            </p>
+            <p className="text-3xl font-bold text-brand-navy mt-2">
+              {loading ? "..." : checkInsTodayCount}
+            </p>
+            <Link
+              href="/admin/scanner"
+              className="inline-flex items-center gap-1 text-xs font-medium text-brand-brown hover:underline mt-3"
+            >
+              View scanner &rarr;
+            </Link>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-brand-cream text-brand-success flex items-center justify-center text-xl flex-shrink-0">
+            ☑️
+          </div>
+        </div>
       </div>
 
-      {/* Enrolled Members Panel */}
+      {/* Main Content Layout: Upcoming Classes + Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left 2 columns: Upcoming Classes */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-serif text-brand-navy">
+              Upcoming Classes
+            </h2>
+            <Link
+              href="/admin/classes/new"
+              className="text-xs font-semibold text-brand-brown hover:underline"
+            >
+              + Create Class
+            </Link>
+          </div>
+
+          {loading || isPending ? (
+            <div className="flex items-center justify-center py-16 bg-white rounded-[20px] border border-brand-sand/60">
+              <div className="w-6 h-6 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+            </div>
+          ) : classes.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-[20px] border border-brand-sand/60">
+              <p className="text-brand-navy/40 mb-3 text-sm">No upcoming classes scheduled</p>
+              <Link
+                href="/admin/classes/new"
+                className="text-sm text-brand-brown font-medium hover:text-brand-brown-dark"
+              >
+                Create your first class
+              </Link>
+            </div>
+          ) : (
+            <div className="bg-white rounded-[20px] border border-brand-sand/60 overflow-hidden shadow-sm">
+              <div className="divide-y divide-brand-sand/40">
+                {classes.map((cls) => {
+                  const spotsFilled = bookingsCountMap[cls.id] || 0;
+                  const isSelected = selectedClass === cls.id;
+
+                  return (
+                    <div
+                      key={cls.id}
+                      onClick={() => handleClassClick(cls.id)}
+                      className={`p-4 transition-colors cursor-pointer flex items-center justify-between ${
+                        isSelected
+                          ? "bg-brand-navy/5 border-l-4 border-l-brand-brown"
+                          : "hover:bg-brand-cream/30"
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="text-xs font-semibold text-brand-navy/70 bg-brand-cream px-3 py-1.5 rounded-xl border border-brand-sand/50">
+                          {formatTime(cls.class_time)}
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-brand-navy text-sm">
+                            {cls.title}
+                          </h3>
+                          <p className="text-xs text-brand-navy/50 mt-0.5">
+                            with {cls.instructor} &bull; {formatDate(cls.class_date)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <span className="text-xs font-semibold text-brand-navy">
+                            {spotsFilled} / {cls.max_capacity}
+                          </span>
+                          <span className="text-[10px] text-brand-navy/40 block">
+                            spots filled
+                          </span>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Upcoming
+                        </span>
+                        <button
+                          onClick={(e) => handleDeleteClass(e, cls.id)}
+                          disabled={deletingId === cls.id}
+                          className="p-1.5 rounded-lg text-brand-navy/30 hover:text-brand-error hover:bg-brand-error/10 transition-colors"
+                          title="Remove class"
+                        >
+                          {deletingId === cls.id ? (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right 1 column: Quick Actions */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-serif text-brand-navy">
+            Quick Actions
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            <Link
+              href="/admin/classes/new"
+              className="p-4 bg-amber-50/60 rounded-[20px] border border-amber-200/60 hover:bg-amber-100/50 transition-all flex flex-col items-start gap-3 group"
+            >
+              <div className="w-9 h-9 rounded-full bg-white text-amber-700 flex items-center justify-center font-bold text-lg shadow-sm">
+                +
+              </div>
+              <div>
+                <p className="font-semibold text-brand-navy text-sm">New Class</p>
+                <p className="text-[11px] text-brand-navy/50 mt-0.5">Create a new class</p>
+              </div>
+            </Link>
+
+            <Link
+              href="/admin/scanner"
+              className="p-4 bg-emerald-50/60 rounded-[20px] border border-emerald-200/60 hover:bg-emerald-100/50 transition-all flex flex-col items-start gap-3 group"
+            >
+              <div className="w-9 h-9 rounded-full bg-white text-emerald-700 flex items-center justify-center font-bold text-lg shadow-sm">
+                ☑️
+              </div>
+              <div>
+                <p className="font-semibold text-brand-navy text-sm">Mark Attendance</p>
+                <p className="text-[11px] text-brand-navy/50 mt-0.5">Open QR scanner</p>
+              </div>
+            </Link>
+
+            <Link
+              href="/admin/members"
+              className="p-4 bg-indigo-50/60 rounded-[20px] border border-indigo-200/60 hover:bg-indigo-100/50 transition-all flex flex-col items-start gap-3 group"
+            >
+              <div className="w-9 h-9 rounded-full bg-white text-indigo-700 flex items-center justify-center font-bold text-lg shadow-sm">
+                👤
+              </div>
+              <div>
+                <p className="font-semibold text-brand-navy text-sm">View Members</p>
+                <p className="text-[11px] text-brand-navy/50 mt-0.5">Manage accounts</p>
+              </div>
+            </Link>
+
+            <Link
+              href="/admin/billing/invoices"
+              className="p-4 bg-rose-50/60 rounded-[20px] border border-rose-200/60 hover:bg-rose-100/50 transition-all flex flex-col items-start gap-3 group"
+            >
+              <div className="w-9 h-9 rounded-full bg-white text-rose-700 flex items-center justify-center font-bold text-lg shadow-sm">
+                📄
+              </div>
+              <div>
+                <p className="font-semibold text-brand-navy text-sm">Invoices</p>
+                <p className="text-[11px] text-brand-navy/50 mt-0.5">View transaction logs</p>
+              </div>
+            </Link>
+          </div>
+
+          {/* Featured Large Action Card */}
+          <Link
+            href="/admin/billing"
+            className="p-5 bg-gradient-to-r from-brand-cream via-white to-brand-beige rounded-[20px] border border-brand-sand hover:border-brand-brown/40 shadow-sm transition-all flex items-center justify-between group mt-4 block"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-11 h-11 rounded-2xl bg-brand-navy text-white flex items-center justify-center font-bold text-lg shadow">
+                ₹
+              </div>
+              <div>
+                <p className="font-bold text-brand-navy text-base">New Bill / POS</p>
+                <p className="text-xs text-brand-navy/50">Create a new bill for member or walk-in</p>
+              </div>
+            </div>
+            <span className="text-brand-brown group-hover:translate-x-1 transition-transform font-bold text-lg">
+              &rarr;
+            </span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Enrolled Members Details Modal/Panel */}
       {selectedClass && selectedClassData && (
-        <div className="bg-white rounded-2xl border border-brand-sand/50 p-6 animate-slide-up">
+        <div className="bg-white rounded-[20px] border border-brand-sand/60 p-6 animate-slide-up shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-medium text-brand-navy">
+              <h3 className="text-lg font-serif text-brand-navy">
                 Enrolled Members
               </h3>
-              <p className="text-sm text-brand-navy/50">
-                {selectedClassData.title} - {selectedClassData.instructor}
+              <p className="text-sm text-brand-navy/50 font-sans">
+                {selectedClassData.title} &bull; with {selectedClassData.instructor}
               </p>
             </div>
-            <span className="text-sm text-brand-navy/60">
+            <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-brand-cream text-brand-navy border border-brand-sand">
               {bookings.filter((b) => b.booking_status === "booked").length} / {selectedClassData.max_capacity} spots filled
             </span>
           </div>
@@ -366,25 +593,25 @@ export default function AdminDashboard() {
               <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
             </div>
           ) : bookings.filter((b) => b.booking_status === "booked").length === 0 ? (
-            <p className="text-center py-8 text-brand-navy/40 text-sm">
-              No active bookings yet
+            <p className="text-center py-8 text-brand-navy/40 text-sm font-sans">
+              No active bookings yet for this class
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm font-sans">
                 <thead>
-                  <tr className="border-b border-brand-sand/50">
-                    <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Name</th>
-                    <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Email</th>
-                    <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Phone</th>
-                    <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Booked At</th>
+                  <tr className="border-b border-brand-sand/50 text-xs font-semibold text-brand-navy/50 uppercase">
+                    <th className="text-left py-3 px-4">Name</th>
+                    <th className="text-left py-3 px-4">Email</th>
+                    <th className="text-left py-3 px-4">Phone</th>
+                    <th className="text-left py-3 px-4">Booked At</th>
                   </tr>
                 </thead>
                 <tbody>
                   {bookings
                     .filter((b) => b.booking_status === "booked")
                     .map((booking) => (
-                      <tr key={booking.id} className="border-b border-brand-sand/30 last:border-0">
+                      <tr key={booking.id} className="border-b border-brand-sand/30 last:border-0 hover:bg-brand-cream/20">
                         <td className="py-3 px-4 text-brand-navy font-medium">
                           <div className="flex items-center gap-2.5">
                             <div className="w-7 h-7 rounded-full overflow-hidden border border-brand-sand/50 bg-brand-cream/50 flex-shrink-0 flex items-center justify-center">
@@ -415,25 +642,25 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Cancelled Bookings list */}
+          {/* Cancelled Bookings */}
           {!bookingsLoading && bookings.filter((b) => b.booking_status === "cancelled").length > 0 && (
-            <div className="mt-6 pt-6 border-t border-brand-sand/50 animate-fade-in">
-              <h4 className="text-base font-medium text-brand-navy mb-3">Cancelled Bookings</h4>
+            <div className="mt-6 pt-6 border-t border-brand-sand/50">
+              <h4 className="text-base font-serif text-brand-navy mb-3">Cancelled Bookings</h4>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm font-sans">
                   <thead>
-                    <tr className="border-b border-brand-sand/50">
-                      <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Name</th>
-                      <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Email</th>
-                      <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Phone</th>
-                      <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Cancelled At</th>
+                    <tr className="border-b border-brand-sand/50 text-xs font-semibold text-brand-navy/50 uppercase">
+                      <th className="text-left py-3 px-4">Name</th>
+                      <th className="text-left py-3 px-4">Email</th>
+                      <th className="text-left py-3 px-4">Phone</th>
+                      <th className="text-left py-3 px-4">Cancelled At</th>
                     </tr>
                   </thead>
                   <tbody>
                     {bookings
                       .filter((b) => b.booking_status === "cancelled")
                       .map((booking) => (
-                        <tr key={booking.id} className="border-b border-brand-sand/30 last:border-0 hover:bg-brand-cream/10 transition-colors">
+                        <tr key={booking.id} className="border-b border-brand-sand/30 last:border-0 hover:bg-brand-cream/10">
                           <td className="py-3 px-4 text-brand-navy/60 font-medium">
                             <div className="flex items-center gap-2.5">
                               <div className="w-7 h-7 rounded-full overflow-hidden border border-brand-sand/50 bg-brand-cream/50 flex-shrink-0 flex items-center justify-center opacity-70">
@@ -467,13 +694,13 @@ export default function AdminDashboard() {
 
           {/* Attended Members */}
           <div className="mt-6 pt-6 border-t border-brand-sand/50">
-            <h4 className="text-base font-medium text-brand-navy mb-3">Attended Members</h4>
+            <h4 className="text-base font-serif text-brand-navy mb-3">Attended Members</h4>
             {(() => {
               const classStart = new Date(`${selectedClassData.class_date}T${selectedClassData.class_time}`);
               const now = new Date();
               if (now < classStart) {
                 return (
-                  <p className="text-center py-6 text-brand-navy/40 text-sm">
+                  <p className="text-center py-6 text-brand-navy/40 text-sm font-sans">
                     Attendance records will be available when the class begins.
                   </p>
                 );
@@ -483,17 +710,17 @@ export default function AdminDashboard() {
                   <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
                 </div>
               ) : attended.length === 0 ? (
-                <p className="text-center py-6 text-brand-navy/40 text-sm">
+                <p className="text-center py-6 text-brand-navy/40 text-sm font-sans">
                   No attendance recorded yet
                 </p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm font-sans">
                     <thead>
-                      <tr className="border-b border-brand-sand/50">
-                        <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Name</th>
-                        <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Email</th>
-                        <th className="text-left py-3 px-4 font-medium text-brand-navy/60">Check-in Time</th>
+                      <tr className="border-b border-brand-sand/50 text-xs font-semibold text-brand-navy/50 uppercase">
+                        <th className="text-left py-3 px-4">Name</th>
+                        <th className="text-left py-3 px-4">Email</th>
+                        <th className="text-left py-3 px-4">Check-in Time</th>
                       </tr>
                     </thead>
                     <tbody>

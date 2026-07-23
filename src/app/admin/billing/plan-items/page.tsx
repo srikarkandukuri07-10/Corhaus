@@ -66,8 +66,8 @@ function BillingSubNav() {
   const pathname = usePathname();
   const subNav = [
     { href: "/admin/billing", label: "Create Bill", exact: true },
-    { href: "/admin/billing/invoices", label: "Invoices", exact: true },
     { href: "/admin/billing/plan-items", label: "Plan Catalogue", exact: false },
+    { href: "/admin/billing/invoices", label: "Invoices", exact: true },
   ];
   return (
     <div className="flex items-center gap-1 mb-5">
