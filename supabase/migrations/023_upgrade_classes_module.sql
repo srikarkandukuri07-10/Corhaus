@@ -1,8 +1,29 @@
--- CORHAUS PILATES PLATFORM - Classes Module Upgrade & Server-Side Booking Enforcement
--- Migration 023: Schema extensions and server-side PostgreSQL booking RPC logic
--- =================================================================================
+-- CORHAUS PILATES PLATFORM - Self-Contained Classes Module Upgrade & Server-Side Booking Enforcement
+-- Migration 023: Creates public.classes and public.bookings IF NOT EXISTS & adds server-side PostgreSQL booking RPC logic
+-- ====================================================================================================================
 
--- 1. Extend classes table
+-- 1. Create public.classes table if it does not exist
+CREATE TABLE IF NOT EXISTS public.classes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  instructor TEXT NOT NULL,
+  class_date DATE NOT NULL,
+  class_time TIME NOT NULL,
+  max_capacity INTEGER NOT NULL DEFAULT 10 CHECK (max_capacity > 0),
+  end_time TIME,
+  buffer_minutes INTEGER DEFAULT 15,
+  category TEXT DEFAULT 'Reformer Pilates',
+  difficulty TEXT DEFAULT 'All Levels',
+  duration_minutes INTEGER DEFAULT 60,
+  location_room TEXT DEFAULT 'Studio Room A',
+  equipment_required TEXT,
+  recurring_rule TEXT,
+  parent_recurring_id UUID REFERENCES public.classes(id) ON DELETE SET NULL,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Ensure all columns exist on public.classes
 ALTER TABLE public.classes 
 ADD COLUMN IF NOT EXISTS end_time TIME,
 ADD COLUMN IF NOT EXISTS buffer_minutes INTEGER DEFAULT 15,
@@ -15,25 +36,54 @@ ADD COLUMN IF NOT EXISTS recurring_rule TEXT,
 ADD COLUMN IF NOT EXISTS parent_recurring_id UUID REFERENCES public.classes(id) ON DELETE SET NULL,
 ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 
--- 2. Extend bookings table
+-- Enable RLS & Policies for public.classes
+ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone authenticated can view classes" ON public.classes;
+CREATE POLICY "Anyone authenticated can view classes" ON public.classes FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Admin can manage classes" ON public.classes;
+CREATE POLICY "Admin can manage classes" ON public.classes FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+-- 2. Create public.bookings table if it does not exist
+CREATE TABLE IF NOT EXISTS public.bookings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+  member_id UUID NOT NULL REFERENCES public.approved_members(id) ON DELETE CASCADE,
+  booking_status TEXT NOT NULL DEFAULT 'booked',
+  purchased_plan_id UUID REFERENCES public.member_purchased_plans(id) ON DELETE SET NULL,
+  checked_in_at TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(class_id, member_id)
+);
+
+-- Ensure all columns exist on public.bookings
+ALTER TABLE public.bookings
+ADD COLUMN IF NOT EXISTS purchased_plan_id UUID REFERENCES public.member_purchased_plans(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS notes TEXT;
+
+-- Enable RLS & Policies for public.bookings
+ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Members can view own bookings" ON public.bookings;
+CREATE POLICY "Members can view own bookings" ON public.bookings FOR SELECT TO authenticated USING (member_id = auth.uid());
+
+DROP POLICY IF EXISTS "Admin can manage bookings" ON public.bookings;
+CREATE POLICY "Admin can manage bookings" ON public.bookings FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+-- Update booking_status constraint
 DO $$
 BEGIN
-  -- Drop existing booking_status constraint if present
   ALTER TABLE public.bookings DROP CONSTRAINT IF EXISTS bookings_booking_status_check;
-  
-  -- Add updated booking_status check constraint
   ALTER TABLE public.bookings ADD CONSTRAINT bookings_booking_status_check
   CHECK (booking_status IN ('booked', 'confirmed', 'checked_in', 'completed', 'cancelled', 'no_show', 'waitlisted'));
 EXCEPTION
   WHEN OTHERS THEN NULL;
 END $$;
 
-ALTER TABLE public.bookings
-ADD COLUMN IF NOT EXISTS purchased_plan_id UUID REFERENCES public.member_purchased_plans(id) ON DELETE SET NULL,
-ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ,
-ADD COLUMN IF NOT EXISTS notes TEXT;
-
--- Index for fast lookup
+-- Indexes
 CREATE INDEX IF NOT EXISTS idx_bookings_class_id ON public.bookings(class_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_member_id ON public.bookings(member_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_status ON public.bookings(booking_status);
@@ -84,19 +134,12 @@ BEGIN
   END IF;
 
   -- D. Strictly Find Active Purchased Plan matching Eligibility Conditions
-  -- Rule 1: Active record in member_purchased_plans
-  -- Rule 2: Plan has not expired (valid_until >= CURRENT_DATE or NULL)
-  -- Rule 3: Payment status is paid (via invoices or plan status)
-  -- Rule 4: If session-based (sessions_total IS NOT NULL), sessions_remaining > 0
-  
-  -- Check 1: Does member have any plan record at all?
   IF NOT EXISTS (
     SELECT 1 FROM public.member_purchased_plans WHERE approved_member_id = p_member_id
   ) THEN
     RAISE EXCEPTION 'This member does not have an active plan that allows this class.';
   END IF;
 
-  -- Check 2: Check for un-expired plan
   SELECT * INTO v_plan
   FROM public.member_purchased_plans
   WHERE approved_member_id = p_member_id
@@ -106,7 +149,6 @@ BEGIN
   LIMIT 1;
 
   IF NOT FOUND THEN
-    -- Check if plan exists but is expired
     IF EXISTS (
       SELECT 1 FROM public.member_purchased_plans
       WHERE approved_member_id = p_member_id AND valid_until < CURRENT_DATE
@@ -117,7 +159,6 @@ BEGIN
     END IF;
   END IF;
 
-  -- Check 3: Check Payment Status
   IF EXISTS (
     SELECT 1 FROM public.invoices inv
     WHERE inv.id = v_plan.invoice_id AND inv.payment_status = 'due'
@@ -125,14 +166,13 @@ BEGIN
     RAISE EXCEPTION 'Payment must be completed before booking classes.';
   END IF;
 
-  -- Check 4 & 5: Sessions Remaining check if plan is session-based
   IF v_plan.sessions_total IS NOT NULL THEN
     IF v_plan.sessions_remaining IS NULL OR v_plan.sessions_remaining <= 0 THEN
       RAISE EXCEPTION 'No remaining sessions are available on the purchased package.';
     END IF;
   END IF;
 
-  -- E. Check Capacity and Waitlist
+  -- E. Check Capacity & Waitlist
   SELECT COUNT(*) INTO v_current_bookings_count
   FROM public.bookings
   WHERE class_id = p_class_id AND booking_status IN ('booked', 'confirmed', 'checked_in', 'completed');
@@ -143,21 +183,13 @@ BEGIN
 
   -- F. Create Booking Record
   INSERT INTO public.bookings (
-    class_id,
-    member_id,
-    booking_status,
-    purchased_plan_id,
-    created_at
+    class_id, member_id, booking_status, purchased_plan_id, created_at
   ) VALUES (
-    p_class_id,
-    p_member_id,
-    v_status,
-    v_plan.id,
-    NOW()
+    p_class_id, p_member_id, v_status, v_plan.id, NOW()
   )
   RETURNING id INTO v_new_booking_id;
 
-  -- G. If booking is active (not waitlisted) and plan is session-based, deduct 1 session
+  -- G. Deduct 1 session for session-based plans
   IF v_status <> 'waitlisted' AND v_plan.sessions_total IS NOT NULL THEN
     UPDATE public.member_purchased_plans
     SET sessions_remaining = GREATEST(0, sessions_remaining - 1)
@@ -195,12 +227,8 @@ BEGIN
     RETURN jsonb_build_object('success', true, 'message', 'Booking already cancelled.');
   END IF;
 
-  -- Update booking status to cancelled
-  UPDATE public.bookings
-  SET booking_status = 'cancelled'
-  WHERE id = p_booking_id;
+  UPDATE public.bookings SET booking_status = 'cancelled' WHERE id = p_booking_id;
 
-  -- Restore 1 session if plan is session-based and booking was active (not waitlisted)
   IF v_booking.purchased_plan_id IS NOT NULL AND v_booking.booking_status <> 'waitlisted' THEN
     SELECT * INTO v_plan FROM public.member_purchased_plans WHERE id = v_booking.purchased_plan_id;
     IF FOUND AND v_plan.sessions_total IS NOT NULL THEN
