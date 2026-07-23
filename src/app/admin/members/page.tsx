@@ -92,6 +92,25 @@ const CATALOGUE_PACKAGES: CatalogueItem[] = [
 
 // ─── Helper Functions ────────────────────────────────────────────────────────
 
+function formatSessionsDisplay(plan: PurchasedPlan | null | undefined): { text: string; isSessions: boolean } {
+  if (!plan) return { text: "Monthly (30 Days)", isSessions: false };
+  if (plan.sessions_total) {
+    return {
+      text: `${plan.sessions_remaining ?? plan.sessions_total} / ${plan.sessions_total} sessions`,
+      isSessions: true,
+    };
+  }
+
+  const pName = plan.plan_name.toLowerCase();
+  if (pName.includes("monthly")) return { text: "Monthly (30 Days)", isSessions: false };
+  if (pName.includes("quarterly")) return { text: "Quarterly (90 Days)", isSessions: false };
+  if (pName.includes("half yearly") || pName.includes("half-yearly")) return { text: "Half-Yearly (180 Days)", isSessions: false };
+  if (pName.includes("annually") || pName.includes("annual")) return { text: "Annually (365 Days)", isSessions: false };
+  if (pName.includes("couple")) return { text: "Couple Package (60 Days)", isSessions: false };
+
+  return { text: plan.plan_name, isSessions: false };
+}
+
 function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "N/A";
   return new Date(dateStr).toLocaleDateString("en-IN", {
@@ -780,17 +799,22 @@ function MembersPageContent() {
                         </span>
                       </td>
 
-                      {/* Classes / Sessions Remaining vs Total */}
+                      {/* Classes / Sessions */}
                       <td className="py-3.5 px-4">
-                        {plan?.sessions_total ? (
-                          <span className="inline-block whitespace-nowrap bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg border border-indigo-100 font-semibold text-xs">
-                            {plan.sessions_remaining} / {plan.sessions_total} sessions
-                          </span>
-                        ) : (
-                          <span className="inline-block whitespace-nowrap bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg border border-emerald-100 font-semibold text-xs">
-                            Full Membership
-                          </span>
-                        )}
+                        {(() => {
+                          const sessInfo = formatSessionsDisplay(plan);
+                          return (
+                            <span
+                              className={`inline-block whitespace-nowrap px-3 py-1 rounded-lg font-semibold text-xs border ${
+                                sessInfo.isSessions
+                                  ? "bg-indigo-50 text-indigo-700 border-indigo-100"
+                                  : "bg-purple-50 text-purple-700 border-purple-100"
+                              }`}
+                            >
+                              {sessInfo.text}
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/* Start Date */}
@@ -894,9 +918,7 @@ function MembersPageContent() {
                 <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0]">
                   <span className="text-[10px] text-[#4A3B32]/50 block">Classes / Sessions</span>
                   <span className="text-xs font-bold text-[#362B24]">
-                    {selectedMember.activePlan?.sessions_total
-                      ? `${selectedMember.activePlan.sessions_remaining} / ${selectedMember.activePlan.sessions_total} left`
-                      : "Full Membership"}
+                    {formatSessionsDisplay(selectedMember.activePlan).text}
                   </span>
                 </div>
                 <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0]">
