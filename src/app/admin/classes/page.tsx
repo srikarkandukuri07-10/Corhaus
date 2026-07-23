@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useMemo, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Link from "next/link";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -70,7 +69,7 @@ interface ApprovedMember {
   membership_level: string;
 }
 
-type TabType = "schedule" | "catalogue" | "bookings";
+type TabType = "schedule" | "bookings" | "catalogue" | "cancellations";
 
 const PREDEFINED_CATEGORIES = [
   "Reformer Pilates",
@@ -158,6 +157,7 @@ export default function ClassesManagementPage() {
 
   // Search & Filter states
   const [searchQuery, setSearchQuery] = useState("");
+  const [cancellationSearchQuery, setCancellationSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedInstructor, setSelectedInstructor] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
@@ -293,7 +293,6 @@ export default function ClassesManagementPage() {
     setBookingEligibilityMessage(null);
 
     try {
-      // Call server-side RPC function with strict eligibility enforcement
       const { data: result, error: rpcError } = await supabase.rpc(
         "book_member_class_session",
         {
@@ -329,7 +328,6 @@ export default function ClassesManagementPage() {
 
     try {
       if (newStatus === "cancelled") {
-        // Call server-side cancel RPC to restore session if applicable
         const { data: result, error: cancelError } = await supabase.rpc(
           "cancel_member_class_booking",
           { p_booking_id: bookingId }
@@ -355,7 +353,6 @@ export default function ClassesManagementPage() {
           return;
         }
 
-        // Connect with Attendance module automatically
         const booking = bookings.find((b) => b.id === bookingId);
         if (booking) {
           await supabase.from("attendance").insert({
@@ -420,7 +417,6 @@ export default function ClassesManagementPage() {
         }
       }
 
-      // Compute end time based on duration
       const [h, m] = formTime.split(":");
       const startMinutes = parseInt(h, 10) * 60 + parseInt(m, 10);
       const endMinutes = startMinutes + dur;
@@ -517,6 +513,22 @@ export default function ClassesManagementPage() {
     });
   }, [bookings, selectedStatus, selectedInstructor, selectedCategory, selectedDate, searchQuery]);
 
+  // Cancelled Bookings List (Tab 4)
+  const cancelledBookings = useMemo(() => {
+    return bookings.filter((b) => {
+      if (b.booking_status !== "cancelled") return false;
+      if (cancellationSearchQuery.trim()) {
+        const q = cancellationSearchQuery.toLowerCase().trim();
+        const mName = b.approved_members?.full_name.toLowerCase() || "";
+        const mEmail = b.approved_members?.email.toLowerCase() || "";
+        const mPhone = b.approved_members?.phone_number || "";
+        const cTitle = b.classes?.title.toLowerCase() || "";
+        return mName.includes(q) || mEmail.includes(q) || mPhone.includes(q) || cTitle.includes(q);
+      }
+      return true;
+    });
+  }, [bookings, cancellationSearchQuery]);
+
   return (
     <div className="space-y-6 animate-fade-in font-sans">
       {/* Top Header & Quick Action Triggers */}
@@ -565,10 +577,10 @@ export default function ClassesManagementPage() {
       )}
 
       {/* Tabs Bar */}
-      <div className="flex items-center gap-2 border-b border-[#E5DDD0] pb-2">
+      <div className="flex items-center gap-2 border-b border-[#E5DDD0] pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab("schedule")}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
             activeTab === "schedule"
               ? "bg-[#4A3B32] text-white shadow-xs"
               : "text-[#4A3B32]/60 hover:text-[#362B24] hover:bg-[#FAF7F2]"
@@ -578,7 +590,7 @@ export default function ClassesManagementPage() {
         </button>
         <button
           onClick={() => setActiveTab("bookings")}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
             activeTab === "bookings"
               ? "bg-[#4A3B32] text-white shadow-xs"
               : "text-[#4A3B32]/60 hover:text-[#362B24] hover:bg-[#FAF7F2]"
@@ -588,13 +600,23 @@ export default function ClassesManagementPage() {
         </button>
         <button
           onClick={() => setActiveTab("catalogue")}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
             activeTab === "catalogue"
               ? "bg-[#4A3B32] text-white shadow-xs"
               : "text-[#4A3B32]/60 hover:text-[#362B24] hover:bg-[#FAF7F2]"
           }`}
         >
           ⚙️ Reusable Class Types
+        </button>
+        <button
+          onClick={() => setActiveTab("cancellations")}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+            activeTab === "cancellations"
+              ? "bg-red-800 text-white shadow-xs"
+              : "text-[#4A3B32]/60 hover:text-[#362B24] hover:bg-[#FAF7F2]"
+          }`}
+        >
+          🚫 Cancellations ({cancelledBookings.length})
         </button>
       </div>
 
@@ -921,6 +943,82 @@ export default function ClassesManagementPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: CANCELLATIONS TAB ────────────────────────────────────────── */}
+      {activeTab === "cancellations" && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl border border-[#E5DDD0] p-4 shadow-xs flex items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={cancellationSearchQuery}
+                onChange={(e) => setCancellationSearchQuery(e.target.value)}
+                placeholder="Search cancelled bookings by member name, email, phone, or class title..."
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-red-500"
+              />
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A3B32]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
+              </svg>
+            </div>
+            <span className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-xl">
+              {cancelledBookings.length} Cancelled Reservations
+            </span>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-[#E5DDD0] overflow-hidden shadow-xs">
+            {cancelledBookings.length === 0 ? (
+              <div className="text-center py-16 px-4">
+                <p className="text-sm font-semibold text-[#362B24]">No cancelled bookings</p>
+                <p className="text-xs text-[#4A3B32]/50 mt-1">Cancelled class reservations will automatically appear here.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="bg-red-50/50 border-b border-[#E5DDD0] text-red-900 font-semibold uppercase tracking-wider whitespace-nowrap">
+                      <th className="py-3.5 px-4">Member Name</th>
+                      <th className="py-3.5 px-4">Phone / Email</th>
+                      <th className="py-3.5 px-4">Class Session</th>
+                      <th className="py-3.5 px-4">Session Date &amp; Time</th>
+                      <th className="py-3.5 px-4">Status</th>
+                      <th className="py-3.5 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E5DDD0]/50 whitespace-nowrap">
+                    {cancelledBookings.map((b) => (
+                      <tr key={b.id} className="hover:bg-[#FAF7F2]/50 transition-colors">
+                        <td className="py-3.5 px-4 font-bold text-[#362B24]">
+                          {b.approved_members?.full_name || "Member"}
+                        </td>
+                        <td className="py-3.5 px-4 text-[#4A3B32]/70">
+                          {b.approved_members?.phone_number} • {b.approved_members?.email}
+                        </td>
+                        <td className="py-3.5 px-4 font-semibold text-[#362B24]">
+                          {b.classes?.title || "Pilates Session"}
+                        </td>
+                        <td className="py-3.5 px-4 text-[#4A3B32]">
+                          {formatDate(b.classes?.class_date)} @ {formatTime(b.classes?.class_time)}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <StatusBadge status="cancelled" />
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <button
+                            onClick={() => handleUpdateBookingStatus(b.id, "booked")}
+                            className="px-3 py-1.5 rounded-xl bg-[#4A3B32] text-white font-semibold text-xs hover:bg-[#362B24]"
+                          >
+                            Re-book Member
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

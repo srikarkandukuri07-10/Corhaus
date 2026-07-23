@@ -173,20 +173,6 @@ export default function AdminLayout({
                 </svg>
                 <span>Attendance Scanner</span>
               </Link>
-
-              <Link
-                href="/admin/cancelled"
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  pathname === "/admin/cancelled"
-                    ? "bg-[#4A3B32] text-white shadow-sm"
-                    : "text-[#4A3B32]/70 hover:bg-[#EAE2D5] hover:text-[#4A3B32]"
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
-                <span>Cancelled Classes</span>
-              </Link>
             </div>
           </div>
 
