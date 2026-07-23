@@ -93,7 +93,7 @@ export default function CreateClassPage() {
     setLoading(false);
 
     setTimeout(() => {
-      router.push("/admin");
+      router.push("/admin/classes");
     }, 1500);
   }
 
