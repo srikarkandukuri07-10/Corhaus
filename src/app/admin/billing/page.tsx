@@ -715,10 +715,10 @@ export default function CreateBillPage() {
         </div>
 
         {/* ── RIGHT PANEL ──────────────────────────────────── */}
-        <div className="w-full lg:w-[350px] flex-shrink-0 bg-white rounded-2xl border border-brand-sand/50 flex flex-col overflow-y-auto shadow-sm max-h-full">
+        <div className="w-full lg:w-[360px] flex-shrink-0 bg-white rounded-2xl border border-brand-sand/50 flex flex-col overflow-hidden shadow-sm h-full">
 
           {/* Header — shows who the bill is for */}
-          <div className="p-4 border-b border-brand-sand/50 flex-shrink-0">
+          <div className="p-4 border-b border-brand-sand/50 flex-shrink-0 bg-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-brand-navy/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -743,189 +743,194 @@ export default function CreateBillPage() {
             )}
           </div>
 
-          {/* Cart items */}
-          <div className="flex-1 overflow-y-auto min-h-0">
-            {cartItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center p-6">
-                <div className="w-14 h-14 rounded-2xl bg-brand-sand/30 flex items-center justify-center mb-3">
-                  <svg className="w-7 h-7 text-brand-navy/15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.4 7h12.8M7 13l-.4-2M17 21a2 2 0 100-4 2 2 0 000 4zm-10 0a2 2 0 100-4 2 2 0 000 4z" />
-                  </svg>
+          {/* Scrollable Body: Cart Items + Discount + Totals + Payment Options */}
+          <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-3">
+            {/* Cart items */}
+            <div>
+              {cartItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center text-center py-8">
+                  <div className="w-14 h-14 rounded-2xl bg-brand-sand/30 flex items-center justify-center mb-3">
+                    <svg className="w-7 h-7 text-brand-navy/15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.4 7h12.8M7 13l-.4-2M17 21a2 2 0 100-4 2 2 0 000 4zm-10 0a2 2 0 100-4 2 2 0 000 4z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-brand-navy/30">No items added</p>
+                  <p className="text-xs text-brand-navy/20 mt-0.5">Select items from the catalogue</p>
                 </div>
-                <p className="text-sm font-medium text-brand-navy/30">No items added</p>
-                <p className="text-xs text-brand-navy/20 mt-0.5">Select items from the catalogue</p>
-              </div>
-            ) : (
-              <div className="p-3 space-y-2">
-                {cartItems.map((item) => (
-                  <div key={item.cartId} className="flex items-start gap-2 p-2.5 rounded-xl bg-brand-cream/50 border border-brand-sand/40 hover:border-brand-sand transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-brand-navy leading-tight">{item.name}</p>
-                      <p className="text-[10px] text-brand-navy/40 mt-0.5">{fmt(item.unit_price)} each</p>
+              ) : (
+                <div className="space-y-2">
+                  {cartItems.map((item) => (
+                    <div key={item.cartId} className="flex items-start gap-2 p-2.5 rounded-xl bg-brand-cream/50 border border-brand-sand/40 hover:border-brand-sand transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-brand-navy leading-tight">{item.name}</p>
+                        <p className="text-[10px] text-brand-navy/40 mt-0.5">{fmt(item.unit_price)} each</p>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button onClick={() => updateQty(item.cartId, -1)}
+                          className="w-6 h-6 rounded-lg bg-brand-sand/60 text-brand-navy text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">−</button>
+                        <span className="text-sm font-bold text-brand-navy w-5 text-center">{item.quantity}</span>
+                        <button onClick={() => updateQty(item.cartId, 1)}
+                          className="w-6 h-6 rounded-lg bg-brand-sand/60 text-brand-navy text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">+</button>
+                      </div>
+                      <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                        <span className="text-xs font-bold text-brand-navy">{fmt(item.unit_price * item.quantity)}</span>
+                        <button onClick={() => removeFromCart(item.cartId)} className="text-brand-error/40 hover:text-brand-error transition-colors">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button onClick={() => updateQty(item.cartId, -1)}
-                        className="w-6 h-6 rounded-lg bg-brand-sand/60 text-brand-navy text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">−</button>
-                      <span className="text-sm font-bold text-brand-navy w-5 text-center">{item.quantity}</span>
-                      <button onClick={() => updateQty(item.cartId, 1)}
-                        className="w-6 h-6 rounded-lg bg-brand-sand/60 text-brand-navy text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">+</button>
-                    </div>
-                    <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                      <span className="text-xs font-bold text-brand-navy">{fmt(item.unit_price * item.quantity)}</span>
-                      <button onClick={() => removeFromCart(item.cartId)} className="text-brand-error/40 hover:text-brand-error transition-colors">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Discount + Totals + Payment */}
+            <div className="border-t border-brand-sand/40 pt-3 space-y-3">
+              {/* Discount accordion */}
+              <div className="rounded-xl border border-brand-sand/50 overflow-hidden bg-white">
+                <button onClick={() => setShowDiscount(!showDiscount)}
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-brand-navy/60 hover:bg-brand-cream/50 transition-colors"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-brand-brown" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M17 17h.01M7 7l10 10M7 7a4 4 0 115.657 5.657M17 17a4 4 0 11-5.657-5.657" />
+                    </svg>
+                    Apply Discount
+                    {discountAmount > 0 && (
+                      <span className="text-brand-success font-bold">−{fmt(discountAmount)}</span>
+                    )}
+                  </span>
+                  <svg className={`w-3.5 h-3.5 transition-transform ${showDiscount ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showDiscount && (
+                  <div className="px-3 pb-3 pt-2 border-t border-brand-sand/40 space-y-2 bg-brand-cream/20">
+                    <div className="flex rounded-lg border border-brand-sand/50 overflow-hidden text-xs">
+                      <button onClick={() => setDiscountType("percentage")}
+                        className={`flex-1 py-1.5 font-semibold transition-colors ${discountType === "percentage" ? "bg-brand-navy text-white" : "bg-white text-brand-navy/60 hover:bg-brand-beige"}`}>
+                        % Off
+                      </button>
+                      <button onClick={() => setDiscountType("flat")}
+                        className={`flex-1 py-1.5 font-semibold transition-colors ${discountType === "flat" ? "bg-brand-navy text-white" : "bg-white text-brand-navy/60 hover:bg-brand-beige"}`}>
+                        ₹ Flat
                       </button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Discount + Totals + Payment */}
-          <div className="border-t border-brand-sand/50 p-3 flex-shrink-0 space-y-3">
-            {/* Discount accordion */}
-            <div className="rounded-xl border border-brand-sand/50 overflow-hidden">
-              <button onClick={() => setShowDiscount(!showDiscount)}
-                className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-brand-navy/50 hover:bg-brand-cream/50 transition-colors"
-              >
-                <span className="flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M17 17h.01M7 7l10 10M7 7a4 4 0 115.657 5.657M17 17a4 4 0 11-5.657-5.657" />
-                  </svg>
-                  Apply Discount
-                  {discountAmount > 0 && (
-                    <span className="text-brand-success font-bold">−{fmt(discountAmount)}</span>
-                  )}
-                </span>
-                <svg className={`w-3.5 h-3.5 transition-transform ${showDiscount ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {showDiscount && (
-                <div className="px-3 pb-3 pt-2 border-t border-brand-sand/40 space-y-2 bg-brand-cream/20">
-                  <div className="flex rounded-lg border border-brand-sand/50 overflow-hidden text-xs">
-                    <button onClick={() => setDiscountType("percentage")}
-                      className={`flex-1 py-1.5 font-semibold transition-colors ${discountType === "percentage" ? "bg-brand-navy text-white" : "bg-white text-brand-navy/60 hover:bg-brand-beige"}`}>
-                      % Off
-                    </button>
-                    <button onClick={() => setDiscountType("flat")}
-                      className={`flex-1 py-1.5 font-semibold transition-colors ${discountType === "flat" ? "bg-brand-navy text-white" : "bg-white text-brand-navy/60 hover:bg-brand-beige"}`}>
-                      ₹ Flat
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-brand-navy/40 font-semibold">
-                      {discountType === "percentage" ? "%" : "₹"}
-                    </span>
-                    <input type="number" min="0" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)}
-                      placeholder={discountType === "percentage" ? "e.g. 10" : "e.g. 500"}
-                      className="w-full pl-7 pr-3 py-2 rounded-lg border border-brand-sand bg-white text-sm text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Totals */}
-            <div className="space-y-1.5 px-1">
-              <div className="flex items-center justify-between text-xs text-brand-navy/40">
-                <span>Subtotal</span><span>{fmt(subtotal)}</span>
-              </div>
-              {discountAmount > 0 && (
-                <div className="flex items-center justify-between text-xs text-brand-success">
-                  <span>Discount ({discountType === "percentage" ? discountValue + "%" : fmt(parseFloat(discountValue))})</span>
-                  <span>− {fmt(discountAmount)}</span>
-                </div>
-              )}
-              <div className="flex items-center justify-between pt-2 border-t border-brand-sand/50">
-                <span className="font-bold text-brand-navy text-sm">Grand Total</span>
-                <span className="font-bold text-brand-brown text-lg">{fmt(grandTotal)}</span>
-              </div>
-            </div>
-
-            {/* Payment */}
-            <div className="space-y-2">
-              {/* Manual / Due toggle */}
-              <div className="flex rounded-xl border border-brand-sand/50 overflow-hidden text-xs">
-                <button onClick={() => setPaymentStatus("paid")}
-                  className={`flex-1 py-2.5 font-semibold transition-colors ${paymentStatus === "paid" ? "bg-brand-navy text-white" : "bg-white text-brand-navy/60 hover:bg-brand-beige"}`}>
-                  Paid Now
-                </button>
-                <button onClick={() => setPaymentStatus("due")}
-                  className={`flex-1 py-2.5 font-semibold transition-colors ${paymentStatus === "due" ? "bg-amber-500 text-white" : "bg-white text-brand-navy/60 hover:bg-brand-beige"}`}>
-                  Payment Due
-                </button>
-              </div>
-
-              {paymentStatus === "paid" && (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <div className="flex-1 relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-brand-navy/40 font-semibold">₹</span>
-                      <input type="number" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)}
-                        placeholder="0"
-                        className="w-full pl-7 pr-2 py-2.5 rounded-xl border border-brand-sand bg-brand-cream/50 text-sm text-brand-navy font-semibold placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-brand-navy/40 font-semibold">
+                        {discountType === "percentage" ? "%" : "₹"}
+                      </span>
+                      <input type="number" min="0" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)}
+                        placeholder={discountType === "percentage" ? "e.g. 10" : "e.g. 500"}
+                        className="w-full pl-7 pr-3 py-2 rounded-lg border border-brand-sand bg-white text-sm text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown"
                       />
                     </div>
-                    <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-                      className="flex-1 px-2 py-2.5 rounded-xl border border-brand-sand bg-brand-cream/50 text-xs text-brand-navy font-medium focus:outline-none focus:ring-1 focus:ring-brand-brown"
-                    >
-                      <option>Cash</option>
-                      <option>UPI</option>
-                      <option>Card</option>
-                      <option>Bank Transfer</option>
-                    </select>
                   </div>
-
-                  {/* Quick chips */}
-                  <div className="flex gap-1.5">
-                    {[500, 1000].map((amt) => (
-                      <button key={amt} onClick={() => setAmountPaid(amt.toString())}
-                        className="flex-1 py-1.5 rounded-lg border border-brand-sand/60 text-xs text-brand-navy/60 hover:bg-brand-beige transition-colors font-medium">
-                        ₹{amt.toLocaleString("en-IN")}
-                      </button>
-                    ))}
-                    <button onClick={() => setAmountPaid(grandTotal.toString())}
-                      className="flex-1 py-1.5 rounded-lg bg-brand-navy text-white text-xs font-bold hover:bg-brand-navy/90 transition-colors">
-                      Exact
-                    </button>
-                  </div>
-
-                  {paymentMethod !== "Cash" && (
-                    <input type="text" value={transactionRef} onChange={(e) => setTransactionRef(e.target.value)}
-                      placeholder="Transaction ref / UTR (optional)"
-                      className="w-full px-3 py-2 rounded-xl border border-brand-sand bg-brand-cream/50 text-xs text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown"
-                    />
-                  )}
-                </div>
-              )}
-
-              {paymentStatus === "due" && (
-                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700 font-medium">
-                  ⚠ Dashboard access activates only after full payment is received.
-                </div>
-              )}
-
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-                placeholder="Notes (optional)" rows={1}
-                className="w-full px-3 py-2 rounded-xl border border-brand-sand bg-brand-cream/50 text-xs text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown resize-none"
-              />
-
-              <button onClick={handleCompleteBill} disabled={completing || !!completedInvoice}
-                className="w-full py-3.5 rounded-xl bg-brand-brown text-white font-bold text-sm hover:bg-brand-brown-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-brand-brown/20"
-              >
-                {completing ? (
-                  <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Processing…</>
-                ) : (
-                  <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>Complete Bill — {fmt(grandTotal)}</>
                 )}
-              </button>
+              </div>
+
+              {/* Totals */}
+              <div className="space-y-1.5 px-1">
+                <div className="flex items-center justify-between text-xs text-brand-navy/50">
+                  <span>Subtotal</span><span>{fmt(subtotal)}</span>
+                </div>
+                {discountAmount > 0 && (
+                  <div className="flex items-center justify-between text-xs text-brand-success font-medium">
+                    <span>Discount ({discountType === "percentage" ? discountValue + "%" : fmt(parseFloat(discountValue))})</span>
+                    <span>− {fmt(discountAmount)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between pt-2 border-t border-brand-sand/50">
+                  <span className="font-bold text-brand-navy text-sm">Grand Total</span>
+                  <span className="font-bold text-brand-brown text-lg">{fmt(grandTotal)}</span>
+                </div>
+              </div>
+
+              {/* Payment Status & Options */}
+              <div className="space-y-2">
+                <div className="flex rounded-xl border border-brand-sand/50 overflow-hidden text-xs">
+                  <button onClick={() => setPaymentStatus("paid")}
+                    className={`flex-1 py-2.5 font-semibold transition-colors ${paymentStatus === "paid" ? "bg-brand-navy text-white" : "bg-white text-brand-navy/60 hover:bg-brand-beige"}`}>
+                    Paid Now
+                  </button>
+                  <button onClick={() => setPaymentStatus("due")}
+                    className={`flex-1 py-2.5 font-semibold transition-colors ${paymentStatus === "due" ? "bg-amber-500 text-white" : "bg-white text-brand-navy/60 hover:bg-brand-beige"}`}>
+                    Payment Due
+                  </button>
+                </div>
+
+                {paymentStatus === "paid" && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-brand-navy/40 font-semibold">₹</span>
+                        <input type="number" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)}
+                          placeholder="0"
+                          className="w-full pl-7 pr-2 py-2 rounded-xl border border-brand-sand bg-brand-cream/50 text-sm text-brand-navy font-semibold placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                        />
+                      </div>
+                      <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                        className="flex-1 px-2 py-2 rounded-xl border border-brand-sand bg-brand-cream/50 text-xs text-brand-navy font-medium focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                      >
+                        <option>Cash</option>
+                        <option>UPI</option>
+                        <option>Card</option>
+                        <option>Bank Transfer</option>
+                      </select>
+                    </div>
+
+                    {/* Quick chips */}
+                    <div className="flex gap-1.5">
+                      {[500, 1000].map((amt) => (
+                        <button key={amt} onClick={() => setAmountPaid(amt.toString())}
+                          className="flex-1 py-1.5 rounded-lg border border-brand-sand/60 text-xs text-brand-navy/60 hover:bg-brand-beige transition-colors font-medium">
+                          ₹{amt.toLocaleString("en-IN")}
+                        </button>
+                      ))}
+                      <button onClick={() => setAmountPaid(grandTotal.toString())}
+                        className="flex-1 py-1.5 rounded-lg bg-brand-navy text-white text-xs font-bold hover:bg-brand-navy/90 transition-colors">
+                        Exact
+                      </button>
+                    </div>
+
+                    {paymentMethod !== "Cash" && (
+                      <input type="text" value={transactionRef} onChange={(e) => setTransactionRef(e.target.value)}
+                        placeholder="Transaction ref / UTR (optional)"
+                        className="w-full px-3 py-2 rounded-xl border border-brand-sand bg-brand-cream/50 text-xs text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                      />
+                    )}
+                  </div>
+                )}
+
+                {paymentStatus === "due" && (
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700 font-medium">
+                    ⚠ Dashboard access activates only after full payment is received.
+                  </div>
+                )}
+
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Notes (optional)" rows={1}
+                  className="w-full px-3 py-2 rounded-xl border border-brand-sand bg-brand-cream/50 text-xs text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown resize-none"
+                />
+              </div>
             </div>
+          </div>
+
+          {/* Sticky Bottom Action Bar (Complete Bill Button - ALWAYS VISIBLE!) */}
+          <div className="p-3 border-t border-brand-sand/50 bg-white flex-shrink-0 shadow-lg">
+            <button onClick={handleCompleteBill} disabled={completing || !!completedInvoice}
+              className="w-full py-3.5 rounded-xl bg-brand-brown text-white font-bold text-sm hover:bg-brand-brown-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-brand-brown/20"
+            >
+              {completing ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Processing…</>
+              ) : (
+                <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>Complete Bill — {fmt(grandTotal)}</>
+              )}
+            </button>
           </div>
         </div>
       </div>
