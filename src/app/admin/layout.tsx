@@ -133,9 +133,9 @@ export default function AdminLayout({
               </Link>
 
               <Link
-                href="/admin/classes/new"
+                href="/admin/classes"
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  pathname === "/admin/classes/new"
+                  pathname === "/admin/classes" || pathname.startsWith("/admin/classes")
                     ? "bg-[#4A3B32] text-white shadow-sm"
                     : "text-[#4A3B32]/70 hover:bg-[#EAE2D5] hover:text-[#4A3B32]"
                 }`}
@@ -143,7 +143,7 @@ export default function AdminLayout({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <span>Create Class</span>
+                <span>Classes &amp; Schedule</span>
               </Link>
 
               <Link
