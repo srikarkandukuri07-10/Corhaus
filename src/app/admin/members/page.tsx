@@ -66,23 +66,28 @@ type StatusFilterType =
   | "Exhausted"
   | "Cancelled";
 
-// Catalogue of realistic packages from screenshots
-const CATALOGUE_PACKAGES = [
-  { name: "Private Duo Class (4)", category: "PT Packages", sessions: 144, validity: 365 },
-  { name: "Private Duo Class (3)", category: "PT Packages", sessions: 36, validity: 180 },
-  { name: "Private Duo Class (2)", category: "PT Packages", sessions: 24, validity: 60 },
-  { name: "Private Reformer Class (5)", category: "PT Packages", sessions: 144, validity: 365 },
-  { name: "Private Reformer Class (4)", category: "PT Packages", sessions: 72, validity: 180 },
-  { name: "Private Reformer Class (3)", category: "PT Packages", sessions: 36, validity: 30 },
-  { name: "Reformer Group Class (5)", category: "Class Packages", sessions: 144, validity: 365 },
-  { name: "Reformer Group Class (4)", category: "Class Packages", sessions: 72, validity: 180 },
-  { name: "Reformer Group Class (3)", category: "Class Packages", sessions: 36, validity: 90 },
-  { name: "Beginner Pack", category: "Class Packages", sessions: 4, validity: 30 },
-  { name: "Trial Session", category: "Class Packages", sessions: 1, validity: 1 },
-  { name: "Monthly", category: "Membership Plans", sessions: null, validity: 30 },
-  { name: "Quarterly", category: "Membership Plans", sessions: null, validity: 90 },
-  { name: "Half Yearly", category: "Membership Plans", sessions: null, validity: 180 },
-  { name: "Annually", category: "Membership Plans", sessions: null, validity: 365 },
+interface CatalogueItem {
+  name: string;
+  category: string;
+  sessions: number | null;
+  validity: number;
+  remaining: number | null;
+}
+
+// Catalogue of distinct packages from screenshots to assign across members
+const CATALOGUE_PACKAGES: CatalogueItem[] = [
+  { name: "Trial Session", category: "Class Packages", sessions: 1, validity: 1, remaining: 1 },
+  { name: "Single Session", category: "Class Packages", sessions: 1, validity: 30, remaining: 1 },
+  { name: "Beginner Pack", category: "Class Packages", sessions: 4, validity: 30, remaining: 3 },
+  { name: "Reformer Group Class (3)", category: "Class Packages", sessions: 36, validity: 90, remaining: 24 },
+  { name: "Reformer Group Class (4)", category: "Class Packages", sessions: 72, validity: 180, remaining: 52 },
+  { name: "Private Duo Class (3)", category: "PT Packages", sessions: 36, validity: 180, remaining: 28 },
+  { name: "Private Reformer Class (4)", category: "PT Packages", sessions: 72, validity: 180, remaining: 60 },
+  { name: "Monthly", category: "Membership Plans", sessions: null, validity: 30, remaining: null },
+  { name: "Quarterly", category: "Membership Plans", sessions: null, validity: 90, remaining: null },
+  { name: "Couple Package", category: "Membership Plans", sessions: null, validity: 60, remaining: null },
+  { name: "Half Yearly", category: "Membership Plans", sessions: null, validity: 180, remaining: null },
+  { name: "Annually", category: "Membership Plans", sessions: null, validity: 365, remaining: null },
 ];
 
 // ─── Helper Functions ────────────────────────────────────────────────────────
@@ -291,7 +296,7 @@ function MembersPageContent() {
           const today = new Date();
           const validFrom = new Date(today.getTime() - 10 * 86400000).toISOString().split("T")[0];
           const validUntil = new Date(today.getTime() + chosen.validity * 86400000).toISOString().split("T")[0];
-          const rem = chosen.sessions ? Math.floor(chosen.sessions * 0.7) : null;
+          const rem = chosen.remaining !== undefined ? chosen.remaining : (chosen.sessions ? Math.floor(chosen.sessions * 0.7) : null);
 
           activeP = {
             id: `assigned-${m.id}`,
