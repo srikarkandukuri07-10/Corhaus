@@ -728,7 +728,7 @@ function MembersPageContent() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
               <thead>
-                <tr className="bg-[#FAF7F2] border-b border-[#E5DDD0] text-[#4A3B32]/60 font-semibold uppercase tracking-wider">
+                <tr className="bg-[#FAF7F2] border-b border-[#E5DDD0] text-[#4A3B32]/60 font-semibold uppercase tracking-wider whitespace-nowrap">
                   <th className="py-3.5 px-4">Member</th>
                   <th className="py-3.5 px-4">Package / Plan</th>
                   <th className="py-3.5 px-4">Category</th>
@@ -740,7 +740,7 @@ function MembersPageContent() {
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E5DDD0]/50">
+              <tbody className="divide-y divide-[#E5DDD0]/50 whitespace-nowrap">
                 {filteredMembers.map((m) => {
                   const plan = m.activePlan;
 
@@ -757,47 +757,51 @@ function MembersPageContent() {
                             )}
                           </div>
                           <div>
-                            <p className="font-semibold text-sm leading-tight">{m.full_name}</p>
+                            <p className="font-semibold text-sm leading-tight text-[#362B24]">{m.full_name}</p>
                             <p className="text-[11px] text-[#4A3B32]/50 mt-0.5">{m.phone_number}</p>
                           </div>
                         </div>
                       </td>
 
                       {/* Package / Plan */}
-                      <td className="py-3.5 px-4 font-semibold text-[#362B24]">
+                      <td className="py-3.5 px-4 font-semibold text-[#362B24] max-w-[200px] truncate">
                         {plan?.plan_name || "Standard Package"}
                       </td>
 
                       {/* Category */}
                       <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-1 rounded-full bg-[#FAF7F2] text-[#B89368] font-semibold border border-[#E5DDD0]">
+                        <span className="inline-block whitespace-nowrap px-3 py-1 rounded-full bg-[#FAF7F2] text-[#B89368] font-semibold text-xs border border-[#E5DDD0]">
                           {plan?.category || "Class Packages"}
                         </span>
                       </td>
 
                       {/* Classes / Sessions Remaining vs Total */}
-                      <td className="py-3.5 px-4 font-bold text-[#362B24]">
+                      <td className="py-3.5 px-4">
                         {plan?.sessions_total ? (
-                          <span className="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-100 font-mono">
+                          <span className="inline-block whitespace-nowrap bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg border border-indigo-100 font-semibold text-xs">
                             {plan.sessions_remaining} / {plan.sessions_total} sessions
                           </span>
                         ) : (
-                          <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-100 font-mono">
+                          <span className="inline-block whitespace-nowrap bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg border border-emerald-100 font-semibold text-xs">
                             Unlimited Classes
                           </span>
                         )}
                       </td>
 
                       {/* Start Date */}
-                      <td className="py-3.5 px-4 text-[#4A3B32]/80 font-mono">{formatDate(plan?.valid_from || m.created_at)}</td>
+                      <td className="py-3.5 px-4 text-[#4A3B32]/80 font-sans font-medium text-xs">
+                        {formatDate(plan?.valid_from || m.created_at)}
+                      </td>
 
                       {/* End Date */}
-                      <td className="py-3.5 px-4 text-[#4A3B32]/80 font-mono">{formatDate(plan?.valid_until)}</td>
+                      <td className="py-3.5 px-4 text-[#4A3B32]/80 font-sans font-medium text-xs">
+                        {formatDate(plan?.valid_until)}
+                      </td>
 
                       {/* Days Left */}
-                      <td className="py-3.5 px-4 font-bold">
+                      <td className="py-3.5 px-4">
                         {m.daysLeft !== null && m.daysLeft !== undefined ? (
-                          <span className={`px-2.5 py-1 rounded-lg font-mono ${
+                          <span className={`inline-block whitespace-nowrap px-3 py-1 rounded-lg font-semibold text-xs ${
                             m.daysLeft <= 7
                               ? "bg-amber-100 text-amber-800 border border-amber-200"
                               : "bg-emerald-50 text-emerald-800 border border-emerald-200"
