@@ -146,26 +146,14 @@ export async function POST(request: Request) {
       })
       .eq("id", requestId);
 
-    // Update approved_members safely
-    const updateMemberObj: Record<string, any> = {
-      freeze_status: "frozen",
-      freezes_used: currentUsed + 1,
-    };
-
-    const { error: updateErr } = await serviceClient
+    // Update approved_members freeze_status & freezes_used ONLY
+    await serviceClient
       .from("approved_members")
       .update({
-        ...updateMemberObj,
-        membership_status: "frozen",
+        freeze_status: "frozen",
+        freezes_used: currentUsed + 1,
       })
       .eq("id", memberId);
-
-    if (updateErr) {
-      await serviceClient
-        .from("approved_members")
-        .update(updateMemberObj)
-        .eq("id", memberId);
-    }
 
     // Update plan
     if (activePlan) {

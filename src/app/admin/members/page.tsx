@@ -179,7 +179,7 @@ function computeMemberStatus(
     return { status: "Cancelled", daysLeft: null };
   }
 
-  if (memberStatus === "frozen" || plan?.status === "frozen") {
+  if (memberStatus === "frozen" || plan?.status === "frozen" || (plan as any)?.freeze_status === "frozen") {
     return { status: "Frozen", daysLeft: null };
   }
 

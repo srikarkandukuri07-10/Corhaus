@@ -200,28 +200,18 @@ export async function POST(request: Request) {
       console.warn("Could not insert into membership_freezes table:", e);
     }
 
-    // Update approved_members cleanly with constraint fallback
-    const updateMemberObj: Record<string, any> = {
-      freeze_status: "frozen",
-      freezes_used: currentUsed + 1,
-    };
-
-    // Try updating membership_status to frozen as well
-    const { error: updateErr } = await serviceClient
+    // Update approved_members freeze_status & freezes_used WITHOUT violating legacy check constraint
+    const { error: memUpdateErr } = await serviceClient
       .from("approved_members")
       .update({
-        ...updateMemberObj,
-        membership_status: "frozen",
+        freeze_status: "frozen",
+        freezes_used: currentUsed + 1,
       })
       .eq("id", memberId);
 
-    if (updateErr) {
-      // Fallback without updating membership_status if legacy check constraint blocks it
-      console.warn("Falling back to updating freeze_status only on approved_members due to constraint:", updateErr.message);
-      await serviceClient
-        .from("approved_members")
-        .update(updateMemberObj)
-        .eq("id", memberId);
+    if (memUpdateErr) {
+      console.error("Error updating approved_members freeze_status:", memUpdateErr);
+      return NextResponse.json({ error: "Failed to update member freeze status: " + memUpdateErr.message }, { status: 500 });
     }
 
     // Update member_purchased_plans if plan exists
@@ -261,6 +251,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, freeze: freezeRecord });
   } catch (err: any) {
     console.error("POST /api/admin/freeze error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error: " + err.message }, { status: 500 });
   }
 }
