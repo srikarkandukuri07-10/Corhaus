@@ -233,13 +233,24 @@ export default function AdminClassesModulePage() {
       const { data: ctData } = await supabase.from("class_types").select("*").order("name");
       const { data: sessData } = await supabase.from("classes").select("*").order("class_date", { ascending: true }).order("class_time", { ascending: true });
       const { data: bkData } = await supabase.from("bookings").select("*, classes(*), approved_members(full_name, email, phone_number), member_purchased_plans(plan_name, category, sessions_remaining, status)").order("created_at", { ascending: false });
-      const { data: memData } = await supabase.from("approved_members").select("id, full_name, email, phone_number, member_purchased_plans(id, plan_name, category, sessions_remaining, sessions_total, valid_until, status)").order("full_name");
+      
+      // Fetch approved members and purchased plans separately for reliable JS mapping
+      const { data: memData } = await supabase.from("approved_members").select("id, full_name, email, phone_number").order("full_name");
+      const { data: plansData } = await supabase.from("member_purchased_plans").select("id, approved_member_id, plan_name, category, sessions_remaining, sessions_total, valid_until, status");
+
+      const membersWithPlans = (memData || []).map((m: any) => {
+        const userPlans = (plansData || []).filter((p: any) => p.approved_member_id === m.id);
+        return {
+          ...m,
+          plans: userPlans,
+        };
+      });
 
       startTransition(() => {
         if (ctData) setClassTypes(ctData as ClassType[]);
         if (sessData) setSessions(sessData as ScheduledSession[]);
         if (bkData) setBookings(bkData as BookingRecord[]);
-        if (memData) setMembersList(memData as any[]);
+        setMembersList(membersWithPlans as any[]);
         setLoading(false);
       });
     } catch (err) {
@@ -1383,10 +1394,13 @@ export default function AdminClassesModulePage() {
               >
                 <option value="">-- Choose Member --</option>
                 {membersList.map((m) => {
-                  const hasPlan = m.plans && m.plans.some((p: any) => p.status === "active");
+                  const activePlan = m.plans && m.plans.find((p: any) => p.status === "active");
+                  const planLabel = activePlan
+                    ? `✓ ${activePlan.plan_name}${activePlan.sessions_remaining !== null && activePlan.sessions_remaining !== undefined ? ` (${activePlan.sessions_remaining} left)` : ""}`
+                    : "⚠️ No Active Plan";
                   return (
                     <option key={m.id} value={m.id}>
-                      {m.full_name} ({m.phone_number || m.email}) {hasPlan ? "✓ Active Plan" : "⚠️ No Active Plan"}
+                      {m.full_name} ({m.phone_number || m.email}) — {planLabel}
                     </option>
                   );
                 })}
