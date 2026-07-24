@@ -156,6 +156,10 @@ export default function AdminClassesModulePage() {
   const [rescheduleBookingTarget, setRescheduleBookingTarget] = useState<BookingRecord | null>(null);
   const [targetRescheduleSessionId, setTargetRescheduleSessionId] = useState("");
 
+  // Session Detail Modal State
+  const [showSessionDetailModal, setShowSessionDetailModal] = useState(false);
+  const [selectedSessionForDetail, setSelectedSessionForDetail] = useState<ScheduledSession | null>(null);
+
   // Class Type Form state
   const [ctName, setCtName] = useState("");
   const [ctCategory, setCtCategory] = useState("Reformer Pilates");
@@ -199,7 +203,7 @@ export default function AdminClassesModulePage() {
   };
 
   // Prevent background scroll when any modal is open
-  const isAnyModalOpen = showCreateClassTypeModal || showScheduleModal || showAssignMemberModal || !!rescheduleBookingTarget;
+  const isAnyModalOpen = showCreateClassTypeModal || showScheduleModal || showAssignMemberModal || !!rescheduleBookingTarget || showSessionDetailModal;
   useEffect(() => {
     if (isAnyModalOpen) {
       document.body.style.overflow = "hidden";
@@ -499,6 +503,36 @@ export default function AdminClassesModulePage() {
       sessionInserts.push({ ...basePayload, class_date: sessDate });
     }
 
+    if (editingSession) {
+      const { error } = await supabase
+        .from("classes")
+        .update({
+          class_type_id: sessClassTypeId || null,
+          title: sessTitle.trim(),
+          instructor: sessTrainer.trim(),
+          class_date: sessDate,
+          class_time: sessTime,
+          end_time: endTimeStr,
+          buffer_minutes: sessBuffer,
+          max_capacity: sessCapacity,
+          category: classTypes.find((c) => c.id === sessClassTypeId)?.category || "Reformer Pilates",
+          location_room: sessRoom,
+          duration_minutes: sessDuration,
+        })
+        .eq("id", editingSession.id);
+
+      setActionLoading(false);
+      if (error) {
+        setActionError("Failed to update session: " + error.message);
+      } else {
+        setActionSuccess("Session updated successfully!");
+        setShowScheduleModal(false);
+        setEditingSession(null);
+        fetchAllData();
+      }
+      return;
+    }
+
     try {
       const res = await fetch("/api/admin/classes/schedule", {
         method: "POST",
@@ -521,6 +555,47 @@ export default function AdminClassesModulePage() {
     }
   };
 
+  const handleOpenSessionDetail = (sess: ScheduledSession) => {
+    setSelectedSessionForDetail(sess);
+    setShowSessionDetailModal(true);
+  };
+
+  const handleOpenEditSession = (sess: ScheduledSession) => {
+    setEditingSession(sess);
+    setSessClassTypeId(sess.class_type_id || "");
+    setSessTitle(sess.title);
+    setSessTrainer(sess.instructor);
+    setSessDate(sess.class_date);
+    setSessTime(sess.class_time);
+    setSessDuration(sess.duration_minutes || 60);
+    setSessBuffer(sess.buffer_minutes || 15);
+    setSessCapacity(sess.max_capacity);
+    setSessRoom(sess.location_room);
+    setIsRecurring(false);
+    setShowScheduleModal(true);
+    setShowSessionDetailModal(false);
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!confirm("Are you sure you want to permanently DELETE this session? This will also delete any bookings for this session.")) return;
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      const { error } = await supabase.from("classes").delete().eq("id", sessionId);
+      setActionLoading(false);
+      if (error) {
+        setActionError("Failed to delete session: " + error.message);
+      } else {
+        setActionSuccess("Session deleted successfully!");
+        setShowSessionDetailModal(false);
+        fetchAllData();
+      }
+    } catch (err: any) {
+      setActionLoading(false);
+      setActionError("Failed to delete session: " + (err.message || "Unknown error"));
+    }
+  };
+
   const handleCancelSession = async (sessionId: string) => {
     if (!confirm("Cancel this class session? Cancelled sessions remain on record.")) return;
     setActionLoading(true);
@@ -535,6 +610,10 @@ export default function AdminClassesModulePage() {
       if (!res.ok || data.error) {
         setActionError("Failed to cancel session: " + (data.error || "Unknown error"));
       } else {
+        // If we cancelled from detail modal, close/update it
+        if (selectedSessionForDetail && selectedSessionForDetail.id === sessionId) {
+          setShowSessionDetailModal(false);
+        }
         fetchAllData();
       }
     } catch (err: any) {
@@ -1007,7 +1086,7 @@ export default function AdminClassesModulePage() {
                                       key={s.id}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleOpenAssignMember(s);
+                                        handleOpenSessionDetail(s);
                                       }}
                                       className={`p-3 rounded-2xl text-white shadow-sm hover:scale-[1.02] transition-all cursor-pointer border border-white/20 ${
                                         s.status === "cancelled"
@@ -1534,6 +1613,131 @@ export default function AdminClassesModulePage() {
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1B0B38]/10 flex-shrink-0">
               <button onClick={() => setRescheduleBookingTarget(null)} className="px-6 py-3 border border-[#1B0B38]/15 rounded-2xl font-bold text-xs text-[#1B0B38] hover:bg-black/5 transition-all">Cancel</button>
               <button onClick={handleRescheduleBooking} disabled={actionLoading || !targetRescheduleSessionId} className="px-7 py-3 bg-[#7B3FE4] text-white font-extrabold text-xs rounded-2xl hover:bg-[#6A2FD3] transition-all shadow-md shadow-[#7B3FE4]/20">Confirm Reschedule</button>
+            </div>
+          </div>
+        </div>
+        </Modal>
+      )}
+
+      {/* ─── SESSION DETAIL MODAL ─────────────────────────────────────────── */}
+      {showSessionDetailModal && selectedSessionForDetail && (
+        <Modal>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-2xl w-full p-7 flex flex-col animate-fade-in space-y-5 max-h-[85vh]">
+            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4 flex-shrink-0">
+              <div>
+                <h3 className="text-xl font-extrabold text-[#1B0B38]">Class Session Details</h3>
+                <p className="text-xs text-[#1B0B38]/60 mt-0.5 font-medium">Manage session details, bookings, and operations</p>
+              </div>
+              <button onClick={() => setShowSessionDetailModal(false)} className="w-8 h-8 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-base font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
+            </div>
+
+            {/* Session Info Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-[#FAF9FC] rounded-2xl border border-[#1B0B38]/10 text-xs flex-shrink-0">
+              <div>
+                <span className="block text-[#1B0B38]/50 font-bold uppercase text-[9px] tracking-wider">Class Title</span>
+                <span className="font-extrabold text-[#1B0B38] text-sm">{selectedSessionForDetail.title}</span>
+              </div>
+              <div>
+                <span className="block text-[#1B0B38]/50 font-bold uppercase text-[9px] tracking-wider">Trainer</span>
+                <span className="font-bold text-[#1B0B38]">{selectedSessionForDetail.instructor}</span>
+              </div>
+              <div>
+                <span className="block text-[#1B0B38]/50 font-bold uppercase text-[9px] tracking-wider">Date &amp; Time</span>
+                <span className="font-bold text-[#1B0B38]">{selectedSessionForDetail.class_date} @ {selectedSessionForDetail.class_time}</span>
+              </div>
+              <div>
+                <span className="block text-[#1B0B38]/50 font-bold uppercase text-[9px] tracking-wider">Room &amp; Capacity</span>
+                <span className="font-bold text-[#1B0B38]">{selectedSessionForDetail.location_room} ({sessionBookingCountMap[selectedSessionForDetail.id] || 0} / {selectedSessionForDetail.max_capacity})</span>
+              </div>
+            </div>
+
+            {/* Booked Members List */}
+            <div className="flex-1 overflow-y-auto min-h-[150px] space-y-3">
+              <h4 className="text-xs font-bold text-[#1B0B38]/70 uppercase tracking-wider">Booked Members ({bookings.filter(b => b.class_id === selectedSessionForDetail.id && b.booking_status !== 'cancelled').length})</h4>
+              {(() => {
+                const sessionBookings = bookings.filter(b => b.class_id === selectedSessionForDetail.id && b.booking_status !== 'cancelled');
+                if (sessionBookings.length === 0) {
+                  return (
+                    <div className="py-8 text-center text-xs text-[#1B0B38]/50 bg-[#FAF9FC]/50 border border-dashed border-[#1B0B38]/15 rounded-2xl">
+                      No members are booked for this session yet.
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-2.5">
+                    {sessionBookings.map(b => (
+                      <div key={b.id} className="p-3 bg-white border border-[#1B0B38]/10 rounded-2xl flex items-center justify-between text-xs shadow-2xs">
+                        <div>
+                          <p className="font-extrabold text-[#1B0B38]">{b.approved_members?.full_name || "Member"}</p>
+                          <p className="text-[10px] text-[#1B0B38]/50 mt-0.5">{b.approved_members?.phone_number || b.approved_members?.email || "No contact info"}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={b.booking_status}
+                            onChange={(e) => handleUpdateBookingStatus(b.id, e.target.value)}
+                            className="p-1.5 rounded-lg border border-[#1B0B38]/15 bg-[#FAF9FC] text-[10px] font-bold text-[#7B3FE4] focus:outline-none"
+                          >
+                            <option value="booked">Booked</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="checked_in">Checked In</option>
+                            <option value="completed">Completed</option>
+                            <option value="waitlisted">Waitlisted</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                          <select
+                            value={b.attendance_status}
+                            onChange={(e) => handleUpdateAttendance(b.id, e.target.value)}
+                            className="p-1.5 rounded-lg border border-[#1B0B38]/15 bg-[#FAF9FC] text-[10px] font-bold text-[#1B0B38] focus:outline-none"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="present">Present</option>
+                            <option value="no_show">No Show</option>
+                            <option value="late">Late</option>
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-[#1B0B38]/10 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleOpenEditSession(selectedSessionForDetail)}
+                  className="px-4.5 py-2.5 border border-[#7B3FE4]/30 text-[#7B3FE4] hover:bg-[#7B3FE4]/5 rounded-xl font-bold text-xs transition-colors"
+                >
+                  Edit Session
+                </button>
+                <button
+                  onClick={() => handleDeleteSession(selectedSessionForDetail.id)}
+                  className="px-4.5 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl font-bold text-xs transition-colors"
+                >
+                  Delete Session
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    handleOpenAssignMember(selectedSessionForDetail);
+                    setShowSessionDetailModal(false);
+                  }}
+                  disabled={selectedSessionForDetail.status === "cancelled"}
+                  className="px-5 py-2.5 bg-[#7B3FE4] text-white hover:bg-[#6A2FD3] rounded-xl font-extrabold text-xs transition-colors disabled:opacity-50"
+                >
+                  Assign Member
+                </button>
+                <button
+                  onClick={() => setShowSessionDetailModal(false)}
+                  className="px-5 py-2.5 border border-[#1B0B38]/15 rounded-xl font-bold text-xs text-[#1B0B38] hover:bg-black/5 transition-all"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
