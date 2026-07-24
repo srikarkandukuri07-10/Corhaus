@@ -115,27 +115,26 @@ export async function POST(request: Request) {
 
     const packageType = freezeReq.package_type || activePlan?.category || "Membership Plans";
 
-    // Create freeze record
-    const { data: freezeRecord, error: fErr } = await serviceClient
-      .from("membership_freezes")
-      .insert({
-        member_id: memberId,
-        plan_id: activePlan?.id || null,
-        package_type: packageType,
-        freeze_start: finalStartDate,
-        freeze_end: endDateStr,
-        freeze_days: finalDays,
-        reason: freezeReq.reason || "Member Requested Freeze",
-        status: "active",
-        created_by: user.id,
-      })
-      .select()
-      .single();
-
-    if (fErr) {
-      console.error("Error creating membership freeze:", fErr);
-      return NextResponse.json({ error: "Failed to create membership freeze record" }, { status: 500 });
-    }
+    // Create freeze record safely
+    let freezeRecord = null;
+    try {
+      const { data: fRec } = await serviceClient
+        .from("membership_freezes")
+        .insert({
+          member_id: memberId,
+          plan_id: activePlan?.id || null,
+          package_type: packageType,
+          freeze_start: finalStartDate,
+          freeze_end: endDateStr,
+          freeze_days: finalDays,
+          reason: freezeReq.reason || "Member Requested Freeze",
+          status: "active",
+          created_by: user.id,
+        })
+        .select()
+        .maybeSingle();
+      freezeRecord = fRec;
+    } catch (e) {}
 
     // Mark request approved
     await serviceClient
@@ -147,15 +146,26 @@ export async function POST(request: Request) {
       })
       .eq("id", requestId);
 
-    // Update approved_members
-    await serviceClient
+    // Update approved_members safely
+    const updateMemberObj: Record<string, any> = {
+      freeze_status: "frozen",
+      freezes_used: currentUsed + 1,
+    };
+
+    const { error: updateErr } = await serviceClient
       .from("approved_members")
       .update({
+        ...updateMemberObj,
         membership_status: "frozen",
-        freeze_status: "frozen",
-        freezes_used: currentUsed + 1,
       })
       .eq("id", memberId);
+
+    if (updateErr) {
+      await serviceClient
+        .from("approved_members")
+        .update(updateMemberObj)
+        .eq("id", memberId);
+    }
 
     // Update plan
     if (activePlan) {

@@ -33,7 +33,15 @@ CREATE TABLE IF NOT EXISTS public.membership_freezes (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 3. Add freeze fields to approved_members & member_purchased_plans
+-- 3. Update check constraint on approved_members.membership_status to allow 'frozen'
+ALTER TABLE public.approved_members 
+  DROP CONSTRAINT IF EXISTS approved_members_membership_status_check;
+
+ALTER TABLE public.approved_members 
+  ADD CONSTRAINT approved_members_membership_status_check 
+  CHECK (membership_status IN ('active', 'inactive', 'frozen', 'cancelled', 'expired'));
+
+-- 4. Add freeze fields to approved_members & member_purchased_plans
 ALTER TABLE public.approved_members 
   ADD COLUMN IF NOT EXISTS freeze_status TEXT DEFAULT 'active',
   ADD COLUMN IF NOT EXISTS freezes_used INTEGER DEFAULT 0;
@@ -42,17 +50,17 @@ ALTER TABLE public.member_purchased_plans
   ADD COLUMN IF NOT EXISTS freeze_status TEXT DEFAULT 'active',
   ADD COLUMN IF NOT EXISTS freezes_used INTEGER DEFAULT 0;
 
--- 4. Create Indexes
+-- 5. Create Indexes
 CREATE INDEX IF NOT EXISTS idx_freeze_requests_member ON public.freeze_requests(member_id);
 CREATE INDEX IF NOT EXISTS idx_freeze_requests_status ON public.freeze_requests(status);
 CREATE INDEX IF NOT EXISTS idx_membership_freezes_member ON public.membership_freezes(member_id);
 CREATE INDEX IF NOT EXISTS idx_membership_freezes_status ON public.membership_freezes(status);
 
--- 5. Enable RLS
+-- 6. Enable RLS
 ALTER TABLE public.freeze_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.membership_freezes ENABLE ROW LEVEL SECURITY;
 
--- 6. RLS Policies
+-- 7. RLS Policies
 DROP POLICY IF EXISTS "Allow all for authenticated" ON public.freeze_requests;
 CREATE POLICY "Allow all for authenticated" ON public.freeze_requests FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
