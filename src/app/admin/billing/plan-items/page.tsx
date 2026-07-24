@@ -70,7 +70,7 @@ function BillingSubNav() {
     { href: "/admin/billing/invoices", label: "Invoices", exact: true },
   ];
   return (
-    <div className="flex items-center gap-1 mb-5">
+    <div className="flex items-center gap-1.5 mb-6">
       {subNav.map((item) => {
         const active = item.exact
           ? pathname === item.href
@@ -79,10 +79,10 @@ function BillingSubNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               active
-                ? "bg-brand-navy text-white shadow-sm"
-                : "text-brand-navy/60 hover:text-brand-navy hover:bg-brand-beige"
+                ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/20"
+                : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
             }`}
           >
             {item.label}
@@ -309,7 +309,7 @@ export default function PlanItemsPage() {
             <h2 className="font-semibold text-brand-navy">{activeCategory}</h2>
             <button
               onClick={openAddForm}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-brown text-white text-sm font-medium hover:bg-brand-brown-dark transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#7B3FE4] text-white text-xs font-bold hover:bg-[#6A2FD3] transition-colors shadow-md"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />

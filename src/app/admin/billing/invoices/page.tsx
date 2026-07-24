@@ -79,7 +79,7 @@ function BillingSubNav() {
     { href: "/admin/billing/invoices", label: "Invoices", exact: true },
   ];
   return (
-    <div className="flex items-center gap-1 mb-5">
+    <div className="flex items-center gap-1.5 mb-6">
       {subNav.map((item) => {
         const active = item.exact
           ? pathname === item.href
@@ -88,10 +88,10 @@ function BillingSubNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               active
-                ? "bg-brand-navy text-white shadow-sm"
-                : "text-brand-navy/60 hover:text-brand-navy hover:bg-brand-beige"
+                ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/20"
+                : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
             }`}
           >
             {item.label}
