@@ -121,16 +121,25 @@ export default function AdminDashboard() {
         .from("approved_members")
         .select("*", { count: "exact", head: true });
 
-      // 4. Fetch Today's Revenue from Paid Invoices
+      // 4. Fetch Today's Revenue from Paid Invoices (using exact local IST start-of-day)
+      const nowIST = new Date();
+      nowIST.setHours(0, 0, 0, 0);
+      const startOfDayIso = `${todayStr}T00:00:00.000+05:30`;
+
       const { data: todaysInvoices } = await supabase
         .from("invoices")
         .select("amount_paid, grand_total, created_at")
         .eq("payment_status", "paid")
-        .gte("created_at", `${todayStr}T00:00:00.000Z`);
+        .gte("created_at", startOfDayIso);
 
       let revTotal = 0;
       if (todaysInvoices) {
-        revTotal = todaysInvoices.reduce((sum, inv) => sum + (inv.amount_paid || inv.grand_total || 0), 0);
+        revTotal = todaysInvoices.reduce((sum, inv) => {
+          const paid = inv.amount_paid !== null && inv.amount_paid !== undefined && Number(inv.amount_paid) > 0
+            ? Number(inv.amount_paid)
+            : Number(inv.grand_total || 0);
+          return sum + paid;
+        }, 0);
       }
 
       // 5. Fetch Check-ins Today
