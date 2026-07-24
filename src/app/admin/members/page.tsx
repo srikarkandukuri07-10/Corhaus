@@ -370,9 +370,10 @@ function MembersPageContent() {
         // Fallback package assignment if member doesn't have a DB record yet
         if (!activeP) {
           const chosen = CATALOGUE_PACKAGES[index % CATALOGUE_PACKAGES.length];
-          const today = new Date();
-          const validFrom = new Date(today.getTime() - 10 * 86400000).toISOString().split("T")[0];
-          const validUntil = new Date(today.getTime() + chosen.validity * 86400000).toISOString().split("T")[0];
+          const joinDate = m.created_at ? new Date(m.created_at) : new Date();
+          const validFrom = joinDate.toISOString().split("T")[0];
+          const validUntilDate = new Date(joinDate.getTime() + chosen.validity * 86400000);
+          const validUntil = validUntilDate.toISOString().split("T")[0];
           const rem = chosen.remaining !== undefined ? chosen.remaining : (chosen.sessions ? Math.floor(chosen.sessions * 0.7) : null);
 
           activeP = {

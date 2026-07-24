@@ -94,9 +94,9 @@ export async function GET() {
       const packageName = activePlan?.plan_name || fallback.name;
       const packageCategory = activePlan?.category || fallback.category;
 
-      const today = new Date();
-      const fallbackValidFrom = new Date(today.getTime() - 10 * 86400000).toISOString().split("T")[0];
-      const fallbackValidUntil = new Date(today.getTime() + fallback.validity * 86400000).toISOString().split("T")[0];
+      const joinDate = m.created_at ? new Date(m.created_at) : new Date();
+      const fallbackValidFrom = joinDate.toISOString().split("T")[0];
+      const fallbackValidUntil = new Date(joinDate.getTime() + fallback.validity * 86400000).toISOString().split("T")[0];
 
       const validFrom = activePlan?.valid_from || fallbackValidFrom;
       const validUntil = activePlan?.valid_until || fallbackValidUntil;
@@ -228,6 +228,21 @@ export async function POST(request: Request) {
       console.warn("Could not insert into membership_freezes table:", e);
     }
 
+    // Extend plan valid_until by freezeDays so paid membership days are preserved
+    if (targetPlan && targetPlan.valid_until) {
+      const origValidUntil = new Date(targetPlan.valid_until);
+      const newValidUntil = new Date(origValidUntil.getTime() + days * 86400000).toISOString().split("T")[0];
+      await serviceClient
+        .from("member_purchased_plans")
+        .update({
+          valid_until: newValidUntil,
+          status: "frozen",
+          freeze_status: "frozen",
+          freezes_used: (targetPlan.freezes_used || 0) + 1,
+        })
+        .eq("id", targetPlan.id);
+    }
+
     // Update approved_members freeze_status & freezes_used ONLY
     const { error: memUpdateErr } = await serviceClient
       .from("approved_members")
@@ -240,18 +255,6 @@ export async function POST(request: Request) {
     if (memUpdateErr) {
       console.error("Error updating approved_members freeze_status:", memUpdateErr);
       return NextResponse.json({ error: "Failed to update member freeze status: " + memUpdateErr.message }, { status: 500 });
-    }
-
-    // Update member_purchased_plans if plan exists
-    if (targetPlan) {
-      await serviceClient
-        .from("member_purchased_plans")
-        .update({
-          status: "frozen",
-          freeze_status: "frozen",
-          freezes_used: (targetPlan.freezes_used || 0) + 1,
-        })
-        .eq("id", targetPlan.id);
     }
 
     // Resolve pending freeze requests if table exists
