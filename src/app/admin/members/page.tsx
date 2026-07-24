@@ -353,16 +353,11 @@ function MembersPageContent() {
       const invoiceByMemberMap = new Map<string, InvoiceRecord>();
       if (invoicesData) {
         invoicesData.forEach((inv) => {
-          let memberId: string | null = null;
           if (inv.customer_id) {
-            memberId = custToMemberMap.get(inv.customer_id) || null;
-          }
-          if (!memberId && inv.customer_email) {
-            const match = approvedData.find((m) => m.email.toLowerCase() === inv.customer_email.toLowerCase());
-            if (match) memberId = match.id;
-          }
-          if (memberId && !invoiceByMemberMap.has(memberId)) {
-            invoiceByMemberMap.set(memberId, inv as InvoiceRecord);
+            const memberId = custToMemberMap.get(inv.customer_id);
+            if (memberId && !invoiceByMemberMap.has(memberId)) {
+              invoiceByMemberMap.set(memberId, inv as InvoiceRecord);
+            }
           }
         });
       }
@@ -372,7 +367,7 @@ function MembersPageContent() {
         const mPlans = plansByMember.get(m.id) || [];
         let activeP = mPlans.find((p) => p.status === "active" || p.status === "frozen") || mPlans[0] || null;
 
-        // If no member_purchased_plans record exists, derive plan from latest paid invoice
+        // If no member_purchased_plans record exists, check if member has a paid invoice linked via customer_id
         if (!activeP) {
           const inv = invoiceByMemberMap.get(m.id);
           const isPaid = inv && (
@@ -620,8 +615,6 @@ function MembersPageContent() {
     }));
 
     // 3. Relational query: fetch all completed bills for this member (newest first)
-    const memEmail = member.email ? member.email.trim().toLowerCase() : "";
-
     const { data: custData } = await supabase
       .from("customers")
       .select("id")
@@ -631,19 +624,11 @@ function MembersPageContent() {
 
     let fullBillingHistory: FullInvoiceRecord[] = [];
 
-    const orConditions: string[] = [];
     if (custIds.length > 0) {
-      orConditions.push(`customer_id.in.(${custIds.join(",")})`);
-    }
-    if (memEmail) {
-      orConditions.push(`customer_email.eq.${memEmail}`);
-    }
-
-    if (orConditions.length > 0) {
       const { data: invoicesData } = await supabase
         .from("invoices")
         .select("*")
-        .or(orConditions.join(","))
+        .in("customer_id", custIds)
         .order("created_at", { ascending: false });
 
       if (invoicesData && invoicesData.length > 0) {
