@@ -56,10 +56,10 @@ export default function AdminLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F0F7F7]">
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF9FC]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-[#009B9E]/30 border-t-[#009B9E] rounded-full animate-spin" />
-          <p className="text-sm text-[#004D40]/70 font-medium">Loading Corhaus Admin...</p>
+          <div className="w-8 h-8 border-2 border-[#7B3FE4]/30 border-t-[#7B3FE4] rounded-full animate-spin" />
+          <p className="text-sm text-[#1B0B38]/70 font-medium">Loading Corhaus Admin...</p>
         </div>
       </div>
     );
@@ -70,9 +70,9 @@ export default function AdminLayout({
   const isBillingActive = pathname.startsWith("/admin/billing");
 
   return (
-    <div className="min-h-screen bg-[#F0F7F7] flex font-sans">
-      {/* ─── VIBRANT TEAL GRADIENT SIDEBAR ─────────────────────────────────── */}
-      <aside className="hidden lg:flex w-64 bg-gradient-to-b from-[#00897B] via-[#00695C] to-[#004D40] text-white flex-col fixed inset-y-0 left-0 z-50 shadow-xl border-r border-[#004D40]/40">
+    <div className="min-h-screen bg-[#FAF9FC] flex font-sans">
+      {/* ─── DEEP MIDNIGHT ROYAL PURPLE SIDEBAR ─────────────────────────────── */}
+      <aside className="hidden lg:flex w-64 bg-[#1B0B38] text-white flex-col fixed inset-y-0 left-0 z-50 shadow-2xl border-r border-[#1B0B38]/50">
         {/* Logo Header */}
         <div className="p-6 flex flex-col items-center text-center border-b border-white/10">
           <Link href="/admin" className="flex flex-col items-center">
@@ -101,7 +101,7 @@ export default function AdminLayout({
               href="/admin"
               className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-[15px] font-semibold transition-all ${
                 pathname === "/admin"
-                  ? "bg-gradient-to-r from-[#17D7B2] to-[#00C9A7] text-white shadow-lg shadow-[#17D7B2]/20 font-bold"
+                  ? "bg-gradient-to-r from-[#D99B26] to-[#E5AC38] text-white font-bold shadow-lg shadow-[#D99B26]/30"
                   : "text-white hover:bg-white/10 hover:text-white"
               }`}
             >
@@ -122,7 +122,7 @@ export default function AdminLayout({
                 href="/admin/members"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${
                   pathname.startsWith("/admin/members")
-                    ? "bg-gradient-to-r from-[#17D7B2] to-[#00C9A7] text-white shadow-lg shadow-[#17D7B2]/20 font-bold"
+                    ? "bg-gradient-to-r from-[#D99B26] to-[#E5AC38] text-white font-bold shadow-lg shadow-[#D99B26]/30"
                     : "text-white hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -136,7 +136,7 @@ export default function AdminLayout({
                 href="/admin/freeze"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${
                   pathname.startsWith("/admin/freeze")
-                    ? "bg-gradient-to-r from-[#17D7B2] to-[#00C9A7] text-white shadow-lg shadow-[#17D7B2]/20 font-bold"
+                    ? "bg-gradient-to-r from-[#D99B26] to-[#E5AC38] text-white font-bold shadow-lg shadow-[#D99B26]/30"
                     : "text-white hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -150,7 +150,7 @@ export default function AdminLayout({
                 href="/admin/classes"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${
                   pathname === "/admin/classes" || pathname.startsWith("/admin/classes")
-                    ? "bg-gradient-to-r from-[#17D7B2] to-[#00C9A7] text-white shadow-lg shadow-[#17D7B2]/20 font-bold"
+                    ? "bg-gradient-to-r from-[#D99B26] to-[#E5AC38] text-white font-bold shadow-lg shadow-[#D99B26]/30"
                     : "text-white hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -164,7 +164,7 @@ export default function AdminLayout({
                 href="/admin/previous-classes"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${
                   pathname.startsWith("/admin/previous-classes")
-                    ? "bg-gradient-to-r from-[#17D7B2] to-[#00C9A7] text-white shadow-lg shadow-[#17D7B2]/20 font-bold"
+                    ? "bg-gradient-to-r from-[#D99B26] to-[#E5AC38] text-white font-bold shadow-lg shadow-[#D99B26]/30"
                     : "text-white hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -178,7 +178,7 @@ export default function AdminLayout({
                 href="/admin/scanner"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${
                   pathname === "/admin/scanner"
-                    ? "bg-gradient-to-r from-[#17D7B2] to-[#00C9A7] text-white shadow-lg shadow-[#17D7B2]/20 font-bold"
+                    ? "bg-gradient-to-r from-[#D99B26] to-[#E5AC38] text-white font-bold shadow-lg shadow-[#D99B26]/30"
                     : "text-white hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -200,7 +200,7 @@ export default function AdminLayout({
                 href="/admin/billing"
                 className={`flex items-center justify-between px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${
                   isBillingActive
-                    ? "bg-gradient-to-r from-[#17D7B2] to-[#00C9A7] text-white shadow-lg shadow-[#17D7B2]/20 font-bold"
+                    ? "bg-gradient-to-r from-[#D99B26] to-[#E5AC38] text-white font-bold shadow-lg shadow-[#D99B26]/30"
                     : "text-white hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -252,9 +252,9 @@ export default function AdminLayout({
         </div>
 
         {/* User Profile Footer */}
-        <div className="p-4 border-t border-white/10 flex items-center justify-between bg-black/10">
+        <div className="p-4 border-t border-white/10 flex items-center justify-between bg-black/20">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-white text-[#00695C] font-bold flex items-center justify-center text-sm shadow-md">
+            <div className="w-9 h-9 rounded-full bg-[#7B3FE4] text-white font-bold flex items-center justify-center text-sm shadow-md">
               A
             </div>
             <div className="text-left">
@@ -267,7 +267,7 @@ export default function AdminLayout({
       </aside>
 
       {/* Mobile Top Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#00695C] border-b border-white/10 z-40 flex items-center justify-between px-4 text-white">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#1B0B38] border-b border-white/10 z-40 flex items-center justify-between px-4 text-white">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -289,14 +289,14 @@ export default function AdminLayout({
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <aside className="w-64 bg-gradient-to-b from-[#00897B] to-[#004D40] text-white flex-col relative z-10 p-4 space-y-5 h-full overflow-y-auto">
+          <aside className="w-64 bg-[#1B0B38] text-white flex-col relative z-10 p-4 space-y-5 h-full overflow-y-auto">
             <div className="flex justify-between items-center pb-4 border-b border-white/10">
               <span className="font-serif font-bold text-xl tracking-widest text-white">CORHAUS</span>
               <button onClick={() => setMobileOpen(false)} className="text-white font-bold text-lg">✕</button>
             </div>
 
             <nav className="space-y-1" onClick={() => setMobileOpen(false)}>
-              <Link href="/admin" className="block px-4 py-2.5 rounded-xl font-bold text-white bg-white/20">
+              <Link href="/admin" className="block px-4 py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-[#D99B26] to-[#E5AC38]">
                 Dashboard
               </Link>
               <Link href="/admin/members" className="block px-4 py-2.5 rounded-xl font-semibold text-white">
@@ -325,22 +325,22 @@ export default function AdminLayout({
       {/* ─── MAIN CONTENT CONTAINER ────────────────────────────────────────── */}
       <main className="flex-1 lg:pl-64 flex flex-col min-h-screen pt-16 lg:pt-0">
         {/* Top Header Bar */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-[#004D40]/10 px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+        <header className="bg-white/90 backdrop-blur-md border-b border-[#1B0B38]/10 px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-xs">
           <div className="relative flex-1 max-w-md">
             <input
               type="text"
               placeholder="Search members, classes, invoices..."
-              className="w-full pl-9 pr-4 py-2 rounded-2xl border border-[#004D40]/15 bg-[#F0F7F7] text-xs text-[#004D40] placeholder:text-[#004D40]/40 focus:outline-none focus:ring-1 focus:ring-[#009B9E]"
+              className="w-full pl-9 pr-4 py-2 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] placeholder:text-[#1B0B38]/40 focus:outline-none focus:ring-1 focus:ring-[#7B3FE4]"
             />
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#004D40]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1B0B38]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
             </svg>
           </div>
 
           <div className="flex items-center gap-4">
             <NotificationsButton role="admin" />
-            <div className="flex items-center gap-2 bg-[#F0F7F7] border border-[#004D40]/15 px-3 py-1.5 rounded-full text-xs text-[#004D40] font-semibold">
-              <div className="w-6 h-6 rounded-full bg-[#00695C] text-white flex items-center justify-center font-bold text-[11px]">
+            <div className="flex items-center gap-2 bg-[#FAF9FC] border border-[#1B0B38]/15 px-3 py-1.5 rounded-full text-xs text-[#1B0B38] font-semibold">
+              <div className="w-6 h-6 rounded-full bg-[#7B3FE4] text-white flex items-center justify-center font-bold text-[11px]">
                 A
               </div>
               <span>Admin</span>

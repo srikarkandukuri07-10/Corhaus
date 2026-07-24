@@ -262,26 +262,6 @@ export default function AdminDashboard() {
     }
   }
 
-  async function handleDeleteClass(e: React.MouseEvent, classId: string) {
-    e.stopPropagation();
-    if (!confirm("Remove this class? All bookings for it will also be cancelled.")) return;
-
-    setDeletingId(classId);
-    const { error } = await supabase.from("classes").delete().eq("id", classId);
-    setDeletingId(null);
-
-    if (error) {
-      alert("Failed to remove class: " + error.message);
-      return;
-    }
-
-    if (selectedClass === classId) {
-      setSelectedClass(null);
-      setBookings([]);
-    }
-    loadDashboardData();
-  }
-
   function formatTime(time: string) {
     const [hours, minutes] = time.split(":");
     const h = parseInt(hours);
@@ -303,19 +283,19 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in font-sans">
-      {/* Welcome Banner + Top Right New Class Button */}
+      {/* Welcome Banner + Top Right Royal Purple New Class Button */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#003B46]">
+          <h1 className="text-3xl font-bold text-[#1B0B38]">
             Good morning, Admin!
           </h1>
-          <p className="text-sm text-[#004D40]/70 mt-1">
+          <p className="text-sm text-[#1B0B38]/70 mt-1">
             Here&apos;s what&apos;s happening at Corhaus today.
           </p>
         </div>
         <Link
           href="/admin/classes"
-          className="px-5 py-2.5 rounded-xl bg-[#009B9E] text-white text-sm font-semibold hover:bg-[#00878A] transition-colors shadow-md flex items-center gap-1.5"
+          className="px-5 py-2.5 rounded-xl bg-[#7B3FE4] text-white text-sm font-semibold hover:bg-[#6A2FD3] transition-colors shadow-md flex items-center gap-1.5"
         >
           <span>+</span> New Class
         </Link>
@@ -324,22 +304,22 @@ export default function AdminDashboard() {
       {/* 4 Real Data KPI Cards matching exact mockup colors */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Today's Classes */}
-        <div className="bg-white rounded-[24px] p-6 border border-[#004D40]/10 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-[24px] p-6 border border-[#1B0B38]/10 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-xs font-bold text-[#004D40]/60 tracking-wider uppercase">
+            <p className="text-xs font-bold text-[#1B0B38]/60 tracking-wider uppercase">
               Today&apos;s Classes
             </p>
-            <p className="text-3xl font-extrabold text-[#003B46] mt-2">
+            <p className="text-3xl font-extrabold text-[#1B0B38] mt-2">
               {loading ? "..." : todaysClassesCount}
             </p>
             <Link
               href="/admin/classes"
-              className="inline-flex items-center gap-1 text-xs font-bold text-[#009B9E] hover:underline mt-3"
+              className="inline-flex items-center gap-1 text-xs font-bold text-[#7B3FE4] hover:underline mt-3"
             >
               View all classes &rarr;
             </Link>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-[#E0F2F1] text-[#00897B] flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-[#F2EBFE] text-[#7B3FE4] flex items-center justify-center flex-shrink-0">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -347,22 +327,22 @@ export default function AdminDashboard() {
         </div>
 
         {/* Total Members */}
-        <div className="bg-white rounded-[24px] p-6 border border-[#004D40]/10 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-[24px] p-6 border border-[#1B0B38]/10 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-xs font-bold text-[#004D40]/60 tracking-wider uppercase">
+            <p className="text-xs font-bold text-[#1B0B38]/60 tracking-wider uppercase">
               Total Members
             </p>
-            <p className="text-3xl font-extrabold text-[#003B46] mt-2">
+            <p className="text-3xl font-extrabold text-[#1B0B38] mt-2">
               {loading ? "..." : totalMembersCount}
             </p>
             <Link
               href="/admin/members"
-              className="inline-flex items-center gap-1 text-xs font-bold text-[#8B5CF6] hover:underline mt-3"
+              className="inline-flex items-center gap-1 text-xs font-bold text-[#2563EB] hover:underline mt-3"
             >
               View all members &rarr;
             </Link>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-[#F3E8FF] text-[#8B5CF6] flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center flex-shrink-0">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
@@ -370,12 +350,12 @@ export default function AdminDashboard() {
         </div>
 
         {/* Today's Revenue */}
-        <div className="bg-white rounded-[24px] p-6 border border-[#004D40]/10 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-[24px] p-6 border border-[#1B0B38]/10 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-xs font-bold text-[#004D40]/60 tracking-wider uppercase">
+            <p className="text-xs font-bold text-[#1B0B38]/60 tracking-wider uppercase">
               Today&apos;s Revenue
             </p>
-            <p className="text-3xl font-extrabold text-[#003B46] mt-2">
+            <p className="text-3xl font-extrabold text-[#1B0B38] mt-2">
               {loading ? "..." : "₹" + todaysRevenue.toLocaleString("en-IN")}
             </p>
             <Link
@@ -391,12 +371,12 @@ export default function AdminDashboard() {
         </div>
 
         {/* Check-ins Today */}
-        <div className="bg-white rounded-[24px] p-6 border border-[#004D40]/10 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-[24px] p-6 border border-[#1B0B38]/10 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-xs font-bold text-[#004D40]/60 tracking-wider uppercase">
+            <p className="text-xs font-bold text-[#1B0B38]/60 tracking-wider uppercase">
               Check-ins Today
             </p>
-            <p className="text-3xl font-extrabold text-[#003B46] mt-2">
+            <p className="text-3xl font-extrabold text-[#1B0B38] mt-2">
               {loading ? "..." : checkInsTodayCount}
             </p>
             <Link
@@ -417,10 +397,10 @@ export default function AdminDashboard() {
       {/* Upcoming Classes Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-[#003B46]">Upcoming Classes</h2>
+          <h2 className="text-xl font-bold text-[#1B0B38]">Upcoming Classes</h2>
           <Link
             href="/admin/classes"
-            className="text-xs font-bold text-[#009B9E] hover:underline"
+            className="text-xs font-bold text-[#7B3FE4] hover:underline"
           >
             + Create Class
           </Link>
@@ -428,19 +408,19 @@ export default function AdminDashboard() {
 
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="w-6 h-6 border-2 border-[#009B9E]/30 border-t-[#009B9E] rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[#7B3FE4]/30 border-t-[#7B3FE4] rounded-full animate-spin" />
           </div>
         ) : classes.length === 0 ? (
-          <div className="bg-white rounded-[24px] border border-[#004D40]/10 p-12 text-center shadow-xs space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-[#E0F2F1] text-[#00897B] flex items-center justify-center mx-auto">
+          <div className="bg-white rounded-[24px] border border-[#1B0B38]/10 p-12 text-center shadow-xs space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-[#F2EBFE] text-[#7B3FE4] flex items-center justify-center mx-auto">
               <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <p className="text-sm font-semibold text-[#003B46]">No upcoming classes scheduled</p>
+            <p className="text-sm font-semibold text-[#1B0B38]">No upcoming classes scheduled</p>
             <Link
               href="/admin/classes"
-              className="inline-block text-xs font-bold text-[#009B9E] hover:underline"
+              className="inline-block text-xs font-bold text-[#7B3FE4] hover:underline"
             >
               Create your first class
             </Link>
@@ -457,14 +437,14 @@ export default function AdminDashboard() {
                   onClick={() => handleClassClick(c.id)}
                   className={`bg-white rounded-[24px] border p-5 cursor-pointer transition-all ${
                     selectedClass === c.id
-                      ? "border-[#009B9E] ring-2 ring-[#009B9E]/20 shadow-md"
-                      : "border-[#004D40]/10 hover:border-[#009B9E]"
+                      ? "border-[#7B3FE4] ring-2 ring-[#7B3FE4]/20 shadow-md"
+                      : "border-[#1B0B38]/10 hover:border-[#7B3FE4]"
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="font-bold text-base text-[#003B46]">{c.title}</h3>
-                      <p className="text-xs text-[#004D40]/60 mt-0.5">{c.instructor}</p>
+                      <h3 className="font-bold text-base text-[#1B0B38]">{c.title}</h3>
+                      <p className="text-xs text-[#1B0B38]/60 mt-0.5">{c.instructor}</p>
                     </div>
                     <span
                       className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
@@ -477,7 +457,7 @@ export default function AdminDashboard() {
                     </span>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-[#004D40]/10 flex items-center justify-between text-xs text-[#004D40]">
+                  <div className="mt-4 pt-3 border-t border-[#1B0B38]/10 flex items-center justify-between text-xs text-[#1B0B38]">
                     <span>
                       {formatDate(c.class_date)} @ {formatTime(c.class_time)}
                     </span>
@@ -494,19 +474,19 @@ export default function AdminDashboard() {
 
       {/* Selected Class Member Bookings & Attendance Details */}
       {selectedClass && selectedClassData && (
-        <div className="bg-white rounded-[24px] border border-[#004D40]/10 p-6 shadow-md space-y-4 animate-slide-up">
-          <div className="flex items-center justify-between border-b border-[#004D40]/10 pb-4">
+        <div className="bg-white rounded-[24px] border border-[#1B0B38]/10 p-6 shadow-md space-y-4 animate-slide-up">
+          <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4">
             <div>
-              <h3 className="text-lg font-bold text-[#003B46]">
+              <h3 className="text-lg font-bold text-[#1B0B38]">
                 {selectedClassData.title} &mdash; Details
               </h3>
-              <p className="text-xs text-[#004D40]/60 mt-0.5">
+              <p className="text-xs text-[#1B0B38]/60 mt-0.5">
                 Instructor: {selectedClassData.instructor} &bull; {formatDate(selectedClassData.class_date)} @ {formatTime(selectedClassData.class_time)}
               </p>
             </div>
             <button
               onClick={() => setSelectedClass(null)}
-              className="text-xs font-bold text-[#004D40]/60 hover:text-[#003B46]"
+              className="text-xs font-bold text-[#1B0B38]/60 hover:text-[#1B0B38]"
             >
               ✕ Close
             </button>
@@ -515,13 +495,13 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Bookings List */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-[#004D40]/60 uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-[#1B0B38]/60 uppercase tracking-wider">
                 Booked Members ({bookings.length})
               </h4>
               {bookingsLoading ? (
-                <div className="py-6 text-center text-xs text-[#004D40]/50">Loading bookings...</div>
+                <div className="py-6 text-center text-xs text-[#1B0B38]/50">Loading bookings...</div>
               ) : bookings.length === 0 ? (
-                <div className="py-6 text-center text-xs text-[#004D40]/50 bg-[#F0F7F7] rounded-xl">
+                <div className="py-6 text-center text-xs text-[#1B0B38]/50 bg-[#FAF9FC] rounded-xl">
                   No member bookings for this session yet
                 </div>
               ) : (
@@ -529,13 +509,13 @@ export default function AdminDashboard() {
                   {bookings.map((b) => (
                     <div
                       key={b.id}
-                      className="p-3 rounded-xl bg-[#F0F7F7] border border-[#004D40]/10 flex items-center justify-between text-xs"
+                      className="p-3 rounded-xl bg-[#FAF9FC] border border-[#1B0B38]/10 flex items-center justify-between text-xs"
                     >
                       <div>
-                        <p className="font-bold text-[#003B46]">{b.profiles?.full_name || "Member"}</p>
-                        <p className="text-[11px] text-[#004D40]/60">{b.profiles?.phone_number || b.profiles?.email}</p>
+                        <p className="font-bold text-[#1B0B38]">{b.profiles?.full_name || "Member"}</p>
+                        <p className="text-[11px] text-[#1B0B38]/60">{b.profiles?.phone_number || b.profiles?.email}</p>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-[#009B9E]/10 text-[#009B9E] font-bold text-[10px]">
+                      <span className="px-2 py-0.5 rounded-full bg-[#7B3FE4]/10 text-[#7B3FE4] font-bold text-[10px]">
                         BOOKED
                       </span>
                     </div>
@@ -546,13 +526,13 @@ export default function AdminDashboard() {
 
             {/* Attendance Checked In List */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-[#004D40]/60 uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-[#1B0B38]/60 uppercase tracking-wider">
                 Checked In Attendance ({attended.length})
               </h4>
               {attendanceLoading ? (
-                <div className="py-6 text-center text-xs text-[#004D40]/50">Loading attendance...</div>
+                <div className="py-6 text-center text-xs text-[#1B0B38]/50">Loading attendance...</div>
               ) : attended.length === 0 ? (
-                <div className="py-6 text-center text-xs text-[#004D40]/50 bg-[#F0F7F7] rounded-xl">
+                <div className="py-6 text-center text-xs text-[#1B0B38]/50 bg-[#FAF9FC] rounded-xl">
                   No check-ins recorded yet for this session
                 </div>
               ) : (
