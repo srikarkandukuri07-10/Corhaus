@@ -405,7 +405,14 @@ export default function AdminClassesModulePage() {
       sessionInserts.push({ ...basePayload, class_date: sessDate });
     }
 
-    const { error } = await supabase.from("classes").insert(sessionInserts);
+    let { error } = await supabase.from("classes").insert(sessionInserts);
+
+    if (error && error.message.includes("buffer_minutes")) {
+      // Fallback: stripped payload without buffer_minutes/end_time/class_type_id if PostgREST cache has not refreshed
+      const strippedInserts = sessionInserts.map(({ buffer_minutes, end_time, class_type_id, status, ...rest }) => rest);
+      const fallbackRes = await supabase.from("classes").insert(strippedInserts);
+      error = fallbackRes.error;
+    }
 
     setActionLoading(false);
     if (error) {
