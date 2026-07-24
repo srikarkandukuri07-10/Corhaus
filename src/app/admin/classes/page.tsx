@@ -97,9 +97,23 @@ function getTodayIstString(): string {
   return istDate.toISOString().split("T")[0];
 }
 
+const TIME_SLOTS = [
+  "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", 
+  "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00"
+];
+
+function formatSlotHour(time24: string): string {
+  const [hStr] = time24.split(":");
+  const h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const displayH = h % 12 || 12;
+  return `${displayH}:00 ${ampm}`;
+}
+
 export default function AdminClassesModulePage() {
   const [activeTab, setActiveTab] = useState<"class_types" | "schedule" | "sessions" | "bookings">("schedule");
   const [calendarView, setCalendarView] = useState<"day" | "week" | "month">("week");
+  const [weekOffset, setWeekOffset] = useState(0);
   
   // Realtime Supabase Data
   const [classTypes, setClassTypes] = useState<ClassType[]>([]);
@@ -168,21 +182,44 @@ export default function AdminClassesModulePage() {
   const supabase = createClient();
   const [isPending, startTransition] = useTransition();
 
+  // ─── GOOGLE CALENDAR WEEK DAYS COMPUTATION ─────────────────────────────────
+  const currentWeekDays = useMemo(() => {
+    const today = new Date();
+    today.setDate(today.getDate() + weekOffset * 7);
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+    const monday = new Date(today.setDate(diff));
+
+    const days = [];
+    const todayIso = getTodayIstString();
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const isoDate = d.toISOString().split("T")[0];
+      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+      const dayNum = d.getDate();
+      const isToday = isoDate === todayIso;
+      days.push({ isoDate, dayName, dayNum, isToday, fullDate: d });
+    }
+    return days;
+  }, [weekOffset]);
+
+  const weekHeaderDateRange = useMemo(() => {
+    if (currentWeekDays.length === 0) return "";
+    const start = currentWeekDays[0].fullDate.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+    const end = currentWeekDays[6].fullDate.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" });
+    return `${start} – ${end}`;
+  }, [currentWeekDays]);
+
   // ─── LOAD DATA FROM SUPABASE ───────────────────────────────────────────────
   const fetchAllData = useCallback(async () => {
     try {
       setLoading(true);
 
-      // 1. Fetch Class Types
       const { data: ctData } = await supabase.from("class_types").select("*").order("name");
-      
-      // 2. Fetch Classes / Sessions
       const { data: sessData } = await supabase.from("classes").select("*").order("class_date", { ascending: true }).order("class_time", { ascending: true });
-
-      // 3. Fetch Bookings with relations
       const { data: bkData } = await supabase.from("bookings").select("*, classes(*), approved_members(full_name, email, phone_number), member_purchased_plans(plan_name, category, sessions_remaining, status)").order("created_at", { ascending: false });
-
-      // 4. Fetch Members for assignment
       const { data: memData } = await supabase.from("approved_members").select("id, full_name, email, phone_number, member_purchased_plans(id, plan_name, category, sessions_remaining, sessions_total, valid_until, status)").order("full_name");
 
       startTransition(() => {
@@ -202,7 +239,6 @@ export default function AdminClassesModulePage() {
     fetchAllData();
   }, [fetchAllData]);
 
-  // Realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel("studio-classes-realtime")
@@ -216,7 +252,7 @@ export default function AdminClassesModulePage() {
     };
   }, [supabase, fetchAllData]);
 
-  // ─── KPI SUMMARY CARD COMPUTATIONS ──────────────────────────────────────────
+  // ─── KPI METRICS ───────────────────────────────────────────────────────────
   const kpiMetrics = useMemo(() => {
     const activeClassTypes = classTypes.filter((c) => c.is_active).length || classTypes.length;
     const todayStr = getTodayIstString();
@@ -245,7 +281,7 @@ export default function AdminClassesModulePage() {
     return map;
   }, [bookings]);
 
-  // ─── CLASS TYPE HANDLERS ───────────────────────────────────────────────────
+  // ─── HANDLERS ──────────────────────────────────────────────────────────────
   const handleOpenCreateClassType = () => {
     setEditingClassType(null);
     setCtName("");
@@ -328,7 +364,6 @@ export default function AdminClassesModulePage() {
     }
   };
 
-  // ─── SCHEDULE SESSION HANDLERS ─────────────────────────────────────────────
   const handleSelectClassTypeForSession = (ctId: string) => {
     setSessClassTypeId(ctId);
     const ct = classTypes.find((c) => c.id === ctId);
@@ -351,7 +386,6 @@ export default function AdminClassesModulePage() {
     setActionLoading(true);
     setActionError(null);
 
-    // Calculate end time
     const [h, m] = sessTime.split(":").map(Number);
     const endMinutes = h * 60 + m + sessDuration;
     const endH = Math.floor(endMinutes / 60) % 24;
@@ -378,11 +412,11 @@ export default function AdminClassesModulePage() {
     if (isRecurring) {
       const dates: string[] = [];
       let currentDate = new Date(sessDate + "T00:00:00");
-
       let maxCount = recurringOccurrences;
+
       if (recurringEndOption === "date" && recurringEndDate) {
         const endDateObj = new Date(recurringEndDate + "T00:00:00");
-        maxCount = 99; // max upper bound
+        maxCount = 99;
         while (currentDate <= endDateObj && dates.length < 52) {
           dates.push(currentDate.toISOString().split("T")[0]);
           if (recurringFrequency === "daily") currentDate.setDate(currentDate.getDate() + 1);
@@ -449,7 +483,6 @@ export default function AdminClassesModulePage() {
     }
   };
 
-  // ─── MEMBER ASSIGNMENT & SERVER RPC BOOKING ───────────────────────────────
   const handleOpenAssignMember = (sess: ScheduledSession) => {
     setTargetSessionForAssign(sess);
     setSelectedAssignMemberId("");
@@ -477,7 +510,6 @@ export default function AdminClassesModulePage() {
     }
   };
 
-  // ─── BOOKING STATUS & ATTENDANCE ACTIONS ──────────────────────────────────
   const handleUpdateBookingStatus = async (bookingId: string, status: string) => {
     setActionLoading(true);
     if (status === "cancelled") {
@@ -511,7 +543,6 @@ export default function AdminClassesModulePage() {
     else fetchAllData();
   };
 
-  // ─── RESCHEDULE BOOKING HANDLER ───────────────────────────────────────────
   const handleRescheduleBooking = async () => {
     if (!rescheduleBookingTarget || !targetRescheduleSessionId) return;
 
@@ -531,7 +562,6 @@ export default function AdminClassesModulePage() {
     }
   };
 
-  // ─── EXPORT TO CSV / EXCEL ─────────────────────────────────────────────────
   const exportBookingsToCSV = () => {
     if (bookings.length === 0) return;
     const headers = ["Member Name", "Email", "Phone", "Class Title", "Trainer", "Date", "Time", "Booking Status", "Attendance", "Package"];
@@ -558,7 +588,6 @@ export default function AdminClassesModulePage() {
     document.body.removeChild(link);
   };
 
-  // ─── FILTERED BOOKINGS TABLE DATA ─────────────────────────────────────────
   const filteredBookings = useMemo(() => {
     return bookings.filter((b) => {
       if (filterClass !== "All" && b.classes?.title !== filterClass) return false;
@@ -782,92 +811,180 @@ export default function AdminClassesModulePage() {
         </div>
       )}
 
-      {/* ─── TAB 2: SCHEDULE BOARD ─────────────────────────────────────────── */}
+      {/* ─── TAB 2: SCHEDULE BOARD (GOOGLE CALENDAR INTERFACE) ─────────────── */}
       {activeTab === "schedule" && (
         <div className="space-y-5 animate-fade-in">
-          <div className="flex items-center justify-between bg-white rounded-2xl border border-[#1B0B38]/10 p-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-[#1B0B38]">Calendar View:</span>
-              {(["day", "week", "month"] as const).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setCalendarView(v)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase ${
-                    calendarView === v ? "bg-[#7B3FE4] text-white" : "text-[#1B0B38]/60 hover:bg-[#FAF9FC]"
-                  }`}
-                >
-                  {v}
-                </button>
-              ))}
+          {/* Calendar Toolbar Header */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-white rounded-3xl border border-[#1B0B38]/10 p-4 gap-4 shadow-xs">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setWeekOffset((prev) => prev - 1)}
+                className="p-2 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] hover:bg-[#7B3FE4]/10 text-[#7B3FE4] font-bold text-xs transition-colors"
+              >
+                &larr; Prev Week
+              </button>
+              <button
+                onClick={() => setWeekOffset(0)}
+                className="px-3.5 py-2 rounded-xl bg-[#7B3FE4] text-white font-bold text-xs hover:bg-[#6A2FD3] transition-colors shadow-xs"
+              >
+                Today
+              </button>
+              <button
+                onClick={() => setWeekOffset((prev) => prev + 1)}
+                className="p-2 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] hover:bg-[#7B3FE4]/10 text-[#7B3FE4] font-bold text-xs transition-colors"
+              >
+                Next Week &rarr;
+              </button>
+              <span className="text-sm font-bold text-[#1B0B38] ml-2">{weekHeaderDateRange}</span>
             </div>
-            <button
-              onClick={() => setShowScheduleModal(true)}
-              className="px-4 py-2 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3] shadow-xs"
-            >
-              + Add Session
-            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 bg-[#FAF9FC] p-1 rounded-2xl border border-[#1B0B38]/10">
+                {(["day", "week", "month"] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setCalendarView(v)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase transition-all ${
+                      calendarView === v
+                        ? "bg-[#7B3FE4] text-white shadow-xs"
+                        : "text-[#1B0B38]/60 hover:text-[#1B0B38]"
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setShowScheduleModal(true)}
+                className="px-4 py-2 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3] shadow-xs"
+              >
+                + Add Session
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {sessions.map((s) => {
-              const booked = sessionBookingCountMap[s.id] || 0;
-              const isFull = booked >= s.max_capacity;
-
-              return (
-                <div key={s.id} className="bg-white rounded-3xl border border-[#1B0B38]/10 p-5 shadow-xs flex flex-col justify-between space-y-4">
-                  <div>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-bold text-base text-[#1B0B38]">{s.title}</h3>
-                        <p className="text-xs text-[#1B0B38]/60">{s.instructor}</p>
-                      </div>
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                        s.status === "cancelled"
-                          ? "bg-red-100 text-red-800"
-                          : isFull
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-emerald-100 text-emerald-800"
-                      }`}>
-                        {s.status === "cancelled" ? "Cancelled" : isFull ? "Fully Booked" : "Available"}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 p-3 bg-[#FAF9FC] rounded-2xl border border-[#1B0B38]/10 space-y-1 text-xs text-[#1B0B38]">
-                      <div className="flex justify-between font-semibold">
-                        <span>Date &amp; Time:</span>
-                        <span>{s.class_date} @ {s.class_time}</span>
-                      </div>
-                      <div className="flex justify-between text-[#1B0B38]/70">
-                        <span>Room:</span>
-                        <span>{s.location_room}</span>
-                      </div>
-                      <div className="flex justify-between font-bold pt-1 border-t border-[#1B0B38]/10">
-                        <span>Capacity:</span>
-                        <span>{booked} / {s.max_capacity} booked ({s.max_capacity - booked} left)</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-2 border-t border-[#1B0B38]/10">
-                    <button
-                      onClick={() => handleOpenAssignMember(s)}
-                      disabled={isFull || s.status === "cancelled"}
-                      className="flex-1 py-2 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3] disabled:opacity-50 shadow-xs"
-                    >
-                      Assign Member
-                    </button>
-                    {s.status !== "cancelled" && (
-                      <button
-                        onClick={() => handleCancelSession(s.id)}
-                        className="px-3 py-2 border border-red-200 text-red-700 bg-red-50 rounded-xl text-xs font-semibold hover:bg-red-100"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                  </div>
+          {/* ── GOOGLE CALENDAR WEEKLY TIME GRID ── */}
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-md overflow-x-auto">
+            <div className="min-w-[900px]">
+              {/* Day Columns Header Row */}
+              <div className="grid grid-cols-[90px_repeat(7,1fr)] border-b border-[#1B0B38]/10 bg-[#FAF9FC] text-center sticky top-0 z-10">
+                <div className="p-3.5 text-xs font-bold text-[#1B0B38]/50 border-r border-[#1B0B38]/10 uppercase flex items-center justify-center">
+                  Time
                 </div>
-              );
-            })}
+                {currentWeekDays.map((day) => (
+                  <div
+                    key={day.isoDate}
+                    className={`p-3 border-r border-[#1B0B38]/10 last:border-r-0 flex flex-col items-center justify-center transition-colors ${
+                      day.isToday ? "bg-[#7B3FE4]/10" : ""
+                    }`}
+                  >
+                    <span className="text-[11px] font-bold text-[#1B0B38]/60 uppercase">{day.dayName}</span>
+                    <span
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-extrabold mt-0.5 ${
+                        day.isToday
+                          ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/30"
+                          : "text-[#1B0B38]"
+                      }`}
+                    >
+                      {day.dayNum}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Time Slot Rows */}
+              <div className="divide-y divide-[#1B0B38]/10">
+                {TIME_SLOTS.map((slot) => {
+                  const displayTimeLabel = formatSlotHour(slot);
+                  const slotHourPrefix = slot.substring(0, 2);
+
+                  return (
+                    <div key={slot} className="grid grid-cols-[90px_repeat(7,1fr)] min-h-[90px]">
+                      {/* Left Time Column */}
+                      <div className="p-2 text-[11px] font-bold text-[#1B0B38]/50 border-r border-[#1B0B38]/10 bg-[#FAF9FC]/60 text-center flex items-center justify-center">
+                        {displayTimeLabel}
+                      </div>
+
+                      {/* 7 Day Grid Cells */}
+                      {currentWeekDays.map((day) => {
+                        // Find matching sessions for this date and time slot
+                        const matchedSessions = sessions.filter(
+                          (s) => s.class_date === day.isoDate && s.class_time.startsWith(slotHourPrefix)
+                        );
+
+                        return (
+                          <div
+                            key={day.isoDate}
+                            onClick={() => {
+                              if (matchedSessions.length === 0) {
+                                setSessDate(day.isoDate);
+                                setSessTime(slot);
+                                setShowScheduleModal(true);
+                              }
+                            }}
+                            className={`p-1.5 border-r border-[#1B0B38]/10 last:border-r-0 relative group transition-colors hover:bg-[#FAF9FC] ${
+                              day.isToday ? "bg-[#7B3FE4]/3" : ""
+                            }`}
+                          >
+                            {matchedSessions.length === 0 ? (
+                              <div className="w-full h-full min-h-[75px] rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="text-[10px] font-bold text-[#7B3FE4] bg-[#F2EBFE] px-2 py-1 rounded-lg">
+                                  + Add {slot}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="space-y-1.5">
+                                {matchedSessions.map((s) => {
+                                  const booked = sessionBookingCountMap[s.id] || 0;
+                                  const isFull = booked >= s.max_capacity;
+
+                                  return (
+                                    <div
+                                      key={s.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOpenAssignMember(s);
+                                      }}
+                                      className={`p-2.5 rounded-2xl text-white shadow-sm hover:scale-[1.02] transition-all cursor-pointer border border-white/20 ${
+                                        s.status === "cancelled"
+                                          ? "bg-red-500/80 line-through opacity-80"
+                                          : isFull
+                                          ? "bg-[#1B0B38]"
+                                          : "bg-gradient-to-r from-[#7B3FE4] to-[#5C24D4]"
+                                      }`}
+                                    >
+                                      <p className="font-extrabold text-[11px] leading-tight line-clamp-1">
+                                        {s.title}
+                                      </p>
+                                      <p className="text-[10px] text-white/80 mt-0.5 font-medium">
+                                        {s.class_time} &bull; {s.instructor}
+                                      </p>
+                                      <div className="mt-1 flex items-center justify-between text-[9px]">
+                                        <span className="bg-white/20 px-1.5 py-0.5 rounded-md font-bold">
+                                          {booked}/{s.max_capacity}
+                                        </span>
+                                        {s.status === "cancelled" ? (
+                                          <span className="font-bold text-red-200">CANCELLED</span>
+                                        ) : isFull ? (
+                                          <span className="font-bold text-amber-300">FULL</span>
+                                        ) : (
+                                          <span className="font-bold text-emerald-300">OPEN</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}
