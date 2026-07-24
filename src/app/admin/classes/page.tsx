@@ -1148,14 +1148,14 @@ export default function AdminClassesModulePage() {
 
       {/* ─── CREATE CLASS TYPE MODAL ─────────────────────────────────────── */}
       {showCreateClassTypeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-3">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-6 my-auto flex flex-col max-h-[85vh] animate-fade-in">
+            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-3 flex-shrink-0">
               <h3 className="text-lg font-bold text-[#1B0B38]">{editingClassType ? "Edit Class Type" : "Create Master Class Type"}</h3>
-              <button onClick={() => setShowCreateClassTypeModal(false)} className="text-xs font-bold text-[#1B0B38]/50">✕</button>
+              <button onClick={() => setShowCreateClassTypeModal(false)} className="text-xs font-bold text-[#1B0B38]/50 hover:text-[#1B0B38]">✕</button>
             </div>
 
-            <form onSubmit={handleSaveClassType} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveClassType} className="flex-1 overflow-y-auto pr-1 space-y-4 text-xs mt-4">
               <div>
                 <label className="block font-bold text-[#1B0B38] mb-1">Class Name *</label>
                 <input type="text" required value={ctName} onChange={(e) => setCtName(e.target.value)} placeholder="e.g. Reformer Basic" className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC]" />
@@ -1199,7 +1199,7 @@ export default function AdminClassesModulePage() {
                 </label>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-[#1B0B38]/10">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#1B0B38]/10 flex-shrink-0">
                 <button type="button" onClick={() => setShowCreateClassTypeModal(false)} className="px-4 py-2 border border-[#1B0B38]/15 rounded-xl font-semibold">Cancel</button>
                 <button type="submit" disabled={actionLoading} className="px-5 py-2 bg-[#7B3FE4] text-white font-bold rounded-xl hover:bg-[#6A2FD3]">Save Class Type</button>
               </div>
@@ -1210,14 +1210,14 @@ export default function AdminClassesModulePage() {
 
       {/* ─── SCHEDULE SESSION MODAL ───────────────────────────────────────── */}
       {showScheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-3">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-6 my-auto flex flex-col max-h-[85vh] animate-fade-in">
+            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-3 flex-shrink-0">
               <h3 className="text-lg font-bold text-[#1B0B38]">Schedule Class Session</h3>
-              <button onClick={() => setShowScheduleModal(false)} className="text-xs font-bold text-[#1B0B38]/50">✕</button>
+              <button onClick={() => setShowScheduleModal(false)} className="text-xs font-bold text-[#1B0B38]/50 hover:text-[#1B0B38]">✕</button>
             </div>
 
-            <form onSubmit={handleSaveScheduledSession} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveScheduledSession} className="flex-1 overflow-y-auto pr-1 space-y-4 text-xs mt-4">
               <div>
                 <label className="block font-bold text-[#1B0B38] mb-1">Class Master Template (Optional)</label>
                 <select
@@ -1291,7 +1291,7 @@ export default function AdminClassesModulePage() {
                 )}
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-[#1B0B38]/10">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#1B0B38]/10 flex-shrink-0">
                 <button type="button" onClick={() => setShowScheduleModal(false)} className="px-4 py-2 border rounded-xl font-semibold">Cancel</button>
                 <button type="submit" disabled={actionLoading} className="px-5 py-2 bg-[#7B3FE4] text-white font-bold rounded-xl hover:bg-[#6A2FD3]">Save Session(s)</button>
               </div>
@@ -1302,11 +1302,11 @@ export default function AdminClassesModulePage() {
 
       {/* ─── ASSIGN MEMBER MODAL ─────────────────────────────────────────── */}
       {showAssignMemberModal && targetSessionForAssign && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-3">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-md w-full p-6 my-auto flex flex-col max-h-[85vh] animate-fade-in space-y-4">
+            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-3 flex-shrink-0">
               <h3 className="text-base font-bold text-[#1B0B38]">Assign Member to Session</h3>
-              <button onClick={() => setShowAssignMemberModal(false)} className="text-xs font-bold text-[#1B0B38]/50">✕</button>
+              <button onClick={() => setShowAssignMemberModal(false)} className="text-xs font-bold text-[#1B0B38]/50 hover:text-[#1B0B38]">✕</button>
             </div>
 
             <div className="bg-[#FAF9FC] p-3 rounded-2xl border text-xs space-y-1">
@@ -1333,7 +1333,7 @@ export default function AdminClassesModulePage() {
               </select>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-[#1B0B38]/10">
+            <div className="flex justify-end gap-2 pt-3 border-t border-[#1B0B38]/10 flex-shrink-0">
               <button onClick={() => setShowAssignMemberModal(false)} className="px-4 py-2 border rounded-xl text-xs font-semibold">Cancel</button>
               <button onClick={handleConfirmMemberAssignment} disabled={actionLoading || !selectedAssignMemberId} className="px-5 py-2 bg-[#7B3FE4] text-white text-xs font-bold rounded-xl hover:bg-[#6A2FD3]">Confirm Booking</button>
             </div>
@@ -1343,11 +1343,11 @@ export default function AdminClassesModulePage() {
 
       {/* ─── RESCHEDULE BOOKING MODAL ────────────────────────────────────── */}
       {rescheduleBookingTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-3">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs p-4 flex items-center justify-center min-h-screen">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-md w-full p-6 my-auto flex flex-col max-h-[85vh] animate-fade-in space-y-4">
+            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-3 flex-shrink-0">
               <h3 className="text-base font-bold text-[#1B0B38]">Reschedule Member Booking</h3>
-              <button onClick={() => setRescheduleBookingTarget(null)} className="text-xs font-bold text-[#1B0B38]/50">✕</button>
+              <button onClick={() => setRescheduleBookingTarget(null)} className="text-xs font-bold text-[#1B0B38]/50 hover:text-[#1B0B38]">✕</button>
             </div>
 
             <p className="text-xs text-[#1B0B38]">
@@ -1368,7 +1368,7 @@ export default function AdminClassesModulePage() {
               </select>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-[#1B0B38]/10">
+            <div className="flex justify-end gap-2 pt-3 border-t border-[#1B0B38]/10 flex-shrink-0">
               <button onClick={() => setRescheduleBookingTarget(null)} className="px-4 py-2 border rounded-xl text-xs font-semibold">Cancel</button>
               <button onClick={handleRescheduleBooking} disabled={actionLoading || !targetRescheduleSessionId} className="px-5 py-2 bg-[#7B3FE4] text-white text-xs font-bold rounded-xl hover:bg-[#6A2FD3]">Confirm Reschedule</button>
             </div>
