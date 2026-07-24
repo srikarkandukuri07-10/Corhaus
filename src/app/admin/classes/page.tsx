@@ -506,7 +506,7 @@ export default function ClassesManagementPage() {
     try {
       const datesToSchedule: string[] = [formDate];
       if (formIsRecurring) {
-        const count = Math.min(12, Math.max(2, parseInt(formRepeatCount, 10) || 4));
+        const count = formRepeatInterval === "daily" ? 30 : 12;
         const baseDate = new Date(formDate);
 
         for (let i = 1; i < count; i++) {
@@ -1209,29 +1209,16 @@ export default function ClassesManagementPage() {
                 </label>
 
                 {formIsRecurring && (
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E5DDD0]/60">
-                    <div>
-                      <label className="block text-[10px] text-[#4A3B32]/70 mb-1">Repeat Interval</label>
-                      <select
-                        value={formRepeatInterval}
-                        onChange={(e) => setFormRepeatInterval(e.target.value)}
-                        className="w-full px-2 py-1.5 rounded-lg border border-[#E5DDD0] bg-white text-xs"
-                      >
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] text-[#4A3B32]/70 mb-1">Total Sessions Count</label>
-                      <input
-                        type="number"
-                        min="2"
-                        max="12"
-                        value={formRepeatCount}
-                        onChange={(e) => setFormRepeatCount(e.target.value)}
-                        className="w-full px-2 py-1.5 rounded-lg border border-[#E5DDD0] bg-white text-xs"
-                      />
-                    </div>
+                  <div className="pt-2 border-t border-[#E5DDD0]/60">
+                    <label className="block text-[10px] text-[#4A3B32]/70 mb-1 font-medium">Repeat Interval</label>
+                    <select
+                      value={formRepeatInterval}
+                      onChange={(e) => setFormRepeatInterval(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-[#E5DDD0] bg-white text-xs text-[#362B24]"
+                    >
+                      <option value="daily">Daily (Repeats every day)</option>
+                      <option value="weekly">Weekly (Repeats every week)</option>
+                    </select>
                   </div>
                 )}
               </div>
