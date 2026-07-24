@@ -186,6 +186,129 @@ export default function ClassesManagementPage() {
   const [formRepeatCount, setFormRepeatCount] = useState("4");
   const [formSubmitting, setFormSubmitting] = useState(false);
 
+  // Edit Class Modal state
+  const [editingSession, setEditingSession] = useState<ClassSession | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editCategory, setEditCategory] = useState("Reformer Pilates");
+  const [editDifficulty, setEditDifficulty] = useState("All Levels");
+  const [editInstructor, setEditInstructor] = useState("Ragini (Head Trainer)");
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("09:00");
+  const [editDuration, setEditDuration] = useState("60");
+  const [editBuffer, setEditBuffer] = useState("15");
+  const [editCapacity, setEditCapacity] = useState("10");
+  const [editRoom, setEditRoom] = useState("");
+  const [editEquipment, setEditEquipment] = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  // Delete Class Modal state
+  const [deletingSession, setDeletingSession] = useState<ClassSession | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  const handleOpenEditSession = (session: ClassSession) => {
+    setEditingSession(session);
+    setEditTitle(session.title);
+    setEditCategory(session.category || "Reformer Pilates");
+    setEditDifficulty(session.difficulty || "All Levels");
+    setEditInstructor(session.instructor);
+    setEditDate(session.class_date);
+    setEditTime(session.class_time);
+    setEditDuration(String(session.duration_minutes || 60));
+    setEditBuffer(String(session.buffer_minutes || 15));
+    setEditCapacity(String(session.max_capacity));
+    setEditRoom(session.location_room || "Studio Room A (Reformer Bay)");
+    setEditEquipment(session.equipment_required || "Allegro 2 Reformers, Grip Socks");
+  };
+
+  const handleEditSessionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSession) return;
+    setEditSubmitting(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    const cap = parseInt(editCapacity, 10);
+    const dur = parseInt(editDuration, 10);
+    const buf = parseInt(editBuffer, 10);
+
+    if (isNaN(cap) || cap <= 0) {
+      setActionError("Capacity must be a positive number.");
+      setEditSubmitting(false);
+      return;
+    }
+
+    const [h, m] = editTime.split(":");
+    const startMinutes = parseInt(h, 10) * 60 + parseInt(m, 10);
+    const endMinutes = startMinutes + dur;
+    const endH = String(Math.floor(endMinutes / 60) % 24).padStart(2, "0");
+    const endM = String(endMinutes % 60).padStart(2, "0");
+    const computedEndTime = `${endH}:${endM}`;
+
+    try {
+      const { error } = await supabase
+        .from("classes")
+        .update({
+          title: editTitle.trim(),
+          category: editCategory,
+          difficulty: editDifficulty,
+          instructor: editInstructor,
+          class_date: editDate,
+          class_time: editTime,
+          end_time: computedEndTime,
+          duration_minutes: dur,
+          buffer_minutes: buf,
+          max_capacity: cap,
+          location_room: editRoom,
+          equipment_required: editEquipment,
+        })
+        .eq("id", editingSession.id);
+
+      if (error) {
+        setActionError(error.message);
+      } else {
+        setActionSuccess(`Class session "${editTitle}" updated successfully!`);
+        setEditingSession(null);
+        loadData();
+      }
+    } catch (err: any) {
+      setActionError(err.message);
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleConfirmDeleteSession = async () => {
+    if (!deletingSession) return;
+    setDeleteSubmitting(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      // Delete bookings for this session
+      await supabase.from("bookings").delete().eq("class_id", deletingSession.id);
+      
+      // Delete attendance records for this session
+      try {
+        await supabase.from("attendance").delete().eq("class_id", deletingSession.id);
+      } catch (e) {}
+
+      // Delete class session
+      const { error } = await supabase.from("classes").delete().eq("id", deletingSession.id);
+
+      if (error) {
+        setActionError(error.message);
+      } else {
+        setActionSuccess(`Class session "${deletingSession.title}" deleted successfully!`);
+        setDeletingSession(null);
+        loadData();
+      }
+    } catch (err: any) {
+      setActionError(err.message);
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
+
   // Member Booking Workflow states
   const [bookMemberSearch, setBookMemberSearch] = useState("");
   const [selectedBookMember, setSelectedBookMember] = useState<ApprovedMember | null>(null);
@@ -749,24 +872,29 @@ export default function ClassesManagementPage() {
                     </div>
 
                     {/* Card Actions */}
-                    <div className="flex gap-2 pt-2 border-t border-[#E5DDD0]/60">
+                    <div className="flex items-center gap-2 pt-2 border-t border-[#E5DDD0]/60 flex-wrap">
                       <button
                         onClick={() => {
                           setSelectedBookSession(session);
                           setShowMemberBookingModal(true);
                         }}
-                        className="flex-1 py-2 rounded-xl bg-[#4A3B32] text-white text-xs font-semibold hover:bg-[#362B24] transition-colors"
+                        className="flex-1 py-2 px-3 rounded-xl bg-[#4A3B32] text-white text-xs font-semibold hover:bg-[#362B24] transition-colors"
                       >
                         + Book Member
                       </button>
                       <button
-                        onClick={() => {
-                          setActiveTab("bookings");
-                          setSelectedCategory("All");
-                        }}
-                        className="py-2 px-3 rounded-xl border border-[#E5DDD0] text-xs font-semibold text-[#4A3B32] hover:bg-[#FAF7F2]"
+                        onClick={() => handleOpenEditSession(session)}
+                        className="py-2 px-3 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs font-semibold text-[#4A3B32] hover:bg-[#F4EFE6] transition-colors"
+                        title="Edit Class Session"
                       >
-                        Bookings
+                        ✏️ Edit
+                      </button>
+                      <button
+                        onClick={() => setDeletingSession(session)}
+                        className="py-2 px-3 rounded-xl border border-red-200 bg-red-50 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors"
+                        title="Delete Class Session"
+                      >
+                        🗑️ Delete
                       </button>
                     </div>
                   </div>
@@ -1325,6 +1453,214 @@ export default function ClassesManagementPage() {
                 className="flex-1 py-2.5 rounded-xl bg-[#4A3B32] text-white text-xs font-semibold hover:bg-[#362B24] disabled:opacity-50"
               >
                 {bookingSubmitting ? "Confirming..." : "Confirm & Deduct Session"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── EDIT CLASS SESSION MODAL ────────────────────────────────────── */}
+      {editingSession && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in"
+          onClick={() => setEditingSession(null)}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 max-w-xl w-full space-y-4 shadow-2xl border border-[#E5DDD0] max-h-[90vh] overflow-y-auto animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[#E5DDD0] pb-3">
+              <div>
+                <h3 className="text-base font-serif font-bold text-[#362B24]">Edit Class Session</h3>
+                <p className="text-xs text-[#4A3B32]/50">Update session parameters, schedule, or capacity</p>
+              </div>
+              <button onClick={() => setEditingSession(null)} className="text-xs font-bold text-[#4A3B32]">✕</button>
+            </div>
+
+            <form onSubmit={handleEditSessionSubmit} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-[#4A3B32] mb-1">Class Title *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-[#4A3B32] mb-1">Category *</label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                  >
+                    {PREDEFINED_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-[#4A3B32] mb-1">Instructor *</label>
+                  <select
+                    value={editInstructor}
+                    onChange={(e) => setEditInstructor(e.target.value)}
+                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                  >
+                    {PREDEFINED_INSTRUCTORS.map((ins) => (
+                      <option key={ins} value={ins}>{ins}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-[#4A3B32] mb-1">Difficulty Level</label>
+                  <select
+                    value={editDifficulty}
+                    onChange={(e) => setEditDifficulty(e.target.value)}
+                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                  >
+                    <option value="All Levels">All Levels</option>
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-[#4A3B32] mb-1">Class Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-[#4A3B32] mb-1">Start Time *</label>
+                  <input
+                    type="time"
+                    required
+                    value={editTime}
+                    onChange={(e) => setEditTime(e.target.value)}
+                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-[#4A3B32] mb-1">Duration (Mins) *</label>
+                  <input
+                    type="number"
+                    required
+                    min="15"
+                    max="180"
+                    value={editDuration}
+                    onChange={(e) => setEditDuration(e.target.value)}
+                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-[#4A3B32] mb-1">Max Capacity *</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    value={editCapacity}
+                    onChange={(e) => setEditCapacity(e.target.value)}
+                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-[#4A3B32] mb-1">Room / Location</label>
+                  <select
+                    value={editRoom}
+                    onChange={(e) => setEditRoom(e.target.value)}
+                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                  >
+                    {PREDEFINED_ROOMS.map((rm) => (
+                      <option key={rm} value={rm}>{rm}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-[#4A3B32] mb-1">Equipment Required</label>
+                  <input
+                    type="text"
+                    value={editEquipment}
+                    onChange={(e) => setEditEquipment(e.target.value)}
+                    placeholder="e.g. Reformers, Grip Socks"
+                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t border-[#E5DDD0]">
+                <button
+                  type="button"
+                  onClick={() => setEditingSession(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-[#E5DDD0] text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSubmitting}
+                  className="flex-1 py-2.5 rounded-xl bg-[#4A3B32] text-white text-xs font-semibold hover:bg-[#362B24] disabled:opacity-50"
+                >
+                  {editSubmitting ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── DELETE CLASS SESSION MODAL ──────────────────────────────────── */}
+      {deletingSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl border border-[#E5DDD0]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-base">
+                🗑️
+              </div>
+              <div>
+                <h3 className="text-base font-serif font-bold text-[#362B24]">Delete Class Session?</h3>
+                <p className="text-xs text-[#4A3B32]/60">Permanent action</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#4A3B32]">
+              Are you sure you want to delete <strong className="text-[#362B24]">{deletingSession.title}</strong> scheduled for{" "}
+              <strong>{formatDate(deletingSession.class_date)} @ {formatTime(deletingSession.class_time)}</strong>?
+            </p>
+
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[11px] text-red-800">
+              ⚠️ This will permanently remove the class session and cancel all associated member bookings ({deletingSession.booked_count || 0} booked).
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-[#E5DDD0]">
+              <button
+                type="button"
+                onClick={() => setDeletingSession(null)}
+                className="flex-1 py-2.5 rounded-xl border border-[#E5DDD0] text-xs font-semibold text-[#4A3B32]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteSession}
+                disabled={deleteSubmitting}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold disabled:opacity-50"
+              >
+                {deleteSubmitting ? "Deleting..." : "Delete Class"}
               </button>
             </div>
           </div>
