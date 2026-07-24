@@ -170,7 +170,7 @@ export default function ClassesManagementPage() {
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   // Form states: New Class / Schedule Session
-  const [formTitle, setFormTitle] = useState("Reformer Group Class");
+  const [formTitle, setFormTitle] = useState("");
   const [formCategory, setFormCategory] = useState("Reformer Pilates");
   const [formDifficulty, setFormDifficulty] = useState("All Levels");
   const [formInstructor, setFormInstructor] = useState("Ragini (Head Trainer)");
@@ -1168,12 +1168,13 @@ export default function ClassesManagementPage() {
 
             <form onSubmit={handleScheduleSessionsSubmit} className="space-y-3 text-xs">
               <div>
-                <label className="block font-semibold text-[#4A3B32] mb-1">Class Title *</label>
+                <label className="block font-semibold text-[#4A3B32] mb-1">Class Name / Title *</label>
                 <input
                   type="text"
                   required
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
+                  placeholder="e.g. Reformer Group Class, Mat Pilates, PT Session"
                   className="w-full px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24]"
                 />
               </div>

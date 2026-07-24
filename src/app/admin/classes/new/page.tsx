@@ -137,21 +137,16 @@ export default function CreateClassPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
-              Class Type
+              Class Name *
             </label>
-            <select
+            <input
+              type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy focus:outline-none focus:ring-1 focus:ring-brand-brown transition-all text-sm"
-            >
-              <option value="" disabled>Select Class Type</option>
-              {classTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+              className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all text-sm"
+              placeholder="e.g. Reformer Group Class, Mat Pilates, PT Session"
+            />
           </div>
 
           <div>
