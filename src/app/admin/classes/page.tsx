@@ -249,19 +249,42 @@ export default function AdminClassesModulePage() {
       // Fix: fetch bookings with only classes join (approved_members join via member_id may not be a FK in schema)
       const { data: bkData } = await supabase.from("bookings").select("*, classes(id, title, instructor, class_date, class_time, max_capacity, location_room, category)").order("created_at", { ascending: false });
       
-      // Fetch approved members and purchased plans separately for reliable JS mapping
+      // Fetch approved members, purchased plans, and profiles separately for reliable JS mapping
       const { data: memData } = await supabase.from("approved_members").select("id, full_name, email, phone_number").order("full_name");
       const { data: plansData } = await supabase.from("member_purchased_plans").select("id, approved_member_id, plan_name, category, sessions_remaining, sessions_total, valid_until, status");
+      const { data: profilesList } = await supabase.from("profiles").select("id, email");
 
-      // Build member lookup map by id
-      const memberMap: Record<string, { full_name: string; email: string; phone_number: string }> = {};
-      (memData || []).forEach((m: any) => { memberMap[m.id] = m; });
+      // Build member lookup maps
+      const memberById: Record<string, any> = {};
+      const memberByEmail: Record<string, any> = {};
+      (memData || []).forEach((m: any) => {
+        memberById[m.id] = m;
+        if (m.email) {
+          memberByEmail[m.email.toLowerCase()] = m;
+        }
+      });
 
-      // Enrich bookings with member info from map
-      const enrichedBookings = (bkData || []).map((b: any) => ({
-        ...b,
-        approved_members: memberMap[b.member_id] || null,
-      }));
+      const profileEmailById: Record<string, string> = {};
+      (profilesList || []).forEach((p: any) => {
+        if (p.email) {
+          profileEmailById[p.id] = p.email.toLowerCase();
+        }
+      });
+
+      // Enrich bookings with member info
+      const enrichedBookings = (bkData || []).map((b: any) => {
+        let member = memberById[b.member_id] || null;
+        if (!member) {
+          const email = profileEmailById[b.member_id];
+          if (email) {
+            member = memberByEmail[email] || null;
+          }
+        }
+        return {
+          ...b,
+          approved_members: member,
+        };
+      });
 
       const membersWithPlans = (memData || []).map((m: any) => {
         const userPlans = (plansData || []).filter((p: any) => p.approved_member_id === m.id);
@@ -1088,10 +1111,18 @@ export default function AdminClassesModulePage() {
                         <button
                           onClick={() => handleOpenAssignMember(s)}
                           disabled={s.status === "cancelled"}
-                          className="px-4 py-2 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3] disabled:opacity-50 shadow-xs"
+                          className="px-4 py-2 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3] disabled:opacity-50 shadow-xs inline-block"
                         >
                           Assign Member
                         </button>
+                        {s.status !== "cancelled" && (
+                          <button
+                            onClick={() => handleCancelSession(s.id)}
+                            className="px-4 py-2 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold hover:bg-red-100 shadow-xs inline-block"
+                          >
+                            Cancel Session
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

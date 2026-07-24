@@ -1002,16 +1002,23 @@ function MembersPageContent() {
                         {plan?.valid_until ? formatDate(plan.valid_until) : "—"}
                       </td>
 
-                      {/* Days Left */}
+                      {/* Days Left & Classes Left */}
                       <td className="py-3.5 px-4">
                         {m.daysLeft !== null && m.daysLeft !== undefined ? (
-                          <span className={`inline-block whitespace-nowrap px-3 py-1 rounded-lg font-semibold text-xs ${
+                          <div className={`inline-flex flex-col items-center justify-center text-center px-3 py-1.5 rounded-xl font-semibold text-xs border ${
                             m.daysLeft <= 7
                               ? "bg-amber-100 text-amber-800 border border-amber-200"
                               : "bg-emerald-50 text-emerald-800 border border-emerald-200"
                           }`}>
-                            {m.daysLeft} days left
-                          </span>
+                            <div>{m.daysLeft} days left</div>
+                            <div className="text-[10px] opacity-80 mt-0.5 font-bold border-t border-current/10 pt-0.5 w-full">
+                              {plan ? (
+                                plan.sessions_total !== null && plan.sessions_total !== undefined
+                                  ? `${plan.sessions_remaining ?? 0} classes left`
+                                  : "Unlimited classes"
+                              ) : "0 classes left"}
+                            </div>
+                          </div>
                         ) : (
                           <span className="text-[#4A3B32]/30">—</span>
                         )}
