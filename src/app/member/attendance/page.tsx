@@ -46,9 +46,11 @@ export default function AttendancePage() {
     const today = new Date(Date.now() + IST_OFFSET_MS).toISOString().split("T")[0];
 
     const [am, tiers] = await Promise.all([
-      supabase.from("approved_members").select("created_at, membership_level").eq("email", user.email).maybeSingle(),
+      supabase.from("approved_members").select("id, created_at, membership_level").eq("email", user.email).maybeSingle(),
       supabase.from("membership_credit_tiers").select("*")
     ]);
+
+    const approvedMemberId = am.data?.id;
 
     const joinedDate = am.data?.created_at 
       ? new Date(new Date(am.data.created_at).getTime() + IST_OFFSET_MS).toISOString().split("T")[0]
@@ -61,9 +63,23 @@ export default function AttendancePage() {
     const credits = activeTier ? activeTier.credits : 6;
     setTotalCredits(credits);
 
+    let bookingsQuery = supabase.from("bookings").select("id, class_id, booking_status, classes(class_date, class_time)");
+    if (approvedMemberId) {
+      bookingsQuery = bookingsQuery.or(`member_id.eq.${user.id},member_id.eq.${approvedMemberId}`);
+    } else {
+      bookingsQuery = bookingsQuery.eq("member_id", user.id);
+    }
+
+    let attendanceQuery = supabase.from("attendance").select("id, booking_id, class_id, attendance_status, classes(class_date)");
+    if (approvedMemberId) {
+      attendanceQuery = attendanceQuery.or(`member_id.eq.${user.id},member_id.eq.${approvedMemberId}`);
+    } else {
+      attendanceQuery = attendanceQuery.eq("member_id", user.id);
+    }
+
     const [br, ar, allCr] = await Promise.all([
-      supabase.from("bookings").select("id, class_id, booking_status, classes(class_date, class_time)").eq("member_id", user.id),
-      supabase.from("attendance").select("id, booking_id, class_id, attendance_status, classes(class_date)").eq("member_id", user.id),
+      bookingsQuery,
+      attendanceQuery,
       supabase.from("classes").select("class_date").gte("class_date", joinedDate).lte("class_date", today)
     ]);
 

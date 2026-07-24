@@ -9,6 +9,7 @@ interface BookingWithClass {
   booking_status: string;
   created_at: string;
   cancelled_at: string | null;
+  isPT?: boolean;
   classes: {
     id: string;
     title: string;
@@ -35,15 +36,70 @@ export default function BookingsPage() {
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from("bookings")
-      .select("*, classes(id, title, instructor, class_date, class_time)")
-      .eq("member_id", user.id)
-      .order("created_at", { ascending: false });
+    // 1. Fetch approved member details
+    const { data: amData } = await supabase
+      .from("approved_members")
+      .select("id")
+      .eq("email", user.email || "")
+      .maybeSingle();
 
-    if (!error && data) {
+    const approvedMemberId = amData?.id;
+
+    // 2. Fetch class bookings
+    let bookingsQuery = supabase
+      .from("bookings")
+      .select("*, classes(id, title, instructor, class_date, class_time)");
+
+    if (approvedMemberId) {
+      bookingsQuery = bookingsQuery.or(`member_id.eq.${user.id},member_id.eq.${approvedMemberId}`);
+    } else {
+      bookingsQuery = bookingsQuery.eq("member_id", user.id);
+    }
+
+    const { data: classBookings, error: bookingsError } = await bookingsQuery.order("created_at", { ascending: false });
+
+    // 3. Fetch PT bookings if member is approved
+    let ptBookings: BookingWithClass[] = [];
+    if (approvedMemberId) {
+      const { data: ptSessions, error: ptError } = await supabase
+        .from("pt_sessions")
+        .select("*")
+        .eq("member_id", approvedMemberId)
+        .order("session_date", { ascending: false });
+
+      if (!ptError && ptSessions) {
+        ptBookings = ptSessions.map((pt: any) => ({
+          id: pt.id,
+          class_id: pt.id,
+          booking_status: pt.status === "no-show" ? "no_show" : pt.status,
+          created_at: pt.created_at,
+          cancelled_at: pt.status === "cancelled" ? pt.created_at : null,
+          classes: {
+            id: pt.id,
+            title: `PT Session with ${pt.trainer_name}`,
+            instructor: pt.trainer_name,
+            class_date: pt.session_date,
+            class_time: pt.session_time,
+          },
+          isPT: true,
+        }));
+      }
+    }
+
+    if (!bookingsError) {
+      const mergedBookings = [...(classBookings || []), ...ptBookings];
+      // Sort merged bookings by class_date then class_time descending
+      mergedBookings.sort((a, b) => {
+        const dateA = a.classes?.class_date || "";
+        const dateB = b.classes?.class_date || "";
+        if (dateA !== dateB) return dateB.localeCompare(dateA);
+        const timeA = a.classes?.class_time || "";
+        const timeB = b.classes?.class_time || "";
+        return timeB.localeCompare(timeA);
+      });
+
       startTransition(() => {
-        setBookings(data as BookingWithClass[]);
+        setBookings(mergedBookings as BookingWithClass[]);
         setLoading(false);
       });
     }
@@ -72,6 +128,7 @@ export default function BookingsPage() {
   }, [supabase, fetchBookings]);
 
   function canCancel(booking: BookingWithClass): boolean {
+    if (booking.isPT) return false;
     if (!booking.classes) return false;
     if (booking.booking_status !== "booked") return false;
 
@@ -222,10 +279,17 @@ export default function BookingsPage() {
                     className="bg-white rounded-2xl border border-brand-sand/50 p-5 flex items-center justify-between"
                   >
                     <div>
-                      <h3 className="font-medium text-brand-navy">
-                        {booking.classes?.title}
-                      </h3>
-                      <p className="text-sm text-brand-navy/50">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-medium text-brand-navy">
+                          {booking.classes?.title}
+                        </h3>
+                        {booking.isPT && (
+                          <span className="text-[10px] font-bold text-brand-success bg-brand-success/15 px-2.5 py-0.5 rounded-full">
+                            PT Session
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-brand-navy/50 mt-0.5">
                         {booking.classes?.instructor}
                       </p>
                       <div className="flex items-center gap-4 mt-2 text-sm text-brand-navy/60">
@@ -242,7 +306,11 @@ export default function BookingsPage() {
                       </div>
                     </div>
                     <div>
-                      {canCancel(booking) ? (
+                      {booking.isPT ? (
+                        <span className="text-xs text-brand-navy/40 bg-brand-beige px-3 py-1.5 rounded-full">
+                          PT Appointment
+                        </span>
+                      ) : canCancel(booking) ? (
                         <button
                           onClick={() => handleCancel(booking.id)}
                           disabled={cancellingId === booking.id}
@@ -278,10 +346,17 @@ export default function BookingsPage() {
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-medium text-brand-navy line-through">
-                          {booking.classes?.title}
-                        </h3>
-                        <p className="text-sm text-brand-navy/50">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-medium text-brand-navy line-through">
+                            {booking.classes?.title}
+                          </h3>
+                          {booking.isPT && (
+                            <span className="text-[10px] font-bold text-brand-success bg-brand-success/15 px-2.5 py-0.5 rounded-full">
+                              PT Session
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-brand-navy/50 mt-0.5">
                           {booking.classes?.instructor}
                         </p>
                         <div className="flex items-center gap-4 mt-2 text-sm text-brand-navy/60">
@@ -328,10 +403,17 @@ export default function BookingsPage() {
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-medium text-brand-navy">
-                          {booking.classes?.title}
-                        </h3>
-                        <p className="text-sm text-brand-navy/50">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-medium text-brand-navy">
+                            {booking.classes?.title}
+                          </h3>
+                          {booking.isPT && (
+                            <span className="text-[10px] font-bold text-brand-success bg-brand-success/15 px-2.5 py-0.5 rounded-full">
+                              PT Session
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-brand-navy/50 mt-0.5">
                           {booking.classes?.instructor}
                         </p>
                         <div className="flex items-center gap-4 mt-2 text-sm text-brand-navy/60">
@@ -347,8 +429,14 @@ export default function BookingsPage() {
                           </span>
                         </div>
                       </div>
-                      <span className="text-xs text-brand-navy/40 bg-brand-beige px-2.5 py-1 rounded-full">
-                        Attended
+                       <span className="text-xs text-brand-navy/40 bg-brand-beige px-2.5 py-1 rounded-full">
+                        {booking.isPT
+                          ? booking.booking_status === "completed"
+                            ? "Completed"
+                            : booking.booking_status === "no_show"
+                            ? "No-show"
+                            : "Scheduled"
+                          : "Attended"}
                       </span>
                     </div>
                   </div>

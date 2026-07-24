@@ -104,12 +104,33 @@ export default function MemberDashboard() {
 
     const today = new Date(Date.now() + IST_OFFSET_MS).toISOString().split("T")[0];
 
-    const [cr, br, ar, ct, am, tiers] = await Promise.all([
+    const { data: amData } = await supabase
+      .from("approved_members")
+      .select("id, membership_level, created_at")
+      .eq("email", user.email || "")
+      .maybeSingle();
+
+    const approvedMemberId = amData?.id;
+
+    let bookingsQuery = supabase.from("bookings").select("id, class_id, booking_status, classes(class_date)");
+    if (approvedMemberId) {
+      bookingsQuery = bookingsQuery.or(`member_id.eq.${user.id},member_id.eq.${approvedMemberId}`);
+    } else {
+      bookingsQuery = bookingsQuery.eq("member_id", user.id);
+    }
+
+    let attendanceQuery = supabase.from("attendance").select("*, classes(class_date)");
+    if (approvedMemberId) {
+      attendanceQuery = attendanceQuery.or(`member_id.eq.${user.id},member_id.eq.${approvedMemberId}`);
+    } else {
+      attendanceQuery = attendanceQuery.eq("member_id", user.id);
+    }
+
+    const [cr, br, ar, ct, tiers] = await Promise.all([
       supabase.from("classes").select("*").gte("class_date", today).order("class_date", { ascending: true }).order("class_time", { ascending: true }),
-      supabase.from("bookings").select("id, class_id, booking_status, classes(class_date)").eq("member_id", user.id),
-      supabase.from("attendance").select("*, classes(class_date)").eq("member_id", user.id),
+      bookingsQuery,
+      attendanceQuery,
       supabase.from("class_types").select("*"),
-      supabase.from("approved_members").select("membership_level, created_at").eq("email", user.email).maybeSingle(),
       supabase.from("membership_credit_tiers").select("*")
     ]);
 
@@ -125,9 +146,9 @@ export default function MemberDashboard() {
     // Determine membership tier and level
     let level = "Beginner";
     let joinDateStr = user.created_at; // fallback
-    if (am.data) {
-      level = am.data.membership_level || "Beginner";
-      joinDateStr = am.data.created_at;
+    if (amData) {
+      level = amData.membership_level || "Beginner";
+      joinDateStr = amData.created_at;
     }
     setMembershipLevel(level);
 
