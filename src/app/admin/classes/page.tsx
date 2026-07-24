@@ -405,35 +405,25 @@ export default function AdminClassesModulePage() {
       sessionInserts.push({ ...basePayload, class_date: sessDate });
     }
 
-    let currentInserts: any[] = [...sessionInserts];
-    let { error } = await supabase.from("classes").insert(currentInserts);
+    try {
+      const res = await fetch("/api/admin/classes/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessions: sessionInserts }),
+      });
+      const data = await res.json();
 
-    // Dynamic auto-recovery retry loop if schema cache lacks optional columns
-    let attempts = 0;
-    while (error && error.message.includes("Could not find the") && attempts < 5) {
-      attempts++;
-      const match = error.message.match(/Could not find the '([^']+)' column/);
-      if (match && match[1]) {
-        const missingCol = match[1];
-        currentInserts = currentInserts.map((item) => {
-          const newItem = { ...item };
-          delete newItem[missingCol];
-          return newItem;
-        });
-        const retryRes = await supabase.from("classes").insert(currentInserts);
-        error = retryRes.error;
+      setActionLoading(false);
+      if (!res.ok || data.error) {
+        setActionError("Failed to schedule session: " + (data.error || "Unknown error"));
       } else {
-        break;
+        setActionSuccess(`Successfully scheduled ${sessionInserts.length} session(s)!`);
+        setShowScheduleModal(false);
+        fetchAllData();
       }
-    }
-
-    setActionLoading(false);
-    if (error) {
-      setActionError("Failed to schedule session: " + error.message);
-    } else {
-      setActionSuccess(`Successfully scheduled ${sessionInserts.length} session(s)!`);
-      setShowScheduleModal(false);
-      fetchAllData();
+    } catch (err: any) {
+      setActionLoading(false);
+      setActionError("Failed to schedule session: " + (err.message || "Network error"));
     }
   };
 
