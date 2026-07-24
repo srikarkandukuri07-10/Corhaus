@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import QRCode from "qrcode";
+import MembershipFreezeSection from "@/components/membership-freeze-section";
 interface ClassData {
   id: string;
   title: string;
@@ -407,6 +408,8 @@ export default function MemberDashboard() {
           </div>
         )}
       </div>
+
+      <MembershipFreezeSection />
 
       {message && (
         <div className={`p-4 rounded-xl text-sm ${message.type === "success" ? "bg-brand-success/10 border border-brand-success/20 text-brand-success" : "bg-brand-error/10 border border-brand-error/20 text-brand-error"}`}>

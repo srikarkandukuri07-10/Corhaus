@@ -165,6 +165,17 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
                     />
                   );
                 }
+                if (notif.type === "freeze_request") {
+                  return (
+                    <FreezeRequestNotificationItem
+                      key={notif.id}
+                      notification={notif}
+                      onResolved={() => {
+                        setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
+                      }}
+                    />
+                  );
+                }
                 return (
                   <div key={notif.id} className="px-4 py-3 border-b border-brand-sand/30 hover:bg-brand-cream/30 transition-colors last:border-0">
                     <p className="text-sm text-brand-navy">{notif.message}</p>
@@ -338,6 +349,223 @@ function ReferralRequestNotificationItem({
           Reject
         </button>
       </div>
+    </div>
+  );
+}
+
+function FreezeRequestNotificationItem({
+  notification,
+  onResolved,
+}: {
+  notification: Notification;
+  onResolved: () => void;
+}) {
+  const [request, setRequest] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editStartDate, setEditStartDate] = useState("");
+  const [editDays, setEditDays] = useState(7);
+  const supabase = createClient();
+  const router = useRouter();
+
+  useEffect(() => {
+    async function fetchDetails() {
+      try {
+        const { data: member } = await supabase
+          .from("approved_members")
+          .select("id, full_name")
+          .eq("email", notification.email)
+          .maybeSingle();
+
+        if (member) {
+          const { data: req } = await supabase
+            .from("freeze_requests")
+            .select("*, approved_members(full_name)")
+            .eq("member_id", member.id)
+            .eq("status", "pending")
+            .order("requested_at", { ascending: false })
+            .maybeSingle();
+
+          if (req) {
+            setRequest(req);
+            setEditStartDate(req.requested_start_date);
+            setEditDays(req.requested_days || 7);
+          }
+        }
+      } catch (err: any) {
+        console.error("Failed to fetch freeze request details:", err);
+        setError("Failed to load request details");
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (notification.email) {
+      fetchDetails();
+    } else {
+      setLoading(false);
+    }
+  }, [notification.email, supabase]);
+
+  const markNotificationRead = async () => {
+    try {
+      await fetch("/api/admin/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [notification.id] }),
+      });
+    } catch (e) {
+      console.error("Failed to mark notification read:", e);
+    }
+  };
+
+  const handleResolve = async (action: "approve" | "reject") => {
+    if (!request) {
+      await markNotificationRead();
+      onResolved();
+      return;
+    }
+    setResolving(true);
+
+    try {
+      const res = await fetch("/api/admin/freeze/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestId: request.id,
+          action,
+          freezeStart: isEditing ? editStartDate : request.requested_start_date,
+          freezeDays: isEditing ? editDays : request.requested_days,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || `Failed to ${action} freeze request.`);
+      } else {
+        await markNotificationRead();
+        onResolved();
+      }
+    } catch (err: any) {
+      alert(`Error resolving request: ${err.message}`);
+    } finally {
+      setResolving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="px-4 py-3 border-b border-brand-sand/30 text-xs text-brand-navy/60">
+        Loading request details...
+      </div>
+    );
+  }
+
+  if (error || !request) {
+    return (
+      <div className="px-4 py-3 border-b border-brand-sand/30 flex items-center justify-between">
+        <p className="text-xs text-brand-navy">{notification.message}</p>
+        <button
+          onClick={async () => {
+            await markNotificationRead();
+            onResolved();
+          }}
+          className="text-[10px] text-[#B89368] font-semibold"
+        >
+          Dismiss
+        </button>
+      </div>
+    );
+  }
+
+  const memberName = request.approved_members?.full_name || "Member";
+
+  return (
+    <div className="px-4 py-3 border-b border-brand-sand/30 hover:bg-brand-cream/30 transition-colors last:border-0 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-brand-navy">Membership Freeze Request</span>
+        {notification.time && (
+          <span className="text-[10px] text-brand-navy/40">{notification.time}</span>
+        )}
+      </div>
+
+      <div className="space-y-1 text-xs text-brand-navy/80 bg-brand-cream/40 p-2.5 rounded-lg border border-brand-sand/40">
+        <div>
+          <span className="font-semibold text-brand-navy/60">Member Name:</span> {memberName}
+        </div>
+        <div>
+          <span className="font-semibold text-brand-navy/60">Membership Type:</span> {request.package_type}
+        </div>
+        <div>
+          <span className="font-semibold text-brand-navy/60">Requested Start Date:</span> {request.requested_start_date}
+        </div>
+        <div>
+          <span className="font-semibold text-brand-navy/60">Requested Days:</span> {request.requested_days} Days
+        </div>
+        {request.reason && (
+          <div>
+            <span className="font-semibold text-brand-navy/60">Reason:</span> {request.reason}
+          </div>
+        )}
+      </div>
+
+      {isEditing ? (
+        <div className="space-y-2 pt-1 border-t border-brand-sand/40 text-xs">
+          <div>
+            <label className="block text-[10px] font-bold text-brand-navy mb-0.5">Edit Start Date:</label>
+            <input
+              type="date"
+              value={editStartDate}
+              onChange={(e) => setEditStartDate(e.target.value)}
+              className="w-full p-1.5 border border-brand-sand rounded text-xs text-brand-navy"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-brand-navy mb-0.5">Edit Days (2-15):</label>
+            <input
+              type="number"
+              min="2"
+              max="15"
+              value={editDays}
+              onChange={(e) => setEditDays(parseInt(e.target.value, 10))}
+              className="w-full p-1.5 border border-brand-sand rounded text-xs text-brand-navy font-mono"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleResolve("approve")}
+              disabled={resolving}
+              className="flex-1 py-1 rounded bg-[#4A3B32] text-white font-medium text-xs hover:bg-[#362B24]"
+            >
+              Confirm Approval
+            </button>
+            <button
+              onClick={() => setIsEditing(false)}
+              className="px-2 py-1 rounded border border-brand-sand text-brand-navy text-xs"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={() => setIsEditing(true)}
+            disabled={resolving}
+            className="flex-1 py-1.5 rounded-lg bg-[#B89368] text-white font-medium text-xs hover:bg-[#A37F55] transition-colors disabled:opacity-50"
+          >
+            Approve
+          </button>
+          <button
+            onClick={() => handleResolve("reject")}
+            disabled={resolving}
+            className="flex-1 py-1.5 rounded-lg border border-red-300 text-red-700 font-medium text-xs hover:bg-red-50 transition-colors disabled:opacity-50"
+          >
+            Reject
+          </button>
+        </div>
+      )}
     </div>
   );
 }

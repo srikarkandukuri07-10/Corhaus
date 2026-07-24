@@ -133,6 +133,20 @@ export default function AdminLayout({
               </Link>
 
               <Link
+                href="/admin/freeze"
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  pathname.startsWith("/admin/freeze")
+                    ? "bg-[#4A3B32] text-white shadow-sm"
+                    : "text-[#4A3B32]/70 hover:bg-[#EAE2D5] hover:text-[#4A3B32]"
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <span>Freeze Management</span>
+              </Link>
+
+              <Link
                 href="/admin/classes"
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   pathname === "/admin/classes" || pathname.startsWith("/admin/classes")
@@ -301,6 +315,7 @@ export default function AdminLayout({
           <div className="lg:hidden bg-[#F4EFE6] text-[#4A3B32] p-4 space-y-3 border-b border-[#E5DDD0]">
             <Link href="/admin" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium">Dashboard</Link>
             <Link href="/admin/members" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium">Members</Link>
+            <Link href="/admin/freeze" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium">Freeze Management</Link>
             <Link href="/admin/classes/new" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium">Create Class</Link>
             <Link href="/admin/scanner" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium">Scanner</Link>
             <Link href="/admin/billing" onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium">Billing</Link>
