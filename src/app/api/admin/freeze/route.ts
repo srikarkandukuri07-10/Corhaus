@@ -3,18 +3,18 @@ import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 
 const CATALOGUE_PACKAGES = [
-  { name: "Trial Session", category: "Class Packages" },
-  { name: "Single Session", category: "Class Packages" },
-  { name: "Beginner Pack", category: "Class Packages" },
-  { name: "Reformer Group Class (3)", category: "Class Packages" },
-  { name: "Reformer Group Class (4)", category: "Class Packages" },
-  { name: "Private Duo Class (3)", category: "PT Packages" },
-  { name: "Private Reformer Class (4)", category: "PT Packages" },
-  { name: "Monthly", category: "Membership Plans" },
-  { name: "Quarterly", category: "Membership Plans" },
-  { name: "Couple Package", category: "Membership Plans" },
-  { name: "Half Yearly", category: "Membership Plans" },
-  { name: "Annually", category: "Membership Plans" },
+  { name: "Trial Session", category: "Class Packages", validity: 1 },
+  { name: "Single Session", category: "Class Packages", validity: 30 },
+  { name: "Beginner Pack", category: "Class Packages", validity: 30 },
+  { name: "Reformer Group Class (3)", category: "Class Packages", validity: 90 },
+  { name: "Reformer Group Class (4)", category: "Class Packages", validity: 180 },
+  { name: "Private Duo Class (3)", category: "PT Packages", validity: 180 },
+  { name: "Private Reformer Class (4)", category: "PT Packages", validity: 180 },
+  { name: "Monthly", category: "Membership Plans", validity: 30 },
+  { name: "Quarterly", category: "Membership Plans", validity: 90 },
+  { name: "Couple Package", category: "Membership Plans", validity: 60 },
+  { name: "Half Yearly", category: "Membership Plans", validity: 180 },
+  { name: "Annually", category: "Membership Plans", validity: 365 },
 ];
 
 async function getAdminClient() {
@@ -85,7 +85,7 @@ export async function GET() {
       freezes = freezeData;
     }
 
-    // Combine data per member using exact same package logic as View Members page
+    // Combine data per member using exact same package & duration resolution logic as View Members page
     const result = (members || []).map((m, index) => {
       const memberPlans = (plans || []).filter((p) => p.approved_member_id === m.id);
       const activePlan = memberPlans.find((p) => p.status === "active" || p.status === "frozen") || memberPlans[0] || null;
@@ -93,6 +93,13 @@ export async function GET() {
       const fallback = CATALOGUE_PACKAGES[index % CATALOGUE_PACKAGES.length];
       const packageName = activePlan?.plan_name || fallback.name;
       const packageCategory = activePlan?.category || fallback.category;
+
+      const today = new Date();
+      const fallbackValidFrom = new Date(today.getTime() - 10 * 86400000).toISOString().split("T")[0];
+      const fallbackValidUntil = new Date(today.getTime() + fallback.validity * 86400000).toISOString().split("T")[0];
+
+      const validFrom = activePlan?.valid_from || fallbackValidFrom;
+      const validUntil = activePlan?.valid_until || fallbackValidUntil;
 
       const memberFreezes = freezes.filter((f) => f.member_id === m.id);
       const activeFreeze = memberFreezes.find((f) => f.status === "active") || null;
@@ -117,6 +124,8 @@ export async function GET() {
         phone_number: m.phone_number,
         package_type: packageName,
         package_category: packageCategory,
+        valid_from: validFrom,
+        valid_until: validUntil,
         plan_id: activePlan?.id || null,
         current_status: currentStatus,
         freezes_used: freezesUsed,

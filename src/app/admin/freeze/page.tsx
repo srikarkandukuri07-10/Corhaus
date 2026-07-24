@@ -37,6 +37,8 @@ interface MemberFreezeData {
   phone_number: string;
   package_type: string;
   package_category?: string;
+  valid_from?: string | null;
+  valid_until?: string | null;
   plan_id: string | null;
   current_status: "Active" | "Frozen" | "Freeze Requested";
   freezes_used: number;
@@ -44,6 +46,15 @@ interface MemberFreezeData {
   active_freeze: FreezeRecord | null;
   pending_request: PendingRequest | null;
   freeze_history: FreezeRecord[];
+}
+
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "N/A";
+  return new Date(dateStr).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export default function AdminFreezeManagementPage() {
@@ -285,6 +296,7 @@ export default function AdminFreezeManagementPage() {
                 <tr>
                   <th className="py-3.5 px-4">Member Name</th>
                   <th className="py-3.5 px-4">Package Type</th>
+                  <th className="py-3.5 px-4">Current Duration</th>
                   <th className="py-3.5 px-4">Current Status</th>
                   <th className="py-3.5 px-4">Freeze Remaining</th>
                   <th className="py-3.5 px-4">Current Freeze Status</th>
@@ -300,11 +312,18 @@ export default function AdminFreezeManagementPage() {
                       <div className="text-[10px] text-[#8C7A6B]">{m.email}</div>
                     </td>
 
-                    {/* Package Type (Exact package name matching View Members) */}
+                    {/* Package Type */}
                     <td className="py-3.5 px-4 font-semibold text-[#4A3B32]">
                       <span className="inline-block px-3 py-1 rounded-md bg-[#F4EFE6] text-[#4A3B32] text-[11px] font-bold">
                         {m.package_type}
                       </span>
+                    </td>
+
+                    {/* Current Duration (Dates Synced with View Members) */}
+                    <td className="py-3.5 px-4 text-[#4A3B32]">
+                      <div className="font-semibold text-[11px]">
+                        {formatDate(m.valid_from)} – {formatDate(m.valid_until)}
+                      </div>
                     </td>
 
                     {/* Current Status */}
@@ -425,6 +444,12 @@ export default function AdminFreezeManagementPage() {
                   <div className="flex justify-between">
                     <span className="text-[#8C7A6B]">Package Type:</span>
                     <span className="font-semibold text-[#4A3B32]">{freezeModalMember.package_type}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#8C7A6B]">Current Duration:</span>
+                    <span className="font-semibold text-[#4A3B32]">
+                      {formatDate(freezeModalMember.valid_from)} – {formatDate(freezeModalMember.valid_until)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#8C7A6B]">Freezes Remaining:</span>
