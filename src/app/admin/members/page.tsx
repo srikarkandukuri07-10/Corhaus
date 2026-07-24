@@ -384,31 +384,34 @@ function MembersPageContent() {
           if (isPaid) {
             const invItems = (inv as any).items || [];
             const item = invItems[0] || null;
-            const planName = item?.name || (inv as any).plan_name || "Monthly";
-            const category = item?.category || "Membership Plans";
-            const invDate = inv.created_at ? new Date(inv.created_at) : new Date();
-            const validFrom = invDate.toISOString().split("T")[0];
+            const planName = item?.name || (inv as any).plan_name || null;
+            
+            if (planName) {
+              const category = item?.category || "Membership Plans";
+              const invDate = inv.created_at ? new Date(inv.created_at) : new Date();
+              const validFrom = invDate.toISOString().split("T")[0];
 
-            let validityDays = 30;
-            const lower = planName.toLowerCase();
-            if (lower.includes("quarterly")) validityDays = 90;
-            else if (lower.includes("half")) validityDays = 180;
-            else if (lower.includes("annual")) validityDays = 365;
-            else if (lower.includes("couple")) validityDays = 60;
-            else if (lower.includes("group class (4)") || lower.includes("pt")) validityDays = 180;
+              let validityDays = 30;
+              const lower = planName.toLowerCase();
+              if (lower.includes("quarterly")) validityDays = 90;
+              else if (lower.includes("half")) validityDays = 180;
+              else if (lower.includes("annual")) validityDays = 365;
+              else if (lower.includes("couple")) validityDays = 60;
+              else if (lower.includes("group class (4)") || lower.includes("pt")) validityDays = 180;
 
-            const validUntil = new Date(invDate.getTime() + validityDays * 86400000).toISOString().split("T")[0];
+              const validUntil = new Date(invDate.getTime() + validityDays * 86400000).toISOString().split("T")[0];
 
-            activeP = {
-              id: `inv-${inv.id}`,
-              plan_name: planName,
-              category: category,
-              sessions_total: item?.sessions || null,
-              sessions_remaining: item?.sessions || null,
-              valid_from: validFrom,
-              valid_until: validUntil,
-              status: "active",
-            };
+              activeP = {
+                id: `inv-${inv.id}`,
+                plan_name: planName,
+                category: category,
+                sessions_total: item?.sessions || null,
+                sessions_remaining: item?.sessions || null,
+                valid_from: validFrom,
+                valid_until: validUntil,
+                status: "active",
+              };
+            }
           }
         }
 

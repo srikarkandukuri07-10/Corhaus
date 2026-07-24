@@ -108,28 +108,32 @@ export async function GET() {
         const inv = invoiceByMemberMap.get(m.id);
         const isPaid = inv && (inv.payment_status === "paid" || inv.payment_status === "Paid" || inv.payment_status === "Completed");
         if (isPaid) {
-          const invDate = inv.created_at ? new Date(inv.created_at) : new Date();
-          const validFrom = invDate.toISOString().split("T")[0];
-          const planName = inv.plan_name || "Monthly";
+          const invItems = inv.items || [];
+          const item = invItems[0] || null;
+          const planName = item?.name || inv.plan_name || null;
+          if (planName) {
+            const invDate = inv.created_at ? new Date(inv.created_at) : new Date();
+            const validFrom = invDate.toISOString().split("T")[0];
 
-          let validityDays = 30;
-          const lower = planName.toLowerCase();
-          if (lower.includes("quarterly")) validityDays = 90;
-          else if (lower.includes("half")) validityDays = 180;
-          else if (lower.includes("annual")) validityDays = 365;
-          else if (lower.includes("couple")) validityDays = 60;
+            let validityDays = 30;
+            const lower = planName.toLowerCase();
+            if (lower.includes("quarterly")) validityDays = 90;
+            else if (lower.includes("half")) validityDays = 180;
+            else if (lower.includes("annual")) validityDays = 365;
+            else if (lower.includes("couple")) validityDays = 60;
 
-          const validUntil = new Date(invDate.getTime() + validityDays * 86400000).toISOString().split("T")[0];
+            const validUntil = new Date(invDate.getTime() + validityDays * 86400000).toISOString().split("T")[0];
 
-          activePlan = {
-            id: `inv-${inv.id}`,
-            plan_name: planName,
-            category: "Membership Plans",
-            valid_from: validFrom,
-            valid_until: validUntil,
-            status: "active",
-            freezes_used: 0,
-          };
+            activePlan = {
+              id: `inv-${inv.id}`,
+              plan_name: planName,
+              category: "Membership Plans",
+              valid_from: validFrom,
+              valid_until: validUntil,
+              status: "active",
+              freezes_used: 0,
+            };
+          }
         }
       }
 
