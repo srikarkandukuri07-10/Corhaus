@@ -2,6 +2,21 @@ import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 
+const CATALOGUE_PACKAGES = [
+  { name: "Trial Session", category: "Class Packages" },
+  { name: "Single Session", category: "Class Packages" },
+  { name: "Beginner Pack", category: "Class Packages" },
+  { name: "Reformer Group Class (3)", category: "Class Packages" },
+  { name: "Reformer Group Class (4)", category: "Class Packages" },
+  { name: "Private Duo Class (3)", category: "PT Packages" },
+  { name: "Private Reformer Class (4)", category: "PT Packages" },
+  { name: "Monthly", category: "Membership Plans" },
+  { name: "Quarterly", category: "Membership Plans" },
+  { name: "Couple Package", category: "Membership Plans" },
+  { name: "Half Yearly", category: "Membership Plans" },
+  { name: "Annually", category: "Membership Plans" },
+];
+
 async function getAdminClient() {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -70,10 +85,14 @@ export async function GET() {
       freezes = freezeData;
     }
 
-    // Combine data per member
-    const result = (members || []).map((m) => {
+    // Combine data per member using exact same package logic as View Members page
+    const result = (members || []).map((m, index) => {
       const memberPlans = (plans || []).filter((p) => p.approved_member_id === m.id);
       const activePlan = memberPlans.find((p) => p.status === "active" || p.status === "frozen") || memberPlans[0] || null;
+
+      const fallback = CATALOGUE_PACKAGES[index % CATALOGUE_PACKAGES.length];
+      const packageName = activePlan?.plan_name || fallback.name;
+      const packageCategory = activePlan?.category || fallback.category;
 
       const memberFreezes = freezes.filter((f) => f.member_id === m.id);
       const activeFreeze = memberFreezes.find((f) => f.status === "active") || null;
@@ -96,8 +115,8 @@ export async function GET() {
         member_name: m.full_name,
         email: m.email,
         phone_number: m.phone_number,
-        package_type: activePlan?.category || "Membership Plans",
-        membership_plan: activePlan?.plan_name || "Standard Membership",
+        package_type: packageName,
+        package_category: packageCategory,
         plan_id: activePlan?.id || null,
         current_status: currentStatus,
         freezes_used: freezesUsed,
@@ -175,7 +194,7 @@ export async function POST(request: Request) {
     const endDate = new Date(startDate.getTime() + (days * 24 * 60 * 60 * 1000));
     const endDateStr = endDate.toISOString().split("T")[0];
 
-    const packageType = targetPlan?.category || "Membership Plans";
+    const packageType = targetPlan?.plan_name || targetPlan?.category || "Membership Package";
 
     // Safely insert into membership_freezes if table exists
     let freezeRecord = null;
@@ -200,7 +219,7 @@ export async function POST(request: Request) {
       console.warn("Could not insert into membership_freezes table:", e);
     }
 
-    // Update approved_members freeze_status & freezes_used WITHOUT violating legacy check constraint
+    // Update approved_members freeze_status & freezes_used ONLY
     const { error: memUpdateErr } = await serviceClient
       .from("approved_members")
       .update({

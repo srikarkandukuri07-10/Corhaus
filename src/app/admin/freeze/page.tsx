@@ -36,7 +36,7 @@ interface MemberFreezeData {
   email: string;
   phone_number: string;
   package_type: string;
-  membership_plan: string;
+  package_category?: string;
   plan_id: string | null;
   current_status: "Active" | "Frozen" | "Freeze Requested";
   freezes_used: number;
@@ -102,7 +102,6 @@ export default function AdminFreezeManagementPage() {
         return (
           m.member_name.toLowerCase().includes(q) ||
           m.email.toLowerCase().includes(q) ||
-          m.membership_plan.toLowerCase().includes(q) ||
           m.package_type.toLowerCase().includes(q)
         );
       }
@@ -259,7 +258,7 @@ export default function AdminFreezeManagementPage() {
           </svg>
           <input
             type="text"
-            placeholder="Search by member name, email, plan..."
+            placeholder="Search by member name, email, package..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 bg-white rounded-xl border border-[#E5DDD0] text-xs text-[#4A3B32] placeholder:text-[#4A3B32]/40 focus:outline-none focus:ring-1 focus:ring-[#B89368]"
@@ -286,7 +285,6 @@ export default function AdminFreezeManagementPage() {
                 <tr>
                   <th className="py-3.5 px-4">Member Name</th>
                   <th className="py-3.5 px-4">Package Type</th>
-                  <th className="py-3.5 px-4">Membership Plan</th>
                   <th className="py-3.5 px-4">Current Status</th>
                   <th className="py-3.5 px-4">Freeze Remaining</th>
                   <th className="py-3.5 px-4">Current Freeze Status</th>
@@ -302,16 +300,11 @@ export default function AdminFreezeManagementPage() {
                       <div className="text-[10px] text-[#8C7A6B]">{m.email}</div>
                     </td>
 
-                    {/* Package Type */}
-                    <td className="py-3.5 px-4 text-[#4A3B32] font-medium">
-                      <span className="inline-block px-2.5 py-1 rounded-md bg-[#F4EFE6] text-[#4A3B32] text-[11px]">
+                    {/* Package Type (Exact package name matching View Members) */}
+                    <td className="py-3.5 px-4 font-semibold text-[#4A3B32]">
+                      <span className="inline-block px-3 py-1 rounded-md bg-[#F4EFE6] text-[#4A3B32] text-[11px] font-bold">
                         {m.package_type}
                       </span>
-                    </td>
-
-                    {/* Membership Plan */}
-                    <td className="py-3.5 px-4 font-semibold text-[#4A3B32]">
-                      {m.membership_plan}
                     </td>
 
                     {/* Current Status */}
@@ -387,7 +380,6 @@ export default function AdminFreezeManagementPage() {
                               ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
                               : "bg-[#B89368] hover:bg-[#A37F55] text-white"
                           }`}
-
                         >
                           Freeze
                         </button>
@@ -430,10 +422,6 @@ export default function AdminFreezeManagementPage() {
                 </p>
 
                 <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0] text-xs space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-[#8C7A6B]">Plan:</span>
-                    <span className="font-semibold text-[#4A3B32]">{freezeModalMember.membership_plan}</span>
-                  </div>
                   <div className="flex justify-between">
                     <span className="text-[#8C7A6B]">Package Type:</span>
                     <span className="font-semibold text-[#4A3B32]">{freezeModalMember.package_type}</span>
