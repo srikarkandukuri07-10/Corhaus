@@ -161,6 +161,20 @@ export default function AdminLayout({
               </Link>
 
               <Link
+                href="/admin/pt"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${
+                  pathname === "/admin/pt" || pathname.startsWith("/admin/pt")
+                    ? "bg-gradient-to-r from-[#D99B26] to-[#E5AC38] text-white font-bold shadow-lg shadow-[#D99B26]/30"
+                    : "text-white hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>PT Scheduler</span>
+              </Link>
+
+              <Link
                 href="/admin/previous-classes"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${
                   pathname.startsWith("/admin/previous-classes")
@@ -307,6 +321,9 @@ export default function AdminLayout({
               </Link>
               <Link href="/admin/classes" className="block px-4 py-2.5 rounded-xl font-semibold text-white">
                 Classes &amp; Schedule
+              </Link>
+              <Link href="/admin/pt" className="block px-4 py-2.5 rounded-xl font-semibold text-white">
+                PT Scheduler
               </Link>
               <Link href="/admin/previous-classes" className="block px-4 py-2.5 rounded-xl font-semibold text-white">
                 Previous Classes
