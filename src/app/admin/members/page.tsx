@@ -353,22 +353,64 @@ function MembersPageContent() {
       const invoiceByMemberMap = new Map<string, InvoiceRecord>();
       if (invoicesData) {
         invoicesData.forEach((inv) => {
+          let memberId: string | null = null;
           if (inv.customer_id) {
-            const memberId = custToMemberMap.get(inv.customer_id);
-            if (memberId && !invoiceByMemberMap.has(memberId)) {
-              invoiceByMemberMap.set(memberId, inv as InvoiceRecord);
-            }
+            memberId = custToMemberMap.get(inv.customer_id) || null;
+          }
+          if (!memberId && inv.customer_email) {
+            const match = approvedData.find((m) => m.email.toLowerCase() === inv.customer_email.toLowerCase());
+            if (match) memberId = match.id;
+          }
+          if (memberId && !invoiceByMemberMap.has(memberId)) {
+            invoiceByMemberMap.set(memberId, inv as InvoiceRecord);
           }
         });
       }
 
-      // Combine member details & compute statuses + fallback assigned package for UI completeness
-      const fullMembersList: ApprovedMember[] = approvedData.map((m, index) => {
+      // Combine member details & compute statuses
+      const fullMembersList: ApprovedMember[] = approvedData.map((m) => {
         const mPlans = plansByMember.get(m.id) || [];
-        let activeP = mPlans.find((p) => p.status === "active") || mPlans[0] || null;
+        let activeP = mPlans.find((p) => p.status === "active" || p.status === "frozen") || mPlans[0] || null;
 
-        // Only set activeP if member has an actual purchased plan from DB
-        const allMemberPlans = mPlans.length > 0 ? mPlans : [];
+        // If no member_purchased_plans record exists, derive plan from latest paid invoice
+        if (!activeP) {
+          const inv = invoiceByMemberMap.get(m.id);
+          const isPaid = inv && (
+            inv.payment_status === "paid" ||
+            inv.payment_status === "Paid" ||
+            inv.payment_status === "Completed"
+          );
+
+          if (isPaid) {
+            const invItems = (inv as any).items || [];
+            const item = invItems[0] || null;
+            const planName = item?.name || (inv as any).plan_name || "Monthly";
+            const category = item?.category || "Membership Plans";
+            const invDate = inv.created_at ? new Date(inv.created_at) : new Date();
+            const validFrom = invDate.toISOString().split("T")[0];
+
+            let validityDays = 30;
+            const lower = planName.toLowerCase();
+            if (lower.includes("quarterly")) validityDays = 90;
+            else if (lower.includes("half")) validityDays = 180;
+            else if (lower.includes("annual")) validityDays = 365;
+            else if (lower.includes("couple")) validityDays = 60;
+            else if (lower.includes("group class (4)") || lower.includes("pt")) validityDays = 180;
+
+            const validUntil = new Date(invDate.getTime() + validityDays * 86400000).toISOString().split("T")[0];
+
+            activeP = {
+              id: `inv-${inv.id}`,
+              plan_name: planName,
+              category: category,
+              sessions_total: item?.sessions || null,
+              sessions_remaining: item?.sessions || null,
+              valid_from: validFrom,
+              valid_until: validUntil,
+              status: "active",
+            };
+          }
+        }
 
         const computed = computeMemberStatus(m.membership_status, activeP);
         const inv = invoiceByMemberMap.get(m.id) || null;
@@ -377,7 +419,7 @@ function MembersPageContent() {
           ...m,
           avatar_url: avatarMap.get(m.email.toLowerCase()) || null,
           activePlan: activeP,
-          allPlans: mPlans.length > 0 ? mPlans : [activeP],
+          allPlans: mPlans.length > 0 ? mPlans : (activeP ? [activeP] : []),
           latestInvoice: inv,
           computedStatus: computed.status,
           daysLeft: computed.daysLeft,

@@ -50,6 +50,35 @@ export async function GET() {
       .select("*")
       .order("created_at", { ascending: false });
 
+    // Fetch customers mapping
+    const { data: customers } = await serviceClient
+      .from("customers")
+      .select("id, approved_member_id, email");
+
+    const custToMemberMap = new Map<string, string>();
+    (customers || []).forEach((c) => {
+      if (c.approved_member_id) custToMemberMap.set(c.id, c.approved_member_id);
+    });
+
+    // Fetch invoices
+    const { data: invoicesData } = await serviceClient
+      .from("invoices")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    const invoiceByMemberMap = new Map<string, any>();
+    (invoicesData || []).forEach((inv) => {
+      let memberId: string | null = null;
+      if (inv.customer_id) memberId = custToMemberMap.get(inv.customer_id) || null;
+      if (!memberId && inv.customer_email) {
+        const match = (members || []).find((m) => m.email.toLowerCase() === inv.customer_email.toLowerCase());
+        if (match) memberId = match.id;
+      }
+      if (memberId && !invoiceByMemberMap.has(memberId)) {
+        invoiceByMemberMap.set(memberId, inv);
+      }
+    });
+
     // Fetch all freeze requests with graceful fallback if table missing
     let requests: any[] = [];
     const { data: reqData, error: reqErr } = await serviceClient
@@ -70,10 +99,39 @@ export async function GET() {
       freezes = freezeData;
     }
 
-    // Combine data per member using exact purchased plans from DB
+    // Combine data per member using exact purchased plans or paid invoices
     const result = (members || []).map((m) => {
       const memberPlans = (plans || []).filter((p) => p.approved_member_id === m.id);
-      const activePlan = memberPlans.find((p) => p.status === "active" || p.status === "frozen") || memberPlans[0] || null;
+      let activePlan = memberPlans.find((p) => p.status === "active" || p.status === "frozen") || memberPlans[0] || null;
+
+      if (!activePlan) {
+        const inv = invoiceByMemberMap.get(m.id);
+        const isPaid = inv && (inv.payment_status === "paid" || inv.payment_status === "Paid" || inv.payment_status === "Completed");
+        if (isPaid) {
+          const invDate = inv.created_at ? new Date(inv.created_at) : new Date();
+          const validFrom = invDate.toISOString().split("T")[0];
+          const planName = inv.plan_name || "Monthly";
+
+          let validityDays = 30;
+          const lower = planName.toLowerCase();
+          if (lower.includes("quarterly")) validityDays = 90;
+          else if (lower.includes("half")) validityDays = 180;
+          else if (lower.includes("annual")) validityDays = 365;
+          else if (lower.includes("couple")) validityDays = 60;
+
+          const validUntil = new Date(invDate.getTime() + validityDays * 86400000).toISOString().split("T")[0];
+
+          activePlan = {
+            id: `inv-${inv.id}`,
+            plan_name: planName,
+            category: "Membership Plans",
+            valid_from: validFrom,
+            valid_until: validUntil,
+            status: "active",
+            freezes_used: 0,
+          };
+        }
+      }
 
       const packageName = activePlan ? activePlan.plan_name : "No package selected";
       const packageCategory = activePlan ? activePlan.category : "N/A";
