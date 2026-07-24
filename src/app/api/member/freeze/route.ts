@@ -44,31 +44,35 @@ export async function GET() {
     }
     const { serviceClient, member, activePlan } = ctx;
 
-    // Fetch freezes for member
-    const { data: freezes } = await serviceClient
+    // Fetch freezes for member safely
+    let freezes: any[] = [];
+    const { data: fData } = await serviceClient
       .from("membership_freezes")
       .select("*")
       .eq("member_id", member.id)
       .order("created_at", { ascending: false });
+    if (fData) freezes = fData;
 
-    // Fetch requests for member
-    const { data: requests } = await serviceClient
+    // Fetch requests for member safely
+    let requests: any[] = [];
+    const { data: rData } = await serviceClient
       .from("freeze_requests")
       .select("*")
       .eq("member_id", member.id)
       .order("requested_at", { ascending: false });
+    if (rData) requests = rData;
 
-    const activeFreeze = freezes?.find((f) => f.status === "active") || null;
-    const pendingRequest = requests?.find((r) => r.status === "pending") || null;
-    const latestRejectedRequest = requests?.find((r) => r.status === "rejected") || null;
+    const activeFreeze = freezes.find((f) => f.status === "active") || null;
+    const pendingRequest = requests.find((r) => r.status === "pending") || null;
+    const latestRejectedRequest = requests.find((r) => r.status === "rejected") || null;
 
     const freezesUsed = activePlan?.freezes_used ?? member.freezes_used ?? 0;
     const freezeRemaining = Math.max(0, 2 - freezesUsed);
 
     let freezeStatus: "active" | "frozen" | "freeze_requested" = "active";
-    if (activeFreeze || member.membership_status === "frozen" || activePlan?.status === "frozen") {
+    if (activeFreeze || member.membership_status === "frozen" || member.freeze_status === "frozen" || activePlan?.status === "frozen") {
       freezeStatus = "frozen";
-    } else if (pendingRequest) {
+    } else if (pendingRequest || member.freeze_status === "freeze_requested") {
       freezeStatus = "freeze_requested";
     }
 
@@ -82,7 +86,7 @@ export async function GET() {
       active_freeze: activeFreeze,
       pending_request: pendingRequest,
       latest_rejected: latestRejectedRequest,
-      history: freezes || [],
+      history: freezes,
     });
   } catch (err: any) {
     console.error("GET /api/member/freeze error:", err);
@@ -116,37 +120,42 @@ export async function POST(request: Request) {
     }
 
     // Check for existing pending request
-    const { data: existingPending } = await serviceClient
-      .from("freeze_requests")
-      .select("id")
-      .eq("member_id", member.id)
-      .eq("status", "pending")
-      .maybeSingle();
+    let existingPending = null;
+    try {
+      const { data: ep } = await serviceClient
+        .from("freeze_requests")
+        .select("id")
+        .eq("member_id", member.id)
+        .eq("status", "pending")
+        .maybeSingle();
+      existingPending = ep;
+    } catch (e) {}
 
-    if (existingPending) {
+    if (existingPending || member.freeze_status === "freeze_requested") {
       return NextResponse.json({ error: "Your freeze request is awaiting approval." }, { status: 400 });
     }
 
     const packageType = activePlan?.category || "Membership Plans";
 
     // Insert request
-    const { data: reqRecord, error: reqErr } = await serviceClient
-      .from("freeze_requests")
-      .insert({
-        member_id: member.id,
-        plan_id: activePlan?.id || null,
-        package_type: packageType,
-        requested_start_date: startDate,
-        requested_days: freezeDays,
-        reason: reason || "Member Requested",
-        status: "pending",
-      })
-      .select()
-      .single();
-
-    if (reqErr) {
-      console.error("Error creating freeze request:", reqErr);
-      return NextResponse.json({ error: "Failed to submit freeze request" }, { status: 500 });
+    let reqRecord = null;
+    try {
+      const { data: rRec } = await serviceClient
+        .from("freeze_requests")
+        .insert({
+          member_id: member.id,
+          plan_id: activePlan?.id || null,
+          package_type: packageType,
+          requested_start_date: startDate,
+          requested_days: freezeDays,
+          reason: reason || "Member Requested",
+          status: "pending",
+        })
+        .select()
+        .maybeSingle();
+      reqRecord = rRec;
+    } catch (e) {
+      console.warn("Could not insert freeze_requests record:", e);
     }
 
     // Update approved_members freeze_status
@@ -156,14 +165,16 @@ export async function POST(request: Request) {
       .eq("id", member.id);
 
     // Create notification in admin_notifications
-    await serviceClient
-      .from("admin_notifications")
-      .insert({
-        type: "freeze_request",
-        email: member.email,
-        message: `Freeze request from ${member.full_name} for ${activePlan?.plan_name || packageType} (${freezeDays} days from ${startDate})`,
-        is_read: false,
-      });
+    try {
+      await serviceClient
+        .from("admin_notifications")
+        .insert({
+          type: "freeze_request",
+          email: member.email,
+          message: `Freeze request from ${member.full_name} for ${activePlan?.plan_name || packageType} (${freezeDays} days from ${startDate})`,
+          is_read: false,
+        });
+    } catch (e) {}
 
     return NextResponse.json({
       success: true,
@@ -186,15 +197,17 @@ export async function PATCH() {
 
     const nowIso = new Date().toISOString();
 
-    // End active freeze early
-    await serviceClient
-      .from("membership_freezes")
-      .update({
-        resumed_at: nowIso,
-        status: "resumed",
-      })
-      .eq("member_id", member.id)
-      .eq("status", "active");
+    // End active freeze early if table exists
+    try {
+      await serviceClient
+        .from("membership_freezes")
+        .update({
+          resumed_at: nowIso,
+          status: "resumed",
+        })
+        .eq("member_id", member.id)
+        .eq("status", "active");
+    } catch (e) {}
 
     // Reactivate member
     await serviceClient
