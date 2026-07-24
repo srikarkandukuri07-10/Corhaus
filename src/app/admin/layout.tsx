@@ -133,6 +133,20 @@ export default function AdminLayout({
               </Link>
 
               <Link
+                href="/admin/staff"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${
+                  pathname.startsWith("/admin/staff")
+                    ? "bg-gradient-to-r from-[#D99B26] to-[#E5AC38] text-white font-bold shadow-lg shadow-[#D99B26]/30"
+                    : "text-white hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span>Staff &amp; Trainers</span>
+              </Link>
+
+              <Link
                 href="/admin/freeze"
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${
                   pathname.startsWith("/admin/freeze")
@@ -316,6 +330,9 @@ export default function AdminLayout({
               <Link href="/admin/members" className="block px-4 py-2.5 rounded-xl font-semibold text-white">
                 Members
               </Link>
+              <Link href="/admin/staff" className="block px-4 py-2.5 rounded-xl font-semibold text-white">
+                Staff &amp; Trainers
+              </Link>
               <Link href="/admin/freeze" className="block px-4 py-2.5 rounded-xl font-semibold text-white">
                 Freeze Management
               </Link>
@@ -354,7 +371,21 @@ export default function AdminLayout({
             </svg>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/admin/staff"
+              title="Staff & Trainers"
+              className={`relative flex items-center gap-2 px-3 py-2 rounded-2xl text-xs font-semibold transition-all border ${
+                pathname.startsWith("/admin/staff")
+                  ? "bg-[#7B3FE4] text-white border-[#7B3FE4] shadow-md shadow-[#7B3FE4]/25"
+                  : "bg-[#FAF9FC] border-[#1B0B38]/15 text-[#1B0B38] hover:bg-[#1B0B38]/5"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <span className="hidden sm:inline">Staff</span>
+            </Link>
             <NotificationsButton role="admin" />
             <div className="flex items-center gap-2 bg-[#FAF9FC] border border-[#1B0B38]/15 px-3 py-1.5 rounded-full text-xs text-[#1B0B38] font-semibold">
               <div className="w-6 h-6 rounded-full bg-[#7B3FE4] text-white flex items-center justify-center font-bold text-[11px]">
