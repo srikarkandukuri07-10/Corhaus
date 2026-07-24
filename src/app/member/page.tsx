@@ -459,10 +459,11 @@ export default function MemberDashboard() {
                       )}
                       {(() => {
                         const matchedBk = bookings.find(b => b.class_id === cls.id && b.booking_status === "booked");
-                        if (matchedBk && matchedBk.notes) {
+                        if (matchedBk) {
+                          const noteText = matchedBk.notes || "Corhaus invite u to this session";
                           return (
                             <div className="mt-2 text-[11px] font-semibold text-[#7B3FE4] bg-[#F2EBFE] px-2.5 py-1 rounded-lg flex items-center gap-1.5 inline-flex">
-                              <span>✨</span> {matchedBk.notes}
+                              <span>✨</span> {noteText}
                             </div>
                           );
                         }

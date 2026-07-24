@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "memberId and classId are required." }, { status: 400 });
     }
 
-    // Check if cancelled booking exists
+    // Check if existing booking exists
     const { data: existingBooking } = await serviceClient
       .from("bookings")
       .select("id, booking_status")
@@ -53,14 +53,25 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, message: "Member is already assigned to this class." });
       }
 
-      const { error: updateError } = await serviceClient
+      let updatePayload: any = {
+        booking_status: "booked",
+        notes: "Corhaus invite u to this session",
+        cancelled_at: null,
+      };
+
+      let { error: updateError } = await serviceClient
         .from("bookings")
-        .update({
-          booking_status: "booked",
-          notes: "Corhaus invite u to this session",
-          cancelled_at: null
-        })
+        .update(updatePayload)
         .eq("id", existingBooking.id);
+
+      if (updateError && (updateError.message?.includes("notes") || updateError.message?.includes("Could not find"))) {
+        delete updatePayload.notes;
+        const res = await serviceClient
+          .from("bookings")
+          .update(updatePayload)
+          .eq("id", existingBooking.id);
+        updateError = res.error;
+      }
 
       if (updateError) {
         return NextResponse.json({ error: updateError.message }, { status: 500 });
@@ -70,14 +81,24 @@ export async function POST(req: Request) {
     }
 
     // Otherwise insert new booking record
-    const { error: insertError } = await serviceClient
+    let insertPayload: any = {
+      member_id: memberId,
+      class_id: classId,
+      booking_status: "booked",
+      notes: "Corhaus invite u to this session",
+    };
+
+    let { error: insertError } = await serviceClient
       .from("bookings")
-      .insert({
-        member_id: memberId,
-        class_id: classId,
-        booking_status: "booked",
-        notes: "Corhaus invite u to this session"
-      });
+      .insert(insertPayload);
+
+    if (insertError && (insertError.message?.includes("notes") || insertError.message?.includes("Could not find"))) {
+      delete insertPayload.notes;
+      const res = await serviceClient
+        .from("bookings")
+        .insert(insertPayload);
+      insertError = res.error;
+    }
 
     if (insertError) {
       return NextResponse.json({ error: insertError.message }, { status: 500 });
