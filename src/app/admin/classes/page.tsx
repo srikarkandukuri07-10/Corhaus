@@ -1171,8 +1171,8 @@ export default function AdminClassesModulePage() {
 
       {/* ─── CREATE CLASS TYPE MODAL ─────────────────────────────────────── */}
       {showCreateClassTypeModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center min-h-screen">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-2xl w-full p-8 my-auto flex flex-col max-h-[90vh] animate-fade-in space-y-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-2xl w-full p-6 flex flex-col max-h-[90vh] animate-fade-in space-y-5 overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4 flex-shrink-0">
               <div>
                 <h3 className="text-2xl font-extrabold text-[#1B0B38]">{editingClassType ? "Edit Class Type" : "Create Master Class Type"}</h3>
@@ -1249,8 +1249,8 @@ export default function AdminClassesModulePage() {
 
       {/* ─── SCHEDULE SESSION MODAL (COMPACT ZERO-SCROLL 2-COLUMN LAYOUT) ───── */}
       {showScheduleModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-md p-3 sm:p-4 flex items-center justify-center min-h-screen">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-3xl w-full p-5 my-auto flex flex-col animate-fade-in space-y-3.5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-3 sm:p-4">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-3xl w-full p-5 flex flex-col animate-fade-in space-y-3.5">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-2.5 flex-shrink-0">
               <div>
@@ -1373,8 +1373,8 @@ export default function AdminClassesModulePage() {
 
       {/* ─── ASSIGN MEMBER MODAL ─────────────────────────────────────────── */}
       {showAssignMemberModal && targetSessionForAssign && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center min-h-screen">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-8 my-auto flex flex-col max-h-[85vh] animate-fade-in space-y-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5">
             <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4 flex-shrink-0">
               <h3 className="text-xl font-extrabold text-[#1B0B38]">Assign Member to Session</h3>
               <button onClick={() => setShowAssignMemberModal(false)} className="w-8 h-8 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-base font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
@@ -1417,8 +1417,8 @@ export default function AdminClassesModulePage() {
 
       {/* ─── RESCHEDULE BOOKING MODAL ────────────────────────────────────── */}
       {rescheduleBookingTarget && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center min-h-screen">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-8 my-auto flex flex-col max-h-[85vh] animate-fade-in space-y-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5">
             <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4 flex-shrink-0">
               <h3 className="text-xl font-extrabold text-[#1B0B38]">Reschedule Member Booking</h3>
               <button onClick={() => setRescheduleBookingTarget(null)} className="w-8 h-8 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-base font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
