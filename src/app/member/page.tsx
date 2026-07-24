@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import QRCode from "qrcode";
-import MembershipFreezeSection from "@/components/membership-freeze-section";
 interface ClassData {
   id: string;
   title: string;
@@ -127,12 +126,20 @@ export default function MemberDashboard() {
       attendanceQuery = attendanceQuery.eq("member_id", user.id);
     }
 
-    const [cr, br, ar, ct, tiers] = await Promise.all([
+    let planQuery = supabase.from("member_purchased_plans").select("*").order("created_at", { ascending: false });
+    if (approvedMemberId) {
+      planQuery = planQuery.or(`approved_member_id.eq.${approvedMemberId},approved_member_id.eq.${user.id}`);
+    } else {
+      planQuery = planQuery.eq("approved_member_id", user.id);
+    }
+
+    const [cr, br, ar, ct, tiers, plans] = await Promise.all([
       supabase.from("classes").select("*").gte("class_date", today).order("class_date", { ascending: true }).order("class_time", { ascending: true }),
       bookingsQuery,
       attendanceQuery,
       supabase.from("class_types").select("*"),
-      supabase.from("membership_credit_tiers").select("*")
+      supabase.from("membership_credit_tiers").select("*"),
+      planQuery,
     ]);
 
     // Map class types to descriptions
@@ -146,16 +153,9 @@ export default function MemberDashboard() {
 
     // Determine membership tier and level
     let level = "Beginner";
-    let joinDateStr = user.created_at; // fallback
     if (amData) {
       level = amData.membership_level || "Beginner";
-      joinDateStr = amData.created_at;
     }
-    setMembershipLevel(level);
-
-    const activeTier = tiers.data?.find((t: any) => t.level === level);
-    const credits = activeTier ? activeTier.credits : 6;
-    setTotalCredits(credits);
 
     if (cr.data) {
       setClasses(cr.data);
@@ -170,28 +170,27 @@ export default function MemberDashboard() {
     }
     if (ar.data) setAttendanceRecords(ar.data as AttendanceData[]);
 
-    // Calculate monthly usage
-    if (joinDateStr) {
-      // Find current membership month range
-      const joinDate = new Date(joinDateStr);
-      const currentDate = new Date();
-      let monthStart = new Date(joinDate);
-      let monthEnd = new Date(joinDate);
-      monthEnd.setMonth(monthEnd.getMonth() + 1);
+    // Find active purchased plan
+    const activePurchasedPlan = plans.data?.find((p: any) => p.status === "active") || plans.data?.[0];
 
-      while (currentDate >= monthEnd) {
-        monthStart = new Date(monthEnd);
-        monthEnd.setMonth(monthEnd.getMonth() + 1);
-      }
+    if (activePurchasedPlan) {
+      setMembershipLevel(activePurchasedPlan.plan_name || level);
+      const total = activePurchasedPlan.sessions_total ?? 180;
+      const remaining = activePurchasedPlan.sessions_remaining !== null && activePurchasedPlan.sessions_remaining !== undefined
+        ? activePurchasedPlan.sessions_remaining
+        : Math.max(0, total - userBookings.filter(b => b.booking_status === "booked").length);
+      const used = Math.max(0, total - remaining);
 
-      // Count active bookings in the current membership month
-      const currentMonthActiveBookings = userBookings.filter((b) => {
-        if (b.booking_status !== "booked" || !b.classes?.class_date) return false;
-        const classDate = new Date(b.classes.class_date + "T00:00:00");
-        return classDate >= monthStart && classDate < monthEnd;
-      });
+      setTotalCredits(total);
+      setUsedCredits(used);
+    } else {
+      setMembershipLevel(level);
+      const activeTier = tiers.data?.find((t: any) => t.level === level);
+      const credits = activeTier ? activeTier.credits : 6;
+      setTotalCredits(credits);
 
-      setUsedCredits(currentMonthActiveBookings.length);
+      const activeBookingsCount = userBookings.filter((b) => b.booking_status === "booked").length;
+      setUsedCredits(activeBookingsCount);
     }
 
     setLoading(false);
@@ -327,15 +326,6 @@ export default function MemberDashboard() {
       return;
     }
 
-    const sameDate = bookings.some(b =>
-      b.booking_status === "booked" && b.class_id !== cls.id &&
-      classes.some(c => c.id === b.class_id && c.class_date === cls.class_date)
-    );
-    if (sameDate) {
-      setMessage({ type: "error", text: "You already have a booking for this date. Only one class per day is allowed." });
-      return;
-    }
-
     const { data: count } = await supabase.rpc("get_booking_count", { p_class_id: cls.id });
     if (count !== null && count >= cls.max_capacity) {
       setMessage({ type: "error", text: "Class is fully booked." });
@@ -430,8 +420,6 @@ export default function MemberDashboard() {
           </div>
         )}
       </div>
-
-      <MembershipFreezeSection />
 
       {message && (
         <div className={`p-4 rounded-xl text-sm ${message.type === "success" ? "bg-brand-success/10 border border-brand-success/20 text-brand-success" : "bg-brand-error/10 border border-brand-error/20 text-brand-error"}`}>

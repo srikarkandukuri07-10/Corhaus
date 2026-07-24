@@ -142,6 +142,7 @@ export default function MemberLayout({
     { href: "/member", label: "Classes", exact: true },
     { href: "/member/bookings", label: "My Bookings", exact: true },
     { href: "/member/attendance", label: "Attendance Tracker", exact: false },
+    { href: "/member/freeze", label: "Membership Freeze", exact: true },
     { href: "/member/referrals", label: "Referrals", exact: true },
   ];
 
