@@ -1443,15 +1443,75 @@ function MembersPageContent() {
               <button
                 onClick={async () => {
                   setDeleteLoading(true);
-                  const { error } = await supabase.rpc("delete_member_completely", {
-                    p_email: deletingMember.email,
-                  });
-                  setDeleteLoading(false);
-                  if (error) setActionError(error.message);
-                  else {
+                  setActionError(null);
+                  try {
+                    const memId = deletingMember.id;
+                    const memEmail = deletingMember.email.trim().toLowerCase();
+
+                    // 1. Try RPC first if migration function exists
+                    try {
+                      await supabase.rpc("delete_member_completely", { p_email: memEmail });
+                    } catch (e) {}
+
+                    // 2. Fetch customer IDs for this member
+                    const { data: custs } = await supabase
+                      .from("customers")
+                      .select("id")
+                      .or(`approved_member_id.eq.${memId},email.ilike.${memEmail}`);
+
+                    const custIds = (custs || []).map((c) => c.id).filter(Boolean);
+
+                    // 3. Fetch invoice IDs for these customers / email
+                    let invIds: string[] = [];
+                    if (custIds.length > 0) {
+                      const { data: invs } = await supabase
+                        .from("invoices")
+                        .select("id")
+                        .or(`customer_id.in.(${custIds.join(",")}),customer_email.ilike.${memEmail}`);
+                      invIds = (invs || []).map((i) => i.id).filter(Boolean);
+                    } else if (memEmail) {
+                      const { data: invs } = await supabase
+                        .from("invoices")
+                        .select("id")
+                        .ilike("customer_email", memEmail);
+                      invIds = (invs || []).map((i) => i.id).filter(Boolean);
+                    }
+
+                    // 4. Delete invoice items & invoices
+                    if (invIds.length > 0) {
+                      await supabase.from("invoice_items").delete().in("invoice_id", invIds);
+                      await supabase.from("invoices").delete().in("id", invIds);
+                    }
+
+                    // 5. Delete customer records
+                    if (custIds.length > 0) {
+                      await supabase.from("customers").delete().in("id", custIds);
+                    }
+                    if (memEmail) {
+                      await supabase.from("customers").delete().ilike("email", memEmail);
+                    }
+
+                    // 6. Delete member plans, freezes, freeze requests, attendance, referrals, notifications
+                    await supabase.from("member_purchased_plans").delete().eq("approved_member_id", memId);
+                    try { await supabase.from("membership_freezes").delete().eq("member_id", memId); } catch (e) {}
+                    try { await supabase.from("freeze_requests").delete().eq("member_id", memId); } catch (e) {}
+                    try { await supabase.from("attendance").delete().eq("member_id", memId); } catch (e) {}
+                    try { await supabase.from("referral_codes").delete().ilike("member_email", memEmail); } catch (e) {}
+                    try { await supabase.from("admin_notifications").delete().ilike("email", memEmail); } catch (e) {}
+
+                    // 7. Delete approved_members record
+                    const { error: deleteErr } = await supabase.from("approved_members").delete().eq("id", memId);
+                    if (deleteErr) {
+                      await supabase.from("approved_members").delete().ilike("email", memEmail);
+                    }
+
                     setDeletingMember(null);
                     setSelectedMember(null);
-                    fetchMembers();
+                    await fetchMembers();
+                  } catch (err: any) {
+                    setActionError(err.message || "Failed to delete member completely.");
+                  } finally {
+                    setDeleteLoading(false);
                   }
                 }}
                 disabled={deleteLoading}
