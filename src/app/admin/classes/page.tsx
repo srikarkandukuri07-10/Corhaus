@@ -2,1573 +2,1235 @@
 
 import { useEffect, useState, useCallback, useMemo, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── TYPES ───────────────────────────────────────────────────────────────────
 
-interface ClassSession {
+interface ClassType {
   id: string;
+  name: string;
+  category: string;
+  description: string | null;
+  difficulty: string;
+  duration_minutes: number;
+  max_capacity: number;
+  trainer: string;
+  location_room: string;
+  allow_member_booking: boolean;
+  booking_opens_before_hours: number;
+  booking_closes_before_hours: number;
+  waitlist_enabled: boolean;
+  cancellation_window_hours: number;
+  is_active: boolean;
+}
+
+interface ScheduledSession {
+  id: string;
+  class_type_id?: string | null;
   title: string;
   instructor: string;
   class_date: string;
   class_time: string;
   end_time?: string | null;
   buffer_minutes?: number | null;
-  category?: string | null;
+  max_capacity: number;
+  category: string;
+  location_room: string;
   difficulty?: string | null;
   duration_minutes?: number | null;
-  max_capacity: number;
-  location_room?: string | null;
-  equipment_required?: string | null;
-  recurring_rule?: string | null;
-  is_active?: boolean;
+  status: "scheduled" | "completed" | "cancelled";
+  is_active: boolean;
   created_at: string;
-
-  // Computed availability counts
-  booked_count?: number;
-  waitlisted_count?: number;
 }
 
 interface BookingRecord {
   id: string;
   class_id: string;
   member_id: string;
-  booking_status: string;
-  purchased_plan_id?: string | null;
+  booking_status: "booked" | "confirmed" | "checked_in" | "completed" | "cancelled" | "no_show" | "waitlisted";
+  attendance_status: "pending" | "present" | "no_show" | "late";
+  purchased_plan_id: string | null;
+  checked_in_at: string | null;
   created_at: string;
-  checked_in_at?: string | null;
-  notes?: string | null;
-
-  // Joined relations
-  classes?: ClassSession | null;
+  classes?: ScheduledSession | null;
   approved_members?: {
-    id: string;
     full_name: string;
     email: string;
     phone_number: string;
-    membership_level?: string;
+  } | null;
+  member_purchased_plans?: {
+    plan_name: string;
+    category: string;
+    sessions_remaining: number | null;
+    status: string;
   } | null;
 }
 
-interface PurchasedPlan {
-  id: string;
-  plan_name: string;
-  category: string;
-  sessions_total: number | null;
-  sessions_remaining: number | null;
-  valid_from: string;
-  valid_until: string | null;
-  status: string;
-}
-
-interface ApprovedMember {
+interface MemberOption {
   id: string;
   full_name: string;
   email: string;
   phone_number: string;
-  membership_status: string;
-  membership_level: string;
+  plans: {
+    id: string;
+    plan_name: string;
+    category: string;
+    sessions_remaining: number | null;
+    sessions_total: number | null;
+    valid_until: string | null;
+    status: string;
+  }[];
 }
 
-type TabType = "schedule" | "bookings" | "cancellations";
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
-const PREDEFINED_INSTRUCTORS = [
-  "Ragini (Head Trainer)",
-  "Pooja Reddy",
-  "Anjani Sharma",
-  "Vikram Malhotra",
-  "Siddharth Rao",
-];
-
-const PREDEFINED_ROOMS = [
-  "Studio Room A (Reformer Bay)",
-  "Studio Room B (Mat & Tower)",
-  "Private Suite 1",
-  "Private Suite 2",
-];
-
-// Helper formatting
-function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return "N/A";
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+function parseAsIst(dateStr: string, timeStr: string): number {
+  const iso = `${dateStr}T${timeStr}`;
+  const d = new Date(iso);
+  const browserOffset = -d.getTimezoneOffset() * 60 * 1000;
+  return d.getTime() + (IST_OFFSET_MS - browserOffset);
 }
 
-function formatTime(timeStr: string | null | undefined): string {
-  if (!timeStr) return "N/A";
-  const [h, m] = timeStr.split(":");
-  const hour = parseInt(h, 10);
-  const ampm = hour >= 12 ? "PM" : "AM";
-  const formattedHour = hour % 12 || 12;
-  return `${formattedHour}:${m} ${ampm}`;
+function getTodayIstString(): string {
+  const now = new Date();
+  const istDate = new Date(now.getTime() + (IST_OFFSET_MS - (-now.getTimezoneOffset() * 60 * 1000)));
+  return istDate.toISOString().split("T")[0];
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    booked: "bg-blue-100 text-blue-800 border-blue-200",
-    confirmed: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    checked_in: "bg-indigo-100 text-indigo-800 border-indigo-200",
-    completed: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    cancelled: "bg-red-100 text-red-700 border-red-200",
-    no_show: "bg-amber-100 text-amber-800 border-amber-200",
-    waitlisted: "bg-orange-100 text-orange-800 border-orange-200",
-  };
-
-  const formattedLabel = status ? status.replace("_", " ").toUpperCase() : "BOOKED";
-
-  return (
-    <span
-      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider border ${
-        styles[status] || "bg-gray-100 text-gray-700 border-gray-200"
-      }`}
-    >
-      {formattedLabel}
-    </span>
-  );
-}
-
-export default function ClassesManagementPage() {
-  const supabase = createClient();
-  const [activeTab, setActiveTab] = useState<TabType>("schedule");
-
-  // Data states
-  const [sessions, setSessions] = useState<ClassSession[]>([]);
+export default function AdminClassesModulePage() {
+  const [activeTab, setActiveTab] = useState<"class_types" | "schedule" | "sessions" | "bookings">("schedule");
+  const [calendarView, setCalendarView] = useState<"day" | "week" | "month">("week");
+  
+  // Realtime Supabase Data
+  const [classTypes, setClassTypes] = useState<ClassType[]>([]);
+  const [sessions, setSessions] = useState<ScheduledSession[]>([]);
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
-  const [members, setMembers] = useState<ApprovedMember[]>([]);
+  const [membersList, setMembersList] = useState<MemberOption[]>([]);
+  
   const [loading, setLoading] = useState(true);
-  const [isPending, startTransition] = useTransition();
-
-  // Search & Filter states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [cancellationSearchQuery, setCancellationSearchQuery] = useState("");
-  const [selectedInstructor, setSelectedInstructor] = useState("All");
-  const [selectedStatus, setSelectedStatus] = useState("All");
-  const [selectedDate, setSelectedDate] = useState("");
-
-  // Modals & Action states
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [showMemberBookingModal, setShowMemberBookingModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  // Form states: New Class / Schedule Session
-  const [formTitle, setFormTitle] = useState("");
-  const [formDifficulty, setFormDifficulty] = useState("All Levels");
-  const [formInstructor, setFormInstructor] = useState("Ragini (Head Trainer)");
-  const [formDate, setFormDate] = useState(new Date().toISOString().split("T")[0]);
-  const [formTime, setFormTime] = useState("09:00");
-  const [formDuration, setFormDuration] = useState("60");
-  const [formBuffer, setFormBuffer] = useState("15");
-  const [formCapacity, setFormCapacity] = useState("10");
-  const [formRoom, setFormRoom] = useState("Studio Room A (Reformer Bay)");
-  const [formEquipment, setFormEquipment] = useState("Allegro 2 Reformers, Grip Socks");
-  const [formIsRecurring, setFormIsRecurring] = useState(false);
-  const [formRepeatInterval, setFormRepeatInterval] = useState("weekly"); // daily, weekly
-  const [formRepeatCount, setFormRepeatCount] = useState("4");
-  const [formSubmitting, setFormSubmitting] = useState(false);
+  // Filters & Search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterClass, setFilterClass] = useState("All");
+  const [filterTrainer, setFilterTrainer] = useState("All");
+  const [filterBookingStatus, setFilterBookingStatus] = useState("All");
+  const [filterAttendanceStatus, setFilterAttendanceStatus] = useState("All");
+  const [selectedDateFilter, setSelectedDateFilter] = useState("");
 
-  // Edit Class Modal state
-  const [editingSession, setEditingSession] = useState<ClassSession | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editDifficulty, setEditDifficulty] = useState("All Levels");
-  const [editInstructor, setEditInstructor] = useState("Ragini (Head Trainer)");
-  const [editDate, setEditDate] = useState("");
-  const [editTime, setEditTime] = useState("09:00");
-  const [editDuration, setEditDuration] = useState("60");
-  const [editBuffer, setEditBuffer] = useState("15");
-  const [editCapacity, setEditCapacity] = useState("10");
-  const [editRoom, setEditRoom] = useState("");
-  const [editEquipment, setEditEquipment] = useState("");
-  const [editSubmitting, setEditSubmitting] = useState(false);
+  // Modals state
+  const [showCreateClassTypeModal, setShowCreateClassTypeModal] = useState(false);
+  const [editingClassType, setEditingClassType] = useState<ClassType | null>(null);
 
-  // Delete Class Modal state
-  const [deletingSession, setDeletingSession] = useState<ClassSession | null>(null);
-  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [editingSession, setEditingSession] = useState<ScheduledSession | null>(null);
 
-  const handleOpenEditSession = (session: ClassSession) => {
-    setEditingSession(session);
-    setEditTitle(session.title);
-    setEditDifficulty(session.difficulty || "All Levels");
-    setEditInstructor(session.instructor);
-    setEditDate(session.class_date);
-    setEditTime(session.class_time);
-    setEditDuration(String(session.duration_minutes || 60));
-    setEditBuffer(String(session.buffer_minutes || 15));
-    setEditCapacity(String(session.max_capacity));
-    setEditRoom(session.location_room || "Studio Room A (Reformer Bay)");
-    setEditEquipment(session.equipment_required || "Allegro 2 Reformers, Grip Socks");
-  };
+  const [showAssignMemberModal, setShowAssignMemberModal] = useState(false);
+  const [targetSessionForAssign, setTargetSessionForAssign] = useState<ScheduledSession | null>(null);
+  const [selectedAssignMemberId, setSelectedAssignMemberId] = useState("");
 
-  const handleEditSessionSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingSession) return;
-    setEditSubmitting(true);
-    setActionError(null);
-    setActionSuccess(null);
+  const [rescheduleBookingTarget, setRescheduleBookingTarget] = useState<BookingRecord | null>(null);
+  const [targetRescheduleSessionId, setTargetRescheduleSessionId] = useState("");
 
-    const cap = parseInt(editCapacity, 10);
-    const dur = parseInt(editDuration, 10);
-    const buf = parseInt(editBuffer, 10);
+  // Class Type Form state
+  const [ctName, setCtName] = useState("");
+  const [ctCategory, setCtCategory] = useState("Reformer Pilates");
+  const [ctDescription, setCtDescription] = useState("");
+  const [ctDifficulty, setCtDifficulty] = useState("All Levels");
+  const [ctDuration, setCtDuration] = useState(60);
+  const [ctCapacity, setCtCapacity] = useState(10);
+  const [ctTrainer, setCtTrainer] = useState("Rahul Sharma");
+  const [ctRoom, setCtRoom] = useState("Studio Room A");
+  const [ctAllowBooking, setCtAllowBooking] = useState(true);
+  const [ctWaitlistEnabled, setCtWaitlistEnabled] = useState(true);
+  const [ctOpensHours, setCtOpensHours] = useState(168);
+  const [ctClosesHours, setCtClosesHours] = useState(2);
+  const [ctCancelWindow, setCtCancelWindow] = useState(4);
 
-    if (isNaN(cap) || cap <= 0) {
-      setActionError("Capacity must be a positive number.");
-      setEditSubmitting(false);
-      return;
-    }
+  // Schedule Session Form state
+  const [sessClassTypeId, setSessClassTypeId] = useState("");
+  const [sessTitle, setSessTitle] = useState("");
+  const [sessTrainer, setSessTrainer] = useState("Rahul Sharma");
+  const [sessDate, setSessDate] = useState(getTodayIstString());
+  const [sessTime, setSessTime] = useState("09:00");
+  const [sessDuration, setSessDuration] = useState(60);
+  const [sessBuffer, setSessBuffer] = useState(15);
+  const [sessCapacity, setSessCapacity] = useState(10);
+  const [sessRoom, setSessRoom] = useState("Studio Room A");
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState<"daily" | "weekly" | "monthly">("weekly");
+  const [recurringEndOption, setRecurringEndOption] = useState<"count" | "date">("count");
+  const [recurringOccurrences, setRecurringOccurrences] = useState(4);
+  const [recurringEndDate, setRecurringEndDate] = useState("");
 
-    const [h, m] = editTime.split(":");
-    const startMinutes = parseInt(h, 10) * 60 + parseInt(m, 10);
-    const endMinutes = startMinutes + dur;
-    const endH = String(Math.floor(endMinutes / 60) % 24).padStart(2, "0");
-    const endM = String(endMinutes % 60).padStart(2, "0");
-    const computedEndTime = `${endH}:${endM}`;
+  const supabase = createClient();
+  const [isPending, startTransition] = useTransition();
 
+  // ─── LOAD DATA FROM SUPABASE ───────────────────────────────────────────────
+  const fetchAllData = useCallback(async () => {
     try {
-      const { error } = await supabase
-        .from("classes")
-        .update({
-          title: editTitle.trim(),
-          difficulty: editDifficulty,
-          instructor: editInstructor,
-          class_date: editDate,
-          class_time: editTime,
-          end_time: computedEndTime,
-          duration_minutes: dur,
-          buffer_minutes: buf,
-          max_capacity: cap,
-          location_room: editRoom,
-          equipment_required: editEquipment,
-        })
-        .eq("id", editingSession.id);
+      setLoading(true);
 
-      if (error) {
-        setActionError(error.message);
-      } else {
-        setActionSuccess(`Class session "${editTitle}" updated successfully!`);
-        setEditingSession(null);
-        loadData();
-      }
-    } catch (err: any) {
-      setActionError(err.message);
-    } finally {
-      setEditSubmitting(false);
-    }
-  };
-
-  const handleConfirmDeleteSession = async () => {
-    if (!deletingSession) return;
-    setDeleteSubmitting(true);
-    setActionError(null);
-    setActionSuccess(null);
-
-    try {
-      // Delete bookings for this session
-      await supabase.from("bookings").delete().eq("class_id", deletingSession.id);
+      // 1. Fetch Class Types
+      const { data: ctData } = await supabase.from("class_types").select("*").order("name");
       
-      // Delete attendance records for this session
-      try {
-        await supabase.from("attendance").delete().eq("class_id", deletingSession.id);
-      } catch (e) {}
+      // 2. Fetch Classes / Sessions
+      const { data: sessData } = await supabase.from("classes").select("*").order("class_date", { ascending: true }).order("class_time", { ascending: true });
 
-      // Delete class session
-      const { error } = await supabase.from("classes").delete().eq("id", deletingSession.id);
+      // 3. Fetch Bookings with relations
+      const { data: bkData } = await supabase.from("bookings").select("*, classes(*), approved_members(full_name, email, phone_number), member_purchased_plans(plan_name, category, sessions_remaining, status)").order("created_at", { ascending: false });
 
-      if (error) {
-        setActionError(error.message);
-      } else {
-        setActionSuccess(`Class session "${deletingSession.title}" deleted successfully!`);
-        setDeletingSession(null);
-        loadData();
-      }
-    } catch (err: any) {
-      setActionError(err.message);
-    } finally {
-      setDeleteSubmitting(false);
-    }
-  };
-
-  // Member Booking Workflow states
-  const [bookMemberSearch, setBookMemberSearch] = useState("");
-  const [selectedBookMember, setSelectedBookMember] = useState<ApprovedMember | null>(null);
-  const [memberPlans, setMemberPlans] = useState<PurchasedPlan[]>([]);
-  const [selectedBookSession, setSelectedBookSession] = useState<ClassSession | null>(null);
-  const [plansLoading, setPlansLoading] = useState(false);
-  const [bookingSubmitting, setBookingSubmitting] = useState(false);
-  const [bookingEligibilityMessage, setBookingEligibilityMessage] = useState<string | null>(null);
-
-  // Fetch all classes & bookings
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      // 1. Fetch all class sessions
-      const { data: classesData, error: classesError } = await supabase
-        .from("classes")
-        .select("*")
-        .order("class_date", { ascending: true })
-        .order("class_time", { ascending: true });
-
-      if (classesError) {
-        setActionError(classesError.message);
-        setLoading(false);
-        return;
-      }
-
-      // 2. Fetch all bookings with member profiles
-      const { data: bookingsData } = await supabase
-        .from("bookings")
-        .select("*, classes(*), approved_members(id, full_name, email, phone_number, membership_level)")
-        .order("created_at", { ascending: false });
-
-      // 3. Compute availability per class session
-      const bookingsCountMap = new Map<string, { booked: number; waitlisted: number }>();
-      if (bookingsData) {
-        bookingsData.forEach((b: any) => {
-          const counts = bookingsCountMap.get(b.class_id) || { booked: 0, waitlisted: 0 };
-          if (b.booking_status === "waitlisted") {
-            counts.waitlisted += 1;
-          } else if (b.booking_status !== "cancelled") {
-            counts.booked += 1;
-          }
-          bookingsCountMap.set(b.class_id, counts);
-        });
-      }
-
-      const formattedSessions: ClassSession[] = (classesData || []).map((c: any) => {
-        const counts = bookingsCountMap.get(c.id) || { booked: 0, waitlisted: 0 };
-        return {
-          ...c,
-          booked_count: counts.booked,
-          waitlisted_count: counts.waitlisted,
-        };
-      });
-
-      // 4. Fetch approved members list for admin booking dropdown
-      const { data: approvedMembersData } = await supabase
-        .from("approved_members")
-        .select("id, full_name, email, phone_number, membership_status, membership_level")
-        .eq("membership_status", "active")
-        .order("full_name", { ascending: true });
+      // 4. Fetch Members for assignment
+      const { data: memData } = await supabase.from("approved_members").select("id, full_name, email, phone_number, member_purchased_plans(id, plan_name, category, sessions_remaining, sessions_total, valid_until, status)").order("full_name");
 
       startTransition(() => {
-        setSessions(formattedSessions);
-        setBookings((bookingsData as BookingRecord[]) || []);
-        setMembers((approvedMembersData as ApprovedMember[]) || []);
+        if (ctData) setClassTypes(ctData as ClassType[]);
+        if (sessData) setSessions(sessData as ScheduledSession[]);
+        if (bkData) setBookings(bkData as BookingRecord[]);
+        if (memData) setMembersList(memData as any[]);
         setLoading(false);
       });
-    } catch (err: any) {
-      console.error("loadData error:", err);
+    } catch (err) {
+      console.error("Error fetching studio classes data:", err);
       setLoading(false);
     }
   }, [supabase]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    fetchAllData();
+  }, [fetchAllData]);
 
-  // Load plans for selected member in Admin Booking Modal
-  const handleSelectMemberForBooking = async (member: ApprovedMember) => {
-    setSelectedBookMember(member);
-    setBookingEligibilityMessage(null);
-    setPlansLoading(true);
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel("studio-classes-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "classes" }, () => fetchAllData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => fetchAllData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "class_types" }, () => fetchAllData())
+      .subscribe();
 
-    const { data: plans } = await supabase
-      .from("member_purchased_plans")
-      .select("*")
-      .eq("approved_member_id", member.id)
-      .eq("status", "active")
-      .order("created_at", { ascending: false });
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, fetchAllData]);
 
-    setMemberPlans((plans as PurchasedPlan[]) || []);
-    setPlansLoading(false);
+  // ─── KPI SUMMARY CARD COMPUTATIONS ──────────────────────────────────────────
+  const kpiMetrics = useMemo(() => {
+    const activeClassTypes = classTypes.filter((c) => c.is_active).length || classTypes.length;
+    const todayStr = getTodayIstString();
+    const todaySessionsCount = sessions.filter((s) => s.class_date === todayStr && s.status !== "cancelled").length;
+    const totalActiveBookings = bookings.filter((b) => b.booking_status !== "cancelled").length;
+    
+    const checkedInCount = bookings.filter((b) => b.booking_status === "checked_in" || b.attendance_status === "present").length;
+    const avgAttendancePercent = totalActiveBookings > 0 ? Math.round((checkedInCount / totalActiveBookings) * 100) : 0;
+
+    return {
+      activeClassTypes,
+      todaySessionsCount,
+      totalActiveBookings,
+      avgAttendancePercent,
+    };
+  }, [classTypes, sessions, bookings]);
+
+  // ─── BOOKING COUNTS MAP PER SESSION ─────────────────────────────────────────
+  const sessionBookingCountMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    bookings.forEach((b) => {
+      if (b.booking_status !== "cancelled" && b.booking_status !== "waitlisted") {
+        map[b.class_id] = (map[b.class_id] || 0) + 1;
+      }
+    });
+    return map;
+  }, [bookings]);
+
+  // ─── CLASS TYPE HANDLERS ───────────────────────────────────────────────────
+  const handleOpenCreateClassType = () => {
+    setEditingClassType(null);
+    setCtName("");
+    setCtCategory("Reformer Pilates");
+    setCtDescription("");
+    setCtDifficulty("All Levels");
+    setCtDuration(60);
+    setCtCapacity(10);
+    setCtTrainer("Rahul Sharma");
+    setCtRoom("Studio Room A");
+    setCtAllowBooking(true);
+    setCtWaitlistEnabled(true);
+    setCtOpensHours(168);
+    setCtClosesHours(2);
+    setCtCancelWindow(4);
+    setShowCreateClassTypeModal(true);
   };
 
-  // Execute Server-Side Class Session Booking RPC
-  const handleConfirmAdminBooking = async () => {
-    if (!selectedBookMember || !selectedBookSession) {
-      setActionError("Please select both a member and a class session.");
-      return;
-    }
-
-    setBookingSubmitting(true);
-    setActionError(null);
-    setBookingEligibilityMessage(null);
-
-    try {
-      const { data: result, error: rpcError } = await supabase.rpc(
-        "book_member_class_session",
-        {
-          p_member_id: selectedBookMember.id,
-          p_class_id: selectedBookSession.id,
-        }
-      );
-
-      if (rpcError) {
-        setBookingEligibilityMessage(rpcError.message);
-        setBookingSubmitting(false);
-        return;
-      }
-
-      if (result && result.success) {
-        setActionSuccess(`Booking confirmed! Status: ${result.status.toUpperCase()}. Sessions remaining: ${result.sessions_remaining ?? 'Unlimited'}`);
-        setShowMemberBookingModal(false);
-        setSelectedBookMember(null);
-        setSelectedBookSession(null);
-        loadData();
-      }
-    } catch (err: any) {
-      setBookingEligibilityMessage(err.message || "Failed to complete booking.");
-    } finally {
-      setBookingSubmitting(false);
-    }
+  const handleOpenEditClassType = (ct: ClassType) => {
+    setEditingClassType(ct);
+    setCtName(ct.name);
+    setCtCategory(ct.category);
+    setCtDescription(ct.description || "");
+    setCtDifficulty(ct.difficulty);
+    setCtDuration(ct.duration_minutes);
+    setCtCapacity(ct.max_capacity);
+    setCtTrainer(ct.trainer);
+    setCtRoom(ct.location_room);
+    setCtAllowBooking(ct.allow_member_booking);
+    setCtWaitlistEnabled(ct.waitlist_enabled);
+    setCtOpensHours(ct.booking_opens_before_hours);
+    setCtClosesHours(ct.booking_closes_before_hours);
+    setCtCancelWindow(ct.cancellation_window_hours);
+    setShowCreateClassTypeModal(true);
   };
 
-  // Handle Booking Status Updates (Checked In, Attendance, Cancel, Reschedule, No Show)
-  const handleUpdateBookingStatus = async (bookingId: string, newStatus: string) => {
-    setActionError(null);
-    setActionSuccess(null);
-
-    try {
-      if (newStatus === "cancelled") {
-        const { data: result, error: cancelError } = await supabase.rpc(
-          "cancel_member_class_booking",
-          { p_booking_id: bookingId }
-        );
-
-        if (cancelError) {
-          setActionError(cancelError.message);
-          return;
-        }
-
-        setActionSuccess("Booking cancelled and session restored successfully.");
-      } else if (newStatus === "checked_in" || newStatus === "completed") {
-        const { error } = await supabase
-          .from("bookings")
-          .update({
-            booking_status: newStatus,
-            checked_in_at: new Date().toISOString(),
-          })
-          .eq("id", bookingId);
-
-        if (error) {
-          setActionError(error.message);
-          return;
-        }
-
-        const booking = bookings.find((b) => b.id === bookingId);
-        if (booking) {
-          await supabase.from("attendance").insert({
-            member_id: booking.member_id,
-            class_id: booking.class_id,
-            attendance_status: "present",
-            scanned_at: new Date().toISOString(),
-          });
-        }
-
-        setActionSuccess(`Status updated to ${newStatus}. Attendance recorded!`);
-      } else {
-        const { error } = await supabase
-          .from("bookings")
-          .update({ booking_status: newStatus })
-          .eq("id", bookingId);
-
-        if (error) {
-          setActionError(error.message);
-          return;
-        }
-
-        setActionSuccess(`Booking status updated to ${newStatus}.`);
-      }
-
-      loadData();
-    } catch (err: any) {
-      setActionError(err.message);
-    }
-  };
-
-  // Schedule Single or Recurring Sessions
-  const handleScheduleSessionsSubmit = async (e: React.FormEvent) => {
+  const handleSaveClassType = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormSubmitting(true);
-    setActionError(null);
-
-    const cap = parseInt(formCapacity, 10);
-    const dur = parseInt(formDuration, 10);
-    const buf = parseInt(formBuffer, 10);
-
-    if (isNaN(cap) || cap <= 0) {
-      setActionError("Capacity must be a positive number.");
-      setFormSubmitting(false);
+    if (!ctName.trim() || !ctTrainer.trim() || ctCapacity <= 0 || ctDuration <= 0) {
+      setActionError("Please complete all required fields with valid numbers.");
       return;
     }
 
-    try {
-      const datesToSchedule: string[] = [formDate];
-      if (formIsRecurring) {
-        const count = formRepeatInterval === "daily" ? 30 : 12;
-        const baseDate = new Date(formDate);
+    setActionLoading(true);
+    setActionError(null);
 
-        for (let i = 1; i < count; i++) {
-          const nextDate = new Date(baseDate);
-          if (formRepeatInterval === "daily") {
-            nextDate.setDate(baseDate.getDate() + i);
-          } else {
-            nextDate.setDate(baseDate.getDate() + i * 7); // weekly
-          }
-          datesToSchedule.push(nextDate.toISOString().split("T")[0]);
-        }
-      }
+    const payload = {
+      name: ctName.trim(),
+      category: ctCategory,
+      description: ctDescription.trim() || null,
+      difficulty: ctDifficulty,
+      duration_minutes: ctDuration,
+      max_capacity: ctCapacity,
+      trainer: ctTrainer.trim(),
+      location_room: ctRoom,
+      allow_member_booking: ctAllowBooking,
+      booking_opens_before_hours: ctOpensHours,
+      booking_closes_before_hours: ctClosesHours,
+      waitlist_enabled: ctWaitlistEnabled,
+      cancellation_window_hours: ctCancelWindow,
+      is_active: true,
+    };
 
-      const [h, m] = formTime.split(":");
-      const startMinutes = parseInt(h, 10) * 60 + parseInt(m, 10);
-      const endMinutes = startMinutes + dur;
-      const endH = String(Math.floor(endMinutes / 60) % 24).padStart(2, "0");
-      const endM = String(endMinutes % 60).padStart(2, "0");
-      const computedEndTime = `${endH}:${endM}`;
+    let error;
+    if (editingClassType) {
+      const res = await supabase.from("class_types").update(payload).eq("id", editingClassType.id);
+      error = res.error;
+    } else {
+      const res = await supabase.from("class_types").insert(payload);
+      error = res.error;
+    }
 
-      const insertRows = datesToSchedule.map((d) => ({
-        title: formTitle.trim(),
-        instructor: formInstructor,
-        class_date: d,
-        class_time: formTime,
-        end_time: computedEndTime,
-        duration_minutes: dur,
-        buffer_minutes: buf,
-        difficulty: formDifficulty,
-        max_capacity: cap,
-        location_room: formRoom,
-        equipment_required: formEquipment,
-        recurring_rule: formIsRecurring ? formRepeatInterval : null,
-        is_active: true,
-      }));
-
-      const { error } = await supabase.from("classes").insert(insertRows);
-
-      if (error) {
-        setActionError(error.message);
-        setFormSubmitting(false);
-        return;
-      }
-
-      setActionSuccess(`Successfully scheduled ${datesToSchedule.length} session(s)!`);
-      setShowScheduleModal(false);
-      loadData();
-    } catch (err: any) {
-      setActionError(err.message);
-    } finally {
-      setFormSubmitting(false);
+    setActionLoading(false);
+    if (error) {
+      setActionError("Failed to save class type: " + error.message);
+    } else {
+      setActionSuccess(editingClassType ? "Class type updated successfully!" : "Class type created successfully!");
+      setShowCreateClassTypeModal(false);
+      fetchAllData();
     }
   };
 
-  // Export Bookings to Excel (CSV)
-  const handleExportBookingsToExcel = () => {
-    if (filteredBookings.length === 0) return;
+  // ─── SCHEDULE SESSION HANDLERS ─────────────────────────────────────────────
+  const handleSelectClassTypeForSession = (ctId: string) => {
+    setSessClassTypeId(ctId);
+    const ct = classTypes.find((c) => c.id === ctId);
+    if (ct) {
+      setSessTitle(ct.name);
+      setSessTrainer(ct.trainer);
+      setSessDuration(ct.duration_minutes);
+      setSessCapacity(ct.max_capacity);
+      setSessRoom(ct.location_room);
+    }
+  };
 
-    const headers = ["Booking ID", "Member Name", "Phone", "Email", "Class Title", "Date", "Time", "Instructor", "Status", "Booked At"];
+  const handleSaveScheduledSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sessTitle.trim() || !sessTrainer.trim() || !sessDate || !sessTime) {
+      setActionError("Session Title, Trainer, Date, and Time are required.");
+      return;
+    }
+
+    setActionLoading(true);
+    setActionError(null);
+
+    // Calculate end time
+    const [h, m] = sessTime.split(":").map(Number);
+    const endMinutes = h * 60 + m + sessDuration;
+    const endH = Math.floor(endMinutes / 60) % 24;
+    const endM = endMinutes % 60;
+    const endTimeStr = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+
+    const basePayload = {
+      class_type_id: sessClassTypeId || null,
+      title: sessTitle.trim(),
+      instructor: sessTrainer.trim(),
+      class_time: sessTime,
+      end_time: endTimeStr,
+      buffer_minutes: sessBuffer,
+      max_capacity: sessCapacity,
+      category: classTypes.find((c) => c.id === sessClassTypeId)?.category || "Reformer Pilates",
+      location_room: sessRoom,
+      duration_minutes: sessDuration,
+      status: "scheduled",
+      is_active: true,
+    };
+
+    const sessionInserts = [];
+
+    if (isRecurring) {
+      const dates: string[] = [];
+      let currentDate = new Date(sessDate + "T00:00:00");
+
+      let maxCount = recurringOccurrences;
+      if (recurringEndOption === "date" && recurringEndDate) {
+        const endDateObj = new Date(recurringEndDate + "T00:00:00");
+        maxCount = 99; // max upper bound
+        while (currentDate <= endDateObj && dates.length < 52) {
+          dates.push(currentDate.toISOString().split("T")[0]);
+          if (recurringFrequency === "daily") currentDate.setDate(currentDate.getDate() + 1);
+          else if (recurringFrequency === "weekly") currentDate.setDate(currentDate.getDate() + 7);
+          else if (recurringFrequency === "monthly") currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+      } else {
+        for (let i = 0; i < maxCount; i++) {
+          dates.push(currentDate.toISOString().split("T")[0]);
+          if (recurringFrequency === "daily") currentDate.setDate(currentDate.getDate() + 1);
+          else if (recurringFrequency === "weekly") currentDate.setDate(currentDate.getDate() + 7);
+          else if (recurringFrequency === "monthly") currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+      }
+
+      dates.forEach((d) => {
+        sessionInserts.push({ ...basePayload, class_date: d });
+      });
+    } else {
+      sessionInserts.push({ ...basePayload, class_date: sessDate });
+    }
+
+    const { error } = await supabase.from("classes").insert(sessionInserts);
+
+    setActionLoading(false);
+    if (error) {
+      setActionError("Failed to schedule session: " + error.message);
+    } else {
+      setActionSuccess(`Successfully scheduled ${sessionInserts.length} session(s)!`);
+      setShowScheduleModal(false);
+      fetchAllData();
+    }
+  };
+
+  const handleCancelSession = async (sessionId: string) => {
+    if (!confirm("Cancel this class session? Cancelled sessions remain on record.")) return;
+    setActionLoading(true);
+    const { error } = await supabase.from("classes").update({ status: "cancelled", is_active: false }).eq("id", sessionId);
+    setActionLoading(false);
+    if (error) setActionError("Failed to cancel session: " + error.message);
+    else fetchAllData();
+  };
+
+  // ─── MEMBER ASSIGNMENT & SERVER RPC BOOKING ───────────────────────────────
+  const handleOpenAssignMember = (sess: ScheduledSession) => {
+    setTargetSessionForAssign(sess);
+    setSelectedAssignMemberId("");
+    setShowAssignMemberModal(true);
+  };
+
+  const handleConfirmMemberAssignment = async () => {
+    if (!targetSessionForAssign || !selectedAssignMemberId) return;
+
+    setActionLoading(true);
+    setActionError(null);
+
+    const { data, error } = await supabase.rpc("book_member_class_session", {
+      p_member_id: selectedAssignMemberId,
+      p_class_id: targetSessionForAssign.id,
+    });
+
+    setActionLoading(false);
+    if (error) {
+      setActionError("Booking Failed: " + error.message);
+    } else {
+      setActionSuccess(`Member assigned successfully! Status: ${data?.status || "Booked"}`);
+      setShowAssignMemberModal(false);
+      fetchAllData();
+    }
+  };
+
+  // ─── BOOKING STATUS & ATTENDANCE ACTIONS ──────────────────────────────────
+  const handleUpdateBookingStatus = async (bookingId: string, status: string) => {
+    setActionLoading(true);
+    if (status === "cancelled") {
+      const { error } = await supabase.rpc("cancel_member_class_booking", { p_booking_id: bookingId });
+      if (error) setActionError("Failed to cancel booking: " + error.message);
+    } else {
+      const updateData: any = { booking_status: status };
+      if (status === "checked_in") {
+        updateData.checked_in_at = new Date().toISOString();
+        updateData.attendance_status = "present";
+      }
+      const { error } = await supabase.from("bookings").update(updateData).eq("id", bookingId);
+      if (error) setActionError("Failed to update status: " + error.message);
+    }
+    setActionLoading(false);
+    fetchAllData();
+  };
+
+  const handleUpdateAttendance = async (bookingId: string, attendanceStatus: string) => {
+    setActionLoading(true);
+    const updateObj: any = { attendance_status: attendanceStatus };
+    if (attendanceStatus === "present") {
+      updateObj.booking_status = "checked_in";
+      updateObj.checked_in_at = new Date().toISOString();
+    } else if (attendanceStatus === "no_show") {
+      updateObj.booking_status = "no_show";
+    }
+    const { error } = await supabase.from("bookings").update(updateObj).eq("id", bookingId);
+    setActionLoading(false);
+    if (error) setActionError("Failed to update attendance: " + error.message);
+    else fetchAllData();
+  };
+
+  // ─── RESCHEDULE BOOKING HANDLER ───────────────────────────────────────────
+  const handleRescheduleBooking = async () => {
+    if (!rescheduleBookingTarget || !targetRescheduleSessionId) return;
+
+    setActionLoading(true);
+    const { error } = await supabase.rpc("reschedule_member_class_booking", {
+      p_booking_id: rescheduleBookingTarget.id,
+      p_new_class_id: targetRescheduleSessionId,
+    });
+
+    setActionLoading(false);
+    if (error) {
+      setActionError("Failed to reschedule: " + error.message);
+    } else {
+      setActionSuccess("Booking rescheduled successfully!");
+      setRescheduleBookingTarget(null);
+      fetchAllData();
+    }
+  };
+
+  // ─── EXPORT TO CSV / EXCEL ─────────────────────────────────────────────────
+  const exportBookingsToCSV = () => {
+    if (bookings.length === 0) return;
+    const headers = ["Member Name", "Email", "Phone", "Class Title", "Trainer", "Date", "Time", "Booking Status", "Attendance", "Package"];
     const rows = filteredBookings.map((b) => [
-      b.id.slice(0, 8),
-      b.approved_members?.full_name || "Member",
-      b.approved_members?.phone_number || "",
-      b.approved_members?.email || "",
-      b.classes?.title || "Class Session",
-      formatDate(b.classes?.class_date),
-      formatTime(b.classes?.class_time),
-      b.classes?.instructor || "",
+      b.approved_members?.full_name || "N/A",
+      b.approved_members?.email || "N/A",
+      b.approved_members?.phone_number || "N/A",
+      b.classes?.title || "N/A",
+      b.classes?.instructor || "N/A",
+      b.classes?.class_date || "N/A",
+      b.classes?.class_time || "N/A",
       b.booking_status,
-      formatDate(b.created_at),
+      b.attendance_status,
+      b.member_purchased_plans?.plan_name || "Active Membership",
     ]);
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((e) => e.map((val) => `"${val}"`).join(","))].join("\n");
-
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.map((x) => `"${x}"`).join(","))].join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Corhaus_Bookings_Report_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `Corhaus_Bookings_Report_${getTodayIstString()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // Filtered Bookings List
+  // ─── FILTERED BOOKINGS TABLE DATA ─────────────────────────────────────────
   const filteredBookings = useMemo(() => {
     return bookings.filter((b) => {
-      if (selectedStatus !== "All" && b.booking_status !== selectedStatus) return false;
-      if (selectedInstructor !== "All" && b.classes?.instructor !== selectedInstructor) return false;
-      if (selectedDate && b.classes?.class_date !== selectedDate) return false;
+      if (filterClass !== "All" && b.classes?.title !== filterClass) return false;
+      if (filterTrainer !== "All" && b.classes?.instructor !== filterTrainer) return false;
+      if (filterBookingStatus !== "All" && b.booking_status !== filterBookingStatus) return false;
+      if (filterAttendanceStatus !== "All" && b.attendance_status !== filterAttendanceStatus) return false;
+      if (selectedDateFilter && b.classes?.class_date !== selectedDateFilter) return false;
 
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const mName = b.approved_members?.full_name.toLowerCase() || "";
-        const mEmail = b.approved_members?.email.toLowerCase() || "";
-        const mPhone = b.approved_members?.phone_number || "";
-        const mId = b.member_id.toLowerCase();
-        const cTitle = b.classes?.title.toLowerCase() || "";
-
-        return mName.includes(q) || mEmail.includes(q) || mPhone.includes(q) || mId.includes(q) || cTitle.includes(q);
-      }
-
-      return true;
-    });
-  }, [bookings, selectedStatus, selectedInstructor, selectedDate, searchQuery]);
-
-  // Cancelled Bookings List (Tab 4)
-  const cancelledBookings = useMemo(() => {
-    return bookings.filter((b) => {
-      if (b.booking_status !== "cancelled") return false;
-      if (cancellationSearchQuery.trim()) {
-        const q = cancellationSearchQuery.toLowerCase().trim();
-        const mName = b.approved_members?.full_name.toLowerCase() || "";
-        const mEmail = b.approved_members?.email.toLowerCase() || "";
-        const mPhone = b.approved_members?.phone_number || "";
-        const cTitle = b.classes?.title.toLowerCase() || "";
-        return mName.includes(q) || mEmail.includes(q) || mPhone.includes(q) || cTitle.includes(q);
+        const q = searchQuery.toLowerCase();
+        const mName = b.approved_members?.full_name?.toLowerCase() || "";
+        const mPhone = b.approved_members?.phone_number?.toLowerCase() || "";
+        const cTitle = b.classes?.title?.toLowerCase() || "";
+        return mName.includes(q) || mPhone.includes(q) || cTitle.includes(q);
       }
       return true;
     });
-  }, [bookings, cancellationSearchQuery]);
+  }, [bookings, filterClass, filterTrainer, filterBookingStatus, filterAttendanceStatus, selectedDateFilter, searchQuery]);
 
   return (
-    <div className="space-y-6 animate-fade-in font-sans">
-      {/* Top Header & Quick Action Triggers */}
+    <div className="space-y-8 animate-fade-in font-sans">
+      {/* Top Banner Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-serif text-[#362B24]">
-            Classes <span className="font-semibold">&amp; Schedule Board</span>
+          <h1 className="text-3xl font-bold text-[#1B0B38]">
+            Classes &amp; Studio <span className="text-[#7B3FE4]">Management</span>
           </h1>
-          <p className="text-sm text-[#4A3B32]/60 mt-0.5">
-            Manage reusable class types, schedule board, member bookings, and attendance integration
+          <p className="text-sm text-[#1B0B38]/60 mt-1">
+            Manage class types, calendar schedule board, session bookings, and attendance integration
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
-              setSelectedBookMember(null);
-              setSelectedBookSession(null);
-              setBookingEligibilityMessage(null);
-              setShowMemberBookingModal(true);
+              setSessClassTypeId("");
+              setSessTitle("");
+              setShowScheduleModal(true);
             }}
-            className="px-4 py-2.5 rounded-xl bg-white border border-[#E5DDD0] text-[#362B24] font-semibold text-xs hover:border-[#B89368] transition-colors shadow-xs flex items-center gap-2"
+            className="px-5 py-2.5 rounded-xl bg-[#7B3FE4] text-white text-xs font-bold hover:bg-[#6A2FD3] transition-colors shadow-md flex items-center gap-1.5"
           >
-            <span>+ Book Member</span>
-          </button>
-          <button
-            onClick={() => setShowScheduleModal(true)}
-            className="px-5 py-2.5 rounded-xl bg-[#7B3FE4] text-white text-xs font-semibold hover:bg-[#6A2FD3] transition-colors shadow-md"
-          >
-            + Schedule Session
+            <span>+</span> Schedule Session
           </button>
         </div>
       </div>
 
       {actionError && (
-        <div className="p-4 rounded-xl text-xs bg-red-50 border border-red-200 text-red-700 flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center justify-between">
           <span>{actionError}</span>
-          <button onClick={() => setActionError(null)} className="font-bold hover:underline">✕</button>
+          <button onClick={() => setActionError(null)} className="font-bold">✕</button>
         </div>
       )}
 
       {actionSuccess && (
-        <div className="p-4 rounded-xl text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between">
           <span>{actionSuccess}</span>
-          <button onClick={() => setActionSuccess(null)} className="font-bold hover:underline">✕</button>
+          <button onClick={() => setActionSuccess(null)} className="font-bold">✕</button>
         </div>
       )}
 
-      {/* Tabs Bar */}
-      <div className="flex items-center gap-2 border-b border-[#1B0B38]/10 pb-2 overflow-x-auto">
+      {/* 4 REAL-TIME KPI SUMMARY CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="bg-white rounded-3xl p-5 border border-[#1B0B38]/10 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-[#1B0B38]/50 uppercase tracking-wider">Active Class Types</p>
+            <p className="text-3xl font-extrabold text-[#1B0B38] mt-1">{loading ? "..." : kpiMetrics.activeClassTypes}</p>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-[#F2EBFE] text-[#7B3FE4] flex items-center justify-center font-bold text-xl">
+            🧘
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl p-5 border border-[#1B0B38]/10 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-[#1B0B38]/50 uppercase tracking-wider">Today&apos;s Sessions</p>
+            <p className="text-3xl font-extrabold text-[#1B0B38] mt-1">{loading ? "..." : kpiMetrics.todaySessionsCount}</p>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xl">
+            📅
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl p-5 border border-[#1B0B38]/10 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-[#1B0B38]/50 uppercase tracking-wider">Total Active Bookings</p>
+            <p className="text-3xl font-extrabold text-[#1B0B38] mt-1">{loading ? "..." : kpiMetrics.totalActiveBookings}</p>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-xl">
+            📋
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl p-5 border border-[#1B0B38]/10 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-[#1B0B38]/50 uppercase tracking-wider">Attendance Rate</p>
+            <p className="text-3xl font-extrabold text-[#1B0B38] mt-1">{loading ? "..." : `${kpiMetrics.avgAttendancePercent}%`}</p>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xl">
+            ✓
+          </div>
+        </div>
+      </div>
+
+      {/* 4 INDEPENDENT TABS NAVIGATION */}
+      <div className="flex items-center gap-2 border-b border-[#1B0B38]/10 pb-3 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab("class_types")}
+          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+            activeTab === "class_types"
+              ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/20"
+              : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
+          }`}
+        >
+          🗂 Class Types ({classTypes.length})
+        </button>
+
         <button
           onClick={() => setActiveTab("schedule")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
             activeTab === "schedule"
-              ? "bg-[#7B3FE4] text-white shadow-xs"
-              : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-[#FAF9FC]"
+              ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/20"
+              : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
           }`}
         >
           📅 Schedule Board ({sessions.length})
         </button>
+
+        <button
+          onClick={() => setActiveTab("sessions")}
+          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+            activeTab === "sessions"
+              ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/20"
+              : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
+          }`}
+        >
+          ⏱ Sessions ({sessions.length})
+        </button>
+
         <button
           onClick={() => setActiveTab("bookings")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
             activeTab === "bookings"
-              ? "bg-[#7B3FE4] text-white shadow-xs"
-              : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-[#FAF9FC]"
+              ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/20"
+              : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
           }`}
         >
-          📋 Bookings &amp; Attendance ({bookings.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("cancellations")}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-            activeTab === "cancellations"
-              ? "bg-red-800 text-white shadow-xs"
-              : "text-[#4A3B32]/60 hover:text-[#362B24] hover:bg-[#FAF7F2]"
-          }`}
-        >
-          🚫 Cancellations ({cancelledBookings.length})
+          📋 Bookings ({bookings.length})
         </button>
       </div>
 
-      {/* ─── TAB 1: SCHEDULE BOARD (CALENDAR / SESSIONS GRID) ────────────────── */}
-      {activeTab === "schedule" && (
-        <div className="space-y-4">
-          {/* Availability & Filter Bar */}
-          <div className="bg-white rounded-2xl border border-[#E5DDD0] p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <select
-                value={selectedInstructor}
-                onChange={(e) => setSelectedInstructor(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs font-medium text-[#362B24]"
-              >
-                <option value="All">All Instructors</option>
-                {PREDEFINED_INSTRUCTORS.map((ins) => (
-                  <option key={ins} value={ins}>{ins}</option>
-                ))}
-              </select>
-
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs font-medium text-[#362B24]"
-              />
-              {selectedDate && (
-                <button onClick={() => setSelectedDate("")} className="text-xs text-[#4A3B32]/50 hover:underline">
-                  Clear Date
-                </button>
-              )}
-            </div>
-
-            <div className="text-xs font-semibold text-[#4A3B32]/60">
-              Showing {sessions.length} upcoming &amp; active class sessions
-            </div>
+      {/* ─── TAB 1: CLASS TYPES ────────────────────────────────────────────── */}
+      {activeTab === "class_types" && (
+        <div className="space-y-5 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-[#1B0B38]">Master Class Templates</h2>
+            <button
+              onClick={handleOpenCreateClassType}
+              className="px-4 py-2 rounded-xl bg-[#7B3FE4] text-white text-xs font-bold hover:bg-[#6A2FD3] shadow-xs"
+            >
+              + Create Class Type
+            </button>
           </div>
 
-          {/* Sessions Cards Grid */}
-          {loading ? (
-            <div className="flex justify-center py-16">
-              <div className="w-6 h-6 border-2 border-[#B89368]/30 border-t-[#B89368] rounded-full animate-spin" />
-            </div>
-          ) : sessions.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-[#E5DDD0] p-12 text-center shadow-xs">
-              <p className="text-sm font-semibold text-[#362B24]">No scheduled sessions found</p>
-              <p className="text-xs text-[#4A3B32]/50 mt-1">Schedule a session or add class types to get started.</p>
-              <button
-                onClick={() => setShowScheduleModal(true)}
-                className="mt-4 px-4 py-2 rounded-xl bg-[#B89368] text-white text-xs font-semibold"
-              >
-                + Schedule First Session
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sessions.map((session) => {
-                const booked = session.booked_count || 0;
-                const capacity = session.max_capacity;
-                const available = Math.max(0, capacity - booked);
-                const isFull = available === 0;
-
-                return (
-                  <div
-                    key={session.id}
-                    className="bg-white rounded-2xl border border-[#E5DDD0] p-5 shadow-xs hover:border-[#B89368] transition-all space-y-4"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-serif font-bold text-base text-[#362B24]">
-                          {session.title}
-                        </h3>
-                        <p className="text-xs text-[#4A3B32]/60 mt-0.5">
-                          {session.instructor}
-                        </p>
-                      </div>
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                        isFull ? "bg-red-50 text-red-700 border border-red-200" : "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                      }`}>
-                        {isFull ? "FULL" : `${available} seats left`}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {classTypes.map((ct) => (
+              <div key={ct.id} className="bg-white rounded-3xl border border-[#1B0B38]/10 p-6 shadow-xs flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-[#7B3FE4] uppercase tracking-wider bg-[#F2EBFE] px-2.5 py-1 rounded-lg inline-block mb-1.5">
+                        {ct.category}
                       </span>
+                      <h3 className="text-lg font-bold text-[#1B0B38]">{ct.name}</h3>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0]/60">
-                      <div>
-                        <span className="text-[10px] text-[#4A3B32]/50 block">Date &amp; Time</span>
-                        <span className="font-semibold text-[#362B24]">
-                          {formatDate(session.class_date)} @ {formatTime(session.class_time)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-[#4A3B32]/50 block">Room / Location</span>
-                        <span className="font-semibold text-[#362B24]">
-                          {session.location_room || "Studio Room A"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Capacity & Availability Progress */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-medium">
-                        <span className="text-[#4A3B32]/70">Capacity &amp; Bookings</span>
-                        <span className="font-bold text-[#362B24]">
-                          {booked} / {capacity} Booked
-                          {session.waitlisted_count ? ` (${session.waitlisted_count} Waitlisted)` : ""}
-                        </span>
-                      </div>
-                      <div className="w-full bg-[#E5DDD0]/50 h-2 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all ${
-                            isFull ? "bg-red-500" : "bg-[#B89368]"
-                          }`}
-                          style={{ width: `${Math.min(100, (booked / capacity) * 100)}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Card Actions */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-[#E5DDD0]/60 flex-wrap">
-                      <button
-                        onClick={() => {
-                          setSelectedBookSession(session);
-                          setShowMemberBookingModal(true);
-                        }}
-                        className="flex-1 py-2 px-3 rounded-xl bg-[#7B3FE4] text-white text-xs font-bold hover:bg-[#6A2FD3] transition-colors shadow-xs"
-                      >
-                        + Book Member
-                      </button>
-                      <button
-                        onClick={() => handleOpenEditSession(session)}
-                        className="py-2 px-3 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs font-semibold text-[#4A3B32] hover:bg-[#F4EFE6] transition-colors"
-                        title="Edit Class Session"
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button
-                        onClick={() => setDeletingSession(session)}
-                        className="py-2 px-3 rounded-xl border border-red-200 bg-red-50 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors"
-                        title="Delete Class Session"
-                      >
-                        🗑️ Delete
-                      </button>
-                    </div>
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      {ct.difficulty}
+                    </span>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  {ct.description && <p className="text-xs text-[#1B0B38]/60 mt-2 line-clamp-2">{ct.description}</p>}
+                </div>
+
+                <div className="pt-3 border-t border-[#1B0B38]/10 space-y-1.5 text-xs text-[#1B0B38]/70">
+                  <div className="flex justify-between">
+                    <span>Trainer:</span>
+                    <span className="font-bold text-[#1B0B38]">{ct.trainer}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Duration &amp; Capacity:</span>
+                    <span className="font-semibold text-[#1B0B38]">{ct.duration_minutes} mins &bull; {ct.max_capacity} max</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Studio Room:</span>
+                    <span className="font-semibold text-[#1B0B38]">{ct.location_room}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-[#1B0B38]/10">
+                  <button
+                    onClick={() => handleOpenEditClassType(ct)}
+                    className="flex-1 py-2 bg-[#FAF9FC] border border-[#7B3FE4]/20 text-[#7B3FE4] rounded-xl text-xs font-bold hover:bg-[#7B3FE4]/10 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSessClassTypeId(ct.id);
+                      setSessTitle(ct.name);
+                      setSessTrainer(ct.trainer);
+                      setSessDuration(ct.duration_minutes);
+                      setSessCapacity(ct.max_capacity);
+                      setSessRoom(ct.location_room);
+                      setShowScheduleModal(true);
+                    }}
+                    className="flex-1 py-2 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3] transition-colors shadow-xs"
+                  >
+                    Schedule
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* ─── TAB 2: BOOKINGS & ATTENDANCE MANAGEMENT ─────────────────────────── */}
+      {/* ─── TAB 2: SCHEDULE BOARD ─────────────────────────────────────────── */}
+      {activeTab === "schedule" && (
+        <div className="space-y-5 animate-fade-in">
+          <div className="flex items-center justify-between bg-white rounded-2xl border border-[#1B0B38]/10 p-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-[#1B0B38]">Calendar View:</span>
+              {(["day", "week", "month"] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setCalendarView(v)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase ${
+                    calendarView === v ? "bg-[#7B3FE4] text-white" : "text-[#1B0B38]/60 hover:bg-[#FAF9FC]"
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowScheduleModal(true)}
+              className="px-4 py-2 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3] shadow-xs"
+            >
+              + Add Session
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {sessions.map((s) => {
+              const booked = sessionBookingCountMap[s.id] || 0;
+              const isFull = booked >= s.max_capacity;
+
+              return (
+                <div key={s.id} className="bg-white rounded-3xl border border-[#1B0B38]/10 p-5 shadow-xs flex flex-col justify-between space-y-4">
+                  <div>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-bold text-base text-[#1B0B38]">{s.title}</h3>
+                        <p className="text-xs text-[#1B0B38]/60">{s.instructor}</p>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                        s.status === "cancelled"
+                          ? "bg-red-100 text-red-800"
+                          : isFull
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-emerald-100 text-emerald-800"
+                      }`}>
+                        {s.status === "cancelled" ? "Cancelled" : isFull ? "Fully Booked" : "Available"}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 p-3 bg-[#FAF9FC] rounded-2xl border border-[#1B0B38]/10 space-y-1 text-xs text-[#1B0B38]">
+                      <div className="flex justify-between font-semibold">
+                        <span>Date &amp; Time:</span>
+                        <span>{s.class_date} @ {s.class_time}</span>
+                      </div>
+                      <div className="flex justify-between text-[#1B0B38]/70">
+                        <span>Room:</span>
+                        <span>{s.location_room}</span>
+                      </div>
+                      <div className="flex justify-between font-bold pt-1 border-t border-[#1B0B38]/10">
+                        <span>Capacity:</span>
+                        <span>{booked} / {s.max_capacity} booked ({s.max_capacity - booked} left)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-[#1B0B38]/10">
+                    <button
+                      onClick={() => handleOpenAssignMember(s)}
+                      disabled={isFull || s.status === "cancelled"}
+                      className="flex-1 py-2 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3] disabled:opacity-50 shadow-xs"
+                    >
+                      Assign Member
+                    </button>
+                    {s.status !== "cancelled" && (
+                      <button
+                        onClick={() => handleCancelSession(s.id)}
+                        className="px-3 py-2 border border-red-200 text-red-700 bg-red-50 rounded-xl text-xs font-semibold hover:bg-red-100"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: SESSIONS LIST ─────────────────────────────────────────── */}
+      {activeTab === "sessions" && (
+        <div className="bg-white rounded-3xl border border-[#1B0B38]/10 overflow-hidden shadow-xs animate-fade-in">
+          <div className="p-4 border-b border-[#1B0B38]/10 flex items-center justify-between">
+            <h2 className="text-base font-bold text-[#1B0B38]">All Scheduled Sessions</h2>
+            <button
+              onClick={() => setShowScheduleModal(true)}
+              className="px-4 py-2 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3]"
+            >
+              + Add Session
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-[#FAF9FC] border-b border-[#1B0B38]/10 text-[#1B0B38]/60 uppercase font-bold text-[10px]">
+                <tr>
+                  <th className="py-3.5 px-4">Session Title</th>
+                  <th className="py-3.5 px-4">Trainer</th>
+                  <th className="py-3.5 px-4">Date &amp; Time</th>
+                  <th className="py-3.5 px-4">Room</th>
+                  <th className="py-3.5 px-4">Capacity / Booked</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1B0B38]/10">
+                {sessions.map((s) => {
+                  const booked = sessionBookingCountMap[s.id] || 0;
+                  return (
+                    <tr key={s.id} className="hover:bg-[#FAF9FC]/50 transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-[#1B0B38]">{s.title}</td>
+                      <td className="py-3.5 px-4 font-medium text-[#1B0B38]/70">{s.instructor}</td>
+                      <td className="py-3.5 px-4 font-semibold text-[#1B0B38]">{s.class_date} @ {s.class_time}</td>
+                      <td className="py-3.5 px-4 text-[#1B0B38]/70">{s.location_room}</td>
+                      <td className="py-3.5 px-4 font-bold text-[#7B3FE4]">{booked} / {s.max_capacity}</td>
+                      <td className="py-3.5 px-4">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                          s.status === "cancelled" ? "bg-red-100 text-red-800" : "bg-emerald-100 text-emerald-800"
+                        }`}>
+                          {s.status}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right space-x-1.5">
+                        <button
+                          onClick={() => handleOpenAssignMember(s)}
+                          disabled={s.status === "cancelled"}
+                          className="px-3 py-1.5 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3] disabled:opacity-50"
+                        >
+                          Assign Member
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: DEDICATED BOOKINGS MODULE ─────────────────────────────── */}
       {activeTab === "bookings" && (
-        <div className="space-y-4">
-          {/* Controls & Export Header */}
-          <div className="bg-white rounded-2xl border border-[#E5DDD0] p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="relative flex-1 w-full">
+        <div className="space-y-4 animate-fade-in font-sans">
+          {/* Controls & Filters Bar */}
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 p-4 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-md">
               <input
                 type="text"
+                placeholder="Search member name or phone..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search bookings by member name, email, phone, or class title..."
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                className="w-full pl-9 pr-4 py-2 bg-[#FAF9FC] border border-[#1B0B38]/15 rounded-2xl text-xs text-[#1B0B38] focus:outline-none focus:ring-1 focus:ring-[#7B3FE4]"
               />
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A3B32]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
+              <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#1B0B38]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-[#E5DDD0] bg-white text-xs font-medium text-[#362B24]"
-              >
-                <option value="All">All Statuses</option>
-                <option value="booked">Booked</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="checked_in">Checked In</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="no_show">No Show</option>
-                <option value="waitlisted">Waitlisted</option>
-              </select>
-
+            <div className="flex items-center gap-2 flex-wrap">
               <button
-                onClick={handleExportBookingsToExcel}
-                className="px-4 py-2.5 rounded-xl bg-[#4A3B32] text-white font-semibold text-xs hover:bg-[#362B24] transition-colors flex items-center gap-2 shadow-xs"
+                onClick={exportBookingsToCSV}
+                className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-xs flex items-center gap-1.5"
               >
-                📥 Export Excel
+                📥 Export CSV / Excel
               </button>
             </div>
           </div>
 
           {/* Bookings Table */}
-          <div className="bg-white rounded-2xl border border-[#E5DDD0] overflow-hidden shadow-xs">
-            {loading ? (
-              <div className="flex justify-center py-16">
-                <div className="w-6 h-6 border-2 border-[#B89368]/30 border-t-[#B89368] rounded-full animate-spin" />
-              </div>
-            ) : filteredBookings.length === 0 ? (
-              <div className="text-center py-16 px-4">
-                <p className="text-sm font-semibold text-[#362B24]">No bookings found</p>
-                <p className="text-xs text-[#4A3B32]/50 mt-1">Try adjusting search filters or book a member.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left">
-                  <thead>
-                    <tr className="bg-[#FAF7F2] border-b border-[#E5DDD0] text-[#4A3B32]/60 font-semibold uppercase tracking-wider whitespace-nowrap">
-                      <th className="py-3.5 px-4">Member</th>
-                      <th className="py-3.5 px-4">Class Session</th>
-                      <th className="py-3.5 px-4">Date &amp; Time</th>
-                      <th className="py-3.5 px-4">Instructor</th>
-                      <th className="py-3.5 px-4">Status</th>
-                      <th className="py-3.5 px-4">Booked Date</th>
-                      <th className="py-3.5 px-4 text-right">Actions</th>
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-[#FAF9FC] border-b border-[#1B0B38]/10 text-[#1B0B38]/60 uppercase font-bold text-[10px]">
+                  <tr>
+                    <th className="py-3.5 px-4">Member</th>
+                    <th className="py-3.5 px-4">Phone</th>
+                    <th className="py-3.5 px-4">Class</th>
+                    <th className="py-3.5 px-4">Session Date &amp; Time</th>
+                    <th className="py-3.5 px-4">Booking Status</th>
+                    <th className="py-3.5 px-4">Attendance</th>
+                    <th className="py-3.5 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#1B0B38]/10">
+                  {filteredBookings.map((b) => (
+                    <tr key={b.id} className="hover:bg-[#FAF9FC]/50 transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-[#1B0B38]">
+                        {b.approved_members?.full_name || "Member"}
+                        <span className="block text-[10px] text-[#1B0B38]/50 font-normal">{b.approved_members?.email}</span>
+                      </td>
+                      <td className="py-3.5 px-4 font-medium text-[#1B0B38]/70">{b.approved_members?.phone_number || "N/A"}</td>
+                      <td className="py-3.5 px-4 font-semibold text-[#1B0B38]">{b.classes?.title || "N/A"}</td>
+                      <td className="py-3.5 px-4 font-medium text-[#1B0B38]">{b.classes?.class_date} @ {b.classes?.class_time}</td>
+                      <td className="py-3.5 px-4">
+                        <select
+                          value={b.booking_status}
+                          onChange={(e) => handleUpdateBookingStatus(b.id, e.target.value)}
+                          className="p-1 rounded-lg border border-[#1B0B38]/15 bg-[#FAF9FC] text-[11px] font-bold text-[#7B3FE4]"
+                        >
+                          <option value="booked">Booked</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="checked_in">Checked In</option>
+                          <option value="completed">Completed</option>
+                          <option value="waitlisted">Waitlisted</option>
+                          <option value="cancelled">Cancelled</option>
+                          <option value="no_show">No Show</option>
+                        </select>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <select
+                          value={b.attendance_status}
+                          onChange={(e) => handleUpdateAttendance(b.id, e.target.value)}
+                          className="p-1 rounded-lg border border-[#1B0B38]/15 bg-[#FAF9FC] text-[11px] font-bold text-[#1B0B38]"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="present">Mark Present</option>
+                          <option value="no_show">Mark No Show</option>
+                          <option value="late">Late Check-In</option>
+                        </select>
+                      </td>
+                      <td className="py-3.5 px-4 text-right space-x-1">
+                        <button
+                          onClick={() => setRescheduleBookingTarget(b)}
+                          className="px-3 py-1.5 bg-[#FAF9FC] border border-[#7B3FE4]/20 text-[#7B3FE4] rounded-xl text-xs font-bold hover:bg-[#7B3FE4]/10"
+                        >
+                          Reschedule
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E5DDD0]/50 whitespace-nowrap">
-                    {filteredBookings.map((b) => (
-                      <tr key={b.id} className="hover:bg-[#FAF7F2]/50 transition-colors">
-                        {/* Member */}
-                        <td className="py-3.5 px-4 font-semibold text-[#362B24]">
-                          <div>
-                            <p className="font-bold text-sm leading-tight">{b.approved_members?.full_name || "Member"}</p>
-                            <p className="text-[11px] text-[#4A3B32]/50 mt-0.5">{b.approved_members?.phone_number}</p>
-                          </div>
-                        </td>
-
-                        {/* Class */}
-                        <td className="py-3.5 px-4 font-semibold text-[#362B24]">
-                          {b.classes?.title || "Pilates Session"}
-                        </td>
-
-                        {/* Date & Time */}
-                        <td className="py-3.5 px-4 text-[#4A3B32]">
-                          {formatDate(b.classes?.class_date)} @ {formatTime(b.classes?.class_time)}
-                        </td>
-
-                        {/* Instructor */}
-                        <td className="py-3.5 px-4 text-[#4A3B32]/80 font-medium">
-                          {b.classes?.instructor || "Staff"}
-                        </td>
-
-                        {/* Status */}
-                        <td className="py-3.5 px-4">
-                          <StatusBadge status={b.booking_status} />
-                        </td>
-
-                        {/* Booked At */}
-                        <td className="py-3.5 px-4 text-[#4A3B32]/60">
-                          {formatDate(b.created_at)}
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {b.booking_status !== "checked_in" && b.booking_status !== "completed" && b.booking_status !== "cancelled" && (
-                              <button
-                                onClick={() => handleUpdateBookingStatus(b.id, "checked_in")}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-[11px] hover:bg-emerald-100"
-                              >
-                                Check In
-                              </button>
-                            )}
-
-                            {b.booking_status !== "cancelled" && (
-                              <button
-                                onClick={() => handleUpdateBookingStatus(b.id, "no_show")}
-                                className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 font-semibold text-[11px] hover:bg-amber-100"
-                              >
-                                No Show
-                              </button>
-                            )}
-
-                            {b.booking_status !== "cancelled" && (
-                              <button
-                                onClick={() => handleUpdateBookingStatus(b.id, "cancelled")}
-                                className="px-2.5 py-1 rounded-lg bg-red-50 text-red-700 border border-red-200 font-semibold text-[11px] hover:bg-red-100"
-                              >
-                                Cancel
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-
-
-      {/* ─── TAB 4: CANCELLATIONS TAB ────────────────────────────────────────── */}
-      {activeTab === "cancellations" && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-[#E5DDD0] p-4 shadow-xs flex items-center justify-between gap-3">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={cancellationSearchQuery}
-                onChange={(e) => setCancellationSearchQuery(e.target.value)}
-                placeholder="Search cancelled bookings by member name, email, phone, or class title..."
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-red-500"
-              />
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A3B32]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
-              </svg>
-            </div>
-            <span className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-xl">
-              {cancelledBookings.length} Cancelled Reservations
-            </span>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-[#E5DDD0] overflow-hidden shadow-xs">
-            {cancelledBookings.length === 0 ? (
-              <div className="text-center py-16 px-4">
-                <p className="text-sm font-semibold text-[#362B24]">No cancelled bookings</p>
-                <p className="text-xs text-[#4A3B32]/50 mt-1">Cancelled class reservations will automatically appear here.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left">
-                  <thead>
-                    <tr className="bg-red-50/50 border-b border-[#E5DDD0] text-red-900 font-semibold uppercase tracking-wider whitespace-nowrap">
-                      <th className="py-3.5 px-4">Member Name</th>
-                      <th className="py-3.5 px-4">Phone / Email</th>
-                      <th className="py-3.5 px-4">Class Session</th>
-                      <th className="py-3.5 px-4">Session Date &amp; Time</th>
-                      <th className="py-3.5 px-4">Status</th>
-                      <th className="py-3.5 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E5DDD0]/50 whitespace-nowrap">
-                    {cancelledBookings.map((b) => (
-                      <tr key={b.id} className="hover:bg-[#FAF7F2]/50 transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-[#362B24]">
-                          {b.approved_members?.full_name || "Member"}
-                        </td>
-                        <td className="py-3.5 px-4 text-[#4A3B32]/70">
-                          {b.approved_members?.phone_number} • {b.approved_members?.email}
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-[#362B24]">
-                          {b.classes?.title || "Pilates Session"}
-                        </td>
-                        <td className="py-3.5 px-4 text-[#4A3B32]">
-                          {formatDate(b.classes?.class_date)} @ {formatTime(b.classes?.class_time)}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <StatusBadge status="cancelled" />
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <button
-                            onClick={() => handleUpdateBookingStatus(b.id, "booked")}
-                            className="px-3 py-1.5 rounded-xl bg-[#4A3B32] text-white font-semibold text-xs hover:bg-[#362B24]"
-                          >
-                            Re-book Member
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ─── MODAL: SCHEDULE SESSION (SINGLE OR RECURRING) ────────────────── */}
-      {showScheduleModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-xs animate-fade-in"
-          onClick={() => setShowScheduleModal(false)}
-        >
-          <div
-            className="bg-white rounded-3xl p-6 max-w-xl w-full space-y-4 shadow-2xl border border-[#E5DDD0] max-h-[90vh] overflow-y-auto animate-slide-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-[#E5DDD0] pb-3">
-              <h3 className="text-base font-serif font-bold text-[#362B24]">Schedule Class Session</h3>
-              <button onClick={() => setShowScheduleModal(false)} className="text-xs font-bold text-[#4A3B32]">✕</button>
-            </div>
-
-            <form onSubmit={handleScheduleSessionsSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-[#4A3B32] mb-1">Class Name / Title *</label>
-                <input
-                  type="text"
-                  required
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="e.g. Reformer Group Class, Mat Pilates, PT Session"
-                  className="w-full px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-semibold text-[#4A3B32] mb-1">Instructor *</label>
-                  <select
-                    value={formInstructor}
-                    onChange={(e) => setFormInstructor(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24]"
-                  >
-                    {PREDEFINED_INSTRUCTORS.map((ins) => (
-                      <option key={ins} value={ins}>{ins}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-semibold text-[#4A3B32] mb-1">Difficulty Level</label>
-                  <select
-                    value={formDifficulty}
-                    onChange={(e) => setFormDifficulty(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24]"
-                  >
-                    <option value="All Levels">All Levels</option>
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block font-semibold text-[#4A3B32] mb-1">Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={formDate}
-                    onChange={(e) => setFormDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24]"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-[#4A3B32] mb-1">Start Time *</label>
-                  <input
-                    type="time"
-                    required
-                    value={formTime}
-                    onChange={(e) => setFormTime(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24]"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-[#4A3B32] mb-1">Max Capacity *</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={formCapacity}
-                    onChange={(e) => setFormCapacity(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-semibold text-[#4A3B32] mb-1">Room / Location</label>
-                  <select
-                    value={formRoom}
-                    onChange={(e) => setFormRoom(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24]"
-                  >
-                    {PREDEFINED_ROOMS.map((r) => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-semibold text-[#4A3B32] mb-1">Equipment Required</label>
-                  <input
-                    type="text"
-                    value={formEquipment}
-                    onChange={(e) => setFormEquipment(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24]"
-                  />
-                </div>
-              </div>
-
-              {/* Recurring Checkbox */}
-              <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E5DDD0] space-y-2">
-                <label className="flex items-center gap-2 font-semibold text-[#362B24] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formIsRecurring}
-                    onChange={(e) => setFormIsRecurring(e.target.checked)}
-                    className="rounded text-[#B89368] focus:ring-[#B89368]"
-                  />
-                  <span>Schedule Recurring Session (Auto Repeat)</span>
-                </label>
-
-                {formIsRecurring && (
-                  <div className="pt-2 border-t border-[#E5DDD0]/60">
-                    <label className="block text-[10px] text-[#4A3B32]/70 mb-1 font-medium">Repeat Interval</label>
-                    <select
-                      value={formRepeatInterval}
-                      onChange={(e) => setFormRepeatInterval(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-[#E5DDD0] bg-white text-xs text-[#362B24]"
-                    >
-                      <option value="daily">Daily (Repeats every day)</option>
-                      <option value="weekly">Weekly (Repeats every week)</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowScheduleModal(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-[#E5DDD0] text-xs font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={formSubmitting}
-                  className="flex-1 py-2.5 rounded-xl bg-[#B89368] text-white text-xs font-semibold hover:bg-[#A68B6B] disabled:opacity-50"
-                >
-                  {formSubmitting ? "Scheduling..." : "Confirm Schedule"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ─── MODAL: MEMBER BOOKING WORKFLOW (WITH PLAN ELIGIBILITY CHECK) ────── */}
-      {showMemberBookingModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-xs animate-fade-in"
-          onClick={() => setShowMemberBookingModal(false)}
-        >
-          <div
-            className="bg-white rounded-3xl p-6 max-w-xl w-full space-y-4 shadow-2xl border border-[#E5DDD0] max-h-[90vh] overflow-y-auto animate-slide-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-[#E5DDD0] pb-3">
-              <div>
-                <h3 className="text-base font-serif font-bold text-[#362B24]">Assign Member to Class</h3>
-                <p className="text-xs text-[#4A3B32]/50">Verifies purchased plan eligibility server-side</p>
-              </div>
-              <button onClick={() => setShowMemberBookingModal(false)} className="text-xs font-bold text-[#4A3B32]">✕</button>
-            </div>
-
-            {/* Error Message for Failed Eligibility */}
-            {bookingEligibilityMessage && (
-              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
-                <span>⚠️ {bookingEligibilityMessage}</span>
-              </div>
-            )}
-
-            {/* Step 1: Select Member */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-[#8C7A6B] uppercase tracking-wider">
-                Step 1: Select Member
-              </label>
-              <div className="grid grid-cols-1 max-h-36 overflow-y-auto border border-[#E5DDD0] rounded-xl bg-[#FAF7F2] divide-y divide-[#E5DDD0]/50">
-                {members.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => handleSelectMemberForBooking(m)}
-                    className={`p-2.5 text-left text-xs flex items-center justify-between transition-colors ${
-                      selectedBookMember?.id === m.id ? "bg-[#4A3B32] text-white font-bold" : "hover:bg-white text-[#362B24]"
-                    }`}
-                  >
-                    <div>
-                      <p className="font-semibold">{m.full_name}</p>
-                      <p className={`text-[10px] ${selectedBookMember?.id === m.id ? "text-white/70" : "text-[#4A3B32]/50"}`}>
-                        {m.phone_number} • {m.email}
-                      </p>
-                    </div>
-                    {selectedBookMember?.id === m.id && <span>✓ Selected</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Step 2: Display Purchased Active Plans */}
-            {selectedBookMember && (
-              <div className="space-y-2 pt-2 border-t border-[#E5DDD0]">
-                <label className="block text-xs font-bold text-[#8C7A6B] uppercase tracking-wider">
-                  Step 2: Active Purchased Plan Eligibility
-                </label>
-                {plansLoading ? (
-                  <p className="text-xs text-[#4A3B32]/50">Loading active plans...</p>
-                ) : memberPlans.length === 0 ? (
-                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
-                    ⚠️ This member does not have an active purchased plan. Booking will be blocked.
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    {memberPlans.map((plan) => (
-                      <div key={plan.id} className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs flex justify-between items-center text-emerald-900">
-                        <div>
-                          <span className="font-bold">{plan.plan_name}</span>
-                          <span className="text-[10px] block text-emerald-700">Category: {plan.category} • Valid until: {formatDate(plan.valid_until)}</span>
-                        </div>
-                        <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-emerald-200">
-                          {plan.sessions_total ? `${plan.sessions_remaining} / ${plan.sessions_total} sessions` : "Unlimited Plan"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Step 3: Select Available Session */}
-            {selectedBookMember && (
-              <div className="space-y-2 pt-2 border-t border-[#E5DDD0]">
-                <label className="block text-xs font-bold text-[#8C7A6B] uppercase tracking-wider">
-                  Step 3: Select Available Session
-                </label>
-                <div className="grid grid-cols-1 max-h-36 overflow-y-auto border border-[#E5DDD0] rounded-xl bg-[#FAF7F2] divide-y divide-[#E5DDD0]/50">
-                  {sessions.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setSelectedBookSession(s)}
-                      className={`p-2.5 text-left text-xs flex items-center justify-between transition-colors ${
-                        selectedBookSession?.id === s.id ? "bg-[#B89368] text-white font-bold" : "hover:bg-white text-[#362B24]"
-                      }`}
-                    >
-                      <div>
-                        <p className="font-semibold">{s.title} ({s.category})</p>
-                        <p className={`text-[10px] ${selectedBookSession?.id === s.id ? "text-white/80" : "text-[#4A3B32]/50"}`}>
-                          {formatDate(s.class_date)} @ {formatTime(s.class_time)} • {s.instructor}
-                        </p>
-                      </div>
-                      <span className="text-[11px] font-mono">
-                        {s.booked_count} / {s.max_capacity}
-                      </span>
-                    </button>
                   ))}
-                </div>
-              </div>
-            )}
-
-            {/* Confirm Booking Action */}
-            <div className="flex gap-2 pt-3 border-t border-[#E5DDD0]">
-              <button
-                type="button"
-                onClick={() => setShowMemberBookingModal(false)}
-                className="flex-1 py-2.5 rounded-xl border border-[#E5DDD0] text-xs font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmAdminBooking}
-                disabled={bookingSubmitting || !selectedBookMember || !selectedBookSession}
-                className="flex-1 py-2.5 rounded-xl bg-[#4A3B32] text-white text-xs font-semibold hover:bg-[#362B24] disabled:opacity-50"
-              >
-                {bookingSubmitting ? "Confirming..." : "Confirm & Deduct Session"}
-              </button>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       )}
 
-      {/* ─── EDIT CLASS SESSION MODAL ────────────────────────────────────── */}
-      {editingSession && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in"
-          onClick={() => setEditingSession(null)}
-        >
-          <div
-            className="bg-white rounded-3xl p-6 max-w-xl w-full space-y-4 shadow-2xl border border-[#E5DDD0] max-h-[90vh] overflow-y-auto animate-slide-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-[#E5DDD0] pb-3">
-              <div>
-                <h3 className="text-base font-serif font-bold text-[#362B24]">Edit Class Session</h3>
-                <p className="text-xs text-[#4A3B32]/50">Update session parameters, schedule, or capacity</p>
-              </div>
-              <button onClick={() => setEditingSession(null)} className="text-xs font-bold text-[#4A3B32]">✕</button>
+      {/* ─── CREATE CLASS TYPE MODAL ─────────────────────────────────────── */}
+      {showCreateClassTypeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-3">
+              <h3 className="text-lg font-bold text-[#1B0B38]">{editingClassType ? "Edit Class Type" : "Create Master Class Type"}</h3>
+              <button onClick={() => setShowCreateClassTypeModal(false)} className="text-xs font-bold text-[#1B0B38]/50">✕</button>
             </div>
 
-            <form onSubmit={handleEditSessionSubmit} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-[#4A3B32] mb-1">Class Title *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
-                  />
-                </div>
+            <form onSubmit={handleSaveClassType} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-[#1B0B38] mb-1">Class Name *</label>
+                <input type="text" required value={ctName} onChange={(e) => setCtName(e.target.value)} placeholder="e.g. Reformer Basic" className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC]" />
+              </div>
 
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#4A3B32] mb-1">Instructor *</label>
-                  <select
-                    value={editInstructor}
-                    onChange={(e) => setEditInstructor(e.target.value)}
-                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
-                  >
-                    {PREDEFINED_INSTRUCTORS.map((ins) => (
-                      <option key={ins} value={ins}>{ins}</option>
-                    ))}
-                  </select>
+                  <label className="block font-bold text-[#1B0B38] mb-1">Category</label>
+                  <input type="text" value={ctCategory} onChange={(e) => setCtCategory(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC]" />
                 </div>
-
                 <div>
-                  <label className="block font-bold text-[#4A3B32] mb-1">Difficulty Level</label>
-                  <select
-                    value={editDifficulty}
-                    onChange={(e) => setEditDifficulty(e.target.value)}
-                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
-                  >
-                    <option value="All Levels">All Levels</option>
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-[#4A3B32] mb-1">Class Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={editDate}
-                    onChange={(e) => setEditDate(e.target.value)}
-                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-[#4A3B32] mb-1">Start Time *</label>
-                  <input
-                    type="time"
-                    required
-                    value={editTime}
-                    onChange={(e) => setEditTime(e.target.value)}
-                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-[#4A3B32] mb-1">Duration (Mins) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="15"
-                    max="180"
-                    value={editDuration}
-                    onChange={(e) => setEditDuration(e.target.value)}
-                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-[#4A3B32] mb-1">Max Capacity *</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    value={editCapacity}
-                    onChange={(e) => setEditCapacity(e.target.value)}
-                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-[#4A3B32] mb-1">Room / Location</label>
-                  <select
-                    value={editRoom}
-                    onChange={(e) => setEditRoom(e.target.value)}
-                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
-                  >
-                    {PREDEFINED_ROOMS.map((rm) => (
-                      <option key={rm} value={rm}>{rm}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-[#4A3B32] mb-1">Equipment Required</label>
-                  <input
-                    type="text"
-                    value={editEquipment}
-                    onChange={(e) => setEditEquipment(e.target.value)}
-                    placeholder="e.g. Reformers, Grip Socks"
-                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
-                  />
+                  <label className="block font-bold text-[#1B0B38] mb-1">Trainer *</label>
+                  <input type="text" required value={ctTrainer} onChange={(e) => setCtTrainer(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC]" />
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-3 border-t border-[#E5DDD0]">
-                <button
-                  type="button"
-                  onClick={() => setEditingSession(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-[#E5DDD0] text-xs font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={editSubmitting}
-                  className="flex-1 py-2.5 rounded-xl bg-[#4A3B32] text-white text-xs font-semibold hover:bg-[#362B24] disabled:opacity-50"
-                >
-                  {editSubmitting ? "Saving..." : "Save Changes"}
-                </button>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-bold text-[#1B0B38] mb-1">Duration (mins) *</label>
+                  <input type="number" min="1" required value={ctDuration} onChange={(e) => setCtDuration(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC]" />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#1B0B38] mb-1">Max Capacity *</label>
+                  <input type="number" min="1" required value={ctCapacity} onChange={(e) => setCtCapacity(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC]" />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#1B0B38] mb-1">Studio Room</label>
+                  <input type="text" value={ctRoom} onChange={(e) => setCtRoom(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC]" />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={ctAllowBooking} onChange={(e) => setCtAllowBooking(e.target.checked)} className="accent-[#7B3FE4]" />
+                  <span className="font-bold text-[#1B0B38]">Allow Member Self-Booking</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={ctWaitlistEnabled} onChange={(e) => setCtWaitlistEnabled(e.target.checked)} className="accent-[#7B3FE4]" />
+                  <span className="font-bold text-[#1B0B38]">Enable Waitlist</span>
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#1B0B38]/10">
+                <button type="button" onClick={() => setShowCreateClassTypeModal(false)} className="px-4 py-2 border border-[#1B0B38]/15 rounded-xl font-semibold">Cancel</button>
+                <button type="submit" disabled={actionLoading} className="px-5 py-2 bg-[#7B3FE4] text-white font-bold rounded-xl hover:bg-[#6A2FD3]">Save Class Type</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* ─── DELETE CLASS SESSION MODAL ──────────────────────────────────── */}
-      {deletingSession && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl border border-[#E5DDD0]">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-base">
-                🗑️
-              </div>
-              <div>
-                <h3 className="text-base font-serif font-bold text-[#362B24]">Delete Class Session?</h3>
-                <p className="text-xs text-[#4A3B32]/60">Permanent action</p>
-              </div>
+      {/* ─── SCHEDULE SESSION MODAL ───────────────────────────────────────── */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-3">
+              <h3 className="text-lg font-bold text-[#1B0B38]">Schedule Class Session</h3>
+              <button onClick={() => setShowScheduleModal(false)} className="text-xs font-bold text-[#1B0B38]/50">✕</button>
             </div>
 
-            <p className="text-xs text-[#4A3B32]">
-              Are you sure you want to delete <strong className="text-[#362B24]">{deletingSession.title}</strong> scheduled for{" "}
-              <strong>{formatDate(deletingSession.class_date)} @ {formatTime(deletingSession.class_time)}</strong>?
+            <form onSubmit={handleSaveScheduledSession} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-[#1B0B38] mb-1">Class Master Template (Optional)</label>
+                <select
+                  value={sessClassTypeId}
+                  onChange={(e) => handleSelectClassTypeForSession(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC]"
+                >
+                  <option value="">-- Custom Session --</option>
+                  {classTypes.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.trainer})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-[#1B0B38] mb-1">Session Title *</label>
+                <input type="text" required value={sessTitle} onChange={(e) => setSessTitle(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC]" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-[#1B0B38] mb-1">Date *</label>
+                  <input type="date" required value={sessDate} onChange={(e) => setSessDate(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC]" />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#1B0B38] mb-1">Start Time *</label>
+                  <input type="time" required value={sessTime} onChange={(e) => setSessTime(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC]" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-[#1B0B38] mb-1">Trainer *</label>
+                  <input type="text" required value={sessTrainer} onChange={(e) => setSessTrainer(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC]" />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#1B0B38] mb-1">Capacity *</label>
+                  <input type="number" min="1" required value={sessCapacity} onChange={(e) => setSessCapacity(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC]" />
+                </div>
+              </div>
+
+              {/* Recurring Rules section */}
+              <div className="p-3 bg-[#FAF9FC] rounded-2xl border border-[#1B0B38]/10 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} className="accent-[#7B3FE4]" />
+                  <span className="font-bold text-[#1B0B38]">Recurring Session Schedule</span>
+                </label>
+
+                {isRecurring && (
+                  <div className="space-y-3 pt-2">
+                    <div className="flex gap-2">
+                      {(["daily", "weekly", "monthly"] as const).map((freq) => (
+                        <button
+                          key={freq}
+                          type="button"
+                          onClick={() => setRecurringFrequency(freq)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase ${
+                            recurringFrequency === freq ? "bg-[#7B3FE4] text-white" : "bg-white border border-[#1B0B38]/15 text-[#1B0B38]"
+                          }`}
+                        >
+                          {freq}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <label className="font-semibold">Occurrences:</label>
+                      <input type="number" min="1" max="52" value={recurringOccurrences} onChange={(e) => setRecurringOccurrences(Number(e.target.value))} className="w-20 p-1.5 bg-white border rounded-xl text-center font-bold" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#1B0B38]/10">
+                <button type="button" onClick={() => setShowScheduleModal(false)} className="px-4 py-2 border rounded-xl font-semibold">Cancel</button>
+                <button type="submit" disabled={actionLoading} className="px-5 py-2 bg-[#7B3FE4] text-white font-bold rounded-xl hover:bg-[#6A2FD3]">Save Session(s)</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── ASSIGN MEMBER MODAL ─────────────────────────────────────────── */}
+      {showAssignMemberModal && targetSessionForAssign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-3">
+              <h3 className="text-base font-bold text-[#1B0B38]">Assign Member to Session</h3>
+              <button onClick={() => setShowAssignMemberModal(false)} className="text-xs font-bold text-[#1B0B38]/50">✕</button>
+            </div>
+
+            <div className="bg-[#FAF9FC] p-3 rounded-2xl border text-xs space-y-1">
+              <p className="font-bold text-[#1B0B38]">{targetSessionForAssign.title}</p>
+              <p className="text-[#1B0B38]/60">{targetSessionForAssign.class_date} @ {targetSessionForAssign.class_time} &bull; {targetSessionForAssign.instructor}</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#1B0B38] mb-1">Select Member *</label>
+              <select
+                value={selectedAssignMemberId}
+                onChange={(e) => setSelectedAssignMemberId(e.target.value)}
+                className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38]"
+              >
+                <option value="">-- Choose Member --</option>
+                {membersList.map((m) => {
+                  const hasPlan = m.plans && m.plans.some((p: any) => p.status === "active");
+                  return (
+                    <option key={m.id} value={m.id}>
+                      {m.full_name} ({m.phone_number || m.email}) {hasPlan ? "✓ Active Plan" : "⚠️ No Active Plan"}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-[#1B0B38]/10">
+              <button onClick={() => setShowAssignMemberModal(false)} className="px-4 py-2 border rounded-xl text-xs font-semibold">Cancel</button>
+              <button onClick={handleConfirmMemberAssignment} disabled={actionLoading || !selectedAssignMemberId} className="px-5 py-2 bg-[#7B3FE4] text-white text-xs font-bold rounded-xl hover:bg-[#6A2FD3]">Confirm Booking</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── RESCHEDULE BOOKING MODAL ────────────────────────────────────── */}
+      {rescheduleBookingTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-3">
+              <h3 className="text-base font-bold text-[#1B0B38]">Reschedule Member Booking</h3>
+              <button onClick={() => setRescheduleBookingTarget(null)} className="text-xs font-bold text-[#1B0B38]/50">✕</button>
+            </div>
+
+            <p className="text-xs text-[#1B0B38]">
+              Rescheduling booking for <strong>{rescheduleBookingTarget.approved_members?.full_name}</strong> from <em>{rescheduleBookingTarget.classes?.title} ({rescheduleBookingTarget.classes?.class_date})</em>.
             </p>
 
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[11px] text-red-800">
-              ⚠️ This will permanently remove the class session and cancel all associated member bookings ({deletingSession.booked_count || 0} booked).
+            <div>
+              <label className="block text-xs font-bold text-[#1B0B38] mb-1">Target Session *</label>
+              <select
+                value={targetRescheduleSessionId}
+                onChange={(e) => setTargetRescheduleSessionId(e.target.value)}
+                className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38]"
+              >
+                <option value="">-- Choose New Session --</option>
+                {sessions.filter((s) => s.id !== rescheduleBookingTarget.class_id && s.status !== "cancelled").map((s) => (
+                  <option key={s.id} value={s.id}>{s.title} ({s.class_date} @ {s.class_time})</option>
+                ))}
+              </select>
             </div>
 
-            <div className="flex gap-2 pt-2 border-t border-[#E5DDD0]">
-              <button
-                type="button"
-                onClick={() => setDeletingSession(null)}
-                className="flex-1 py-2.5 rounded-xl border border-[#E5DDD0] text-xs font-semibold text-[#4A3B32]"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDeleteSession}
-                disabled={deleteSubmitting}
-                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold disabled:opacity-50"
-              >
-                {deleteSubmitting ? "Deleting..." : "Delete Class"}
-              </button>
+            <div className="flex justify-end gap-2 pt-3 border-t border-[#1B0B38]/10">
+              <button onClick={() => setRescheduleBookingTarget(null)} className="px-4 py-2 border rounded-xl text-xs font-semibold">Cancel</button>
+              <button onClick={handleRescheduleBooking} disabled={actionLoading || !targetRescheduleSessionId} className="px-5 py-2 bg-[#7B3FE4] text-white text-xs font-bold rounded-xl hover:bg-[#6A2FD3]">Confirm Reschedule</button>
             </div>
           </div>
         </div>
