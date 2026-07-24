@@ -56,6 +56,7 @@ export default function StaffPage() {
     monthlyPayroll: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [tableNotReady, setTableNotReady] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -128,6 +129,7 @@ export default function StaffPage() {
       if (!res.ok || json.error) {
         setActionError(json.error || "Failed to load staff data.");
       } else {
+        setTableNotReady(!!json._tableNotReady);
         setStaffList(json.staff || []);
         if (json.summary) {
           setSummary(json.summary);
@@ -373,6 +375,57 @@ export default function StaffPage() {
           Add Staff
         </button>
       </div>
+
+      {/* ─── TABLE NOT READY BANNER ─────────────────────────────────────────── */}
+      {tableNotReady && (
+        <div className="p-5 bg-amber-50 border border-amber-300 rounded-3xl space-y-3">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">🛠️</span>
+            <div>
+              <p className="font-extrabold text-amber-900 text-sm">Database table not set up yet</p>
+              <p className="text-xs text-amber-800 mt-1">
+                The <code className="bg-amber-100 px-1 rounded font-mono">staff_members</code> table doesn&apos;t exist in your Supabase database.
+                Run the two SQL queries below in{" "}
+                <strong>Supabase → SQL Editor</strong>, then refresh this page.
+              </p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">Step 1 — Create the table:</p>
+            <pre className="bg-amber-900/10 text-amber-950 text-[10px] rounded-2xl p-3 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">{`CREATE TABLE IF NOT EXISTS public.staff_members (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    phone_number TEXT NOT NULL UNIQUE,
+    email TEXT, role TEXT NOT NULL, designation TEXT NOT NULL,
+    location TEXT DEFAULT 'Main Studio',
+    employment_status TEXT NOT NULL DEFAULT 'Active',
+    joining_date DATE DEFAULT CURRENT_DATE,
+    specialization TEXT, experience_years NUMERIC DEFAULT 0,
+    certifications TEXT, classes_assigned TEXT,
+    pt_available BOOLEAN DEFAULT true,
+    group_class_available BOOLEAN DEFAULT true,
+    monthly_salary NUMERIC DEFAULT 0,
+    pt_commission NUMERIC DEFAULT 0,
+    group_class_commission NUMERIC DEFAULT 0,
+    payment_type TEXT DEFAULT 'Salary',
+    gender TEXT, date_of_birth DATE,
+    emergency_contact_name TEXT, emergency_contact_number TEXT,
+    address TEXT, bank_name TEXT, account_holder_name TEXT,
+    account_number TEXT, ifsc_code TEXT, upi_id TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);`}</pre>
+            <p className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">Step 2 — Reload schema cache:</p>
+            <pre className="bg-amber-900/10 text-amber-950 text-[10px] rounded-2xl p-3 font-mono">{`NOTIFY pgrst, 'reload schema';`}</pre>
+          </div>
+          <button
+            onClick={() => fetchStaffData()}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-all"
+          >
+            ↻ Retry after running SQL
+          </button>
+        </div>
+      )}
 
       {/* Alert Notifications */}
       {actionSuccess && (
