@@ -184,19 +184,29 @@ export default function PreviousClasses() {
     if (!confirm("Remove this class? All bookings for it will also be cancelled.")) return;
 
     setDeletingId(classId);
-    const { error } = await supabase.from("classes").delete().eq("id", classId);
-    setDeletingId(null);
+    try {
+      const res = await fetch("/api/admin/classes/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: classId, action: "delete" }),
+      });
+      const data = await res.json();
+      setDeletingId(null);
 
-    if (error) {
-      alert("Failed to remove class: " + error.message);
-      return;
-    }
+      if (!res.ok || data.error) {
+        alert("Failed to remove class: " + (data.error || "Unknown error"));
+        return;
+      }
 
-    if (selectedClass === classId) {
-      setSelectedClass(null);
-      setBookings([]);
+      if (selectedClass === classId) {
+        setSelectedClass(null);
+        setBookings([]);
+      }
+      loadClasses();
+    } catch (err: any) {
+      setDeletingId(null);
+      alert("Failed to remove class: " + (err.message || "Network error"));
     }
-    loadClasses();
   }
 
   function formatTime(time: string) {

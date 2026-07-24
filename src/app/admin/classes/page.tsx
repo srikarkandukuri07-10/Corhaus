@@ -430,10 +430,23 @@ export default function AdminClassesModulePage() {
   const handleCancelSession = async (sessionId: string) => {
     if (!confirm("Cancel this class session? Cancelled sessions remain on record.")) return;
     setActionLoading(true);
-    const { error } = await supabase.from("classes").update({ status: "cancelled", is_active: false }).eq("id", sessionId);
-    setActionLoading(false);
-    if (error) setActionError("Failed to cancel session: " + error.message);
-    else fetchAllData();
+    try {
+      const res = await fetch("/api/admin/classes/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, action: "cancel" }),
+      });
+      const data = await res.json();
+      setActionLoading(false);
+      if (!res.ok || data.error) {
+        setActionError("Failed to cancel session: " + (data.error || "Unknown error"));
+      } else {
+        fetchAllData();
+      }
+    } catch (err: any) {
+      setActionLoading(false);
+      setActionError("Failed to cancel session: " + (err.message || "Network error"));
+    }
   };
 
   // ─── MEMBER ASSIGNMENT & SERVER RPC BOOKING ───────────────────────────────
