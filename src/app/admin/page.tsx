@@ -122,8 +122,6 @@ export default function AdminDashboard() {
         .select("*", { count: "exact", head: true });
 
       // 4. Fetch Today's Revenue from Paid Invoices (using exact local IST start-of-day)
-      const nowIST = new Date();
-      nowIST.setHours(0, 0, 0, 0);
       const startOfDayIso = `${todayStr}T00:00:00.000+05:30`;
 
       const { data: todaysInvoices } = await supabase
@@ -147,7 +145,7 @@ export default function AdminDashboard() {
         .from("attendance")
         .select("*", { count: "exact", head: true })
         .eq("attendance_status", "attended")
-        .gte("scanned_at", `${todayStr}T00:00:00.000Z`);
+        .gte("scanned_at", startOfDayIso);
 
       startTransition(() => {
         setClasses(upcomingClasses);
@@ -298,27 +296,26 @@ export default function AdminDashboard() {
       weekday: "short",
       day: "numeric",
       month: "short",
-      year: "numeric",
     });
   }
 
   const selectedClassData = classes.find((c) => c.id === selectedClass);
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in font-sans">
       {/* Welcome Banner + Top Right New Class Button */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-serif text-[#362B24]">
+          <h1 className="text-3xl font-bold text-[#003B46]">
             Good morning, Admin!
           </h1>
-          <p className="text-sm text-[#4A3B32]/60 mt-1 font-sans">
+          <p className="text-sm text-[#004D40]/70 mt-1">
             Here&apos;s what&apos;s happening at Corhaus today.
           </p>
         </div>
         <Link
-          href="/admin/classes/new"
-          className="px-5 py-2.5 rounded-xl bg-[#B89368] text-white text-sm font-semibold hover:bg-[#A68B6B] transition-colors shadow-sm flex items-center gap-1.5"
+          href="/admin/classes"
+          className="px-5 py-2.5 rounded-xl bg-[#009B9E] text-white text-sm font-semibold hover:bg-[#00878A] transition-colors shadow-md flex items-center gap-1.5"
         >
           <span>+</span> New Class
         </Link>
@@ -327,372 +324,256 @@ export default function AdminDashboard() {
       {/* 4 Real Data KPI Cards matching exact mockup colors */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Today's Classes */}
-        <div className="bg-white rounded-[20px] p-5 border border-[#E5DDD0] shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-[24px] p-6 border border-[#004D40]/10 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-xs font-semibold text-[#4A3B32]/50 tracking-wide uppercase">
+            <p className="text-xs font-bold text-[#004D40]/60 tracking-wider uppercase">
               Today&apos;s Classes
             </p>
-            <p className="text-3xl font-bold text-[#362B24] mt-2">
+            <p className="text-3xl font-extrabold text-[#003B46] mt-2">
               {loading ? "..." : todaysClassesCount}
             </p>
             <Link
-              href="/admin/classes/new"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[#B89368] hover:underline mt-3"
+              href="/admin/classes"
+              className="inline-flex items-center gap-1 text-xs font-bold text-[#009B9E] hover:underline mt-3"
             >
               View all classes &rarr;
             </Link>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-[#FDF2F0] text-[#D97762] flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-[#E0F2F1] text-[#00897B] flex items-center justify-center flex-shrink-0">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
         </div>
 
         {/* Total Members */}
-        <div className="bg-white rounded-[20px] p-5 border border-[#E5DDD0] shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-[24px] p-6 border border-[#004D40]/10 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-xs font-semibold text-[#4A3B32]/50 tracking-wide uppercase">
+            <p className="text-xs font-bold text-[#004D40]/60 tracking-wider uppercase">
               Total Members
             </p>
-            <p className="text-3xl font-bold text-[#362B24] mt-2">
+            <p className="text-3xl font-extrabold text-[#003B46] mt-2">
               {loading ? "..." : totalMembersCount}
             </p>
             <Link
               href="/admin/members"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[#8B5CF6] hover:underline mt-3"
+              className="inline-flex items-center gap-1 text-xs font-bold text-[#8B5CF6] hover:underline mt-3"
             >
               View all members &rarr;
             </Link>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-[#F5F0FB] text-[#8B5CF6] flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-[#F3E8FF] text-[#8B5CF6] flex items-center justify-center flex-shrink-0">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
           </div>
         </div>
 
         {/* Today's Revenue */}
-        <div className="bg-white rounded-[20px] p-5 border border-[#E5DDD0] shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-[24px] p-6 border border-[#004D40]/10 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-xs font-semibold text-[#4A3B32]/50 tracking-wide uppercase">
+            <p className="text-xs font-bold text-[#004D40]/60 tracking-wider uppercase">
               Today&apos;s Revenue
             </p>
-            <p className="text-3xl font-bold text-[#362B24] mt-2">
-              {loading ? "..." : `₹${todaysRevenue.toLocaleString("en-IN")}`}
+            <p className="text-3xl font-extrabold text-[#003B46] mt-2">
+              {loading ? "..." : "₹" + todaysRevenue.toLocaleString("en-IN")}
             </p>
             <Link
               href="/admin/billing/invoices"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[#D97706] hover:underline mt-3"
+              className="inline-flex items-center gap-1 text-xs font-bold text-[#D97706] hover:underline mt-3"
             >
               View details &rarr;
             </Link>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-[#FFF9EE] text-[#D97706] flex items-center justify-center flex-shrink-0 font-bold text-xl">
+          <div className="w-12 h-12 rounded-2xl bg-[#FEF3C7] text-[#D97706] flex items-center justify-center flex-shrink-0 font-bold text-xl">
             ₹
           </div>
         </div>
 
         {/* Check-ins Today */}
-        <div className="bg-white rounded-[20px] p-5 border border-[#E5DDD0] shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-[24px] p-6 border border-[#004D40]/10 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-xs font-semibold text-[#4A3B32]/50 tracking-wide uppercase">
+            <p className="text-xs font-bold text-[#004D40]/60 tracking-wider uppercase">
               Check-ins Today
             </p>
-            <p className="text-3xl font-bold text-[#362B24] mt-2">
+            <p className="text-3xl font-extrabold text-[#003B46] mt-2">
               {loading ? "..." : checkInsTodayCount}
             </p>
             <Link
               href="/admin/scanner"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[#16A34A] hover:underline mt-3"
+              className="inline-flex items-center gap-1 text-xs font-bold text-[#10B981] hover:underline mt-3"
             >
               View scanner &rarr;
             </Link>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-[#F0FDF4] text-[#16A34A] flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-[#D1FAE5] text-[#10B981] flex items-center justify-center flex-shrink-0">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
         </div>
       </div>
 
-      {/* Full-width Upcoming Classes Table */}
+      {/* Upcoming Classes Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-serif text-[#362B24]">
-            Upcoming Classes
-          </h2>
+          <h2 className="text-xl font-bold text-[#003B46]">Upcoming Classes</h2>
           <Link
-            href="/admin/classes/new"
-            className="text-xs font-semibold text-[#B89368] hover:underline flex items-center gap-1"
+            href="/admin/classes"
+            className="text-xs font-bold text-[#009B9E] hover:underline"
           >
             + Create Class
           </Link>
         </div>
 
-        {loading || isPending ? (
-          <div className="flex items-center justify-center py-16 bg-white rounded-[20px] border border-[#E5DDD0]">
-            <div className="w-6 h-6 border-2 border-[#B89368]/30 border-t-[#B89368] rounded-full animate-spin" />
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="w-6 h-6 border-2 border-[#009B9E]/30 border-t-[#009B9E] rounded-full animate-spin" />
           </div>
         ) : classes.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-[20px] border border-[#E5DDD0]">
-            <p className="text-[#4A3B32]/40 mb-3 text-sm">No upcoming classes scheduled</p>
+          <div className="bg-white rounded-[24px] border border-[#004D40]/10 p-12 text-center shadow-xs space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-[#E0F2F1] text-[#00897B] flex items-center justify-center mx-auto">
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <p className="text-sm font-semibold text-[#003B46]">No upcoming classes scheduled</p>
             <Link
-              href="/admin/classes/new"
-              className="text-sm text-[#B89368] font-medium hover:underline"
+              href="/admin/classes"
+              className="inline-block text-xs font-bold text-[#009B9E] hover:underline"
             >
               Create your first class
             </Link>
           </div>
         ) : (
-          <div className="bg-white rounded-[20px] border border-[#E5DDD0] overflow-hidden shadow-sm">
-            <div className="divide-y divide-[#E5DDD0]/60">
-              {classes.map((cls) => {
-                const spotsFilled = bookingsCountMap[cls.id] || 0;
-                const isSelected = selectedClass === cls.id;
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {classes.map((c) => {
+              const bookedCount = bookingsCountMap[c.id] || 0;
+              const isFull = bookedCount >= c.max_capacity;
 
-                return (
-                  <div
-                    key={cls.id}
-                    onClick={() => handleClassClick(cls.id)}
-                    className={`p-4.5 transition-colors cursor-pointer flex items-center justify-between ${
-                      isSelected
-                        ? "bg-[#4A3B32]/5 border-l-4 border-l-[#B89368]"
-                        : "hover:bg-[#FAF7F2]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-5">
-                      <div className="text-xs font-semibold text-[#4A3B32] bg-[#F4EFE6] px-3.5 py-2 rounded-xl border border-[#E5DDD0]">
-                        {formatTime(cls.class_time)}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-[#362B24] text-base">
-                          {cls.title}
-                        </h3>
-                        <p className="text-xs text-[#4A3B32]/50 mt-0.5">
-                          with {cls.instructor} &bull; {formatDate(cls.class_date)}
-                        </p>
-                      </div>
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => handleClassClick(c.id)}
+                  className={`bg-white rounded-[24px] border p-5 cursor-pointer transition-all ${
+                    selectedClass === c.id
+                      ? "border-[#009B9E] ring-2 ring-[#009B9E]/20 shadow-md"
+                      : "border-[#004D40]/10 hover:border-[#009B9E]"
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-bold text-base text-[#003B46]">{c.title}</h3>
+                      <p className="text-xs text-[#004D40]/60 mt-0.5">{c.instructor}</p>
                     </div>
-
-                    <div className="flex items-center gap-6">
-                      <div className="text-right">
-                        <span className="text-sm font-bold text-[#362B24]">
-                          {spotsFilled} / {cls.max_capacity}
-                        </span>
-                        <span className="text-[11px] text-[#4A3B32]/40 block">
-                          spots filled
-                        </span>
-                      </div>
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        Upcoming
-                      </span>
-                      <button
-                        onClick={(e) => handleDeleteClass(e, cls.id)}
-                        disabled={deletingId === cls.id}
-                        className="p-2 rounded-lg text-[#4A3B32]/30 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        title="Remove class"
-                      >
-                        {deletingId === cls.id ? (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
+                    <span
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                        isFull
+                          ? "bg-red-50 text-red-700 border border-red-200"
+                          : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                      }`}
+                    >
+                      {isFull ? "FULL" : `${c.max_capacity - bookedCount} left`}
+                    </span>
                   </div>
-                );
-              })}
-            </div>
+
+                  <div className="mt-4 pt-3 border-t border-[#004D40]/10 flex items-center justify-between text-xs text-[#004D40]">
+                    <span>
+                      {formatDate(c.class_date)} @ {formatTime(c.class_time)}
+                    </span>
+                    <span className="font-bold">
+                      {bookedCount} / {c.max_capacity}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Enrolled Members Details Panel */}
+      {/* Selected Class Member Bookings & Attendance Details */}
       {selectedClass && selectedClassData && (
-        <div className="bg-white rounded-[20px] border border-[#E5DDD0] p-6 animate-slide-up shadow-sm">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white rounded-[24px] border border-[#004D40]/10 p-6 shadow-md space-y-4 animate-slide-up">
+          <div className="flex items-center justify-between border-b border-[#004D40]/10 pb-4">
             <div>
-              <h3 className="text-lg font-serif text-[#362B24]">
-                Enrolled Members
+              <h3 className="text-lg font-bold text-[#003B46]">
+                {selectedClassData.title} &mdash; Details
               </h3>
-              <p className="text-sm text-[#4A3B32]/50 font-sans">
-                {selectedClassData.title} &bull; with {selectedClassData.instructor}
+              <p className="text-xs text-[#004D40]/60 mt-0.5">
+                Instructor: {selectedClassData.instructor} &bull; {formatDate(selectedClassData.class_date)} @ {formatTime(selectedClassData.class_time)}
               </p>
             </div>
-            <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-[#FAF7F2] text-[#4A3B32] border border-[#E5DDD0]">
-              {bookings.filter((b) => b.booking_status === "booked").length} / {selectedClassData.max_capacity} spots filled
-            </span>
+            <button
+              onClick={() => setSelectedClass(null)}
+              className="text-xs font-bold text-[#004D40]/60 hover:text-[#003B46]"
+            >
+              ✕ Close
+            </button>
           </div>
 
-          {bookingsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="w-5 h-5 border-2 border-[#B89368]/30 border-t-[#B89368] rounded-full animate-spin" />
-            </div>
-          ) : bookings.filter((b) => b.booking_status === "booked").length === 0 ? (
-            <p className="text-center py-8 text-[#4A3B32]/40 text-sm font-sans">
-              No active bookings yet for this class
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm font-sans">
-                <thead>
-                  <tr className="border-b border-[#E5DDD0] text-xs font-semibold text-[#4A3B32]/50 uppercase">
-                    <th className="text-left py-3 px-4">Name</th>
-                    <th className="text-left py-3 px-4">Email</th>
-                    <th className="text-left py-3 px-4">Phone</th>
-                    <th className="text-left py-3 px-4">Booked At</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bookings
-                    .filter((b) => b.booking_status === "booked")
-                    .map((booking) => (
-                      <tr key={booking.id} className="border-b border-[#E5DDD0]/50 last:border-0 hover:bg-[#FAF7F2]">
-                        <td className="py-3 px-4 text-[#362B24] font-medium">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full overflow-hidden border border-[#E5DDD0] bg-[#FAF7F2] flex-shrink-0 flex items-center justify-center">
-                              {booking.profiles?.avatar_url ? (
-                                <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
-                              ) : (
-                                <span className="text-[10px] font-semibold text-[#4A3B32]/50">
-                                  {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
-                                </span>
-                              )}
-                            </div>
-                            <span>{booking.profiles?.full_name || "N/A"}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-[#4A3B32]/60">
-                          {booking.profiles?.email || "N/A"}
-                        </td>
-                        <td className="py-3 px-4 text-[#4A3B32]/60">
-                          {booking.profiles?.phone_number || "N/A"}
-                        </td>
-                        <td className="py-3 px-4 text-[#4A3B32]/50 text-xs">
-                          {new Date(booking.created_at).toLocaleString("en-IN")}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Cancelled Bookings */}
-          {!bookingsLoading && bookings.filter((b) => b.booking_status === "cancelled").length > 0 && (
-            <div className="mt-6 pt-6 border-t border-[#E5DDD0]">
-              <h4 className="text-base font-serif text-[#362B24] mb-3">Cancelled Bookings</h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm font-sans">
-                  <thead>
-                    <tr className="border-b border-[#E5DDD0] text-xs font-semibold text-[#4A3B32]/50 uppercase">
-                      <th className="text-left py-3 px-4">Name</th>
-                      <th className="text-left py-3 px-4">Email</th>
-                      <th className="text-left py-3 px-4">Phone</th>
-                      <th className="text-left py-3 px-4">Cancelled At</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bookings
-                      .filter((b) => b.booking_status === "cancelled")
-                      .map((booking) => (
-                        <tr key={booking.id} className="border-b border-[#E5DDD0]/50 last:border-0 hover:bg-[#FAF7F2]">
-                          <td className="py-3 px-4 text-[#4A3B32]/60 font-medium">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full overflow-hidden border border-[#E5DDD0] bg-[#FAF7F2] flex-shrink-0 flex items-center justify-center opacity-70">
-                                {booking.profiles?.avatar_url ? (
-                                  <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="text-[10px] font-semibold text-[#4A3B32]/50">
-                                    {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
-                                  </span>
-                                )}
-                              </div>
-                              <span className="line-through">{booking.profiles?.full_name || "N/A"}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-[#4A3B32]/40">
-                            {booking.profiles?.email || "N/A"}
-                          </td>
-                          <td className="py-3 px-4 text-[#4A3B32]/40">
-                            {booking.profiles?.phone_number || "N/A"}
-                          </td>
-                          <td className="py-3 px-4 text-[#4A3B32]/40 text-xs">
-                            {booking.cancelled_at ? new Date(booking.cancelled_at).toLocaleString("en-IN") : new Date(booking.created_at).toLocaleString("en-IN")}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Attended Members */}
-          <div className="mt-6 pt-6 border-t border-[#E5DDD0]">
-            <h4 className="text-base font-serif text-[#362B24] mb-3">Attended Members</h4>
-            {(() => {
-              const classStart = new Date(`${selectedClassData.class_date}T${selectedClassData.class_time}`);
-              const now = new Date();
-              if (now < classStart) {
-                return (
-                  <p className="text-center py-6 text-[#4A3B32]/40 text-sm font-sans">
-                    Attendance records will be available when the class begins.
-                  </p>
-                );
-              }
-              return attendanceLoading ? (
-                <div className="flex items-center justify-center py-6">
-                  <div className="w-5 h-5 border-2 border-[#B89368]/30 border-t-[#B89368] rounded-full animate-spin" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Bookings List */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-[#004D40]/60 uppercase tracking-wider">
+                Booked Members ({bookings.length})
+              </h4>
+              {bookingsLoading ? (
+                <div className="py-6 text-center text-xs text-[#004D40]/50">Loading bookings...</div>
+              ) : bookings.length === 0 ? (
+                <div className="py-6 text-center text-xs text-[#004D40]/50 bg-[#F0F7F7] rounded-xl">
+                  No member bookings for this session yet
                 </div>
-              ) : attended.length === 0 ? (
-                <p className="text-center py-6 text-[#4A3B32]/40 text-sm font-sans">
-                  No attendance recorded yet
-                </p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm font-sans">
-                    <thead>
-                      <tr className="border-b border-[#E5DDD0] text-xs font-semibold text-[#4A3B32]/50 uppercase">
-                        <th className="text-left py-3 px-4">Name</th>
-                        <th className="text-left py-3 px-4">Email</th>
-                        <th className="text-left py-3 px-4">Check-in Time</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {attended.map((a) => (
-                        <tr key={a.id} className="border-b border-[#E5DDD0]/50 last:border-0">
-                          <td className="py-3 px-4 text-[#362B24] font-medium">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full overflow-hidden border border-[#E5DDD0] bg-[#FAF7F2] flex-shrink-0 flex items-center justify-center">
-                                {a.profiles?.avatar_url ? (
-                                  <img src={a.profiles.avatar_url} alt={a.profiles.full_name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="text-[10px] font-semibold text-[#4A3B32]/50">
-                                    {(a.profiles?.full_name || "N").charAt(0).toUpperCase()}
-                                  </span>
-                                )}
-                              </div>
-                              <span>{a.profiles?.full_name || "N/A"}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-[#4A3B32]/60">
-                            {a.profiles?.email || "N/A"}
-                          </td>
-                          <td className="py-3 px-4 text-[#4A3B32]/50 text-xs">
-                            {a.scanned_at ? new Date(a.scanned_at).toLocaleString("en-IN") : "N/A"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {bookings.map((b) => (
+                    <div
+                      key={b.id}
+                      className="p-3 rounded-xl bg-[#F0F7F7] border border-[#004D40]/10 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <p className="font-bold text-[#003B46]">{b.profiles?.full_name || "Member"}</p>
+                        <p className="text-[11px] text-[#004D40]/60">{b.profiles?.phone_number || b.profiles?.email}</p>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-[#009B9E]/10 text-[#009B9E] font-bold text-[10px]">
+                        BOOKED
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              );
-            })()}
+              )}
+            </div>
+
+            {/* Attendance Checked In List */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-[#004D40]/60 uppercase tracking-wider">
+                Checked In Attendance ({attended.length})
+              </h4>
+              {attendanceLoading ? (
+                <div className="py-6 text-center text-xs text-[#004D40]/50">Loading attendance...</div>
+              ) : attended.length === 0 ? (
+                <div className="py-6 text-center text-xs text-[#004D40]/50 bg-[#F0F7F7] rounded-xl">
+                  No check-ins recorded yet for this session
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {attended.map((a) => (
+                    <div
+                      key={a.id}
+                      className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs text-emerald-900"
+                    >
+                      <div>
+                        <p className="font-bold">{a.profiles?.full_name || "Member"}</p>
+                        <p className="text-[11px] text-emerald-700">{a.profiles?.email}</p>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 font-bold text-[10px]">
+                        ATTENDED
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
