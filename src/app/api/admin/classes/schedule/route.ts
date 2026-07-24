@@ -84,3 +84,81 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
   }
 }
+
+export async function PUT(req: Request) {
+  try {
+    const auth = await getAdminClient();
+    if ("error" in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+    const { serviceClient } = auth;
+
+    const body = await req.json();
+    const { id, ...updateFields } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "Session ID is required." }, { status: 400 });
+    }
+
+    let currentUpdate: any = JSON.parse(JSON.stringify(updateFields));
+    let lastError: any = null;
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const { data, error } = await serviceClient
+        .from("classes")
+        .update(currentUpdate)
+        .eq("id", id)
+        .select();
+
+      if (!error) {
+        return NextResponse.json({ success: true, data });
+      }
+
+      lastError = error;
+      const errMsg = error.message || "";
+
+      const match = errMsg.match(/Could not find the '([^']+)' column/i);
+      if (match && match[1]) {
+        const missingCol = match[1];
+        console.warn(`[Schedule API PUT] Stripping un-cached column '${missingCol}' and retrying...`);
+        delete currentUpdate[missingCol];
+      } else {
+        console.warn(`[Schedule API PUT] General update error: ${errMsg}. Stripping extra fields.`);
+        const { title, instructor, class_date, class_time, max_capacity, is_active } = currentUpdate;
+        currentUpdate = { title, instructor, class_date, class_time, max_capacity: max_capacity || 10, is_active: is_active !== false };
+      }
+    }
+
+    return NextResponse.json({ error: lastError?.message || "Failed to update session after retries." }, { status: 500 });
+  } catch (err: any) {
+    console.error("PUT /api/admin/classes/schedule error:", err);
+    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const auth = await getAdminClient();
+    if ("error" in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+    const { serviceClient } = auth;
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Session ID parameter is required." }, { status: 400 });
+    }
+
+    const { error } = await serviceClient.from("classes").delete().eq("id", id);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("DELETE /api/admin/classes/schedule error:", err);
+    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+  }
+}

@@ -504,31 +504,38 @@ export default function AdminClassesModulePage() {
     }
 
     if (editingSession) {
-      const { error } = await supabase
-        .from("classes")
-        .update({
-          class_type_id: sessClassTypeId || null,
-          title: sessTitle.trim(),
-          instructor: sessTrainer.trim(),
-          class_date: sessDate,
-          class_time: sessTime,
-          end_time: endTimeStr,
-          buffer_minutes: sessBuffer,
-          max_capacity: sessCapacity,
-          category: classTypes.find((c) => c.id === sessClassTypeId)?.category || "Reformer Pilates",
-          location_room: sessRoom,
-          duration_minutes: sessDuration,
-        })
-        .eq("id", editingSession.id);
-
-      setActionLoading(false);
-      if (error) {
-        setActionError("Failed to update session: " + error.message);
-      } else {
-        setActionSuccess("Session updated successfully!");
-        setShowScheduleModal(false);
-        setEditingSession(null);
-        fetchAllData();
+      try {
+        const res = await fetch("/api/admin/classes/schedule", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: editingSession.id,
+            class_type_id: sessClassTypeId || null,
+            title: sessTitle.trim(),
+            instructor: sessTrainer.trim(),
+            class_date: sessDate,
+            class_time: sessTime,
+            end_time: endTimeStr,
+            buffer_minutes: sessBuffer,
+            max_capacity: sessCapacity,
+            category: classTypes.find((c) => c.id === sessClassTypeId)?.category || "Reformer Pilates",
+            location_room: sessRoom,
+            duration_minutes: sessDuration,
+          }),
+        });
+        const data = await res.json();
+        setActionLoading(false);
+        if (!res.ok || data.error) {
+          setActionError("Failed to update session: " + (data.error || "Unknown error"));
+        } else {
+          setActionSuccess("Session updated successfully!");
+          setShowScheduleModal(false);
+          setEditingSession(null);
+          fetchAllData();
+        }
+      } catch (err: any) {
+        setActionLoading(false);
+        setActionError("Failed to update session: " + (err.message || "Network error"));
       }
       return;
     }
@@ -581,10 +588,13 @@ export default function AdminClassesModulePage() {
     setActionLoading(true);
     setActionError(null);
     try {
-      const { error } = await supabase.from("classes").delete().eq("id", sessionId);
+      const res = await fetch(`/api/admin/classes/schedule?id=${encodeURIComponent(sessionId)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
       setActionLoading(false);
-      if (error) {
-        setActionError("Failed to delete session: " + error.message);
+      if (!res.ok || data.error) {
+        setActionError("Failed to delete session: " + (data.error || "Unknown error"));
       } else {
         setActionSuccess("Session deleted successfully!");
         setShowSessionDetailModal(false);
@@ -1524,6 +1534,13 @@ export default function AdminClassesModulePage() {
                   </div>
                 )}
               </div>
+
+              {actionError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl flex items-center justify-between">
+                  <span>{actionError}</span>
+                  <button type="button" onClick={() => setActionError(null)} className="text-red-500 hover:text-red-700 font-bold ml-2">✕</button>
+                </div>
+              )}
 
               {/* Footer Action Buttons */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1B0B38]/10">
