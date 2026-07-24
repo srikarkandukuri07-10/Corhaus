@@ -148,92 +148,94 @@ export default function AdminFreezeManagementPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          memberId: freezeModalMember.id,
-          planId: freezeModalMember.plan_id,
-          freezeStart: startDate,
-          freezeDays,
+          member_id: freezeModalMember.id,
+          plan_id: freezeModalMember.plan_id,
+          package_type: freezeModalMember.package_type,
+          start_date: startDate,
+          freeze_days: freezeDays,
           reason: finalReason,
         }),
       });
 
-      const json = await res.json();
+      const data = await res.json();
+
       if (!res.ok) {
-        setFreezeError(json.error || "Failed to process freeze.");
+        setFreezeError(data.error || "Failed to process freeze.");
       } else {
         setFreezeModalMember(null);
-        await fetchFreezeData();
+        fetchFreezeData();
       }
     } catch (e: any) {
-      setFreezeError(e.message || "An unexpected error occurred.");
+      setFreezeError(e.message || "Failed to process freeze.");
     } finally {
       setSubmittingFreeze(false);
     }
   };
 
   const handleConfirmResume = async () => {
-    if (!resumeModalMember) return;
-    setSubmittingResume(true);
+    if (!resumeModalMember || !resumeModalMember.active_freeze) return;
 
+    setSubmittingResume(true);
     try {
-      const res = await fetch("/api/admin/freeze/resume", {
-        method: "POST",
+      const res = await fetch("/api/admin/freeze", {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          memberId: resumeModalMember.id,
-          planId: resumeModalMember.plan_id,
-          freezeId: resumeModalMember.active_freeze?.id,
+          freeze_id: resumeModalMember.active_freeze.id,
         }),
       });
 
       if (res.ok) {
         setResumeModalMember(null);
-        await fetchFreezeData();
+        fetchFreezeData();
       } else {
-        const json = await res.json();
-        alert(json.error || "Failed to resume membership.");
+        const data = await res.json();
+        alert("Failed to resume: " + data.error);
       }
-    } catch (e) {
-      console.error("Resume error:", e);
+    } catch (e: any) {
+      alert("Failed to resume: " + e.message);
     } finally {
       setSubmittingResume(false);
     }
   };
 
+  const totalMembersCount = members.length;
+  const currentlyFrozenCount = members.filter((m) => m.current_status === "Frozen").length;
+  const requestsPendingCount = members.filter((m) => m.current_status === "Freeze Requested").length;
+
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header Banner */}
-      <div className="bg-white rounded-2xl p-6 border border-[#E5DDD0] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 animate-fade-in font-sans">
+      {/* Top Banner Header */}
+      <div className="bg-white rounded-3xl p-6 border border-[#1B0B38]/10 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="p-2 bg-[#F4EFE6] rounded-xl text-[#B89368]">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </span>
-            <h1 className="text-2xl font-serif font-bold text-[#362B24]">Freeze Management</h1>
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-2xl bg-[#F2EBFE] text-[#7B3FE4] flex items-center justify-center font-bold">
+              🔒
+            </div>
+            <h1 className="text-2xl font-serif font-bold text-[#1B0B38]">
+              Freeze Management
+            </h1>
           </div>
-          <p className="text-xs text-[#8C7A6B]">
+          <p className="text-xs text-[#1B0B38]/60 mt-1">
             Manage membership freezes, process freeze requests, and view full freeze history across all package types.
           </p>
         </div>
 
-        {/* Stats summary */}
-        <div className="flex items-center gap-3">
-          <div className="bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl px-4 py-2 text-center">
-            <span className="text-[10px] uppercase font-bold text-[#8C7A6B]">Total Members</span>
-            <p className="text-lg font-bold text-[#4A3B32]">{members.length}</p>
+        {/* Top KPI Metrics Pill Row */}
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="bg-[#FAF9FC] px-4 py-2.5 rounded-2xl border border-[#1B0B38]/10 text-center flex-1 md:flex-initial min-w-[100px]">
+            <span className="text-[10px] font-bold text-[#1B0B38]/50 uppercase tracking-wider block">Total Members</span>
+            <span className="text-lg font-extrabold text-[#1B0B38]">{totalMembersCount}</span>
           </div>
-          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 text-center">
-            <span className="text-[10px] uppercase font-bold text-blue-700">Currently Frozen</span>
-            <p className="text-lg font-bold text-blue-900">
-              {members.filter((m) => m.current_status === "Frozen").length}
-            </p>
+
+          <div className="bg-blue-50 px-4 py-2.5 rounded-2xl border border-blue-200 text-center flex-1 md:flex-initial min-w-[100px]">
+            <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider block">Currently Frozen</span>
+            <span className="text-lg font-extrabold text-blue-900">{currentlyFrozenCount}</span>
           </div>
-          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-center">
-            <span className="text-[10px] uppercase font-bold text-amber-700">Requests Pending</span>
-            <p className="text-lg font-bold text-amber-900">
-              {members.filter((m) => m.current_status === "Freeze Requested").length}
-            </p>
+
+          <div className="bg-amber-50 px-4 py-2.5 rounded-2xl border border-amber-200 text-center flex-1 md:flex-initial min-w-[100px]">
+            <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">Requests Pending</span>
+            <span className="text-lg font-extrabold text-amber-900">{requestsPendingCount}</span>
           </div>
         </div>
       </div>
@@ -241,15 +243,15 @@ export default function AdminFreezeManagementPage() {
       {/* Filter and Search Controls */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 p-1 bg-[#F4EFE6] rounded-xl border border-[#E5DDD0] overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1 bg-[#FAF9FC] rounded-2xl border border-[#1B0B38]/10 overflow-x-auto">
           {(["All", "Active", "Frozen", "Freeze Requested"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setFilter(tab)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 filter === tab
-                  ? "bg-[#4A3B32] text-white shadow-sm"
-                  : "text-[#4A3B32]/70 hover:text-[#4A3B32] hover:bg-[#EAE2D5]"
+                  ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/20"
+                  : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
               }`}
             >
               {tab}
@@ -263,8 +265,8 @@ export default function AdminFreezeManagementPage() {
         </div>
 
         {/* Search Input */}
-        <div className="relative min-w-[260px]">
-          <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#4A3B32]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="relative min-w-[280px]">
+          <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1B0B38]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -272,27 +274,27 @@ export default function AdminFreezeManagementPage() {
             placeholder="Search by member name, email, package..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-white rounded-xl border border-[#E5DDD0] text-xs text-[#4A3B32] placeholder:text-[#4A3B32]/40 focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+            className="w-full pl-9 pr-4 py-2.5 bg-white rounded-2xl border border-[#1B0B38]/15 text-xs text-[#1B0B38] placeholder:text-[#1B0B38]/40 focus:outline-none focus:ring-1 focus:ring-[#7B3FE4]"
           />
         </div>
       </div>
 
       {/* Main Table */}
-      <div className="bg-white rounded-2xl border border-[#E5DDD0] shadow-sm overflow-hidden">
+      <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-xs overflow-hidden">
         {loading ? (
           <div className="py-20 text-center">
-            <div className="w-8 h-8 border-2 border-[#B89368]/30 border-t-[#B89368] rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-xs text-[#8C7A6B]">Loading customer freeze records...</p>
+            <div className="w-8 h-8 border-2 border-[#7B3FE4]/30 border-t-[#7B3FE4] rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-xs text-[#1B0B38]/50">Loading customer freeze records...</p>
           </div>
         ) : filteredMembers.length === 0 ? (
-          <div className="py-16 text-center text-[#8C7A6B]">
-            <p className="text-sm font-medium">No members found</p>
-            <p className="text-xs mt-1 text-[#8C7A6B]/70">Try adjusting your filters or search terms.</p>
+          <div className="py-16 text-center text-[#1B0B38]/50">
+            <p className="text-sm font-semibold">No members found</p>
+            <p className="text-xs mt-1">Try adjusting your filters or search terms.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#FAF7F2] border-b border-[#E5DDD0] text-[#8C7A6B] uppercase font-bold tracking-wider text-[10px]">
+              <thead className="bg-[#FAF9FC] border-b border-[#1B0B38]/10 text-[#1B0B38]/60 uppercase font-bold tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3.5 px-4">Member Name</th>
                   <th className="py-3.5 px-4">Package Type</th>
@@ -303,48 +305,42 @@ export default function AdminFreezeManagementPage() {
                   <th className="py-3.5 px-4 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E5DDD0]/60">
+              <tbody className="divide-y divide-[#1B0B38]/10">
                 {filteredMembers.map((m) => (
-                  <tr key={m.id} className="hover:bg-[#FAF7F2]/50 transition-colors">
+                  <tr key={m.id} className="hover:bg-[#FAF9FC]/50 transition-colors">
                     {/* Member Name */}
                     <td className="py-3.5 px-4">
-                      <div className="font-semibold text-[#362B24]">{m.member_name}</div>
-                      <div className="text-[10px] text-[#8C7A6B]">{m.email}</div>
+                      <div className="font-bold text-[#1B0B38]">{m.member_name}</div>
+                      <div className="text-[10px] text-[#1B0B38]/50">{m.email}</div>
                     </td>
 
                     {/* Package Type */}
-                    <td className="py-3.5 px-4 font-semibold text-[#4A3B32]">
+                    <td className="py-3.5 px-4 font-bold text-[#1B0B38]">
                       {m.package_type === "No package selected" ? (
-                        <span className="inline-block px-3 py-1 rounded-md bg-gray-100 text-gray-500 text-[11px] font-normal italic">
+                        <span className="inline-block px-3 py-1 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-normal italic">
                           No package selected
                         </span>
                       ) : (
-                        <span className="inline-block px-3 py-1 rounded-md bg-[#F4EFE6] text-[#4A3B32] text-[11px] font-bold">
+                        <span className="inline-block px-3 py-1 rounded-lg bg-[#FAF9FC] text-[#7B3FE4] border border-[#7B3FE4]/20 text-[11px] font-bold">
                           {m.package_type}
                         </span>
                       )}
                     </td>
 
                     {/* Current Duration */}
-                    <td className="py-3.5 px-4 text-[#4A3B32]">
-                      {m.valid_from && m.valid_until ? (
-                        <div className="font-semibold text-[11px]">
-                          {formatDate(m.valid_from)} – {formatDate(m.valid_until)}
-                        </div>
-                      ) : (
-                        <span className="text-[#8C7A6B]/50">—</span>
-                      )}
+                    <td className="py-3.5 px-4 text-[#1B0B38]/80 font-medium">
+                      {formatDate(m.valid_from)} &ndash; {formatDate(m.valid_until)}
                     </td>
 
                     {/* Current Status */}
                     <td className="py-3.5 px-4">
                       <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[11px] border ${
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
                           m.current_status === "Active"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            ? "bg-emerald-100 text-emerald-800 border-emerald-200"
                             : m.current_status === "Frozen"
-                            ? "bg-blue-50 text-blue-700 border-blue-200"
-                            : "bg-amber-50 text-amber-700 border-amber-200"
+                            ? "bg-blue-100 text-blue-800 border-blue-200"
+                            : "bg-amber-100 text-amber-800 border-amber-200"
                         }`}
                       >
                         {m.current_status}
@@ -352,42 +348,40 @@ export default function AdminFreezeManagementPage() {
                     </td>
 
                     {/* Freeze Remaining */}
-                    <td className="py-3.5 px-4">
-                      <span className="font-mono font-bold text-[#4A3B32]">
-                        {m.freeze_remaining} / 2
-                      </span>
-                      <span className="text-[10px] text-[#8C7A6B] block">
+                    <td className="py-3.5 px-4 font-bold text-[#1B0B38]">
+                      {m.freeze_remaining} / 2
+                      <span className="text-[10px] text-[#1B0B38]/40 block font-normal">
                         ({m.freezes_used} used)
                       </span>
                     </td>
 
                     {/* Current Freeze Status */}
-                    <td className="py-3.5 px-4 text-[#4A3B32]">
+                    <td className="py-3.5 px-4 text-[#1B0B38]">
                       {m.active_freeze ? (
                         <div>
-                          <p className="font-semibold text-blue-800 text-[11px]">
+                          <p className="font-bold text-blue-800 text-[11px]">
                             Frozen ({m.active_freeze.freeze_days} days)
                           </p>
-                          <p className="text-[10px] text-[#8C7A6B]">
+                          <p className="text-[10px] text-[#1B0B38]/50">
                             {m.active_freeze.freeze_start} to {m.active_freeze.freeze_end}
                           </p>
                           {m.active_freeze.reason && (
-                            <p className="text-[10px] text-[#8C7A6B]/80 italic">
-                              "{m.active_freeze.reason}"
+                            <p className="text-[10px] text-[#1B0B38]/60 italic">
+                              &quot;{m.active_freeze.reason}&quot;
                             </p>
                           )}
                         </div>
                       ) : m.pending_request ? (
                         <div>
-                          <p className="font-semibold text-amber-800 text-[11px]">
+                          <p className="font-bold text-amber-800 text-[11px]">
                             Pending Approval ({m.pending_request.requested_days} days)
                           </p>
-                          <p className="text-[10px] text-[#8C7A6B]">
+                          <p className="text-[10px] text-[#1B0B38]/50">
                             Start: {m.pending_request.requested_start_date}
                           </p>
                         </div>
                       ) : (
-                        <span className="text-[#8C7A6B] text-[11px]">No Active Freeze</span>
+                        <span className="text-[#1B0B38]/40 text-[11px]">No Active Freeze</span>
                       )}
                     </td>
 
@@ -396,7 +390,7 @@ export default function AdminFreezeManagementPage() {
                       {m.current_status === "Frozen" ? (
                         <button
                           onClick={() => setResumeModalMember(m)}
-                          className="px-3 py-1.5 bg-[#4A3B32] hover:bg-[#362B24] text-white rounded-lg text-xs font-semibold transition-all shadow-sm"
+                          className="px-3.5 py-1.5 bg-[#7B3FE4] hover:bg-[#6A2FD3] text-white rounded-xl text-xs font-bold transition-all shadow-xs"
                         >
                           Resume
                         </button>
@@ -404,10 +398,10 @@ export default function AdminFreezeManagementPage() {
                         <button
                           onClick={() => handleOpenFreeze(m)}
                           disabled={m.freeze_remaining <= 0 || m.package_type === "No package selected"}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm ${
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
                             m.freeze_remaining <= 0 || m.package_type === "No package selected"
                               ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
-                              : "bg-[#B89368] hover:bg-[#A37F55] text-white"
+                              : "bg-[#7B3FE4] hover:bg-[#6A2FD3] text-white"
                           }`}
                         >
                           Freeze
@@ -416,7 +410,7 @@ export default function AdminFreezeManagementPage() {
 
                       <button
                         onClick={() => setHistoryModalMember(m)}
-                        className="px-3 py-1.5 border border-[#E5DDD0] bg-[#FAF7F2] hover:bg-[#F4EFE6] text-[#4A3B32] rounded-lg text-xs font-medium transition-all"
+                        className="px-3.5 py-1.5 border border-[#7B3FE4]/20 bg-[#FAF9FC] hover:bg-[#7B3FE4]/10 text-[#7B3FE4] rounded-xl text-xs font-bold transition-all"
                       >
                         View History
                       </button>
@@ -432,51 +426,51 @@ export default function AdminFreezeManagementPage() {
       {/* ─── DIRECT FREEZE MODAL ────────────────────────────────────────────── */}
       {freezeModalMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl border border-[#E5DDD0] shadow-xl max-w-md w-full p-6 space-y-5">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-md w-full p-6 space-y-5">
             {freezeStep === "confirm" ? (
               <>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-lg">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-lg">
                     !
                   </div>
                   <div>
-                    <h3 className="text-base font-serif font-bold text-[#362B24]">Freeze Membership</h3>
-                    <p className="text-xs text-[#8C7A6B]">Confirmation required</p>
+                    <h3 className="text-base font-serif font-bold text-[#1B0B38]">Freeze Membership</h3>
+                    <p className="text-xs text-[#1B0B38]/50">Confirmation required</p>
                   </div>
                 </div>
 
-                <p className="text-sm text-[#4A3B32]">
+                <p className="text-sm text-[#1B0B38]">
                   Are you sure you want to freeze this membership for{" "}
-                  <strong className="text-[#362B24]">{freezeModalMember.member_name}</strong>?
+                  <strong className="text-[#7B3FE4]">{freezeModalMember.member_name}</strong>?
                 </p>
 
-                <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0] text-xs space-y-1">
+                <div className="bg-[#FAF9FC] p-3.5 rounded-2xl border border-[#1B0B38]/10 text-xs space-y-1.5">
                   <div className="flex justify-between">
-                    <span className="text-[#8C7A6B]">Package Type:</span>
-                    <span className="font-semibold text-[#4A3B32]">{freezeModalMember.package_type}</span>
+                    <span className="text-[#1B0B38]/60">Package Type:</span>
+                    <span className="font-bold text-[#1B0B38]">{freezeModalMember.package_type}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#8C7A6B]">Current Duration:</span>
-                    <span className="font-semibold text-[#4A3B32]">
+                    <span className="text-[#1B0B38]/60">Current Duration:</span>
+                    <span className="font-semibold text-[#1B0B38]">
                       {formatDate(freezeModalMember.valid_from)} – {formatDate(freezeModalMember.valid_until)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#8C7A6B]">Freezes Remaining:</span>
-                    <span className="font-semibold text-[#4A3B32]">{freezeModalMember.freeze_remaining} / 2</span>
+                    <span className="text-[#1B0B38]/60">Freezes Remaining:</span>
+                    <span className="font-bold text-[#7B3FE4]">{freezeModalMember.freeze_remaining} / 2</span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-end gap-2 pt-2">
                   <button
                     onClick={() => setFreezeModalMember(null)}
-                    className="px-4 py-2 border border-[#E5DDD0] text-[#4A3B32] hover:bg-[#FAF7F2] rounded-xl text-xs font-semibold"
+                    className="px-4 py-2 border border-[#1B0B38]/15 text-[#1B0B38] hover:bg-[#FAF9FC] rounded-xl text-xs font-semibold"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={() => setFreezeStep("form")}
-                    className="px-4 py-2 bg-[#B89368] hover:bg-[#A37F55] text-white rounded-xl text-xs font-semibold shadow-sm"
+                    className="px-4 py-2 bg-[#7B3FE4] hover:bg-[#6A2FD3] text-white rounded-xl text-xs font-bold shadow-xs"
                   >
                     Proceed to Form
                   </button>
@@ -484,17 +478,17 @@ export default function AdminFreezeManagementPage() {
               </>
             ) : (
               <>
-                <div className="border-b border-[#E5DDD0] pb-3">
-                  <h3 className="text-base font-serif font-bold text-[#362B24]">
+                <div className="border-b border-[#1B0B38]/10 pb-3">
+                  <h3 className="text-base font-serif font-bold text-[#1B0B38]">
                     Freeze Form: {freezeModalMember.member_name}
                   </h3>
-                  <p className="text-xs text-[#8C7A6B]">
+                  <p className="text-xs text-[#1B0B38]/50">
                     Specify freeze parameters (Minimum 2 days, Maximum 15 days).
                   </p>
                 </div>
 
                 {freezeError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-semibold">
                     {freezeError}
                   </div>
                 )}
@@ -502,20 +496,20 @@ export default function AdminFreezeManagementPage() {
                 <div className="space-y-4 text-xs">
                   {/* Freeze Start Date */}
                   <div>
-                    <label className="block font-bold text-[#4A3B32] mb-1">Freeze Start Date</label>
+                    <label className="block font-bold text-[#1B0B38] mb-1">Freeze Start Date</label>
                     <input
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#4A3B32] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                      className="w-full p-2.5 bg-[#FAF9FC] border border-[#1B0B38]/15 rounded-xl text-xs text-[#1B0B38] focus:outline-none focus:ring-1 focus:ring-[#7B3FE4]"
                     />
                   </div>
 
                   {/* Number of Freeze Days */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="font-bold text-[#4A3B32]">Number of Freeze Days</label>
-                      <span className="font-mono font-bold text-[#B89368] text-sm">{freezeDays} days</span>
+                      <label className="font-bold text-[#1B0B38]">Number of Freeze Days</label>
+                      <span className="font-mono font-bold text-[#7B3FE4] text-sm">{freezeDays} days</span>
                     </div>
                     <input
                       type="range"
@@ -523,14 +517,14 @@ export default function AdminFreezeManagementPage() {
                       max="15"
                       value={freezeDays}
                       onChange={(e) => setFreezeDays(parseInt(e.target.value, 10))}
-                      className="w-full accent-[#B89368]"
+                      className="w-full accent-[#7B3FE4]"
                     />
-                    <div className="flex justify-between text-[10px] text-[#8C7A6B] mt-1">
+                    <div className="flex justify-between text-[10px] text-[#1B0B38]/50 mt-1 font-medium">
                       <span>2 Days (Min)</span>
                       <span>15 Days (Max)</span>
                     </div>
                     <div className="mt-1.5 flex items-center gap-2">
-                      <span className="text-[11px] text-[#8C7A6B]">Custom Value:</span>
+                      <span className="text-[11px] text-[#1B0B38]/60">Custom Value:</span>
                       <input
                         type="number"
                         min="2"
@@ -540,18 +534,18 @@ export default function AdminFreezeManagementPage() {
                           const val = parseInt(e.target.value, 10);
                           if (!isNaN(val)) setFreezeDays(val);
                         }}
-                        className="w-20 p-1.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-lg text-xs font-mono font-bold text-[#4A3B32] text-center"
+                        className="w-20 p-1.5 bg-[#FAF9FC] border border-[#1B0B38]/15 rounded-lg text-xs font-mono font-bold text-[#1B0B38] text-center"
                       />
                     </div>
                   </div>
 
                   {/* Freeze Reason */}
                   <div>
-                    <label className="block font-bold text-[#4A3B32] mb-1">Freeze Reason (Optional)</label>
+                    <label className="block font-bold text-[#1B0B38] mb-1">Freeze Reason (Optional)</label>
                     <select
                       value={freezeReason}
                       onChange={(e) => setFreezeReason(e.target.value)}
-                      className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#4A3B32] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                      className="w-full p-2.5 bg-[#FAF9FC] border border-[#1B0B38]/15 rounded-xl text-xs text-[#1B0B38] focus:outline-none focus:ring-1 focus:ring-[#7B3FE4]"
                     >
                       <option value="Vacation">Vacation</option>
                       <option value="Medical">Medical</option>
@@ -566,27 +560,27 @@ export default function AdminFreezeManagementPage() {
                         placeholder="Please specify custom reason..."
                         value={customReason}
                         onChange={(e) => setCustomReason(e.target.value)}
-                        className="w-full mt-2 p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#4A3B32] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                        className="w-full mt-2 p-2.5 bg-[#FAF9FC] border border-[#1B0B38]/15 rounded-xl text-xs text-[#1B0B38] focus:outline-none focus:ring-1 focus:ring-[#7B3FE4]"
                       />
                     )}
                   </div>
 
-                  <div className="p-3 bg-[#FAF7F2] rounded-xl border border-[#E5DDD0] text-[11px] text-[#8C7A6B]">
-                    ℹ️ Freeze fee: <strong className="text-[#4A3B32]">₹0 (Free)</strong>. Membership will be frozen immediately upon confirmation.
+                  <div className="p-3 bg-[#FAF9FC] rounded-xl border border-[#1B0B38]/10 text-[11px] text-[#1B0B38]/60">
+                    ℹ️ Freeze fee: <strong className="text-[#7B3FE4]">₹0 (Free)</strong>. Membership will be frozen immediately upon confirmation.
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E5DDD0]">
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1B0B38]/10">
                   <button
                     onClick={() => setFreezeStep("confirm")}
-                    className="px-4 py-2 border border-[#E5DDD0] text-[#4A3B32] hover:bg-[#FAF7F2] rounded-xl text-xs font-semibold"
+                    className="px-4 py-2 border border-[#1B0B38]/15 text-[#1B0B38] hover:bg-[#FAF9FC] rounded-xl text-xs font-semibold"
                   >
                     Back
                   </button>
                   <button
                     onClick={handleConfirmDirectFreeze}
                     disabled={submittingFreeze}
-                    className="px-4 py-2 bg-[#4A3B32] hover:bg-[#362B24] text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2"
+                    className="px-4 py-2 bg-[#7B3FE4] hover:bg-[#6A2FD3] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-2"
                   >
                     {submittingFreeze ? "Freezing..." : "Confirm & Freeze"}
                   </button>
@@ -600,20 +594,20 @@ export default function AdminFreezeManagementPage() {
       {/* ─── RESUME CONFIRMATION MODAL ─────────────────────────────────────────── */}
       {resumeModalMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl border border-[#E5DDD0] shadow-xl max-w-md w-full p-6 space-y-4">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-lg">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-lg">
                 ✓
               </div>
               <div>
-                <h3 className="text-base font-serif font-bold text-[#362B24]">Resume Membership</h3>
-                <p className="text-xs text-[#8C7A6B]">End active freeze</p>
+                <h3 className="text-base font-serif font-bold text-[#1B0B38]">Resume Membership</h3>
+                <p className="text-xs text-[#1B0B38]/50">End active freeze</p>
               </div>
             </div>
 
-            <p className="text-sm text-[#4A3B32]">
+            <p className="text-sm text-[#1B0B38]">
               Are you sure you want to resume membership for{" "}
-              <strong className="text-[#362B24]">{resumeModalMember.member_name}</strong> immediately?
+              <strong className="text-[#7B3FE4]">{resumeModalMember.member_name}</strong> immediately?
             </p>
 
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 space-y-1">
@@ -623,17 +617,17 @@ export default function AdminFreezeManagementPage() {
               </p>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E5DDD0]">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1B0B38]/10">
               <button
                 onClick={() => setResumeModalMember(null)}
-                className="px-4 py-2 border border-[#E5DDD0] text-[#4A3B32] hover:bg-[#FAF7F2] rounded-xl text-xs font-semibold"
+                className="px-4 py-2 border border-[#1B0B38]/15 text-[#1B0B38] hover:bg-[#FAF9FC] rounded-xl text-xs font-semibold"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmResume}
                 disabled={submittingResume}
-                className="px-4 py-2 bg-[#4A3B32] hover:bg-[#362B24] text-white rounded-xl text-xs font-semibold shadow-sm"
+                className="px-4 py-2 bg-[#7B3FE4] hover:bg-[#6A2FD3] text-white rounded-xl text-xs font-bold shadow-xs"
               >
                 {submittingResume ? "Resuming..." : "Confirm & Resume"}
               </button>
@@ -645,19 +639,19 @@ export default function AdminFreezeManagementPage() {
       {/* ─── FREEZE HISTORY MODAL ──────────────────────────────────────────────── */}
       {historyModalMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl border border-[#E5DDD0] shadow-xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-[#E5DDD0] pb-3">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-3">
               <div>
-                <h3 className="text-base font-serif font-bold text-[#362B24]">
+                <h3 className="text-base font-serif font-bold text-[#1B0B38]">
                   Freeze History: {historyModalMember.member_name}
                 </h3>
-                <p className="text-xs text-[#8C7A6B]">
+                <p className="text-xs text-[#1B0B38]/50">
                   Permanent record of all membership freezes
                 </p>
               </div>
               <button
                 onClick={() => setHistoryModalMember(null)}
-                className="p-1 rounded-lg border border-[#E5DDD0] hover:bg-[#FAF7F2] text-[#4A3B32]"
+                className="p-1.5 rounded-xl border border-[#1B0B38]/15 hover:bg-[#FAF9FC] text-[#1B0B38]"
               >
                 ✕
               </button>
@@ -665,19 +659,19 @@ export default function AdminFreezeManagementPage() {
 
             <div className="flex-1 overflow-y-auto space-y-3 pr-1">
               {historyModalMember.freeze_history.length === 0 ? (
-                <p className="text-center py-8 text-xs text-[#8C7A6B]">
+                <p className="text-center py-8 text-xs text-[#1B0B38]/50">
                   No past freeze history found for this member.
                 </p>
               ) : (
                 historyModalMember.freeze_history.map((f) => (
                   <div
                     key={f.id}
-                    className="p-4 bg-[#FAF7F2] rounded-xl border border-[#E5DDD0] text-xs space-y-2"
+                    className="p-4 bg-[#FAF9FC] rounded-2xl border border-[#1B0B38]/10 text-xs space-y-2"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#4A3B32]">{f.package_type}</span>
+                      <span className="font-bold text-[#1B0B38]">{f.package_type}</span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                           f.status === "active"
                             ? "bg-blue-100 text-blue-800"
                             : f.status === "resumed"
@@ -689,21 +683,21 @@ export default function AdminFreezeManagementPage() {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-[#4A3B32]">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-[#1B0B38]">
                       <div>
-                        <span className="text-[#8C7A6B] block">Start Date</span>
+                        <span className="text-[#1B0B38]/50 block">Start Date</span>
                         <span className="font-semibold">{f.freeze_start}</span>
                       </div>
                       <div>
-                        <span className="text-[#8C7A6B] block">End Date</span>
+                        <span className="text-[#1B0B38]/50 block">End Date</span>
                         <span className="font-semibold">{f.freeze_end}</span>
                       </div>
                       <div>
-                        <span className="text-[#8C7A6B] block">Duration</span>
+                        <span className="text-[#1B0B38]/50 block">Duration</span>
                         <span className="font-semibold">{f.freeze_days} Days</span>
                       </div>
                       <div>
-                        <span className="text-[#8C7A6B] block">Resume Date</span>
+                        <span className="text-[#1B0B38]/50 block">Resume Date</span>
                         <span className="font-semibold">
                           {f.resumed_at ? new Date(f.resumed_at).toLocaleDateString("en-IN") : "N/A (Normal Exp)"}
                         </span>
@@ -711,7 +705,7 @@ export default function AdminFreezeManagementPage() {
                     </div>
 
                     {f.reason && (
-                      <p className="text-[11px] text-[#8C7A6B] pt-1 border-t border-[#E5DDD0]/60">
+                      <p className="text-[11px] text-[#1B0B38]/60 pt-1 border-t border-[#1B0B38]/10">
                         <strong>Reason:</strong> {f.reason}
                       </p>
                     )}
@@ -720,10 +714,10 @@ export default function AdminFreezeManagementPage() {
               )}
             </div>
 
-            <div className="pt-3 border-t border-[#E5DDD0] text-right">
+            <div className="pt-3 border-t border-[#1B0B38]/10 text-right">
               <button
                 onClick={() => setHistoryModalMember(null)}
-                className="px-4 py-2 bg-[#4A3B32] text-white text-xs font-semibold rounded-xl"
+                className="px-5 py-2 bg-[#7B3FE4] text-white text-xs font-bold rounded-xl hover:bg-[#6A2FD3]"
               >
                 Close
               </button>

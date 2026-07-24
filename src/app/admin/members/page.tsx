@@ -696,7 +696,7 @@ function MembersPageContent() {
             resetForm();
             setShowForm(!showForm);
           }}
-          className="px-5 py-2.5 rounded-xl bg-[#B89368] text-white text-sm font-semibold hover:bg-[#A68B6B] transition-colors shadow-sm"
+          className="px-5 py-2.5 rounded-xl bg-[#7B3FE4] text-white text-sm font-semibold hover:bg-[#6A2FD3] transition-colors shadow-md"
         >
           {showForm ? "Cancel" : "+ Add Member"}
         </button>
@@ -812,7 +812,6 @@ function MembersPageContent() {
               <button
                 type="submit"
                 disabled={formLoading}
-                className="px-5 py-2.5 rounded-xl bg-[#4A3B32] text-white text-sm font-semibold hover:bg-[#362B24] disabled:opacity-50"
               >
                 {formLoading ? "Saving..." : "Add Member"}
               </button>
@@ -1027,7 +1026,7 @@ function MembersPageContent() {
                       <td className="py-3.5 px-4 text-right">
                         <button
                           onClick={() => handleOpenDetails(m)}
-                          className="px-3.5 py-1.5 rounded-xl bg-[#4A3B32] text-white font-semibold text-xs hover:bg-[#362B24] transition-colors shadow-xs"
+                          className="px-3.5 py-1.5 rounded-xl bg-[#7B3FE4] text-white font-bold text-xs hover:bg-[#6A2FD3] transition-colors shadow-xs"
                         >
                           Details
                         </button>

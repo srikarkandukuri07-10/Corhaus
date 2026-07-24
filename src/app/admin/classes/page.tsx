@@ -656,7 +656,7 @@ export default function ClassesManagementPage() {
           </button>
           <button
             onClick={() => setShowScheduleModal(true)}
-            className="px-5 py-2.5 rounded-xl bg-[#B89368] text-white text-xs font-semibold hover:bg-[#A68B6B] transition-colors shadow-sm"
+            className="px-5 py-2.5 rounded-xl bg-[#7B3FE4] text-white text-xs font-semibold hover:bg-[#6A2FD3] transition-colors shadow-md"
           >
             + Schedule Session
           </button>
@@ -678,23 +678,23 @@ export default function ClassesManagementPage() {
       )}
 
       {/* Tabs Bar */}
-      <div className="flex items-center gap-2 border-b border-[#E5DDD0] pb-2 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-[#1B0B38]/10 pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab("schedule")}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
             activeTab === "schedule"
-              ? "bg-[#4A3B32] text-white shadow-xs"
-              : "text-[#4A3B32]/60 hover:text-[#362B24] hover:bg-[#FAF7F2]"
+              ? "bg-[#7B3FE4] text-white shadow-xs"
+              : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-[#FAF9FC]"
           }`}
         >
           📅 Schedule Board ({sessions.length})
         </button>
         <button
           onClick={() => setActiveTab("bookings")}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
             activeTab === "bookings"
-              ? "bg-[#4A3B32] text-white shadow-xs"
-              : "text-[#4A3B32]/60 hover:text-[#362B24] hover:bg-[#FAF7F2]"
+              ? "bg-[#7B3FE4] text-white shadow-xs"
+              : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-[#FAF9FC]"
           }`}
         >
           📋 Bookings &amp; Attendance ({bookings.length})
@@ -832,7 +832,7 @@ export default function ClassesManagementPage() {
                           setSelectedBookSession(session);
                           setShowMemberBookingModal(true);
                         }}
-                        className="flex-1 py-2 px-3 rounded-xl bg-[#4A3B32] text-white text-xs font-semibold hover:bg-[#362B24] transition-colors"
+                        className="flex-1 py-2 px-3 rounded-xl bg-[#7B3FE4] text-white text-xs font-bold hover:bg-[#6A2FD3] transition-colors shadow-xs"
                       >
                         + Book Member
                       </button>
