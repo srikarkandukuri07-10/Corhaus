@@ -405,13 +405,26 @@ export default function AdminClassesModulePage() {
       sessionInserts.push({ ...basePayload, class_date: sessDate });
     }
 
-    let { error } = await supabase.from("classes").insert(sessionInserts);
+    let currentInserts: any[] = [...sessionInserts];
+    let { error } = await supabase.from("classes").insert(currentInserts);
 
-    if (error && error.message.includes("buffer_minutes")) {
-      // Fallback: stripped payload without buffer_minutes/end_time/class_type_id if PostgREST cache has not refreshed
-      const strippedInserts = sessionInserts.map(({ buffer_minutes, end_time, class_type_id, status, ...rest }) => rest);
-      const fallbackRes = await supabase.from("classes").insert(strippedInserts);
-      error = fallbackRes.error;
+    // Dynamic auto-recovery retry loop if schema cache lacks optional columns
+    let attempts = 0;
+    while (error && error.message.includes("Could not find the") && attempts < 5) {
+      attempts++;
+      const match = error.message.match(/Could not find the '([^']+)' column/);
+      if (match && match[1]) {
+        const missingCol = match[1];
+        currentInserts = currentInserts.map((item) => {
+          const newItem = { ...item };
+          delete newItem[missingCol];
+          return newItem;
+        });
+        const retryRes = await supabase.from("classes").insert(currentInserts);
+        error = retryRes.error;
+      } else {
+        break;
+      }
     }
 
     setActionLoading(false);
