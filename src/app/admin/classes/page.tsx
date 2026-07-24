@@ -69,22 +69,7 @@ interface ApprovedMember {
   membership_level: string;
 }
 
-type TabType = "schedule" | "bookings" | "catalogue" | "cancellations";
-
-const PREDEFINED_CATEGORIES = [
-  "Reformer Pilates",
-  "Mat Pilates",
-  "Beginner Pilates",
-  "Intermediate Pilates",
-  "Advanced Pilates",
-  "Tower Pilates",
-  "Cadillac Pilates",
-  "Chair Pilates",
-  "Private Session",
-  "Duet Session",
-  "Small Group Reformer",
-  "Stretch & Mobility",
-];
+type TabType = "schedule" | "bookings" | "cancellations";
 
 const PREDEFINED_INSTRUCTORS = [
   "Ragini (Head Trainer)",
@@ -158,7 +143,6 @@ export default function ClassesManagementPage() {
   // Search & Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [cancellationSearchQuery, setCancellationSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedInstructor, setSelectedInstructor] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [selectedDate, setSelectedDate] = useState("");
@@ -171,7 +155,6 @@ export default function ClassesManagementPage() {
 
   // Form states: New Class / Schedule Session
   const [formTitle, setFormTitle] = useState("");
-  const [formCategory, setFormCategory] = useState("Reformer Pilates");
   const [formDifficulty, setFormDifficulty] = useState("All Levels");
   const [formInstructor, setFormInstructor] = useState("Ragini (Head Trainer)");
   const [formDate, setFormDate] = useState(new Date().toISOString().split("T")[0]);
@@ -189,7 +172,6 @@ export default function ClassesManagementPage() {
   // Edit Class Modal state
   const [editingSession, setEditingSession] = useState<ClassSession | null>(null);
   const [editTitle, setEditTitle] = useState("");
-  const [editCategory, setEditCategory] = useState("Reformer Pilates");
   const [editDifficulty, setEditDifficulty] = useState("All Levels");
   const [editInstructor, setEditInstructor] = useState("Ragini (Head Trainer)");
   const [editDate, setEditDate] = useState("");
@@ -208,7 +190,6 @@ export default function ClassesManagementPage() {
   const handleOpenEditSession = (session: ClassSession) => {
     setEditingSession(session);
     setEditTitle(session.title);
-    setEditCategory(session.category || "Reformer Pilates");
     setEditDifficulty(session.difficulty || "All Levels");
     setEditInstructor(session.instructor);
     setEditDate(session.class_date);
@@ -249,7 +230,6 @@ export default function ClassesManagementPage() {
         .from("classes")
         .update({
           title: editTitle.trim(),
-          category: editCategory,
           difficulty: editDifficulty,
           instructor: editInstructor,
           class_date: editDate,
@@ -555,7 +535,6 @@ export default function ClassesManagementPage() {
         end_time: computedEndTime,
         duration_minutes: dur,
         buffer_minutes: buf,
-        category: formCategory,
         difficulty: formDifficulty,
         max_capacity: cap,
         location_room: formRoom,
@@ -618,7 +597,6 @@ export default function ClassesManagementPage() {
     return bookings.filter((b) => {
       if (selectedStatus !== "All" && b.booking_status !== selectedStatus) return false;
       if (selectedInstructor !== "All" && b.classes?.instructor !== selectedInstructor) return false;
-      if (selectedCategory !== "All" && b.classes?.category !== selectedCategory) return false;
       if (selectedDate && b.classes?.class_date !== selectedDate) return false;
 
       if (searchQuery.trim()) {
@@ -634,7 +612,7 @@ export default function ClassesManagementPage() {
 
       return true;
     });
-  }, [bookings, selectedStatus, selectedInstructor, selectedCategory, selectedDate, searchQuery]);
+  }, [bookings, selectedStatus, selectedInstructor, selectedDate, searchQuery]);
 
   // Cancelled Bookings List (Tab 4)
   const cancelledBookings = useMemo(() => {
@@ -722,16 +700,6 @@ export default function ClassesManagementPage() {
           📋 Bookings &amp; Attendance ({bookings.length})
         </button>
         <button
-          onClick={() => setActiveTab("catalogue")}
-          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-            activeTab === "catalogue"
-              ? "bg-[#4A3B32] text-white shadow-xs"
-              : "text-[#4A3B32]/60 hover:text-[#362B24] hover:bg-[#FAF7F2]"
-          }`}
-        >
-          ⚙️ Reusable Class Types
-        </button>
-        <button
           onClick={() => setActiveTab("cancellations")}
           className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
             activeTab === "cancellations"
@@ -749,17 +717,6 @@ export default function ClassesManagementPage() {
           {/* Availability & Filter Bar */}
           <div className="bg-white rounded-2xl border border-[#E5DDD0] p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs font-medium text-[#362B24]"
-              >
-                <option value="All">All Categories</option>
-                {PREDEFINED_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-
               <select
                 value={selectedInstructor}
                 onChange={(e) => setSelectedInstructor(e.target.value)}
@@ -820,10 +777,7 @@ export default function ClassesManagementPage() {
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className="px-2.5 py-0.5 rounded-full bg-[#FAF7F2] text-[#B89368] text-[10px] font-bold border border-[#E5DDD0]">
-                          {session.category || "Reformer Pilates"}
-                        </span>
-                        <h3 className="font-serif font-bold text-base text-[#362B24] mt-1">
+                        <h3 className="font-serif font-bold text-base text-[#362B24]">
                           {session.title}
                         </h3>
                         <p className="text-xs text-[#4A3B32]/60 mt-0.5">
@@ -1050,30 +1004,7 @@ export default function ClassesManagementPage() {
         </div>
       )}
 
-      {/* ─── TAB 3: REUSABLE CLASS TYPES CATALOGUE ──────────────────────────── */}
-      {activeTab === "catalogue" && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-[#E5DDD0] p-6 shadow-xs space-y-4">
-            <h3 className="text-base font-serif text-[#362B24]">Reusable Class Types Catalogue</h3>
-            <p className="text-xs text-[#4A3B32]/60">
-              Define reusable class templates with categories, difficulty levels, duration, and maximum participant caps.
-            </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
-              {PREDEFINED_CATEGORIES.map((cat) => (
-                <div key={cat} className="p-4 rounded-2xl bg-[#FAF7F2] border border-[#E5DDD0] space-y-2">
-                  <span className="text-[10px] font-bold text-[#B89368] uppercase tracking-wider block">Category</span>
-                  <h4 className="font-serif font-bold text-sm text-[#362B24]">{cat}</h4>
-                  <div className="flex justify-between items-center text-xs text-[#4A3B32]/60 pt-2 border-t border-[#E5DDD0]/60">
-                    <span>60 mins • Max 10</span>
-                    <span className="text-emerald-700 font-semibold">Active</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ─── TAB 4: CANCELLATIONS TAB ────────────────────────────────────────── */}
       {activeTab === "cancellations" && (
@@ -1181,18 +1112,6 @@ export default function ClassesManagementPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-semibold text-[#4A3B32] mb-1">Category *</label>
-                  <select
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24]"
-                  >
-                    {PREDEFINED_CATEGORIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
                   <label className="block font-semibold text-[#4A3B32] mb-1">Instructor *</label>
                   <select
                     value={formInstructor}
@@ -1202,6 +1121,19 @@ export default function ClassesManagementPage() {
                     {PREDEFINED_INSTRUCTORS.map((ins) => (
                       <option key={ins} value={ins}>{ins}</option>
                     ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-[#4A3B32] mb-1">Difficulty Level</label>
+                  <select
+                    value={formDifficulty}
+                    onChange={(e) => setFormDifficulty(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs text-[#362B24]"
+                  >
+                    <option value="All Levels">All Levels</option>
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
                   </select>
                 </div>
               </div>
@@ -1489,19 +1421,6 @@ export default function ClassesManagementPage() {
                     onChange={(e) => setEditTitle(e.target.value)}
                     className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
                   />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-[#4A3B32] mb-1">Category *</label>
-                  <select
-                    value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
-                    className="w-full p-2.5 bg-[#FAF7F2] border border-[#E5DDD0] rounded-xl text-xs text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
-                  >
-                    {PREDEFINED_CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
                 </div>
 
                 <div>
