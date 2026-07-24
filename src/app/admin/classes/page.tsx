@@ -1236,32 +1236,30 @@ export default function AdminClassesModulePage() {
         </div>
       )}
 
-      {/* ─── SCHEDULE SESSION MODAL (SPACIOUS 2-COLUMN LAYOUT) ───────────────── */}
+      {/* ─── SCHEDULE SESSION MODAL (COMPACT ZERO-SCROLL 2-COLUMN LAYOUT) ───── */}
       {showScheduleModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-md p-4 sm:p-6 flex items-center justify-center min-h-screen">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-3xl w-full p-8 my-auto flex flex-col max-h-[90vh] animate-fade-in space-y-6">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-md p-3 sm:p-4 flex items-center justify-center min-h-screen">
+          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-3xl w-full p-5 my-auto flex flex-col animate-fade-in space-y-3.5">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4 flex-shrink-0">
+            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-2.5 flex-shrink-0">
               <div>
-                <h3 className="text-2xl font-extrabold text-[#1B0B38]">Schedule Class Session</h3>
-                <p className="text-xs text-[#1B0B38]/60 mt-0.5">Set up session details, date, time, and recurrence schedule</p>
+                <h3 className="text-xl font-extrabold text-[#1B0B38]">Schedule Class Session</h3>
+                <p className="text-[11px] text-[#1B0B38]/60 mt-0.5">Fill session details below — fits in a single view</p>
               </div>
-              <button onClick={() => setShowScheduleModal(false)} className="w-8 h-8 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-base font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
+              <button onClick={() => setShowScheduleModal(false)} className="w-7 h-7 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-xs font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
             </div>
 
-            {/* Form Body - Two Column Layout */}
-            <form onSubmit={handleSaveScheduledSession} className="flex-1 overflow-y-auto pr-2 space-y-6 text-xs">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Form Body - Compact 2-Column Grid */}
+            <form onSubmit={handleSaveScheduledSession} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-3">
                 {/* Left Column */}
-                <div className="space-y-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-[#7B3FE4]">Basic Details</p>
-
+                <div className="space-y-2.5">
                   <div>
-                    <label className="block font-bold text-[#1B0B38] mb-1.5">Class Master Template (Optional)</label>
+                    <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Class Master Template (Optional)</label>
                     <select
                       value={sessClassTypeId}
                       onChange={(e) => handleSelectClassTypeForSession(e.target.value)}
-                      className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none"
+                      className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none"
                     >
                       <option value="">-- Custom Session --</option>
                       {classTypes.map((c) => (
@@ -1271,71 +1269,70 @@ export default function AdminClassesModulePage() {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-[#1B0B38] mb-1.5">Session Title *</label>
-                    <input type="text" required value={sessTitle} onChange={(e) => setSessTitle(e.target.value)} placeholder="e.g. Morning Reformer Group Class" className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Session Title *</label>
+                    <input type="text" required value={sessTitle} onChange={(e) => setSessTitle(e.target.value)} placeholder="e.g. Morning Reformer Group Class" className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-[#1B0B38] mb-1.5">Trainer *</label>
-                    <input type="text" required value={sessTrainer} onChange={(e) => setSessTrainer(e.target.value)} placeholder="Rahul Sharma" className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Trainer *</label>
+                    <input type="text" required value={sessTrainer} onChange={(e) => setSessTrainer(e.target.value)} placeholder="Rahul Sharma" className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-[#1B0B38] mb-1.5">Max Capacity *</label>
-                    <input type="number" min="1" required value={sessCapacity} onChange={(e) => setSessCapacity(Number(e.target.value))} className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Max Capacity *</label>
+                    <input type="number" min="1" required value={sessCapacity} onChange={(e) => setSessCapacity(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
                   </div>
                 </div>
 
                 {/* Right Column */}
-                <div className="space-y-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-[#7B3FE4]">Time &amp; Location</p>
-
+                <div className="space-y-2.5">
                   <div>
-                    <label className="block font-bold text-[#1B0B38] mb-1.5">Date *</label>
-                    <input type="date" required value={sessDate} onChange={(e) => setSessDate(e.target.value)} className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Date *</label>
+                    <input type="date" required value={sessDate} onChange={(e) => setSessDate(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="block font-bold text-[#1B0B38] mb-1.5">Start Time *</label>
-                      <input type="time" required value={sessTime} onChange={(e) => setSessTime(e.target.value)} className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                      <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Start Time *</label>
+                      <input type="time" required value={sessTime} onChange={(e) => setSessTime(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
                     </div>
                     <div>
-                      <label className="block font-bold text-[#1B0B38] mb-1.5">Duration (mins)</label>
-                      <input type="number" min="1" value={sessDuration} onChange={(e) => setSessDuration(Number(e.target.value))} className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                      <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Duration (mins)</label>
+                      <input type="number" min="1" value={sessDuration} onChange={(e) => setSessDuration(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block font-bold text-[#1B0B38] mb-1.5">Buffer Time (mins)</label>
-                    <input type="number" min="0" value={sessBuffer} onChange={(e) => setSessBuffer(Number(e.target.value))} className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-[#1B0B38] mb-1.5">Studio Room / Location</label>
-                    <input type="text" value={sessRoom} onChange={(e) => setSessRoom(e.target.value)} placeholder="Studio Room A" className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Buffer Time (mins)</label>
+                      <input type="number" min="0" value={sessBuffer} onChange={(e) => setSessBuffer(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Studio Room</label>
+                      <input type="text" value={sessRoom} onChange={(e) => setSessRoom(e.target.value)} placeholder="Studio Room A" className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Recurring Rules Section */}
-              <div className="p-4 bg-[#FAF9FC] rounded-3xl border border-[#1B0B38]/10 space-y-4">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} className="w-4 h-4 accent-[#7B3FE4] rounded-md" />
+              <div className="p-3 bg-[#FAF9FC] rounded-2xl border border-[#1B0B38]/10 space-y-2">
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} className="w-3.5 h-3.5 accent-[#7B3FE4] rounded-md" />
                   <span className="font-extrabold text-[#1B0B38] text-xs">Recurring Session Schedule</span>
                 </label>
 
                 {isRecurring && (
-                  <div className="space-y-4 pt-2 border-t border-[#1B0B38]/10">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-[#1B0B38]/70">Frequency:</span>
-                      <div className="flex gap-2">
+                  <div className="flex items-center justify-between pt-2 border-t border-[#1B0B38]/10 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[#1B0B38]/70 text-[11px]">Frequency:</span>
+                      <div className="flex gap-1.5">
                         {(["daily", "weekly", "monthly"] as const).map((freq) => (
                           <button
                             key={freq}
                             type="button"
                             onClick={() => setRecurringFrequency(freq)}
-                            className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase transition-all ${
+                            className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase transition-all ${
                               recurringFrequency === freq ? "bg-[#7B3FE4] text-white shadow-xs" : "bg-white border border-[#1B0B38]/15 text-[#1B0B38]"
                             }`}
                           >
@@ -1345,18 +1342,18 @@ export default function AdminClassesModulePage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs font-bold text-[#1B0B38]/70">Number of Occurrences:</span>
-                      <input type="number" min="1" max="52" value={recurringOccurrences} onChange={(e) => setRecurringOccurrences(Number(e.target.value))} className="w-24 p-2 bg-white border border-[#1B0B38]/15 rounded-xl text-center font-extrabold text-sm text-[#1B0B38]" />
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[#1B0B38]/70 text-[11px]">Occurrences:</span>
+                      <input type="number" min="1" max="52" value={recurringOccurrences} onChange={(e) => setRecurringOccurrences(Number(e.target.value))} className="w-16 p-1.5 bg-white border border-[#1B0B38]/15 rounded-lg text-center font-extrabold text-xs text-[#1B0B38]" />
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Footer Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1B0B38]/10 flex-shrink-0">
-                <button type="button" onClick={() => setShowScheduleModal(false)} className="px-6 py-3 border border-[#1B0B38]/15 rounded-2xl font-bold text-xs text-[#1B0B38] hover:bg-black/5 transition-all">Cancel</button>
-                <button type="submit" disabled={actionLoading} className="px-7 py-3 bg-[#7B3FE4] text-white font-extrabold text-xs rounded-2xl hover:bg-[#6A2FD3] transition-all shadow-md shadow-[#7B3FE4]/20">Save Session(s)</button>
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1B0B38]/10">
+                <button type="button" onClick={() => setShowScheduleModal(false)} className="px-5 py-2.5 border border-[#1B0B38]/15 rounded-xl font-bold text-xs text-[#1B0B38] hover:bg-black/5 transition-all">Cancel</button>
+                <button type="submit" disabled={actionLoading} className="px-6 py-2.5 bg-[#7B3FE4] text-white font-extrabold text-xs rounded-xl hover:bg-[#6A2FD3] transition-all shadow-md shadow-[#7B3FE4]/20">Save Session(s)</button>
               </div>
             </form>
           </div>
