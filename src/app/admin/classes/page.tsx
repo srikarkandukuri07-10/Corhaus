@@ -566,7 +566,7 @@ export default function AdminClassesModulePage() {
     setSessTitle(sess.title);
     setSessTrainer(sess.instructor);
     setSessDate(sess.class_date);
-    setSessTime(sess.class_time);
+    setSessTime(sess.class_time ? sess.class_time.substring(0, 5) : "09:00");
     setSessDuration(sess.duration_minutes || 60);
     setSessBuffer(sess.buffer_minutes || 15);
     setSessCapacity(sess.max_capacity);
@@ -1397,8 +1397,8 @@ export default function AdminClassesModulePage() {
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-2.5 flex-shrink-0">
               <div>
-                <h3 className="text-xl font-extrabold text-[#1B0B38]">Schedule Class Session</h3>
-                <p className="text-[11px] text-[#1B0B38]/60 mt-0.5">Fill session details below — fits in a single view</p>
+                <h3 className="text-xl font-extrabold text-[#1B0B38]">{editingSession ? "Edit Class Session" : "Schedule Class Session"}</h3>
+                <p className="text-[11px] text-[#1B0B38]/60 mt-0.5">{editingSession ? "Modify the session details below" : "Fill session details below — fits in a single view"}</p>
               </div>
               <button onClick={() => setShowScheduleModal(false)} className="w-7 h-7 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-xs font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
             </div>
@@ -1528,7 +1528,9 @@ export default function AdminClassesModulePage() {
               {/* Footer Action Buttons */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1B0B38]/10">
                 <button type="button" onClick={() => setShowScheduleModal(false)} className="px-5 py-2.5 border border-[#1B0B38]/15 rounded-xl font-bold text-xs text-[#1B0B38] hover:bg-black/5 transition-all">Cancel</button>
-                <button type="submit" disabled={actionLoading} className="px-6 py-2.5 bg-[#7B3FE4] text-white font-extrabold text-xs rounded-xl hover:bg-[#6A2FD3] transition-all shadow-md shadow-[#7B3FE4]/20">Save Session(s)</button>
+                <button type="submit" disabled={actionLoading} className="px-6 py-2.5 bg-[#7B3FE4] text-white font-extrabold text-xs rounded-xl hover:bg-[#6A2FD3] transition-all shadow-md shadow-[#7B3FE4]/20">
+                  {editingSession ? "Save Changes" : "Save Session(s)"}
+                </button>
               </div>
             </form>
           </div>
