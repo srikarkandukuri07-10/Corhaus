@@ -620,29 +620,33 @@ function MembersPageContent() {
     }));
 
     // 3. Relational query: fetch all completed bills for this member (newest first)
+    const memEmail = member.email ? member.email.trim().toLowerCase() : "";
+
     const { data: custData } = await supabase
       .from("customers")
       .select("id")
-      .or(`approved_member_id.eq.${member.id},email.ilike.${member.email.toLowerCase()}`);
+      .eq("approved_member_id", member.id);
 
-    const custIds = custData?.map((c) => c.id) || [];
-
-    let invoiceQuery = supabase
-      .from("invoices")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (custIds.length > 0) {
-      invoiceQuery = invoiceQuery.or(`customer_id.in.(${custIds.join(",")}),customer_email.ilike.${member.email.toLowerCase()}`);
-    } else {
-      invoiceQuery = invoiceQuery.ilike("customer_email", member.email.toLowerCase());
-    }
-
-    const { data: invoicesData } = await invoiceQuery;
+    const custIds = custData?.map((c) => c.id).filter(Boolean) || [];
 
     let fullBillingHistory: FullInvoiceRecord[] = [];
 
-    if (invoicesData && invoicesData.length > 0) {
+    const orConditions: string[] = [];
+    if (custIds.length > 0) {
+      orConditions.push(`customer_id.in.(${custIds.join(",")})`);
+    }
+    if (memEmail) {
+      orConditions.push(`customer_email.eq.${memEmail}`);
+    }
+
+    if (orConditions.length > 0) {
+      const { data: invoicesData } = await supabase
+        .from("invoices")
+        .select("*")
+        .or(orConditions.join(","))
+        .order("created_at", { ascending: false });
+
+      if (invoicesData && invoicesData.length > 0) {
       const invIds = invoicesData.map((inv) => inv.id);
       const createdByIds = [...new Set(invoicesData.map((inv) => inv.created_by).filter(Boolean))];
 
@@ -681,6 +685,7 @@ function MembersPageContent() {
         items: itemsByInvMap.get(inv.id) || [],
       }));
     }
+  }
 
     setSelectedMember((prev) => (prev ? {
       ...prev,
