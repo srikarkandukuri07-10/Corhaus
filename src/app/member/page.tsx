@@ -18,6 +18,7 @@ interface BookingData {
   id: string;
   class_id: string;
   booking_status: string;
+  notes?: string | null;
   classes?: {
     class_date: string;
   };
@@ -112,7 +113,7 @@ export default function MemberDashboard() {
 
     const approvedMemberId = amData?.id;
 
-    let bookingsQuery = supabase.from("bookings").select("id, class_id, booking_status, classes(class_date)");
+    let bookingsQuery = supabase.from("bookings").select("id, class_id, booking_status, notes, classes(class_date)");
     if (approvedMemberId) {
       bookingsQuery = bookingsQuery.or(`member_id.eq.${user.id},member_id.eq.${approvedMemberId}`);
     } else {
@@ -468,6 +469,17 @@ export default function MemberDashboard() {
                           "{classTypes[cls.title]}"
                         </p>
                       )}
+                      {(() => {
+                        const matchedBk = bookings.find(b => b.class_id === cls.id && b.booking_status === "booked");
+                        if (matchedBk && matchedBk.notes) {
+                          return (
+                            <div className="mt-2 text-[11px] font-semibold text-[#7B3FE4] bg-[#F2EBFE] px-2.5 py-1 rounded-lg flex items-center gap-1.5 inline-flex">
+                              <span>✨</span> {matchedBk.notes}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                     <div className="flex-shrink-0 ml-2">
                       {ongoing && booked && <span className="text-xs font-medium text-brand-accent bg-brand-accent/10 px-2 py-1 rounded-full">Ongoing</span>}

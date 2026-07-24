@@ -644,18 +644,28 @@ export default function AdminClassesModulePage() {
     setActionLoading(true);
     setActionError(null);
 
-    const { data, error } = await supabase.rpc("book_member_class_session", {
-      p_member_id: selectedAssignMemberId,
-      p_class_id: targetSessionForAssign.id,
-    });
+    try {
+      const res = await fetch("/api/admin/classes/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memberId: selectedAssignMemberId,
+          classId: targetSessionForAssign.id,
+        }),
+      });
+      const data = await res.json();
+      setActionLoading(false);
 
-    setActionLoading(false);
-    if (error) {
-      setActionError("Booking Failed: " + error.message);
-    } else {
-      setActionSuccess(`Member assigned successfully! Status: ${data?.status || "Booked"}`);
-      setShowAssignMemberModal(false);
-      fetchAllData();
+      if (!res.ok || data.error) {
+        setActionError("Booking Failed: " + (data.error || "Unknown error"));
+      } else {
+        setActionSuccess(data.message || "Member assigned successfully!");
+        setShowAssignMemberModal(false);
+        fetchAllData();
+      }
+    } catch (err: any) {
+      setActionLoading(false);
+      setActionError("Booking Failed: " + (err.message || "Network error"));
     }
   };
 
@@ -1592,9 +1602,18 @@ export default function AdminClassesModulePage() {
               </select>
             </div>
 
+            {actionError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl flex items-center justify-between">
+                <span>{actionError}</span>
+                <button type="button" onClick={() => setActionError(null)} className="text-red-500 hover:text-red-700 font-bold ml-2">✕</button>
+              </div>
+            )}
+
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1B0B38]/10 flex-shrink-0">
               <button onClick={() => setShowAssignMemberModal(false)} className="px-6 py-3 border border-[#1B0B38]/15 rounded-2xl font-bold text-xs text-[#1B0B38] hover:bg-black/5 transition-all">Cancel</button>
-              <button onClick={handleConfirmMemberAssignment} disabled={actionLoading || !selectedAssignMemberId} className="px-7 py-3 bg-[#7B3FE4] text-white font-extrabold text-xs rounded-2xl hover:bg-[#6A2FD3] transition-all shadow-md shadow-[#7B3FE4]/20">Confirm Booking</button>
+              <button onClick={handleConfirmMemberAssignment} disabled={actionLoading || !selectedAssignMemberId} className="px-7 py-3 bg-[#7B3FE4] text-white font-extrabold text-xs rounded-2xl hover:bg-[#6A2FD3] transition-all shadow-md shadow-[#7B3FE4]/20">
+                {actionLoading ? "Assigning..." : "Confirm Booking"}
+              </button>
             </div>
           </div>
         </div>

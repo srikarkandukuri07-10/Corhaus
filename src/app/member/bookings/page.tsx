@@ -10,6 +10,7 @@ interface BookingWithClass {
   created_at: string;
   cancelled_at: string | null;
   isPT?: boolean;
+  notes?: string | null;
   classes: {
     id: string;
     title: string;
@@ -292,6 +293,11 @@ export default function BookingsPage() {
                       <p className="text-sm text-brand-navy/50 mt-0.5">
                         {booking.classes?.instructor}
                       </p>
+                      {booking.notes && (
+                        <div className="mt-1.5 text-[11px] font-semibold text-[#7B3FE4] bg-[#F2EBFE] px-2.5 py-1 rounded-lg flex items-center gap-1.5 inline-flex">
+                          <span>✨</span> {booking.notes}
+                        </div>
+                      )}
                       <div className="flex items-center gap-4 mt-2 text-sm text-brand-navy/60">
                         <span>
                           {booking.classes?.class_date
