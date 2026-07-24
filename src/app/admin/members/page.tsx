@@ -129,7 +129,7 @@ const CATALOGUE_PACKAGES: CatalogueItem[] = [
 // ─── Helper Functions ────────────────────────────────────────────────────────
 
 function formatSessionsDisplay(plan: PurchasedPlan | null | undefined): { text: string; isSessions: boolean } {
-  if (!plan) return { text: "Monthly (30 Days)", isSessions: false };
+  if (!plan) return { text: "No Sessions", isSessions: false };
   if (plan.sessions_total) {
     return {
       text: `${plan.sessions_remaining ?? plan.sessions_total} / ${plan.sessions_total} sessions`,
@@ -1053,41 +1053,47 @@ function MembersPageContent() {
                 <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0]">
                   <span className="text-[10px] text-[#4A3B32]/50 block">Package</span>
                   <span className="text-xs font-bold text-[#362B24]">
-                    {selectedMember.activePlan?.plan_name || selectedMember.membership_level}
+                    {selectedMember.activePlan?.plan_name || <span className="font-normal italic text-[#4A3B32]/50">No package selected</span>}
                   </span>
                 </div>
                 <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0]">
                   <span className="text-[10px] text-[#4A3B32]/50 block">Classes / Sessions</span>
                   <span className="text-xs font-bold text-[#362B24]">
-                    {formatSessionsDisplay(selectedMember.activePlan).text}
+                    {selectedMember.activePlan ? formatSessionsDisplay(selectedMember.activePlan).text : "No Sessions"}
                   </span>
                 </div>
                 <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0]">
                   <span className="text-[10px] text-[#4A3B32]/50 block">Start Date</span>
                   <span className="text-xs font-bold text-[#362B24]">
-                    {formatDate(selectedMember.activePlan?.valid_from || selectedMember.created_at)}
+                    {selectedMember.activePlan?.valid_from ? formatDate(selectedMember.activePlan.valid_from) : "N/A"}
                   </span>
                 </div>
                 <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0]">
                   <span className="text-[10px] text-[#4A3B32]/50 block">End Date</span>
                   <span className="text-xs font-bold text-[#362B24]">
-                    {formatDate(selectedMember.activePlan?.valid_until)}
+                    {selectedMember.activePlan?.valid_until ? formatDate(selectedMember.activePlan.valid_until) : "N/A"}
                   </span>
                 </div>
               </div>
             </div>
 
             {/* Validity Status Highlight */}
-            <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl flex items-center justify-between">
+            <div className={`p-3.5 rounded-2xl flex items-center justify-between border ${
+              selectedMember.activePlan
+                ? "bg-emerald-50 border-emerald-200"
+                : "bg-gray-50 border-gray-200"
+            }`}>
               <div>
-                <span className="text-[11px] font-semibold text-emerald-800 block">Validity Status</span>
-                <span className="text-sm font-bold text-emerald-900">
-                  {selectedMember.daysLeft !== null && selectedMember.daysLeft !== undefined
-                    ? `${selectedMember.daysLeft} days remaining`
-                    : "Active Plan"}
+                <span className="text-[11px] font-semibold text-[#4A3B32] block">Validity Status</span>
+                <span className="text-sm font-bold text-[#362B24]">
+                  {selectedMember.activePlan
+                    ? (selectedMember.daysLeft !== null && selectedMember.daysLeft !== undefined
+                        ? `${selectedMember.daysLeft} days remaining`
+                        : "Active Plan")
+                    : "No Active Plan (Pending Billing)"}
                 </span>
               </div>
-              <StatusBadge status={selectedMember.computedStatus || "Active"} />
+              <StatusBadge status={selectedMember.activePlan ? (selectedMember.computedStatus || "Active") : "No Package"} />
             </div>
 
             {/* ─── DEDICATED BILLING HISTORY SECTION ──────────────────────────── */}
