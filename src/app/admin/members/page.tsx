@@ -523,17 +523,40 @@ function MembersPageContent() {
     setActionError(null);
     setTogglingId(member.id);
 
-    const { error } = await supabase
+    const updateObj: Record<string, any> = {
+      freeze_status: newStatus === "frozen" ? "frozen" : "active",
+    };
+
+    let { error } = await supabase
       .from("approved_members")
-      .update({ membership_status: newStatus })
+      .update({ ...updateObj, membership_status: newStatus })
       .eq("id", member.id);
+
+    if (error && error.message.includes("check constraint")) {
+      // Fallback if legacy check constraint blocks setting membership_status to 'frozen'
+      const fallbackRes = await supabase
+        .from("approved_members")
+        .update(updateObj)
+        .eq("id", member.id);
+      error = fallbackRes.error;
+    }
+
+    if (member.activePlan?.id && !member.activePlan.id.startsWith("assigned-")) {
+      await supabase
+        .from("member_purchased_plans")
+        .update({
+          status: newStatus === "frozen" ? "frozen" : "active",
+          freeze_status: newStatus === "frozen" ? "frozen" : "active",
+        })
+        .eq("id", member.activePlan.id);
+    }
 
     if (error) {
       setActionError(`Failed to update status: ${error.message}`);
     } else {
       await fetchMembers();
       if (selectedMember?.id === member.id) {
-        setSelectedMember((prev) => (prev ? { ...prev, membership_status: newStatus } : null));
+        setSelectedMember((prev) => (prev ? { ...prev, membership_status: newStatus, freeze_status: newStatus === "frozen" ? "frozen" : "active" } : null));
       }
     }
     setTogglingId(null);
