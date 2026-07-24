@@ -96,11 +96,8 @@ export default function AdminDashboard() {
       let todayCount = 0;
 
       if (classData) {
-        const now = Date.now();
-        upcomingClasses = classData.filter(
-          (c) => parseAsIst(c.class_date, c.class_time) + 60 * 60 * 1000 > now
-        );
-        todayCount = classData.filter((c) => c.class_date === todayStr).length;
+        upcomingClasses = classData.filter((c) => c.class_date === todayStr && c.status !== "cancelled");
+        todayCount = upcomingClasses.length;
       }
 
       // 2. Fetch Booking Counts for all active classes
@@ -121,18 +118,19 @@ export default function AdminDashboard() {
         .from("approved_members")
         .select("*", { count: "exact", head: true });
 
-      // 4. Fetch Today's Revenue from Paid Invoices (using exact local IST start-of-day)
-      const startOfDayIso = `${todayStr}T00:00:00.000+05:30`;
+      // 4. Fetch This Month's Revenue from all Paid Invoices
+      const istNow = new Date(new Date().getTime() + IST_OFFSET_MS - (-new Date().getTimezoneOffset() * 60 * 1000));
+      const firstOfMonthIso = `${istNow.getFullYear()}-${String(istNow.getMonth() + 1).padStart(2, "0")}-01T00:00:00.000+05:30`;
 
-      const { data: todaysInvoices } = await supabase
+      const { data: monthlyInvoices } = await supabase
         .from("invoices")
-        .select("amount_paid, grand_total, created_at")
+        .select("amount_paid, grand_total")
         .eq("payment_status", "paid")
-        .gte("created_at", startOfDayIso);
+        .gte("created_at", firstOfMonthIso);
 
       let revTotal = 0;
-      if (todaysInvoices) {
-        revTotal = todaysInvoices.reduce((sum, inv) => {
+      if (monthlyInvoices) {
+        revTotal = monthlyInvoices.reduce((sum, inv) => {
           const paid = inv.amount_paid !== null && inv.amount_paid !== undefined && Number(inv.amount_paid) > 0
             ? Number(inv.amount_paid)
             : Number(inv.grand_total || 0);
@@ -141,6 +139,7 @@ export default function AdminDashboard() {
       }
 
       // 5. Fetch Check-ins Today
+      const startOfDayIso = `${todayStr}T00:00:00.000+05:30`;
       const { count: checkInsCount } = await supabase
         .from("attendance")
         .select("*", { count: "exact", head: true })
@@ -353,7 +352,7 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-[24px] p-6 border border-[#1B0B38]/10 shadow-xs flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
             <p className="text-xs font-bold text-[#1B0B38]/60 tracking-wider uppercase">
-              Today&apos;s Revenue
+              This Month&apos;s Revenue
             </p>
             <p className="text-3xl font-extrabold text-[#1B0B38] mt-2">
               {loading ? "..." : "₹" + todaysRevenue.toLocaleString("en-IN")}
@@ -397,7 +396,7 @@ export default function AdminDashboard() {
       {/* Upcoming Classes Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-[#1B0B38]">Upcoming Classes</h2>
+          <h2 className="text-xl font-bold text-[#1B0B38]">Today&apos;s Classes</h2>
           <Link
             href="/admin/classes"
             className="text-xs font-bold text-[#7B3FE4] hover:underline"
@@ -417,7 +416,7 @@ export default function AdminDashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <p className="text-sm font-semibold text-[#1B0B38]">No upcoming classes scheduled</p>
+            <p className="text-sm font-semibold text-[#1B0B38]">No classes scheduled for today</p>
             <Link
               href="/admin/classes"
               className="inline-block text-xs font-bold text-[#7B3FE4] hover:underline"

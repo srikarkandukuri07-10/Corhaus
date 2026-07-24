@@ -182,13 +182,21 @@ export default function AdminClassesModulePage() {
   const [sessCapacity, setSessCapacity] = useState(10);
   const [sessRoom, setSessRoom] = useState("Studio Room A");
   const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringFrequency, setRecurringFrequency] = useState<"daily" | "weekly" | "monthly">("weekly");
-  const [recurringEndOption, setRecurringEndOption] = useState<"count" | "date">("count");
-  const [recurringOccurrences, setRecurringOccurrences] = useState(4);
-  const [recurringEndDate, setRecurringEndDate] = useState("");
+  // NEW: day-of-week toggles (0=Sun,1=Mon,...,6=Sat) + number of weeks
+  const [recurringDays, setRecurringDays] = useState<number[]>([]);
+  const [recurringWeeks, setRecurringWeeks] = useState(4);
+  // Sessions tab date filter (default today)
+  const [selectedSessionDate, setSelectedSessionDate] = useState(getTodayIstString());
 
   const supabase = createClient();
   const [isPending, startTransition] = useTransition();
+
+  // Helper: toggle a day in recurringDays
+  const toggleRecurringDay = (day: number) => {
+    setRecurringDays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    );
+  };
 
   // Prevent background scroll when any modal is open
   const isAnyModalOpen = showCreateClassTypeModal || showScheduleModal || showAssignMemberModal || !!rescheduleBookingTarget;
@@ -198,9 +206,7 @@ export default function AdminClassesModulePage() {
     } else {
       document.body.style.overflow = "unset";
     }
-    return () => {
-      document.body.style.overflow = "unset";
-    };
+    return () => { document.body.style.overflow = "unset"; };
   }, [isAnyModalOpen]);
 
   // ─── GOOGLE CALENDAR WEEK DAYS COMPUTATION ─────────────────────────────────
@@ -240,24 +246,32 @@ export default function AdminClassesModulePage() {
 
       const { data: ctData } = await supabase.from("class_types").select("*").order("name");
       const { data: sessData } = await supabase.from("classes").select("*").order("class_date", { ascending: true }).order("class_time", { ascending: true });
-      const { data: bkData } = await supabase.from("bookings").select("*, classes(*), approved_members(full_name, email, phone_number), member_purchased_plans(plan_name, category, sessions_remaining, status)").order("created_at", { ascending: false });
+      // Fix: fetch bookings with only classes join (approved_members join via member_id may not be a FK in schema)
+      const { data: bkData } = await supabase.from("bookings").select("*, classes(id, title, instructor, class_date, class_time, max_capacity, location_room, category)").order("created_at", { ascending: false });
       
       // Fetch approved members and purchased plans separately for reliable JS mapping
       const { data: memData } = await supabase.from("approved_members").select("id, full_name, email, phone_number").order("full_name");
       const { data: plansData } = await supabase.from("member_purchased_plans").select("id, approved_member_id, plan_name, category, sessions_remaining, sessions_total, valid_until, status");
 
+      // Build member lookup map by id
+      const memberMap: Record<string, { full_name: string; email: string; phone_number: string }> = {};
+      (memData || []).forEach((m: any) => { memberMap[m.id] = m; });
+
+      // Enrich bookings with member info from map
+      const enrichedBookings = (bkData || []).map((b: any) => ({
+        ...b,
+        approved_members: memberMap[b.member_id] || null,
+      }));
+
       const membersWithPlans = (memData || []).map((m: any) => {
         const userPlans = (plansData || []).filter((p: any) => p.approved_member_id === m.id);
-        return {
-          ...m,
-          plans: userPlans,
-        };
+        return { ...m, plans: userPlans };
       });
 
       startTransition(() => {
         if (ctData) setClassTypes(ctData as ClassType[]);
         if (sessData) setSessions(sessData as ScheduledSession[]);
-        if (bkData) setBookings(bkData as BookingRecord[]);
+        setBookings(enrichedBookings as BookingRecord[]);
         setMembersList(membersWithPlans as any[]);
         setLoading(false);
       });
@@ -439,33 +453,24 @@ export default function AdminClassesModulePage() {
       is_active: true,
     };
 
-    const sessionInserts = [];
+    const sessionInserts: any[] = [];
 
-    if (isRecurring) {
-      const dates: string[] = [];
-      let currentDate = new Date(sessDate + "T00:00:00");
-      let maxCount = recurringOccurrences;
+    if (isRecurring && recurringDays.length > 0) {
+      // Generate sessions: for each selected day-of-week, find first occurrence >= sessDate
+      // then repeat for recurringWeeks consecutive weeks
+      const startDate = new Date(sessDate + "T00:00:00");
+      const startDayOfWeek = startDate.getDay();
 
-      if (recurringEndOption === "date" && recurringEndDate) {
-        const endDateObj = new Date(recurringEndDate + "T00:00:00");
-        maxCount = 99;
-        while (currentDate <= endDateObj && dates.length < 52) {
-          dates.push(currentDate.toISOString().split("T")[0]);
-          if (recurringFrequency === "daily") currentDate.setDate(currentDate.getDate() + 1);
-          else if (recurringFrequency === "weekly") currentDate.setDate(currentDate.getDate() + 7);
-          else if (recurringFrequency === "monthly") currentDate.setMonth(currentDate.getMonth() + 1);
+      recurringDays.slice().sort((a, b) => a - b).forEach((dayOfWeek) => {
+        let daysUntil = (dayOfWeek - startDayOfWeek + 7) % 7;
+        const firstOccurrence = new Date(startDate);
+        firstOccurrence.setDate(startDate.getDate() + daysUntil);
+
+        for (let week = 0; week < recurringWeeks; week++) {
+          const sessionDate = new Date(firstOccurrence);
+          sessionDate.setDate(firstOccurrence.getDate() + week * 7);
+          sessionInserts.push({ ...basePayload, class_date: sessionDate.toISOString().split("T")[0] });
         }
-      } else {
-        for (let i = 0; i < maxCount; i++) {
-          dates.push(currentDate.toISOString().split("T")[0]);
-          if (recurringFrequency === "daily") currentDate.setDate(currentDate.getDate() + 1);
-          else if (recurringFrequency === "weekly") currentDate.setDate(currentDate.getDate() + 7);
-          else if (recurringFrequency === "monthly") currentDate.setMonth(currentDate.getMonth() + 1);
-        }
-      }
-
-      dates.forEach((d) => {
-        sessionInserts.push({ ...basePayload, class_date: d });
       });
     } else {
       sessionInserts.push({ ...basePayload, class_date: sessDate });
@@ -686,8 +691,8 @@ export default function AdminClassesModulePage() {
             <p className="text-xs font-bold text-[#1B0B38]/50 uppercase tracking-wider">Active Class Types</p>
             <p className="text-3xl font-black text-[#1B0B38] mt-1.5">{loading ? "..." : kpiMetrics.activeClassTypes}</p>
           </div>
-          <div className="w-13 h-13 rounded-2xl bg-[#F2EBFE] text-[#7B3FE4] flex items-center justify-center font-bold text-2xl shadow-xs">
-            🧘
+          <div className="w-12 h-12 rounded-2xl bg-[#F2EBFE] text-[#7B3FE4] flex items-center justify-center shadow-xs">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" /></svg>
           </div>
         </div>
 
@@ -696,8 +701,8 @@ export default function AdminClassesModulePage() {
             <p className="text-xs font-bold text-[#1B0B38]/50 uppercase tracking-wider">Today&apos;s Sessions</p>
             <p className="text-3xl font-black text-[#1B0B38] mt-1.5">{loading ? "..." : kpiMetrics.todaySessionsCount}</p>
           </div>
-          <div className="w-13 h-13 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-2xl shadow-xs">
-            📅
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shadow-xs">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
           </div>
         </div>
 
@@ -706,8 +711,8 @@ export default function AdminClassesModulePage() {
             <p className="text-xs font-bold text-[#1B0B38]/50 uppercase tracking-wider">Total Active Bookings</p>
             <p className="text-3xl font-black text-[#1B0B38] mt-1.5">{loading ? "..." : kpiMetrics.totalActiveBookings}</p>
           </div>
-          <div className="w-13 h-13 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-2xl shadow-xs">
-            📋
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center shadow-xs">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
           </div>
         </div>
 
@@ -716,8 +721,8 @@ export default function AdminClassesModulePage() {
             <p className="text-xs font-bold text-[#1B0B38]/50 uppercase tracking-wider">Attendance Rate</p>
             <p className="text-3xl font-black text-[#1B0B38] mt-1.5">{loading ? "..." : `${kpiMetrics.avgAttendancePercent}%`}</p>
           </div>
-          <div className="w-13 h-13 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-2xl shadow-xs">
-            ✓
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-xs">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
         </div>
       </div>
@@ -732,7 +737,8 @@ export default function AdminClassesModulePage() {
               : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
           }`}
         >
-          🗂 Class Types ({classTypes.length})
+          <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+          Class Types ({classTypes.length})
         </button>
 
         <button
@@ -743,7 +749,8 @@ export default function AdminClassesModulePage() {
               : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
           }`}
         >
-          📅 Schedule Board ({sessions.length})
+          <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          Schedule Board ({sessions.length})
         </button>
 
         <button
@@ -754,7 +761,8 @@ export default function AdminClassesModulePage() {
               : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
           }`}
         >
-          ⏱ Sessions ({sessions.length})
+          <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          Sessions
         </button>
 
         <button
@@ -765,7 +773,8 @@ export default function AdminClassesModulePage() {
               : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
           }`}
         >
-          📋 Bookings ({bookings.length})
+          <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+          Bookings ({bookings.filter(b => b.booking_status !== "cancelled").length})
         </button>
       </div>
 
@@ -1023,14 +1032,25 @@ export default function AdminClassesModulePage() {
       {/* ─── TAB 3: SESSIONS LIST ─────────────────────────────────────────── */}
       {activeTab === "sessions" && (
         <div className="bg-white rounded-3xl border border-[#1B0B38]/10 overflow-hidden shadow-xs animate-fade-in">
-          <div className="p-5 border-b border-[#1B0B38]/10 flex items-center justify-between">
-            <h2 className="text-lg font-extrabold text-[#1B0B38]">All Scheduled Sessions</h2>
-            <button
-              onClick={() => setShowScheduleModal(true)}
-              className="px-5 py-2.5 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3]"
-            >
-              + Add Session
-            </button>
+          <div className="p-5 border-b border-[#1B0B38]/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-extrabold text-[#1B0B38]">Sessions</h2>
+              <p className="text-xs text-[#1B0B38]/50 mt-0.5">Showing sessions for selected date</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="date"
+                value={selectedSessionDate}
+                onChange={(e) => setSelectedSessionDate(e.target.value)}
+                className="px-3 py-2 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38] focus:outline-none focus:ring-2 focus:ring-[#7B3FE4]/30"
+              />
+              <button
+                onClick={() => setShowScheduleModal(true)}
+                className="px-5 py-2.5 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3]"
+              >
+                + Add Session
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
@@ -1046,7 +1066,9 @@ export default function AdminClassesModulePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1B0B38]/10">
-                {sessions.map((s) => {
+                {sessions
+                  .filter((s) => s.class_date === selectedSessionDate)
+                  .map((s) => {
                   const booked = sessionBookingCountMap[s.id] || 0;
                   return (
                     <tr key={s.id} className="hover:bg-[#FAF9FC]/60 transition-colors">
@@ -1338,36 +1360,57 @@ export default function AdminClassesModulePage() {
               </div>
 
               {/* Recurring Rules Section */}
-              <div className="p-3 bg-[#FAF9FC] rounded-2xl border border-[#1B0B38]/10 space-y-2">
+              <div className="p-3 bg-[#FAF9FC] rounded-2xl border border-[#1B0B38]/10 space-y-3">
                 <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} className="w-3.5 h-3.5 accent-[#7B3FE4] rounded-md" />
+                  <input type="checkbox" checked={isRecurring} onChange={(e) => { setIsRecurring(e.target.checked); if (!e.target.checked) setRecurringDays([]); }} className="w-3.5 h-3.5 accent-[#7B3FE4] rounded-md" />
                   <span className="font-extrabold text-[#1B0B38] text-xs">Recurring Session Schedule</span>
                 </label>
 
                 {isRecurring && (
-                  <div className="flex items-center justify-between pt-2 border-t border-[#1B0B38]/10 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-[#1B0B38]/70 text-[11px]">Frequency:</span>
-                      <div className="flex gap-1.5">
-                        {(["daily", "weekly", "monthly"] as const).map((freq) => (
+                  <div className="pt-2 border-t border-[#1B0B38]/10 space-y-3">
+                    {/* Day of Week Toggles */}
+                    <div>
+                      <p className="text-[11px] font-bold text-[#1B0B38]/60 mb-2 uppercase tracking-wider">Repeat on</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
                           <button
-                            key={freq}
+                            key={day}
                             type="button"
-                            onClick={() => setRecurringFrequency(freq)}
-                            className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase transition-all ${
-                              recurringFrequency === freq ? "bg-[#7B3FE4] text-white shadow-xs" : "bg-white border border-[#1B0B38]/15 text-[#1B0B38]"
+                            onClick={() => toggleRecurringDay(i)}
+                            className={`w-9 h-9 rounded-full text-[11px] font-extrabold transition-all ${
+                              recurringDays.includes(i)
+                                ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/30"
+                                : "bg-white border border-[#1B0B38]/20 text-[#1B0B38]/60 hover:border-[#7B3FE4]/50"
                             }`}
                           >
-                            {freq}
+                            {day}
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-[#1B0B38]/70 text-[11px]">Occurrences:</span>
-                      <input type="number" min="1" max="52" value={recurringOccurrences} onChange={(e) => setRecurringOccurrences(Number(e.target.value))} className="w-16 p-1.5 bg-white border border-[#1B0B38]/15 rounded-lg text-center font-extrabold text-xs text-[#1B0B38]" />
+                    {/* Number of Weeks */}
+                    <div className="flex items-center gap-3">
+                      <span className="text-[11px] font-bold text-[#1B0B38]/60 uppercase tracking-wider">Repeat for</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="52"
+                        value={recurringWeeks}
+                        onChange={(e) => setRecurringWeeks(Math.max(1, Number(e.target.value)))}
+                        className="w-16 p-1.5 bg-white border border-[#1B0B38]/15 rounded-lg text-center font-extrabold text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none"
+                      />
+                      <span className="text-[11px] font-bold text-[#1B0B38]/60">weeks</span>
+                      {recurringDays.length > 0 && (
+                        <span className="text-[10px] font-semibold text-[#7B3FE4] bg-[#F2EBFE] px-2 py-1 rounded-lg">
+                          = {recurringDays.length * recurringWeeks} sessions
+                        </span>
+                      )}
                     </div>
+
+                    {recurringDays.length === 0 && (
+                      <p className="text-[10px] text-amber-600 font-semibold">Select at least one day to enable recurrence.</p>
+                    )}
                   </div>
                 )}
               </div>
