@@ -1,8 +1,16 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+
+function Modal({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  if (!mounted) return null;
+  return createPortal(children, document.body);
+}
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -1171,7 +1179,8 @@ export default function AdminClassesModulePage() {
 
       {/* ─── CREATE CLASS TYPE MODAL ─────────────────────────────────────── */}
       {showCreateClassTypeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
+        <Modal>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
           <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-2xl w-full p-6 flex flex-col max-h-[90vh] animate-fade-in space-y-5 overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4 flex-shrink-0">
               <div>
@@ -1245,11 +1254,13 @@ export default function AdminClassesModulePage() {
             </form>
           </div>
         </div>
+        </Modal>
       )}
 
       {/* ─── SCHEDULE SESSION MODAL (COMPACT ZERO-SCROLL 2-COLUMN LAYOUT) ───── */}
       {showScheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-3 sm:p-4">
+        <Modal>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-3 sm:p-4">
           <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-3xl w-full p-5 flex flex-col animate-fade-in space-y-3.5">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-2.5 flex-shrink-0">
@@ -1369,11 +1380,13 @@ export default function AdminClassesModulePage() {
             </form>
           </div>
         </div>
+        </Modal>
       )}
 
       {/* ─── ASSIGN MEMBER MODAL ─────────────────────────────────────────── */}
       {showAssignMemberModal && targetSessionForAssign && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
+        <Modal>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
           <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5">
             <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4 flex-shrink-0">
               <h3 className="text-xl font-extrabold text-[#1B0B38]">Assign Member to Session</h3>
@@ -1413,11 +1426,13 @@ export default function AdminClassesModulePage() {
             </div>
           </div>
         </div>
+        </Modal>
       )}
 
       {/* ─── RESCHEDULE BOOKING MODAL ────────────────────────────────────── */}
       {rescheduleBookingTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
+        <Modal>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
           <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5">
             <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4 flex-shrink-0">
               <h3 className="text-xl font-extrabold text-[#1B0B38]">Reschedule Member Booking</h3>
@@ -1448,6 +1463,7 @@ export default function AdminClassesModulePage() {
             </div>
           </div>
         </div>
+        </Modal>
       )}
     </div>
   );
