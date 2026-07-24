@@ -367,26 +367,8 @@ function MembersPageContent() {
         const mPlans = plansByMember.get(m.id) || [];
         let activeP = mPlans.find((p) => p.status === "active") || mPlans[0] || null;
 
-        // Fallback package assignment if member doesn't have a DB record yet
-        if (!activeP) {
-          const chosen = CATALOGUE_PACKAGES[index % CATALOGUE_PACKAGES.length];
-          const joinDate = m.created_at ? new Date(m.created_at) : new Date();
-          const validFrom = joinDate.toISOString().split("T")[0];
-          const validUntilDate = new Date(joinDate.getTime() + chosen.validity * 86400000);
-          const validUntil = validUntilDate.toISOString().split("T")[0];
-          const rem = chosen.remaining !== undefined ? chosen.remaining : (chosen.sessions ? Math.floor(chosen.sessions * 0.7) : null);
-
-          activeP = {
-            id: `assigned-${m.id}`,
-            plan_name: chosen.name,
-            category: chosen.category,
-            sessions_total: chosen.sessions,
-            sessions_remaining: rem,
-            valid_from: validFrom,
-            valid_until: validUntil,
-            status: "active",
-          };
-        }
+        // Only set activeP if member has an actual purchased plan from DB
+        const allMemberPlans = mPlans.length > 0 ? mPlans : [];
 
         const computed = computeMemberStatus(m.membership_status, activeP);
         const inv = invoiceByMemberMap.get(m.id) || null;
@@ -940,42 +922,50 @@ function MembersPageContent() {
 
                       {/* Package / Plan */}
                       <td className="py-3.5 px-4 font-semibold text-[#362B24] max-w-[200px] truncate">
-                        {plan?.plan_name || m.membership_level || "Monthly"}
+                        {plan ? plan.plan_name : <span className="text-[#4A3B32]/40 font-normal italic">No package selected</span>}
                       </td>
 
                       {/* Category */}
                       <td className="py-3.5 px-4">
-                        <span className="inline-block whitespace-nowrap px-3 py-1 rounded-full bg-[#FAF7F2] text-[#B89368] font-semibold text-xs border border-[#E5DDD0]">
-                          {plan?.category || "Membership Plans"}
-                        </span>
+                        {plan ? (
+                          <span className="inline-block whitespace-nowrap px-3 py-1 rounded-full bg-[#FAF7F2] text-[#B89368] font-semibold text-xs border border-[#E5DDD0]">
+                            {plan.category}
+                          </span>
+                        ) : (
+                          <span className="text-[#4A3B32]/30">—</span>
+                        )}
                       </td>
 
                       {/* Classes / Sessions */}
                       <td className="py-3.5 px-4">
-                        {(() => {
-                          const sessInfo = formatSessionsDisplay(plan);
-                          return (
-                            <span
-                              className={`inline-block whitespace-nowrap px-3 py-1 rounded-lg font-semibold text-xs border ${
-                                sessInfo.isSessions
-                                  ? "bg-indigo-50 text-indigo-700 border-indigo-100"
-                                  : "bg-purple-50 text-purple-700 border-purple-100"
-                              }`}
-                            >
-                              {sessInfo.text}
-                            </span>
-                          );
-                        })()}
+                        {plan ? (
+                          (() => {
+                            const sessInfo = formatSessionsDisplay(plan);
+                            return (
+                              <span
+                                className={`inline-block whitespace-nowrap px-3 py-1 rounded-lg font-semibold text-xs border ${
+                                  sessInfo.isSessions
+                                    ? "bg-indigo-50 text-indigo-700 border-indigo-100"
+                                    : "bg-purple-50 text-purple-700 border-purple-100"
+                                }`}
+                              >
+                                {sessInfo.text}
+                              </span>
+                            );
+                          })()
+                        ) : (
+                          <span className="text-[#4A3B32]/30">—</span>
+                        )}
                       </td>
 
                       {/* Start Date */}
                       <td className="py-3.5 px-4 text-[#4A3B32]/80 font-sans font-medium text-xs">
-                        {formatDate(plan?.valid_from || m.created_at)}
+                        {plan?.valid_from ? formatDate(plan.valid_from) : "—"}
                       </td>
 
                       {/* End Date */}
                       <td className="py-3.5 px-4 text-[#4A3B32]/80 font-sans font-medium text-xs">
-                        {formatDate(plan?.valid_until)}
+                        {plan?.valid_until ? formatDate(plan.valid_until) : "—"}
                       </td>
 
                       {/* Days Left */}

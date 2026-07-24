@@ -314,16 +314,26 @@ export default function AdminFreezeManagementPage() {
 
                     {/* Package Type */}
                     <td className="py-3.5 px-4 font-semibold text-[#4A3B32]">
-                      <span className="inline-block px-3 py-1 rounded-md bg-[#F4EFE6] text-[#4A3B32] text-[11px] font-bold">
-                        {m.package_type}
-                      </span>
+                      {m.package_type === "No package selected" ? (
+                        <span className="inline-block px-3 py-1 rounded-md bg-gray-100 text-gray-500 text-[11px] font-normal italic">
+                          No package selected
+                        </span>
+                      ) : (
+                        <span className="inline-block px-3 py-1 rounded-md bg-[#F4EFE6] text-[#4A3B32] text-[11px] font-bold">
+                          {m.package_type}
+                        </span>
+                      )}
                     </td>
 
-                    {/* Current Duration (Dates Synced with View Members) */}
+                    {/* Current Duration */}
                     <td className="py-3.5 px-4 text-[#4A3B32]">
-                      <div className="font-semibold text-[11px]">
-                        {formatDate(m.valid_from)} – {formatDate(m.valid_until)}
-                      </div>
+                      {m.valid_from && m.valid_until ? (
+                        <div className="font-semibold text-[11px]">
+                          {formatDate(m.valid_from)} – {formatDate(m.valid_until)}
+                        </div>
+                      ) : (
+                        <span className="text-[#8C7A6B]/50">—</span>
+                      )}
                     </td>
 
                     {/* Current Status */}
@@ -393,9 +403,9 @@ export default function AdminFreezeManagementPage() {
                       ) : (
                         <button
                           onClick={() => handleOpenFreeze(m)}
-                          disabled={m.freeze_remaining <= 0}
+                          disabled={m.freeze_remaining <= 0 || m.package_type === "No package selected"}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm ${
-                            m.freeze_remaining <= 0
+                            m.freeze_remaining <= 0 || m.package_type === "No package selected"
                               ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
                               : "bg-[#B89368] hover:bg-[#A37F55] text-white"
                           }`}
