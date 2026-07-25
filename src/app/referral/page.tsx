@@ -101,7 +101,7 @@ export default function ReferralPage() {
           </p>
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-brand-error/20 text-red-500 text-sm">
+            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-400/20 text-red-500 text-sm">
               {error}
             </div>
           )}
@@ -202,7 +202,7 @@ export default function ReferralPage() {
           </p>
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-brand-error/20 text-red-500 text-sm">
+            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-400/20 text-red-500 text-sm">
               {error}
             </div>
           )}

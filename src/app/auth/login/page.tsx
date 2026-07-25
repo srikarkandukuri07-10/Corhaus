@@ -145,12 +145,12 @@ function LoginForm() {
           <h2 className="text-xl font-medium text-fg mb-6">Welcome back</h2>
 
               {notApprovedError && (
-                <div className="mb-4 p-4 rounded-xl bg-red-500/10 border border-brand-error/20 text-red-500 text-sm leading-relaxed">
+                <div className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-400/20 text-red-500 text-sm leading-relaxed">
                   {notApprovedError}
                 </div>
               )}
               {error && (
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-brand-error/20 text-red-500 text-sm">
+                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-400/20 text-red-500 text-sm">
                   {error}
                 </div>
               )}
@@ -240,7 +240,7 @@ function LoginForm() {
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-fg/30 border-t-brand-navy rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-fg/30 border-t-accent rounded-full animate-spin" />
                     Signing in...
                   </span>
                 ) : (
@@ -273,7 +273,7 @@ export default function LoginPage() {
     <LoginErrorBoundary>
       <Suspense fallback={
         <div className="min-h-screen flex items-center justify-center bg-surface-2">
-          <div className="w-8 h-8 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
         </div>
       }>
         <LoginForm />

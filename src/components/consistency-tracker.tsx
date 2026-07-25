@@ -233,7 +233,7 @@ export default function ConsistencyTracker({
       case "attended":
         return "bg-green-500 border border-green-500";
       case "missed":
-        return "bg-red-500 border border-brand-error";
+        return "bg-red-500 border border-red-400";
       case "upcoming":
         return "bg-surface border-2 border-dashed border-green-500/50 hover:border-green-500";
       case "unused":

@@ -286,7 +286,7 @@ function ReferralRequestNotificationItem({
   if (loading) {
     return (
       <div className="px-4 py-3 border-b border-line text-xs text-fg-4 flex items-center justify-center gap-2">
-        <div className="w-3 h-3 border border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+        <div className="w-3 h-3 border border-accent/30 border-t-text-gold rounded-full animate-spin" />
         Loading request details...
       </div>
     );
@@ -344,7 +344,7 @@ function ReferralRequestNotificationItem({
         <button
           onClick={() => handleResolve("reject")}
           disabled={resolving}
-          className="flex-1 py-1.5 rounded-lg border border-brand-error text-red-500 font-medium text-xs hover:bg-red-500/5 transition-colors disabled:opacity-50"
+          className="flex-1 py-1.5 rounded-lg border border-red-400 text-red-500 font-medium text-xs hover:bg-red-500/5 transition-colors disabled:opacity-50"
         >
           Reject
         </button>
@@ -471,7 +471,7 @@ function FreezeRequestNotificationItem({
             await markNotificationRead();
             onResolved();
           }}
-          className="text-[10px] text-[#B89368] font-semibold"
+          className="text-[10px] text-text-gold font-semibold"
         >
           Dismiss
         </button>
@@ -536,7 +536,7 @@ function FreezeRequestNotificationItem({
             <button
               onClick={() => handleResolve("approve")}
               disabled={resolving}
-              className="flex-1 py-1 rounded bg-[#4A3B32] text-white font-medium text-xs hover:bg-[#362B24]"
+              className="flex-1 py-1 rounded bg-bg-button text-white font-medium text-xs hover:bg-bg-button-hover"
             >
               Confirm Approval
             </button>
@@ -553,7 +553,7 @@ function FreezeRequestNotificationItem({
           <button
             onClick={() => setIsEditing(true)}
             disabled={resolving}
-            className="flex-1 py-1.5 rounded-lg bg-[#B89368] text-white font-medium text-xs hover:bg-[#A37F55] transition-colors disabled:opacity-50"
+            className="flex-1 py-1.5 rounded-lg bg-bg-gold text-white font-medium text-xs hover:bg-bg-gold-hover transition-colors disabled:opacity-50"
           >
             Approve
           </button>

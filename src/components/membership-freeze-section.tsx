@@ -296,7 +296,7 @@ export default function MembershipFreezeSection() {
         ) : (
           <button
             onClick={handleOpenRequest}
-            className="w-full py-3 bg-[#B89368] hover:bg-[#A37F55] text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 bg-bg-gold hover:bg-bg-gold-hover text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -358,7 +358,7 @@ export default function MembershipFreezeSection() {
                   max="15"
                   value={days}
                   onChange={(e) => setDays(parseInt(e.target.value, 10))}
-                  className="w-full accent-brand-brown"
+                  className="w-full accent-text-gold"
                 />
                 <div className="flex justify-between text-[10px] text-fg-4 mt-1">
                   <span>2 Days</span>

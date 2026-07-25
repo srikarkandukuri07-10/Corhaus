@@ -250,7 +250,7 @@ export default function InvoicesPage() {
       {loading ? (
         <div className="flex items-center justify-center py-24">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
             <p className="text-sm text-fg-5">Loading invoices…</p>
           </div>
         </div>
@@ -364,7 +364,7 @@ export default function InvoicesPage() {
                         </p>
                         {itemsLoading === inv.id ? (
                           <div className="flex items-center gap-2 py-4 text-sm text-fg-5">
-                            <div className="w-4 h-4 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+                            <div className="w-4 h-4 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
                             Loading items…
                           </div>
                         ) : (

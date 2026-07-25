@@ -1113,7 +1113,7 @@ export default function AdminClassesModulePage() {
                                           ? "bg-red-500/80 line-through opacity-80"
                                           : isFull
                                           ? "bg-rail"
-                                          : "bg-gradient-to-r from-accent to-[#5C24D4]"
+                                          : "bg-gradient-to-r from-accent to-accent-3"
                                       }`}
                                     >
                                       <p className="font-extrabold text-xs leading-tight line-clamp-1">

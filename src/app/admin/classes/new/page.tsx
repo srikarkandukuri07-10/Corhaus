@@ -129,7 +129,7 @@ export default function CreateClassPage() {
 
       <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line">
         {error && (
-          <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-brand-error/20 text-red-500 text-sm">
+          <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-400/20 text-red-500 text-sm">
             {error}
           </div>
         )}

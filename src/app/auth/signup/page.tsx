@@ -179,7 +179,7 @@ function SignupForm() {
           )}
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-brand-error/20 text-red-500 text-sm">
+            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-400/20 text-red-500 text-sm">
               {error}
             </div>
           )}
@@ -370,7 +370,7 @@ export default function SignupPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-surface-2">
-          <div className="w-8 h-8 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
         </div>
       }
     >

@@ -496,7 +496,7 @@ export default function CreateBillPage() {
 
       {/* Error banner */}
       {error && (
-        <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-brand-error/20 text-red-500 text-sm flex items-center gap-2">
+        <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-400/20 text-red-500 text-sm flex items-center gap-2">
           <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -532,7 +532,7 @@ export default function CreateBillPage() {
                     className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-line bg-surface-2/50 text-sm text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
                   />
                   {searchLoading && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
                   )}
 
                   {/* Dropdown */}
@@ -670,7 +670,7 @@ export default function CreateBillPage() {
             {itemsLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-2">
-                  <div className="w-6 h-6 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
                   <p className="text-xs text-fg-5">Loading…</p>
                 </div>
               </div>

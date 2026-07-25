@@ -39,6 +39,28 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
+  /* Text palette (brown/light theme) */
+  --color-text-primary: #362B24;
+  --color-text-secondary: #4A3B32;
+  --color-text-muted: #8C7A6B;
+  --color-text-gold: #B89368;
+  --color-text-input: #362B24;
+  --color-placeholder: #4A3B32;
+
+  /* Component palette */
+  --color-bg-input: #FFFFFF;
+  --color-border-input: #E5DDD0;
+  --color-bg-button: #4A3B32;
+  --color-bg-button-hover: #362B24;
+  --color-bg-gold: #B89368;
+  --color-bg-gold-hover: #A37F55;
+  --color-border-gold: #B89368;
+
+  /* Gradient tokens */
+  --color-gradient-from: #007BBF;
+  --color-gradient-mid: #6A22DF;
+  --color-gradient-to: #D10066;
+
   /* Legacy brand tokens (kept for backwards compat) */
   --color-brand-navy: #1C1C2E;
   --color-brand-brown: #8B6B4A;
@@ -83,6 +105,34 @@
   --color-line-2: #262B35;
   --color-line-rail: #1B2028;
   --color-line-bar: #1D222B;
+
+  /* Dark text palette */
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #C2C8D0;
+  --color-text-muted: #8A9099;
+  --color-text-gold: #D4AF37;
+  --color-text-input: #FFFFFF;
+  --color-placeholder: #5F6670;
+
+  /* Dark component palette */
+  --color-bg-input: #171A20;
+  --color-border-input: #262B35;
+  --color-bg-button: #2A2F38;
+  --color-bg-button-hover: #363C47;
+  --color-bg-gold: #D4AF37;
+  --color-bg-gold-hover: #E5C24A;
+  --color-border-gold: #D4AF37;
+
+  /* Dark gradient tokens */
+  --color-gradient-from: #1A6A9A;
+  --color-gradient-mid: #5A1ABF;
+  --color-gradient-to: #B10056;
+
+  /* Dark brand overrides */
+  --color-brand-sand: #2A2F38;
+  --color-brand-beige: #1A1F27;
+  --color-brand-error: #EF5350;
+  --color-brand-accent: #D4AF37;
 }
 
 /* ─── BASE ─────────────────────────────────────────────────────────────── */

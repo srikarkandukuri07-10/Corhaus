@@ -380,7 +380,7 @@ export default function MemberDashboard() {
       <div className="space-y-8 animate-fade-in">
         {!currentTime && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface/50 backdrop-blur-sm">
-          <div className="w-8 h-8 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
         </div>
       )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -390,7 +390,7 @@ export default function MemberDashboard() {
         </div>
         
         {!loading && (
-          <div className="w-full md:w-80 bg-gradient-to-br from-rail to-brand-navy/90 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden flex-shrink-0">
+          <div className="w-full md:w-80 bg-gradient-to-br from-rail to-accent/90 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden flex-shrink-0">
             <div className="absolute top-0 right-0 w-24 h-24 bg-accent/20 rounded-full blur-xl -mr-6 -mt-6" />
             <div className="flex items-center justify-between mb-3 relative z-10">
               <div>
@@ -398,7 +398,7 @@ export default function MemberDashboard() {
                 <h4 className="text-base font-medium mt-0.5">{membershipLevel}</h4>
               </div>
               <div className="w-8 h-8 rounded-full bg-surface/10 flex items-center justify-center">
-                <svg className="w-4 h-4 text-brand-beige" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 text-gold-fg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
@@ -406,7 +406,7 @@ export default function MemberDashboard() {
             <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/10 relative z-10 text-center">
               <div>
                 <span className="text-[10px] text-white/50 block">Total</span>
-                <span className="text-lg font-medium text-brand-beige">{totalCredits}</span>
+                <span className="text-lg font-medium text-gold-fg">{totalCredits}</span>
               </div>
               <div>
                 <span className="text-[10px] text-white/50 block">Used</span>
@@ -422,14 +422,14 @@ export default function MemberDashboard() {
       </div>
 
       {message && (
-        <div className={`p-4 rounded-xl text-sm ${message.type === "success" ? "bg-green-500/10 border border-green-500/20 text-green-600" : "bg-red-500/10 border border-brand-error/20 text-red-500"}`}>
+        <div className={`p-4 rounded-xl text-sm ${message.type === "success" ? "bg-green-500/10 border border-green-500/20 text-green-600" : "bg-red-500/10 border border-red-400/20 text-red-500"}`}>
           {message.text}
         </div>
       )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
         </div>
       ) : classes.length === 0 ? (
         <div className="text-center py-12 bg-surface rounded-2xl border border-line">
@@ -471,7 +471,7 @@ export default function MemberDashboard() {
                       })()}
                     </div>
                     <div className="flex-shrink-0 ml-2">
-                      {ongoing && booked && <span className="text-xs font-medium text-brand-accent bg-brand-accent/10 px-2 py-1 rounded-full">Ongoing</span>}
+                      {ongoing && booked && <span className="text-xs font-medium text-text-gold bg-text-gold/10 px-2 py-1 rounded-full">Ongoing</span>}
                       {!ongoing && booked && <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2 py-1 rounded-full">Booked</span>}
                     </div>
                   </div>
@@ -499,7 +499,7 @@ export default function MemberDashboard() {
                       </div>
                     ) : showQr && isGenerating[cls.id] ? (
                       <div className="flex items-center justify-center py-4">
-                        <div className="w-5 h-5 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+                        <div className="w-5 h-5 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
                       </div>
                     ) : (
                       <p className="text-xs text-fg-5 text-center py-3 bg-surface-2 rounded-xl border border-line">
@@ -518,7 +518,7 @@ export default function MemberDashboard() {
 
                 <div className="mt-4 space-y-2">
                   {ongoing && booked ? (
-                    <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-brand-accent/10 text-brand-accent border border-brand-accent/20">
+                    <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-text-gold/10 text-text-gold border border-text-gold/20">
                       Ongoing Class
                     </div>
                   ) : !started ? (
@@ -529,7 +529,7 @@ export default function MemberDashboard() {
                       </button>
                       {booked && canCancel(cls, currentTime) && (
                         <button onClick={() => handleCancel(cls)} disabled={bookingLoading === cls.id}
-                          className="w-full py-2.5 rounded-xl text-sm font-medium border border-brand-error/30 text-red-500 hover:bg-red-500/5 transition-all disabled:opacity-50">
+                          className="w-full py-2.5 rounded-xl text-sm font-medium border border-red-400/30 text-red-500 hover:bg-red-500/5 transition-all disabled:opacity-50">
                           {bookingLoading === cls.id ? "Cancelling..." : "Cancel Booking"}
                         </button>
                       )}

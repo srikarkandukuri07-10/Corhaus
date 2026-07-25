@@ -183,7 +183,7 @@ export default function ProfileModal({
 
         {!profile ? (
           <div className="flex justify-center py-8">
-            <div className="w-6 h-6 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
           </div>
         ) : (
           <div className="space-y-4">
@@ -201,7 +201,7 @@ export default function ProfileModal({
             <div className="flex flex-col items-center justify-center pb-4 pt-2">
               <div className="relative group w-24 h-24 rounded-full overflow-hidden border-2 border-line bg-surface-2/50 flex items-center justify-center shadow-inner">
                 {uploading ? (
-                  <div className="w-6 h-6 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
                 ) : avatarUrl ? (
                   <img src={avatarUrl} alt="Profile Photo" className="w-full h-full object-cover" />
                 ) : (

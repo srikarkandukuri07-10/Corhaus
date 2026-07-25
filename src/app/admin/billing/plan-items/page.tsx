@@ -262,7 +262,7 @@ export default function PlanItemsPage() {
       <BillingSubNav />
 
       {actionError && (
-        <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-brand-error/20 text-red-500 text-sm">
+        <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-400/20 text-red-500 text-sm">
           {actionError}
         </div>
       )}
@@ -321,7 +321,7 @@ export default function PlanItemsPage() {
           {loading ? (
             <div className="flex items-center justify-center py-24 bg-surface rounded-2xl border border-line">
               <div className="flex flex-col items-center gap-3">
-                <div className="w-7 h-7 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+                <div className="w-7 h-7 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
                 <p className="text-sm text-fg-5">Loading…</p>
               </div>
             </div>
@@ -491,7 +491,7 @@ export default function PlanItemsPage() {
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {formError && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-brand-error/20 text-red-500 text-sm">
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-400/20 text-red-500 text-sm">
                   {formError}
                 </div>
               )}

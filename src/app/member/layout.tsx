@@ -152,8 +152,8 @@ export default function MemberLayout({
                         href={item.href}
                         className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-300 transform active:scale-95 ${
                           isActive
-                            ? "bg-gradient-to-r from-[#007BBF] via-[#6A22DF] to-[#D10066] text-white shadow-md shadow-[#6A22DF]/25"
-                            : "bg-gradient-to-r from-[#007BBF]/15 via-[#6A22DF]/15 to-[#D10066]/15 text-fg-2 hover:from-[#007BBF]/25 hover:via-[#6A22DF]/25 hover:to-[#D10066]/25 border border-line"
+                            ? "bg-gradient-to-r from-gradient-from via-gradient-mid to-gradient-to text-white shadow-md shadow-gradient-mid/25"
+                            : "bg-gradient-to-r from-gradient-from/15 via-gradient-mid/15 to-gradient-to/15 text-fg-2 hover:from-gradient-from/25 hover:via-gradient-mid/25 hover:to-gradient-to/25 border border-line"
                         }`}
                       >
                         {item.label}
@@ -212,8 +212,8 @@ export default function MemberLayout({
                   href={item.href}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-300 active:scale-95 ${
                     isActive
-                      ? "bg-gradient-to-r from-[#007BBF] via-[#6A22DF] to-[#D10066] text-white shadow-sm"
-                      : "bg-gradient-to-r from-[#007BBF]/15 via-[#6A22DF]/15 to-[#D10066]/15 text-fg-2 border border-line"
+                      ? "bg-gradient-to-r from-gradient-from via-gradient-mid to-gradient-to text-white shadow-sm"
+                      : "bg-gradient-to-r from-gradient-from/15 via-gradient-mid/15 to-gradient-to/15 text-fg-2 border border-line"
                   }`}
                 >
                   {item.label}

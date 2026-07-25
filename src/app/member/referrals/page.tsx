@@ -99,7 +99,7 @@ export default function ReferralsPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <div className="w-8 h-8 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin mb-3" />
+        <div className="w-8 h-8 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin mb-3" />
         <p className="text-sm text-fg-5">Loading referrals details...</p>
       </div>
     );
@@ -107,7 +107,7 @@ export default function ReferralsPage() {
 
   if (error) {
     return (
-      <div className="p-4 bg-red-500/10 border border-brand-error/20 text-red-500 rounded-xl text-center">
+      <div className="p-4 bg-red-500/10 border border-red-400/20 text-red-500 rounded-xl text-center">
         {error}
       </div>
     );

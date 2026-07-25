@@ -87,7 +87,7 @@ export default function CancelledBookingsPage() {
       <div className="bg-surface rounded-2xl border border-line overflow-hidden">
         {loading || isPending ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
           </div>
         ) : cancelled.length === 0 ? (
           <div className="text-center py-12">
