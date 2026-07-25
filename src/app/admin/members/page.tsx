@@ -696,7 +696,7 @@ function MembersPageContent() {
             resetForm();
             setShowForm(!showForm);
           }}
-          className="px-5 py-2.5 rounded-xl bg-[#7B3FE4] text-white text-sm font-semibold hover:bg-[#6A2FD3] transition-colors shadow-md"
+          className="px-5 py-2.5 rounded-xl bg-accent text-white text-sm font-semibold hover:bg-accent-2 transition-colors shadow-md"
         >
           {showForm ? "Cancel" : "+ Add Member"}
         </button>
@@ -713,7 +713,7 @@ function MembersPageContent() {
 
       {/* Summary KPI Cards Top Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl p-4 border border-[#E5DDD0] shadow-sm flex items-center justify-between">
+        <div className="bg-surface rounded-2xl p-4 border border-[#E5DDD0] shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-[#4A3B32]/50 uppercase tracking-wide">
               Active Subscriptions
@@ -725,7 +725,7 @@ function MembersPageContent() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-[#E5DDD0] shadow-sm flex items-center justify-between">
+        <div className="bg-surface rounded-2xl p-4 border border-[#E5DDD0] shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-[#4A3B32]/50 uppercase tracking-wide">
               Expiring This Week
@@ -737,7 +737,7 @@ function MembersPageContent() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-[#E5DDD0] shadow-sm flex items-center justify-between">
+        <div className="bg-surface rounded-2xl p-4 border border-[#E5DDD0] shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-[#4A3B32]/50 uppercase tracking-wide">
               Sessions Remaining
@@ -749,14 +749,14 @@ function MembersPageContent() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-[#E5DDD0] shadow-sm flex items-center justify-between">
+        <div className="bg-surface rounded-2xl p-4 border border-[#E5DDD0] shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-[#4A3B32]/50 uppercase tracking-wide">
               Total Members
             </p>
             <p className="text-2xl font-bold text-[#362B24] mt-1">{metrics.totalMembers}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-[#FAF7F2] text-[#B89368] flex items-center justify-center font-bold text-base">
+          <div className="w-10 h-10 rounded-xl bg-surface-2 text-[#B89368] flex items-center justify-center font-bold text-base">
             👥
           </div>
         </div>
@@ -764,7 +764,7 @@ function MembersPageContent() {
 
       {/* Add Member Form Collapsible */}
       {showForm && (
-        <div className="bg-white rounded-2xl border border-[#E5DDD0] p-6 shadow-sm animate-slide-up max-w-xl">
+        <div className="bg-surface rounded-2xl border border-[#E5DDD0] p-6 shadow-sm animate-slide-up max-w-xl">
           <h3 className="text-base font-serif text-[#362B24] mb-4">Add New Member</h3>
           {formError && <p className="text-xs text-red-600 bg-red-50 p-2.5 rounded-lg mb-3">{formError}</p>}
           <form onSubmit={handleAddMember} className="space-y-4">
@@ -776,7 +776,7 @@ function MembersPageContent() {
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="e.g. Priya Sharma"
-                className="w-full px-4 py-2.5 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-sm text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#E5DDD0] bg-surface-2 text-sm text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
               />
             </div>
             <div>
@@ -787,7 +787,7 @@ function MembersPageContent() {
                 value={formEmail}
                 onChange={(e) => setFormEmail(e.target.value)}
                 placeholder="priya@example.com"
-                className="w-full px-4 py-2.5 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-sm text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#E5DDD0] bg-surface-2 text-sm text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
               />
             </div>
             <div>
@@ -798,14 +798,14 @@ function MembersPageContent() {
                 value={formPhone}
                 onChange={(e) => setFormPhone(e.target.value)}
                 placeholder="9876543210"
-                className="w-full px-4 py-2.5 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-sm text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#E5DDD0] bg-surface-2 text-sm text-[#362B24] focus:outline-none focus:ring-1 focus:ring-[#B89368]"
               />
             </div>
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-5 py-2.5 rounded-xl border border-[#E5DDD0] text-[#4A3B32]/70 text-sm font-medium hover:bg-[#FAF7F2]"
+                className="px-5 py-2.5 rounded-xl border border-[#E5DDD0] text-[#4A3B32]/70 text-sm font-medium hover:bg-surface-2"
               >
                 Cancel
               </button>
@@ -821,7 +821,7 @@ function MembersPageContent() {
       )}
 
       {/* Real-time Search & Status Filter Control Bar */}
-      <div className="bg-white rounded-2xl border border-[#E5DDD0] p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="bg-surface rounded-2xl border border-[#E5DDD0] p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative flex-1 w-full">
           <svg
             className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A3B32]/40"
@@ -836,7 +836,7 @@ function MembersPageContent() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by member name, email or phone..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-sm text-[#362B24] placeholder:text-[#4A3B32]/40 focus:outline-none focus:ring-1 focus:ring-[#B89368]"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5DDD0] bg-surface-2 text-sm text-[#362B24] placeholder:text-[#4A3B32]/40 focus:outline-none focus:ring-1 focus:ring-[#B89368]"
           />
           {searchQuery && (
             <button
@@ -852,7 +852,7 @@ function MembersPageContent() {
         <div className="relative flex-shrink-0 w-full sm:w-auto">
           <button
             onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-            className="w-full sm:w-56 px-4 py-2.5 rounded-xl border border-[#E5DDD0] bg-white text-sm font-medium text-[#362B24] flex items-center justify-between shadow-sm hover:border-[#B89368]"
+            className="w-full sm:w-56 px-4 py-2.5 rounded-xl border border-[#E5DDD0] bg-surface text-sm font-medium text-[#362B24] flex items-center justify-between shadow-sm hover:border-[#B89368]"
           >
             <span>{statusFilter}</span>
             <svg
@@ -866,7 +866,7 @@ function MembersPageContent() {
           </button>
 
           {showFilterDropdown && (
-            <div className="absolute right-0 mt-1 w-full sm:w-56 bg-white rounded-xl border border-[#E5DDD0] shadow-xl z-30 py-1 overflow-hidden">
+            <div className="absolute right-0 mt-1 w-full sm:w-56 bg-surface rounded-xl border border-[#E5DDD0] shadow-xl z-30 py-1 overflow-hidden">
               {(
                 [
                   "All Status",
@@ -886,8 +886,8 @@ function MembersPageContent() {
                   }}
                   className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors flex items-center justify-between ${
                     statusFilter === status
-                      ? "bg-[#FAF7F2] text-[#B89368] font-bold"
-                      : "text-[#4A3B32] hover:bg-[#FAF7F2]"
+                      ? "bg-surface-2 text-[#B89368] font-bold"
+                      : "text-[#4A3B32] hover:bg-surface-2"
                   }`}
                 >
                   <span>{status}</span>
@@ -900,14 +900,14 @@ function MembersPageContent() {
       </div>
 
       {/* Member Table View */}
-      <div className="bg-white rounded-2xl border border-[#E5DDD0] overflow-hidden shadow-sm">
+      <div className="bg-surface rounded-2xl border border-[#E5DDD0] overflow-hidden shadow-sm">
         {loading || isPending ? (
           <div className="flex items-center justify-center py-16">
             <div className="w-6 h-6 border-2 border-[#B89368]/30 border-t-[#B89368] rounded-full animate-spin" />
           </div>
         ) : filteredMembers.length === 0 ? (
           <div className="text-center py-16 px-4">
-            <div className="w-12 h-12 rounded-full bg-[#FAF7F2] flex items-center justify-center mx-auto mb-3 text-[#4A3B32]/30 text-xl font-bold">
+            <div className="w-12 h-12 rounded-full bg-surface-2 flex items-center justify-center mx-auto mb-3 text-[#4A3B32]/30 text-xl font-bold">
               🔍
             </div>
             <p className="text-sm font-semibold text-[#362B24]">No members found</p>
@@ -919,7 +919,7 @@ function MembersPageContent() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
               <thead>
-                <tr className="bg-[#FAF7F2] border-b border-[#E5DDD0] text-[#4A3B32]/60 font-semibold uppercase tracking-wider whitespace-nowrap">
+                <tr className="bg-surface-2 border-b border-[#E5DDD0] text-[#4A3B32]/60 font-semibold uppercase tracking-wider whitespace-nowrap">
                   <th className="py-3.5 px-4">Member</th>
                   <th className="py-3.5 px-4">Package / Plan</th>
                   <th className="py-3.5 px-4">Category</th>
@@ -936,11 +936,11 @@ function MembersPageContent() {
                   const plan = m.activePlan;
 
                   return (
-                    <tr key={m.id} className="hover:bg-[#FAF7F2]/50 transition-colors">
+                    <tr key={m.id} className="hover:bg-surface-2/50 transition-colors">
                       {/* Member column */}
                       <td className="py-3.5 px-4 font-medium text-[#362B24]">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full overflow-hidden border border-[#E5DDD0] bg-[#FAF7F2] flex-shrink-0 flex items-center justify-center font-bold text-[#4A3B32]">
+                          <div className="w-8 h-8 rounded-full overflow-hidden border border-[#E5DDD0] bg-surface-2 flex-shrink-0 flex items-center justify-center font-bold text-[#4A3B32]">
                             {m.avatar_url ? (
                               <img src={m.avatar_url} alt={m.full_name} className="w-full h-full object-cover" />
                             ) : (
@@ -962,7 +962,7 @@ function MembersPageContent() {
                       {/* Category */}
                       <td className="py-3.5 px-4">
                         {plan ? (
-                          <span className="inline-block whitespace-nowrap px-3 py-1 rounded-full bg-[#FAF7F2] text-[#B89368] font-semibold text-xs border border-[#E5DDD0]">
+                          <span className="inline-block whitespace-nowrap px-3 py-1 rounded-full bg-surface-2 text-[#B89368] font-semibold text-xs border border-[#E5DDD0]">
                             {plan.category}
                           </span>
                         ) : (
@@ -1033,7 +1033,7 @@ function MembersPageContent() {
                       <td className="py-3.5 px-4 text-right">
                         <button
                           onClick={() => handleOpenDetails(m)}
-                          className="px-3.5 py-1.5 rounded-xl bg-[#7B3FE4] text-white font-bold text-xs hover:bg-[#6A2FD3] transition-colors shadow-xs"
+                          className="px-3.5 py-1.5 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-2 transition-colors shadow-xs"
                         >
                           Details
                         </button>
@@ -1054,7 +1054,7 @@ function MembersPageContent() {
           onClick={() => setSelectedMember(null)}
         >
           <div
-            className="w-full max-w-lg bg-white h-full shadow-2xl overflow-y-auto p-6 space-y-6 animate-slide-up"
+            className="w-full max-w-lg bg-surface h-full shadow-2xl overflow-y-auto p-6 space-y-6 animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -1065,15 +1065,15 @@ function MembersPageContent() {
               </div>
               <button
                 onClick={() => setSelectedMember(null)}
-                className="w-8 h-8 rounded-full bg-[#FAF7F2] text-[#4A3B32] hover:bg-[#E5DDD0] flex items-center justify-center font-bold"
+                className="w-8 h-8 rounded-full bg-surface-2 text-[#4A3B32] hover:bg-[#E5DDD0] flex items-center justify-center font-bold"
               >
                 ✕
               </button>
             </div>
 
             {/* Member Profile Hero */}
-            <div className="flex items-center gap-4 bg-[#FAF7F2] p-4 rounded-2xl border border-[#E5DDD0]">
-              <div className="w-12 h-12 rounded-full overflow-hidden border border-[#E5DDD0] bg-white flex items-center justify-center font-bold text-lg text-[#4A3B32]">
+            <div className="flex items-center gap-4 bg-surface-2 p-4 rounded-2xl border border-[#E5DDD0]">
+              <div className="w-12 h-12 rounded-full overflow-hidden border border-[#E5DDD0] bg-surface flex items-center justify-center font-bold text-lg text-[#4A3B32]">
                 {selectedMember.avatar_url ? (
                   <img src={selectedMember.avatar_url} alt={selectedMember.full_name} className="w-full h-full object-cover" />
                 ) : (
@@ -1091,25 +1091,25 @@ function MembersPageContent() {
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-[#8C7A6B] uppercase tracking-wider">Package Info</h4>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0]">
+                <div className="bg-surface-2 p-3 rounded-xl border border-[#E5DDD0]">
                   <span className="text-[10px] text-[#4A3B32]/50 block">Package</span>
                   <span className="text-xs font-bold text-[#362B24]">
                     {selectedMember.activePlan?.plan_name || <span className="font-normal italic text-[#4A3B32]/50">No package selected</span>}
                   </span>
                 </div>
-                <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0]">
+                <div className="bg-surface-2 p-3 rounded-xl border border-[#E5DDD0]">
                   <span className="text-[10px] text-[#4A3B32]/50 block">Classes / Sessions</span>
                   <span className="text-xs font-bold text-[#362B24]">
                     {selectedMember.activePlan ? formatSessionsDisplay(selectedMember.activePlan).text : "No Sessions"}
                   </span>
                 </div>
-                <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0]">
+                <div className="bg-surface-2 p-3 rounded-xl border border-[#E5DDD0]">
                   <span className="text-[10px] text-[#4A3B32]/50 block">Start Date</span>
                   <span className="text-xs font-bold text-[#362B24]">
                     {selectedMember.activePlan?.valid_from ? formatDate(selectedMember.activePlan.valid_from) : "N/A"}
                   </span>
                 </div>
-                <div className="bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0]">
+                <div className="bg-surface-2 p-3 rounded-xl border border-[#E5DDD0]">
                   <span className="text-[10px] text-[#4A3B32]/50 block">End Date</span>
                   <span className="text-xs font-bold text-[#362B24]">
                     {selectedMember.activePlan?.valid_until ? formatDate(selectedMember.activePlan.valid_until) : "N/A"}
@@ -1157,7 +1157,7 @@ function MembersPageContent() {
                     <div
                       key={inv.id}
                       onClick={() => setSelectedInvoice(inv)}
-                      className="p-3.5 rounded-xl bg-[#FAF7F2] border border-[#E5DDD0] hover:border-[#B89368] transition-all cursor-pointer space-y-2 group shadow-2xs"
+                      className="p-3.5 rounded-xl bg-surface-2 border border-[#E5DDD0] hover:border-[#B89368] transition-all cursor-pointer space-y-2 group shadow-2xs"
                     >
                       {/* Row Header */}
                       <div className="flex items-center justify-between">
@@ -1179,7 +1179,7 @@ function MembersPageContent() {
                             <div key={it.id} className="flex items-center justify-between text-xs">
                               <div className="flex items-center gap-2 truncate pr-2">
                                 <span className="font-medium text-[#362B24] truncate">{it.name}</span>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white text-[#B89368] border border-[#E5DDD0] font-semibold flex-shrink-0">
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface text-[#B89368] border border-[#E5DDD0] font-semibold flex-shrink-0">
                                   {it.category}
                                 </span>
                               </div>
@@ -1211,7 +1211,7 @@ function MembersPageContent() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 px-4 bg-[#FAF7F2] rounded-xl border border-[#E5DDD0]">
+                <div className="text-center py-6 px-4 bg-surface-2 rounded-xl border border-[#E5DDD0]">
                   <p className="text-xs text-[#4A3B32]/50">No completed bills recorded for this member yet</p>
                   <p className="text-[10px] text-[#4A3B32]/40 mt-1">Completed bills from POS will automatically sync here</p>
                 </div>
@@ -1224,14 +1224,14 @@ function MembersPageContent() {
               {selectedMember.sessionLogs && selectedMember.sessionLogs.length > 0 ? (
                 <div className="space-y-1.5 max-h-40 overflow-y-auto">
                   {selectedMember.sessionLogs.map((log) => (
-                    <div key={log.id} className="text-xs p-2.5 rounded-xl bg-[#FAF7F2] border border-[#E5DDD0] flex justify-between">
+                    <div key={log.id} className="text-xs p-2.5 rounded-xl bg-surface-2 border border-[#E5DDD0] flex justify-between">
                       <span className="font-semibold text-[#362B24]">{log.classes?.title || "Pilates Session"}</span>
                       <span className="text-[#4A3B32]/50 font-mono">{new Date(log.scanned_at).toLocaleDateString("en-IN")}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-[#4A3B32]/40 bg-[#FAF7F2] p-3 rounded-xl border border-[#E5DDD0] text-center">
+                <p className="text-xs text-[#4A3B32]/40 bg-surface-2 p-3 rounded-xl border border-[#E5DDD0] text-center">
                   No session logs recorded yet
                 </p>
               )}
@@ -1278,7 +1278,7 @@ function MembersPageContent() {
           onClick={() => setSelectedInvoice(null)}
         >
           <div
-            className="bg-white rounded-3xl p-6 max-w-lg w-full space-y-5 shadow-2xl border border-[#E5DDD0] max-h-[90vh] overflow-y-auto animate-slide-up"
+            className="bg-surface rounded-3xl p-6 max-w-lg w-full space-y-5 shadow-2xl border border-[#E5DDD0] max-h-[90vh] overflow-y-auto animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -1293,14 +1293,14 @@ function MembersPageContent() {
               </div>
               <button
                 onClick={() => setSelectedInvoice(null)}
-                className="w-8 h-8 rounded-full bg-[#FAF7F2] text-[#4A3B32] hover:bg-[#E5DDD0] flex items-center justify-center font-bold"
+                className="w-8 h-8 rounded-full bg-surface-2 text-[#4A3B32] hover:bg-[#E5DDD0] flex items-center justify-center font-bold"
               >
                 ✕
               </button>
             </div>
 
             {/* Invoice Meta Grid */}
-            <div className="grid grid-cols-2 gap-3 text-xs bg-[#FAF7F2] p-4 rounded-2xl border border-[#E5DDD0]">
+            <div className="grid grid-cols-2 gap-3 text-xs bg-surface-2 p-4 rounded-2xl border border-[#E5DDD0]">
               <div>
                 <span className="text-[10px] text-[#4A3B32]/50 block font-medium">Bill Date &amp; Time</span>
                 <span className="font-semibold text-[#362B24]">
@@ -1328,10 +1328,10 @@ function MembersPageContent() {
               <h4 className="text-xs font-bold text-[#8C7A6B] uppercase tracking-wider">
                 Purchased Items ({selectedInvoice.items?.length || 0})
               </h4>
-              <div className="border border-[#E5DDD0] rounded-2xl overflow-hidden bg-white">
+              <div className="border border-[#E5DDD0] rounded-2xl overflow-hidden bg-surface">
                 <table className="w-full text-xs text-left">
                   <thead>
-                    <tr className="bg-[#FAF7F2] border-b border-[#E5DDD0] text-[#4A3B32]/60 font-semibold uppercase tracking-wider">
+                    <tr className="bg-surface-2 border-b border-[#E5DDD0] text-[#4A3B32]/60 font-semibold uppercase tracking-wider">
                       <th className="py-2.5 px-3">Item Name</th>
                       <th className="py-2.5 px-3">Category</th>
                       <th className="py-2.5 px-3 text-center">Qty</th>
@@ -1345,7 +1345,7 @@ function MembersPageContent() {
                         <tr key={it.id}>
                           <td className="py-2.5 px-3 font-semibold text-[#362B24]">{it.name}</td>
                           <td className="py-2.5 px-3">
-                            <span className="px-2 py-0.5 rounded-full bg-[#FAF7F2] text-[#B89368] font-medium text-[10px] border border-[#E5DDD0]">
+                            <span className="px-2 py-0.5 rounded-full bg-surface-2 text-[#B89368] font-medium text-[10px] border border-[#E5DDD0]">
                               {it.category}
                             </span>
                           </td>
@@ -1367,7 +1367,7 @@ function MembersPageContent() {
             </div>
 
             {/* Payment Summary */}
-            <div className="space-y-2 bg-[#FAF7F2] p-4 rounded-2xl border border-[#E5DDD0] text-xs">
+            <div className="space-y-2 bg-surface-2 p-4 rounded-2xl border border-[#E5DDD0] text-xs">
               <h4 className="text-xs font-bold text-[#8C7A6B] uppercase tracking-wider mb-2">
                 Payment Information
               </h4>
@@ -1427,7 +1427,7 @@ function MembersPageContent() {
       {/* Confirm Delete Modal */}
       {deletingMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+          <div className="bg-surface rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
             <h3 className="text-base font-bold text-red-700">Delete Member?</h3>
             <p className="text-xs text-[#4A3B32]/70">
               Type <span className="font-semibold">{deletingMember.email}</span> to confirm permanent deletion.
@@ -1437,7 +1437,7 @@ function MembersPageContent() {
               value={deleteConfirmEmail}
               onChange={(e) => setDeleteConfirmEmail(e.target.value)}
               placeholder={deletingMember.email}
-              className="w-full px-3 py-2 rounded-xl border border-[#E5DDD0] bg-[#FAF7F2] text-xs font-mono text-[#362B24]"
+              className="w-full px-3 py-2 rounded-xl border border-[#E5DDD0] bg-surface-2 text-xs font-mono text-[#362B24]"
             />
             <div className="flex gap-2">
               <button

@@ -379,25 +379,25 @@ export default function MemberDashboard() {
     <>
       <div className="space-y-8 animate-fade-in">
         {!currentTime && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-sm">
-          <div className="w-8 h-8 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface/50 backdrop-blur-sm">
+          <div className="w-8 h-8 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
         </div>
       )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-light text-brand-navy">Available <span className="font-medium">Classes</span></h1>
-          <p className="text-sm text-brand-navy/50 mt-1">Book your next Pilates session</p>
+          <h1 className="text-2xl font-light text-fg">Available <span className="font-medium">Classes</span></h1>
+          <p className="text-sm text-fg-4 mt-1">Book your next Pilates session</p>
         </div>
         
         {!loading && (
-          <div className="w-full md:w-80 bg-gradient-to-br from-brand-navy to-brand-navy/90 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden flex-shrink-0">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-brown/20 rounded-full blur-xl -mr-6 -mt-6" />
+          <div className="w-full md:w-80 bg-gradient-to-br from-rail to-brand-navy/90 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden flex-shrink-0">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-accent/20 rounded-full blur-xl -mr-6 -mt-6" />
             <div className="flex items-center justify-between mb-3 relative z-10">
               <div>
                 <span className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">Monthly Plan</span>
                 <h4 className="text-base font-medium mt-0.5">{membershipLevel}</h4>
               </div>
-              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-surface/10 flex items-center justify-center">
                 <svg className="w-4 h-4 text-brand-beige" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -410,7 +410,7 @@ export default function MemberDashboard() {
               </div>
               <div>
                 <span className="text-[10px] text-white/50 block">Used</span>
-                <span className="text-lg font-medium text-brand-success">{usedCredits}</span>
+                <span className="text-lg font-medium text-green-600">{usedCredits}</span>
               </div>
               <div>
                 <span className="text-[10px] text-white/50 block">Remaining</span>
@@ -422,18 +422,18 @@ export default function MemberDashboard() {
       </div>
 
       {message && (
-        <div className={`p-4 rounded-xl text-sm ${message.type === "success" ? "bg-brand-success/10 border border-brand-success/20 text-brand-success" : "bg-brand-error/10 border border-brand-error/20 text-brand-error"}`}>
+        <div className={`p-4 rounded-xl text-sm ${message.type === "success" ? "bg-green-500/10 border border-green-500/20 text-green-600" : "bg-red-500/10 border border-brand-error/20 text-red-500"}`}>
           {message.text}
         </div>
       )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
         </div>
       ) : classes.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-2xl border border-brand-sand/50">
-          <p className="text-brand-navy/40">No upcoming classes available</p>
+        <div className="text-center py-12 bg-surface rounded-2xl border border-line">
+          <p className="text-fg-5">No upcoming classes available</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -446,14 +446,14 @@ export default function MemberDashboard() {
             const ongoing = isClassOngoing(cls, currentTime);
 
             return (
-              <div key={cls.id} className="bg-white rounded-2xl border border-brand-sand/50 p-5 hover:shadow-md transition-all flex flex-col justify-between">
+              <div key={cls.id} className="bg-surface rounded-2xl border border-line p-5 hover:shadow-md transition-all flex flex-col justify-between">
                 <div>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-medium text-brand-navy text-lg">{cls.title}</h3>
-                      <p className="text-sm text-brand-navy/50 mt-1">{cls.instructor}</p>
+                      <h3 className="font-medium text-fg text-lg">{cls.title}</h3>
+                      <p className="text-sm text-fg-4 mt-1">{cls.instructor}</p>
                       {classTypes[cls.title] && (
-                        <p className="text-xs text-brand-navy/60 mt-2 italic leading-relaxed">
+                        <p className="text-xs text-fg-3 mt-2 italic leading-relaxed">
                           "{classTypes[cls.title]}"
                         </p>
                       )}
@@ -462,7 +462,7 @@ export default function MemberDashboard() {
                         if (matchedBk) {
                           const noteText = matchedBk.notes || "Corhaus invite u to this session";
                           return (
-                            <div className="mt-2 text-[11px] font-semibold text-[#7B3FE4] bg-[#F2EBFE] px-2.5 py-1 rounded-lg flex items-center gap-1.5 inline-flex">
+                            <div className="mt-2 text-[11px] font-semibold text-accent bg-accent/10 px-2.5 py-1 rounded-lg flex items-center gap-1.5 inline-flex">
                               <span>✨</span> {noteText}
                             </div>
                           );
@@ -472,16 +472,16 @@ export default function MemberDashboard() {
                     </div>
                     <div className="flex-shrink-0 ml-2">
                       {ongoing && booked && <span className="text-xs font-medium text-brand-accent bg-brand-accent/10 px-2 py-1 rounded-full">Ongoing</span>}
-                      {!ongoing && booked && <span className="text-xs font-medium text-brand-success bg-brand-success/10 px-2 py-1 rounded-full">Booked</span>}
+                      {!ongoing && booked && <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2 py-1 rounded-full">Booked</span>}
                     </div>
                   </div>
 
                 <div className="mt-4 space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-brand-navy/60">
+                  <div className="flex items-center gap-2 text-sm text-fg-3">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     {formatDate(cls.class_date)}
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-brand-navy/60">
+                  <div className="flex items-center gap-2 text-sm text-fg-3">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     {formatTime(cls.class_time)}
                   </div>
@@ -491,18 +491,18 @@ export default function MemberDashboard() {
                 {booked && !started && attendance?.attendance_status !== "attended" && (
                   <div className="mt-4">
                     {showQr && qrUrl ? (
-                      <div className="flex flex-col items-center gap-2 p-4 bg-brand-cream rounded-xl border border-brand-sand/30">
-                        <p className="text-xs font-medium text-brand-navy/60 uppercase tracking-wide">Corhaus Pilates</p>
+                      <div className="flex flex-col items-center gap-2 p-4 bg-surface-2 rounded-xl border border-line">
+                        <p className="text-xs font-medium text-fg-3 uppercase tracking-wide">Corhaus Pilates</p>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={qrUrl} alt="Attendance QR" className="w-40 h-40 rounded-lg" />
-                        <p className="text-xs text-brand-navy/40">Show this to the instructor at the studio</p>
+                        <p className="text-xs text-fg-5">Show this to the instructor at the studio</p>
                       </div>
                     ) : showQr && isGenerating[cls.id] ? (
                       <div className="flex items-center justify-center py-4">
-                        <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+                        <div className="w-5 h-5 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
                       </div>
                     ) : (
-                      <p className="text-xs text-brand-navy/40 text-center py-3 bg-brand-cream rounded-xl border border-brand-sand/30">
+                      <p className="text-xs text-fg-5 text-center py-3 bg-surface-2 rounded-xl border border-line">
                         {showQr ? "Generating QR..." : "Attendance QR will be available 30 minutes before your class starts."}
                       </p>
                     )}
@@ -510,8 +510,8 @@ export default function MemberDashboard() {
                 )}
 
                 {attendance?.attendance_status === "attended" && (
-                  <div className="mt-4 p-3 bg-brand-success/10 border border-brand-success/20 rounded-xl text-center">
-                    <p className="text-xs font-medium text-brand-success">✓ Attendance recorded</p>
+                  <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-center">
+                    <p className="text-xs font-medium text-green-600">✓ Attendance recorded</p>
                   </div>
                 )}
                 </div>
@@ -524,17 +524,17 @@ export default function MemberDashboard() {
                   ) : !started ? (
                     <>
                       <button onClick={() => handleBook(cls)} disabled={booked || bookingLoading === cls.id}
-                        className={`w-full py-2.5 rounded-xl text-sm font-medium transition-all ${booked ? "bg-brand-beige text-brand-navy/40 cursor-not-allowed" : "bg-brand-navy text-white hover:bg-brand-navy/90"} disabled:opacity-50`}>
+                        className={`w-full py-2.5 rounded-xl text-sm font-medium transition-all ${booked ? "bg-hover text-fg-5 cursor-not-allowed" : "bg-rail text-white hover:bg-rail/90"} disabled:opacity-50`}>
                         {bookingLoading === cls.id ? "Booking..." : booked ? "Already Booked" : "Book Class"}
                       </button>
                       {booked && canCancel(cls, currentTime) && (
                         <button onClick={() => handleCancel(cls)} disabled={bookingLoading === cls.id}
-                          className="w-full py-2.5 rounded-xl text-sm font-medium border border-brand-error/30 text-brand-error hover:bg-brand-error/5 transition-all disabled:opacity-50">
+                          className="w-full py-2.5 rounded-xl text-sm font-medium border border-brand-error/30 text-red-500 hover:bg-red-500/5 transition-all disabled:opacity-50">
                           {bookingLoading === cls.id ? "Cancelling..." : "Cancel Booking"}
                         </button>
                       )}
                       {booked && !canCancel(cls, currentTime) && (
-                        <p className="text-xs text-brand-navy/40 text-center">Cancellation closed (&lt; 6hr before class)</p>
+                        <p className="text-xs text-fg-5 text-center">Cancellation closed (&lt; 6hr before class)</p>
                       )}
                     </>
                   ) : null}

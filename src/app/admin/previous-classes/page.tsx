@@ -233,10 +233,10 @@ export default function PreviousClasses() {
     <div className="space-y-8 animate-fade-in font-sans">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#1B0B38]">
-            Previous <span className="font-semibold text-[#7B3FE4]">Classes</span>
+          <h1 className="text-2xl font-bold text-fg">
+            Previous <span className="font-semibold text-accent">Classes</span>
           </h1>
-          <p className="text-sm text-[#1B0B38]/60 mt-1">
+          <p className="text-sm text-fg-3 mt-1">
             View completed classes and attendance records
           </p>
         </div>
@@ -244,16 +244,16 @@ export default function PreviousClasses() {
 
       {/* Classes Grid */}
       <div>
-        <h2 className="text-lg font-bold text-[#1B0B38] mb-4">
+        <h2 className="text-lg font-bold text-fg mb-4">
           Past Classes
         </h2>
         {loading || isPending ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-2 border-[#7B3FE4]/30 border-t-[#7B3FE4] rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
           </div>
         ) : classes.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-3xl border border-[#1B0B38]/10">
-            <p className="text-[#1B0B38]/50 text-sm font-semibold">No past classes found</p>
+          <div className="text-center py-12 bg-surface rounded-3xl border border-line">
+            <p className="text-fg-4 text-sm font-semibold">No past classes found</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -262,8 +262,8 @@ export default function PreviousClasses() {
                 key={cls.id}
                 className={`relative p-5 rounded-3xl border transition-all ${
                   selectedClass === cls.id
-                    ? "bg-[#7B3FE4] text-white border-[#7B3FE4] shadow-lg shadow-[#7B3FE4]/20"
-                    : "bg-white border-[#1B0B38]/10 hover:border-[#7B3FE4] hover:shadow-md"
+                    ? "bg-accent text-white border-accent shadow-lg shadow-accent/20"
+                    : "bg-surface border-line hover:border-accent hover:shadow-md"
                 }`}
               >
                 <button
@@ -272,7 +272,7 @@ export default function PreviousClasses() {
                 >
                 <h3
                   className={`font-bold text-lg ${
-                    selectedClass === cls.id ? "text-white" : "text-[#1B0B38]"
+                    selectedClass === cls.id ? "text-white" : "text-fg"
                   }`}
                 >
                   {cls.title}
@@ -281,7 +281,7 @@ export default function PreviousClasses() {
                   className={`text-sm mt-1 ${
                     selectedClass === cls.id
                       ? "text-white/80"
-                      : "text-[#1B0B38]/60"
+                      : "text-fg-3"
                   }`}
                 >
                   {cls.instructor}
@@ -291,7 +291,7 @@ export default function PreviousClasses() {
                     className={
                       selectedClass === cls.id
                         ? "text-white/90"
-                        : "text-[#1B0B38]/70"
+                        : "text-fg-2"
                     }
                   >
                     {formatDate(cls.class_date)}
@@ -300,7 +300,7 @@ export default function PreviousClasses() {
                     className={
                       selectedClass === cls.id
                         ? "text-white/90"
-                        : "text-[#1B0B38]/70"
+                        : "text-fg-2"
                     }
                   >
                     {formatTime(cls.class_time)}
@@ -310,8 +310,8 @@ export default function PreviousClasses() {
                   <span
                     className={`text-xs px-2.5 py-1 rounded-full font-bold ${
                       selectedClass === cls.id
-                        ? "bg-white/20 text-white"
-                        : "bg-[#FAF9FC] text-[#7B3FE4] border border-[#7B3FE4]/20"
+                        ? "bg-surface/20 text-white"
+                        : "bg-surface-2 text-accent border border-accent/20"
                     }`}
                   >
                     Max {cls.max_capacity} spots
@@ -323,8 +323,8 @@ export default function PreviousClasses() {
                   disabled={deletingId === cls.id}
                   className={`absolute top-3 right-3 p-1.5 rounded-xl transition-colors ${
                     selectedClass === cls.id
-                      ? "text-white/70 hover:text-white hover:bg-white/20"
-                      : "text-[#1B0B38]/30 hover:text-red-600 hover:bg-red-50"
+                      ? "text-white/70 hover:text-white hover:bg-surface/20"
+                      : "text-fg-5 hover:text-red-600 hover:bg-red-50"
                   }`}
                   title="Remove class"
                 >
@@ -344,48 +344,48 @@ export default function PreviousClasses() {
 
       {/* Enrolled Members Panel */}
       {selectedClass && selectedClassData && (
-        <div className="bg-white rounded-3xl border border-[#1B0B38]/10 p-6 animate-slide-up shadow-md space-y-4">
-          <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4">
+        <div className="bg-surface rounded-3xl border border-line p-6 animate-slide-up shadow-md space-y-4">
+          <div className="flex items-center justify-between border-b border-line pb-4">
             <div>
-              <h3 className="text-lg font-bold text-[#1B0B38]">
+              <h3 className="text-lg font-bold text-fg">
                 Enrolled Members
               </h3>
-              <p className="text-xs text-[#1B0B38]/60 mt-0.5">
+              <p className="text-xs text-fg-3 mt-0.5">
                 {selectedClassData.title} &bull; {selectedClassData.instructor}
               </p>
             </div>
-            <span className="text-xs font-bold text-[#7B3FE4] bg-[#FAF9FC] border border-[#7B3FE4]/20 px-3 py-1 rounded-full">
+            <span className="text-xs font-bold text-accent bg-surface-2 border border-accent/20 px-3 py-1 rounded-full">
               {bookings.filter((b) => b.booking_status === "booked").length} / {selectedClassData.max_capacity} spots filled
             </span>
           </div>
 
           {bookingsLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="w-5 h-5 border-2 border-[#7B3FE4]/30 border-t-[#7B3FE4] rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
             </div>
           ) : bookings.filter((b) => b.booking_status === "booked").length === 0 ? (
-            <p className="text-center py-8 text-[#1B0B38]/40 text-xs">
+            <p className="text-center py-8 text-fg-5 text-xs">
               No active bookings yet
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-[#1B0B38]/10 bg-[#FAF9FC] text-[#1B0B38]/60 uppercase font-bold text-[10px]">
+                  <tr className="border-b border-line bg-surface-2 text-fg-3 uppercase font-bold text-[10px]">
                     <th className="text-left py-3 px-4">Name</th>
                     <th className="text-left py-3 px-4">Email</th>
                     <th className="text-left py-3 px-4">Phone</th>
                     <th className="text-left py-3 px-4">Booked At</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1B0B38]/10">
+                <tbody className="divide-y divide-line">
                   {bookings
                     .filter((b) => b.booking_status === "booked")
                     .map((booking) => (
-                      <tr key={booking.id} className="hover:bg-[#FAF9FC]/50 transition-colors">
-                        <td className="py-3 px-4 text-[#1B0B38] font-bold">
+                      <tr key={booking.id} className="hover:bg-surface-2/50 transition-colors">
+                        <td className="py-3 px-4 text-fg font-bold">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full overflow-hidden border border-[#1B0B38]/15 bg-[#7B3FE4] text-white flex-shrink-0 flex items-center justify-center font-bold text-xs">
+                            <div className="w-7 h-7 rounded-full overflow-hidden border border-line-2 bg-accent text-white flex-shrink-0 flex items-center justify-center font-bold text-xs">
                               {booking.profiles?.avatar_url ? (
                                 <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
                               ) : (
@@ -397,13 +397,13 @@ export default function PreviousClasses() {
                             <span>{booking.profiles?.full_name || "N/A"}</span>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-[#1B0B38]/60 font-medium">
+                        <td className="py-3 px-4 text-fg-3 font-medium">
                           {booking.profiles?.email || "N/A"}
                         </td>
-                        <td className="py-3 px-4 text-[#1B0B38]/60 font-medium">
+                        <td className="py-3 px-4 text-fg-3 font-medium">
                           {booking.profiles?.phone_number || "N/A"}
                         </td>
-                        <td className="py-3 px-4 text-[#1B0B38]/50 text-xs">
+                        <td className="py-3 px-4 text-fg-4 text-xs">
                           {new Date(booking.created_at).toLocaleString("en-IN")}
                         </td>
                       </tr>
@@ -415,26 +415,26 @@ export default function PreviousClasses() {
 
           {/* Cancelled Bookings list */}
           {!bookingsLoading && bookings.filter((b) => b.booking_status === "cancelled").length > 0 && (
-            <div className="mt-6 pt-6 border-t border-[#1B0B38]/10 animate-fade-in">
-              <h4 className="text-sm font-bold text-[#1B0B38] mb-3">Cancelled Bookings</h4>
+            <div className="mt-6 pt-6 border-t border-line animate-fade-in">
+              <h4 className="text-sm font-bold text-fg mb-3">Cancelled Bookings</h4>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-[#1B0B38]/10 bg-[#FAF9FC] text-[#1B0B38]/60 uppercase font-bold text-[10px]">
+                    <tr className="border-b border-line bg-surface-2 text-fg-3 uppercase font-bold text-[10px]">
                       <th className="text-left py-3 px-4">Name</th>
                       <th className="text-left py-3 px-4">Email</th>
                       <th className="text-left py-3 px-4">Phone</th>
                       <th className="text-left py-3 px-4">Cancelled At</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1B0B38]/10">
+                  <tbody className="divide-y divide-line">
                     {bookings
                       .filter((b) => b.booking_status === "cancelled")
                       .map((booking) => (
                         <tr key={booking.id} className="hover:bg-red-50/50 transition-colors">
-                          <td className="py-3 px-4 text-[#1B0B38]/60 font-semibold">
+                          <td className="py-3 px-4 text-fg-3 font-semibold">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full overflow-hidden border border-[#1B0B38]/15 bg-gray-200 text-gray-600 flex-shrink-0 flex items-center justify-center">
+                              <div className="w-7 h-7 rounded-full overflow-hidden border border-line-2 bg-gray-200 text-gray-600 flex-shrink-0 flex items-center justify-center">
                                 {booking.profiles?.avatar_url ? (
                                   <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
                                 ) : (
@@ -446,13 +446,13 @@ export default function PreviousClasses() {
                               <span className="line-through">{booking.profiles?.full_name || "N/A"}</span>
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-[#1B0B38]/40">
+                          <td className="py-3 px-4 text-fg-5">
                             {booking.profiles?.email || "N/A"}
                           </td>
-                          <td className="py-3 px-4 text-[#1B0B38]/40">
+                          <td className="py-3 px-4 text-fg-5">
                             {booking.profiles?.phone_number || "N/A"}
                           </td>
-                          <td className="py-3 px-4 text-[#1B0B38]/40 text-xs">
+                          <td className="py-3 px-4 text-fg-5 text-xs">
                             {booking.cancelled_at ? new Date(booking.cancelled_at).toLocaleString("en-IN") : new Date(booking.created_at).toLocaleString("en-IN")}
                           </td>
                         </tr>
@@ -464,40 +464,40 @@ export default function PreviousClasses() {
           )}
 
           {/* Attended Members */}
-          <div className="mt-6 pt-6 border-t border-[#1B0B38]/10">
-            <h4 className="text-sm font-bold text-[#1B0B38] mb-3">Attended Members</h4>
+          <div className="mt-6 pt-6 border-t border-line">
+            <h4 className="text-sm font-bold text-fg mb-3">Attended Members</h4>
             {(() => {
               const classStart = new Date(`${selectedClassData.class_date}T${selectedClassData.class_time}`);
               const now = new Date();
               if (now < classStart) {
                 return (
-                  <p className="text-center py-6 text-[#1B0B38]/40 text-xs font-medium">
+                  <p className="text-center py-6 text-fg-5 text-xs font-medium">
                     Attendance records will be available when the class begins.
                   </p>
                 );
               }
               return attendanceLoading ? (
                 <div className="flex items-center justify-center py-6">
-                  <div className="w-5 h-5 border-2 border-[#7B3FE4]/30 border-t-[#7B3FE4] rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
                 </div>
               ) : attended.length === 0 ? (
-                <p className="text-center py-6 text-[#1B0B38]/40 text-xs font-medium">
+                <p className="text-center py-6 text-fg-5 text-xs font-medium">
                   No attendance recorded yet
                 </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-[#1B0B38]/10 bg-[#FAF9FC] text-[#1B0B38]/60 uppercase font-bold text-[10px]">
+                      <tr className="border-b border-line bg-surface-2 text-fg-3 uppercase font-bold text-[10px]">
                         <th className="text-left py-3 px-4">Name</th>
                         <th className="text-left py-3 px-4">Email</th>
                         <th className="text-left py-3 px-4">Check-in Time</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1B0B38]/10">
+                    <tbody className="divide-y divide-line">
                       {attended.map((a) => (
                         <tr key={a.id} className="hover:bg-emerald-50/40 transition-colors">
-                          <td className="py-3 px-4 text-[#1B0B38] font-bold">
+                          <td className="py-3 px-4 text-fg font-bold">
                             <div className="flex items-center gap-2.5">
                               <div className="w-7 h-7 rounded-full overflow-hidden border border-emerald-300 bg-emerald-100 text-emerald-800 flex-shrink-0 flex items-center justify-center font-bold text-xs">
                                 {a.profiles?.avatar_url ? (
@@ -511,7 +511,7 @@ export default function PreviousClasses() {
                               <span>{a.profiles?.full_name || "N/A"}</span>
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-[#1B0B38]/60 font-medium">
+                          <td className="py-3 px-4 text-fg-3 font-medium">
                             {a.profiles?.email || "N/A"}
                           </td>
                           <td className="py-3 px-4 text-emerald-800 font-bold text-xs">

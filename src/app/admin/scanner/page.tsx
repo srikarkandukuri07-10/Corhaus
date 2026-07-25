@@ -214,30 +214,30 @@ export default function ScannerPage() {
   return (
     <div className="space-y-6 animate-fade-in font-sans">
       <div>
-        <h1 className="text-2xl font-bold text-[#1B0B38]">
-          Attendance <span className="font-semibold text-[#7B3FE4]">Scanner</span>
+        <h1 className="text-2xl font-bold text-fg">
+          Attendance <span className="font-semibold text-accent">Scanner</span>
         </h1>
-        <p className="text-sm text-[#1B0B38]/60 mt-1">
+        <p className="text-sm text-fg-3 mt-1">
           Scan member QR codes to record attendance
         </p>
       </div>
 
-      <div className="bg-white rounded-3xl border border-[#1B0B38]/10 p-6 shadow-xs">
+      <div className="bg-surface rounded-3xl border border-line p-6 shadow-xs">
         <div className="max-w-md mx-auto">
           {!cameraReady && !result?.error && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <div className="w-8 h-8 border-2 border-[#7B3FE4]/30 border-t-[#7B3FE4] rounded-full animate-spin" />
-              <p className="text-xs text-[#1B0B38]/50 font-medium">Requesting camera access...</p>
+              <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+              <p className="text-xs text-fg-4 font-medium">Requesting camera access...</p>
             </div>
           )}
 
-          <div id="qr-reader" className="rounded-2xl overflow-hidden [&_video]:rounded-2xl [&_img]:rounded-2xl border border-[#1B0B38]/10" />
+          <div id="qr-reader" className="rounded-2xl overflow-hidden [&_video]:rounded-2xl [&_img]:rounded-2xl border border-line" />
 
           {result?.error && !result?.success && (
             <div className="mt-4 p-4 rounded-2xl text-xs text-center bg-red-50 border border-red-200 text-red-700 font-semibold">
               {result.error}
               {result.member && (
-                <p className="mt-1 font-bold text-[#1B0B38]">{result.member.full_name}</p>
+                <p className="mt-1 font-bold text-fg">{result.member.full_name}</p>
               )}
             </div>
           )}
@@ -245,9 +245,9 @@ export default function ScannerPage() {
       </div>
 
       {/* Upload QR section */}
-      <div className="bg-white rounded-3xl border border-[#1B0B38]/10 p-6 shadow-xs">
+      <div className="bg-surface rounded-3xl border border-line p-6 shadow-xs">
         <div className="max-w-md mx-auto">
-          <h3 className="text-sm font-bold text-[#1B0B38] mb-3">Or upload a QR image</h3>
+          <h3 className="text-sm font-bold text-fg mb-3">Or upload a QR image</h3>
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
@@ -255,8 +255,8 @@ export default function ScannerPage() {
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
               dragOver
-                ? "border-[#7B3FE4] bg-[#7B3FE4]/5"
-                : "border-[#1B0B38]/15 hover:border-[#7B3FE4] hover:bg-[#FAF9FC]"
+                ? "border-accent bg-accent/5"
+                : "border-line-2 hover:border-accent hover:bg-surface-2"
             }`}
           >
             <input
@@ -268,16 +268,16 @@ export default function ScannerPage() {
             />
             {scanningFile ? (
               <div className="flex flex-col items-center gap-2">
-                <div className="w-6 h-6 border-2 border-[#7B3FE4]/30 border-t-[#7B3FE4] rounded-full animate-spin" />
-                <p className="text-xs text-[#1B0B38]/50 font-medium">Scanning QR code...</p>
+                <div className="w-6 h-6 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                <p className="text-xs text-fg-4 font-medium">Scanning QR code...</p>
               </div>
             ) : (
               <>
-                <svg className="w-8 h-8 mx-auto mb-2 text-[#7B3FE4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-8 h-8 mx-auto mb-2 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                <p className="text-xs text-[#1B0B38]/60 font-medium">
-                  <span className="text-[#7B3FE4] font-bold">Click to browse</span> or drag and drop a QR code image
+                <p className="text-xs text-fg-3 font-medium">
+                  <span className="text-accent font-bold">Click to browse</span> or drag and drop a QR code image
                 </p>
               </>
             )}
@@ -287,15 +287,15 @@ export default function ScannerPage() {
 
       {result?.success && result.member && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-sm w-full mx-4 text-center">
+          <div className="bg-surface rounded-3xl shadow-2xl p-10 max-w-sm w-full mx-4 text-center">
             <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto mb-4 font-bold text-2xl">
               ✓
             </div>
-            <h2 className="text-xl font-bold text-[#1B0B38] mb-1">Attendance Marked</h2>
-            <p className="text-xs text-[#1B0B38]/60">Attendance marked for</p>
-            <p className="text-lg font-bold text-[#7B3FE4] mt-1">{result.member.full_name}</p>
-            <p className="text-xs text-[#1B0B38]/50 mt-1">{result.member.email}</p>
-            <p className="text-[11px] text-[#1B0B38]/40 mt-3 font-medium">
+            <h2 className="text-xl font-bold text-fg mb-1">Attendance Marked</h2>
+            <p className="text-xs text-fg-3">Attendance marked for</p>
+            <p className="text-lg font-bold text-accent mt-1">{result.member.full_name}</p>
+            <p className="text-xs text-fg-4 mt-1">{result.member.email}</p>
+            <p className="text-[11px] text-fg-5 mt-3 font-medium">
               Checked in at {new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
             </p>
           </div>
@@ -303,8 +303,8 @@ export default function ScannerPage() {
       )}
 
       {lastScanned.length > 0 && (
-        <div className="bg-white rounded-3xl border border-[#1B0B38]/10 p-6 shadow-xs">
-          <h3 className="text-base font-bold text-[#1B0B38] mb-4">Recent Scans</h3>
+        <div className="bg-surface rounded-3xl border border-line p-6 shadow-xs">
+          <h3 className="text-base font-bold text-fg mb-4">Recent Scans</h3>
           <div className="space-y-2">
             {lastScanned.map((s, i) => (
               <div
@@ -316,8 +316,8 @@ export default function ScannerPage() {
                 }`}
               >
                 <div>
-                  <p className="font-bold text-[#1B0B38]">{s.member?.full_name || "Unknown"}</p>
-                  <p className="text-[11px] text-[#1B0B38]/60">{s.member?.email}</p>
+                  <p className="font-bold text-fg">{s.member?.full_name || "Unknown"}</p>
+                  <p className="text-[11px] text-fg-3">{s.member?.email}</p>
                 </div>
                 <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${
                   s.success

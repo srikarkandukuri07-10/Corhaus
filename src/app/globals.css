@@ -1,6 +1,45 @@
 @import "tailwindcss";
 
-@theme inline {
+@theme {
+  /* ─── SEMANTIC THEME TOKENS (override in [data-theme="dark"]) ─────────── */
+  /* Backgrounds */
+  --color-canvas: #FAF9FC;
+  --color-rail: #1B0B38;
+  --color-bar: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #FAF9FC;
+  --color-hover: rgba(27, 11, 56, 0.05);
+  --color-rail-hover: rgba(255, 255, 255, 0.1);
+
+  /* Text */
+  --color-fg: #1B0B38;
+  --color-fg-2: rgba(27, 11, 56, 0.7);
+  --color-fg-3: rgba(27, 11, 56, 0.6);
+  --color-fg-4: rgba(27, 11, 56, 0.5);
+  --color-fg-5: rgba(27, 11, 56, 0.4);
+  --color-on-rail: #FFFFFF;
+  --color-on-rail-2: rgba(255, 255, 255, 0.8);
+  --color-on-rail-3: rgba(255, 255, 255, 0.7);
+  --color-gold-fg: #F0C46B;
+
+  /* Accents */
+  --color-accent: #7B3FE4;
+  --color-accent-2: #6A2FD3;
+  --color-accent-3: #5C23B8;
+  --color-gold: #D99B26;
+  --color-gold-2: #E5AC38;
+
+  /* Borders */
+  --color-line: rgba(27, 11, 56, 0.1);
+  --color-line-2: rgba(27, 11, 56, 0.15);
+  --color-line-rail: rgba(27, 11, 56, 0.5);
+  --color-line-bar: rgba(27, 11, 56, 0.1);
+
+  /* Fonts */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Legacy brand tokens (kept for backwards compat) */
   --color-brand-navy: #1C1C2E;
   --color-brand-brown: #8B6B4A;
   --color-brand-brown-light: #A68B6B;
@@ -12,29 +51,80 @@
   --color-brand-accent: #C9A882;
   --color-brand-error: #C44536;
   --color-brand-success: #5B8A72;
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
+/* ─── DARK LUXURY THEME ────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --color-canvas: #0B0D10;
+  --color-rail: #0E1014;
+  --color-bar: #101216;
+  --color-surface: #15181D;
+  --color-surface-2: #171A20;
+  --color-hover: #1A1F27;
+  --color-rail-hover: #181C23;
+
+  --color-fg: #FFFFFF;
+  --color-fg-2: #C2C8D0;
+  --color-fg-3: #B6BDC9;
+  --color-fg-4: #8A9099;
+  --color-fg-5: #5F6670;
+  --color-on-rail: #C2C8D0;
+  --color-on-rail-2: #727985;
+  --color-on-rail-3: #5F6670;
+  --color-gold-fg: #D4AF37;
+
+  --color-accent: #D4AF37;
+  --color-accent-2: #E5C24A;
+  --color-accent-3: #B89220;
+  --color-gold: #D4AF37;
+  --color-gold-2: #E5C24A;
+
+  --color-line: #252A34;
+  --color-line-2: #262B35;
+  --color-line-rail: #1B2028;
+  --color-line-bar: #1D222B;
+}
+
+/* ─── BASE ─────────────────────────────────────────────────────────────── */
 body {
   font-family: var(--font-sans), system-ui, sans-serif;
-  background-color: var(--color-brand-cream);
-  color: var(--color-brand-navy);
+  background-color: var(--color-canvas);
+  color: var(--color-fg);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Custom scrollbar */
+/* ─── SIDEBAR ACTIVE ITEM ──────────────────────────────────────────────── */
+.sidebar-active {
+  background: linear-gradient(to right, var(--color-gold), var(--color-gold-2));
+  color: #FFFFFF;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(217, 155, 38, 0.3);
+}
+
+[data-theme="dark"] .sidebar-active {
+  background: #23272F;
+  color: var(--color-gold);
+  box-shadow: none;
+}
+
+/* ─── SCROLLBAR ────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-brand-beige);
+  background: var(--color-surface-2);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-brand-brown-light);
+  background: var(--color-fg-4);
   border-radius: 3px;
 }
 
-/* Smooth animations */
+[data-theme="dark"] {
+  scrollbar-width: thin;
+  scrollbar-color: #252A34 var(--color-canvas);
+}
+
+/* ─── ANIMATIONS ───────────────────────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -53,8 +143,8 @@ body {
   animation: slideUp 0.5s ease-out forwards;
 }
 
-/* Focus styles */
+/* ─── FOCUS ────────────────────────────────────────────────────────────── */
 input:focus, select:focus, textarea:focus {
-  outline: 2px solid var(--color-brand-brown);
+  outline: 2px solid var(--color-accent);
   outline-offset: 1px;
 }

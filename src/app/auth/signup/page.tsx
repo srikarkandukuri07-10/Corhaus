@@ -156,41 +156,41 @@ function SignupForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-cream px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4 py-8">
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-light tracking-tight text-brand-navy">
-            Cor<span className="text-brand-brown font-medium">haus</span>
+          <h1 className="text-4xl font-light tracking-tight text-fg">
+            Cor<span className="text-accent font-medium">haus</span>
           </h1>
-          <p className="text-brand-brown-light mt-2 text-sm tracking-widest uppercase">
+          <p className="text-fg-3 mt-2 text-sm tracking-widest uppercase">
             Pilates for everyone
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg shadow-brand-navy/5 p-8 border border-brand-sand/50">
-          <h2 className="text-xl font-medium text-brand-navy mb-6">
+        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line">
+          <h2 className="text-xl font-medium text-fg mb-6">
             Create your account
           </h2>
 
           {emailReadOnly && (
-            <div className="mb-4 p-4 rounded-xl bg-brand-success/10 border border-brand-success/20 text-brand-success text-xs leading-relaxed">
+            <div className="mb-4 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-600 text-xs leading-relaxed">
               Your membership is approved! Choose a password below to activate your account.
             </div>
           )}
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-brand-error/10 border border-brand-error/20 text-brand-error text-sm">
+            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-brand-error/20 text-red-500 text-sm">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="flex flex-col items-center justify-center pb-4 pt-2">
-              <div className="relative group w-20 h-20 rounded-full overflow-hidden border border-brand-sand bg-brand-cream/50 flex items-center justify-center shadow-inner">
+              <div className="relative group w-20 h-20 rounded-full overflow-hidden border border-line bg-surface-2/50 flex items-center justify-center shadow-inner">
                 {avatarPreview ? (
                   <img src={avatarPreview} alt="Profile Preview" className="w-full h-full object-cover" />
                 ) : (
-                  <svg className="w-10 h-10 text-brand-navy/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-10 h-10 text-fg-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 )}
@@ -208,11 +208,11 @@ function SignupForm() {
                   />
                 </label>
               </div>
-              <p className="text-[10px] text-brand-navy/40 mt-1.5 font-medium">Profile Photo (Optional)</p>
+              <p className="text-[10px] text-fg-5 mt-1.5 font-medium">Profile Photo (Optional)</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
+              <label className="block text-sm font-medium text-fg/70 mb-1.5">
                 Full Name
               </label>
               <input
@@ -220,13 +220,13 @@ function SignupForm() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
-                className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all"
                 placeholder="Enter your full name"
               />
             </div>
 
              <div>
-              <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
+              <label className="block text-sm font-medium text-fg/70 mb-1.5">
                 Email
               </label>
               <input
@@ -236,15 +236,15 @@ function SignupForm() {
                 required
                 autoComplete="off"
                 readOnly={emailReadOnly}
-                className={`w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all ${
-                  emailReadOnly ? "opacity-70 cursor-not-allowed border-brand-sand bg-brand-sand/10" : ""
+                className={`w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all ${
+                  emailReadOnly ? "opacity-70 cursor-not-allowed border-line bg-brand-sand/10" : ""
                 }`}
                 placeholder="you@example.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
+              <label className="block text-sm font-medium text-fg/70 mb-1.5">
                 Phone Number
               </label>
               <input
@@ -256,16 +256,16 @@ function SignupForm() {
                 required
                 maxLength={10}
                 pattern="\d{10}"
-                className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all"
                 placeholder="9876543210"
               />
-              <p className="text-xs text-brand-navy/40 mt-1">
+              <p className="text-xs text-fg-5 mt-1">
                 10-digit Indian mobile number
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
+              <label className="block text-sm font-medium text-fg/70 mb-1.5">
                 Set a password for your dashboard
               </label>
               <div className="relative">
@@ -276,13 +276,13 @@ function SignupForm() {
                   required
                   minLength={6}
                   autoComplete="new-password"
-                  className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all pr-12"
+                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all pr-12"
                   placeholder="At least 6 characters"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-navy/40 hover:text-brand-navy/60 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-fg-5 hover:text-fg-3 transition-colors"
                 >
                   {showPassword ? (
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -301,7 +301,7 @@ function SignupForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-brand-navy text-white font-medium hover:bg-brand-navy/90 transition-colors disabled:opacity-50 [touch-action:manipulation]"
+              className="w-full py-3 rounded-xl bg-rail text-white font-medium hover:bg-rail/90 transition-colors disabled:opacity-50 [touch-action:manipulation]"
             >
               {loading ? "Creating account..." : "Create Account"}
             </button>
@@ -310,7 +310,7 @@ function SignupForm() {
           <div className="mt-2">
             <Link
               href="/referral"
-              className="block w-full py-3 rounded-xl border border-brand-sand bg-white text-brand-navy text-center font-medium hover:bg-brand-cream/50 transition-colors [touch-action:manipulation]"
+              className="block w-full py-3 rounded-xl border border-line bg-surface text-fg text-center font-medium hover:bg-surface-2/50 transition-colors [touch-action:manipulation]"
             >
               Have a Referral Code?
             </Link>
@@ -318,16 +318,16 @@ function SignupForm() {
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-brand-sand" />
+              <div className="w-full border-t border-line" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-3 text-brand-navy/40">or</span>
+              <span className="bg-surface px-3 text-fg-5">or</span>
             </div>
           </div>
 
           <button
             onClick={handleGoogleSignup}
-            className="w-full py-3 rounded-xl border border-brand-sand bg-white text-brand-navy font-medium hover:bg-brand-cream/50 transition-colors flex items-center justify-center gap-3 [touch-action:manipulation]"
+            className="w-full py-3 rounded-xl border border-line bg-surface text-fg font-medium hover:bg-surface-2/50 transition-colors flex items-center justify-center gap-3 [touch-action:manipulation]"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -350,11 +350,11 @@ function SignupForm() {
             Continue with Google
           </button>
 
-          <p className="mt-6 text-center text-sm text-brand-navy/50">
+          <p className="mt-6 text-center text-sm text-fg-4">
             Already have an account?{" "}
             <Link
               href="/auth/login"
-              className="text-brand-brown font-medium hover:text-brand-brown-dark transition-colors"
+              className="text-accent font-medium hover:text-accent-dark transition-colors"
             >
               Sign in
             </Link>
@@ -369,8 +369,8 @@ export default function SignupPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-brand-cream">
-          <div className="w-8 h-8 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+        <div className="min-h-screen flex items-center justify-center bg-surface-2">
+          <div className="w-8 h-8 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
         </div>
       }
     >

@@ -86,26 +86,26 @@ export default function PWAInstaller() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-6 left-6 right-6 md:left-auto md:max-w-sm z-50 bg-white rounded-2xl border border-brand-sand shadow-xl p-5 animate-slide-up">
+    <div className="fixed bottom-6 left-6 right-6 md:left-auto md:max-w-sm z-50 bg-surface rounded-2xl border border-line shadow-xl p-5 animate-slide-up">
       <div className="flex gap-4">
-        <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border border-brand-sand/50 bg-brand-cream flex items-center justify-center">
+        <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border border-line bg-surface-2 flex items-center justify-center">
           <img src="/icon-192.jpg" alt="Corhaus logo" className="w-full h-full object-cover" />
         </div>
         <div className="flex-1">
-          <h4 className="font-semibold text-brand-navy text-sm font-medium">Install Corhaus App</h4>
-          <p className="text-xs text-brand-navy/60 mt-0.5">
+          <h4 className="font-semibold text-fg text-sm font-medium">Install Corhaus App</h4>
+          <p className="text-xs text-fg-3 mt-0.5">
             Add Corhaus to your home screen for quick and easy class bookings.
           </p>
           <div className="flex gap-3 mt-3">
             <button
               onClick={handleInstallClick}
-              className="flex-1 py-1.5 px-3 rounded-lg bg-brand-brown text-white text-xs font-medium hover:bg-brand-brown-dark transition-colors cursor-pointer"
+              className="flex-1 py-1.5 px-3 rounded-lg bg-accent text-white text-xs font-medium hover:bg-accent-dark transition-colors cursor-pointer"
             >
               Install App
             </button>
             <button
               onClick={handleDismissClick}
-              className="py-1.5 px-3 rounded-lg border border-brand-sand text-brand-navy/50 text-xs hover:bg-brand-beige/50 transition-colors cursor-pointer"
+              className="py-1.5 px-3 rounded-lg border border-line text-fg-4 text-xs hover:bg-hover/50 transition-colors cursor-pointer"
             >
               Not now
             </button>

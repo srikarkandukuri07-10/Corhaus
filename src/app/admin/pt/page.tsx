@@ -507,21 +507,21 @@ export default function PtSchedulerPage() {
       {/* Header Bar */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#1B0B38] tracking-tight">
-            PT <span className="text-[#7B3FE4]">Scheduler</span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-fg tracking-tight">
+            PT <span className="text-accent">Scheduler</span>
           </h1>
-          <p className="text-sm text-[#1B0B38]/60 mt-1.5 font-medium">
+          <p className="text-sm text-fg-3 mt-1.5 font-medium">
             Manage personal training trainer calendars, recurring assignments, and status tracking
           </p>
         </div>
         <div className="flex items-center gap-3">
           {/* Trainer Selector */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-[#1B0B38]/60 uppercase tracking-wider">Trainer:</span>
+            <span className="text-xs font-bold text-fg-3 uppercase tracking-wider">Trainer:</span>
             <select
               value={selectedTrainer}
               onChange={(e) => setSelectedTrainer(e.target.value)}
-              className="p-2.5 rounded-xl border border-[#1B0B38]/15 bg-white text-xs font-bold text-[#7B3FE4] focus:outline-none"
+              className="p-2.5 rounded-xl border border-line-2 bg-surface text-xs font-bold text-accent focus:outline-none"
             >
               {TRAINERS.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
@@ -533,7 +533,7 @@ export default function PtSchedulerPage() {
               setAssignDays([]);
               setShowAssignModal(true);
             }}
-            className="px-5 py-3 rounded-2xl bg-[#7B3FE4] text-white text-xs font-bold hover:bg-[#6A2FD3] shadow-md shadow-[#7B3FE4]/25 flex items-center gap-1.5"
+            className="px-5 py-3 rounded-2xl bg-accent text-white text-xs font-bold hover:bg-accent-2 shadow-md shadow-accent/25 flex items-center gap-1.5"
           >
             <span>+</span> Assign Trainer
           </button>
@@ -543,7 +543,7 @@ export default function PtSchedulerPage() {
               setBookMemberId("");
               setShowBookModal(true);
             }}
-            className="px-5 py-3 rounded-2xl bg-white border border-[#7B3FE4]/30 text-[#7B3FE4] hover:bg-[#7B3FE4]/5 text-xs font-bold shadow-xs"
+            className="px-5 py-3 rounded-2xl bg-surface border border-accent/30 text-accent hover:bg-accent/5 text-xs font-bold shadow-xs"
           >
             Book Session
           </button>
@@ -565,30 +565,30 @@ export default function PtSchedulerPage() {
       )}
 
       {/* Weekly Calendar View */}
-      <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-md">
-        <div className="flex items-center justify-between p-5 border-b border-[#1B0B38]/10 bg-[#FAF9FC]/60 rounded-t-3xl">
+      <div className="bg-surface rounded-3xl border border-line shadow-md">
+        <div className="flex items-center justify-between p-5 border-b border-line bg-surface-2/60 rounded-t-3xl">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setWeekOffset(prev => prev - 1)}
-              className="px-3 py-2 rounded-xl border border-[#1B0B38]/15 bg-white text-xs font-bold text-[#1B0B38] hover:bg-gray-50"
+              className="px-3 py-2 rounded-xl border border-line-2 bg-surface text-xs font-bold text-fg hover:bg-gray-50"
             >
               &larr; Prev Week
             </button>
             <button
               onClick={() => setWeekOffset(0)}
-              className="px-4 py-2 rounded-xl bg-[#7B3FE4] text-white font-bold text-xs hover:bg-[#6A2FD3]"
+              className="px-4 py-2 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-2"
             >
               Today
             </button>
             <button
               onClick={() => setWeekOffset(prev => prev + 1)}
-              className="px-3 py-2 rounded-xl border border-[#1B0B38]/15 bg-white text-xs font-bold text-[#1B0B38] hover:bg-gray-50"
+              className="px-3 py-2 rounded-xl border border-line-2 bg-surface text-xs font-bold text-fg hover:bg-gray-50"
             >
               Next Week &rarr;
             </button>
-            <span className="text-sm font-extrabold text-[#1B0B38] ml-2">{weekHeaderDateRange}</span>
+            <span className="text-sm font-extrabold text-fg ml-2">{weekHeaderDateRange}</span>
           </div>
-          <span className="text-xs font-bold text-[#7B3FE4] bg-[#F2EBFE] px-3 py-1 rounded-lg">
+          <span className="text-xs font-bold text-accent bg-accent/10 px-3 py-1 rounded-lg">
             Active Schedule for {selectedTrainer}
           </span>
         </div>
@@ -596,10 +596,10 @@ export default function PtSchedulerPage() {
         <div className="overflow-x-auto">
           <div className="min-w-[800px]">
             {/* Week Header */}
-            <div className="grid grid-cols-[90px_repeat(7,1fr)] border-b border-[#1B0B38]/10 text-center text-xs font-bold bg-[#FAF9FC]/30">
-              <div className="p-3.5 border-r border-[#1B0B38]/10 text-[#1B0B38]/50">Time</div>
+            <div className="grid grid-cols-[90px_repeat(7,1fr)] border-b border-line text-center text-xs font-bold bg-surface-2/30">
+              <div className="p-3.5 border-r border-line text-fg-4">Time</div>
               {currentWeekDays.map(day => (
-                <div key={day.isoDate} className={`p-3.5 border-r border-[#1B0B38]/10 last:border-r-0 flex flex-col items-center justify-center ${day.isToday ? "bg-[#7B3FE4]/5 text-[#7B3FE4]" : "text-[#1B0B38]"}`}>
+                <div key={day.isoDate} className={`p-3.5 border-r border-line last:border-r-0 flex flex-col items-center justify-center ${day.isToday ? "bg-accent/5 text-accent" : "text-fg"}`}>
                   <span className="uppercase text-[10px] text-opacity-65 tracking-wider">{day.dayName}</span>
                   <span className="text-base font-black mt-0.5">{day.dayNum}</span>
                 </div>
@@ -607,22 +607,22 @@ export default function PtSchedulerPage() {
             </div>
 
             {/* Time Slot Rows */}
-            <div className="divide-y divide-[#1B0B38]/10">
+            <div className="divide-y divide-line">
               {TIME_SLOTS.map(slot => {
                 const hourPrefix = slot.substring(0, 2);
                 return (
                   <div key={slot} className="grid grid-cols-[90px_repeat(7,1fr)] min-h-[90px]">
-                    <div className="p-3 text-[11px] font-bold text-[#1B0B38]/40 border-r border-[#1B0B38]/10 bg-[#FAF9FC]/30 text-center flex items-center justify-center">
+                    <div className="p-3 text-[11px] font-bold text-fg-5 border-r border-line bg-surface-2/30 text-center flex items-center justify-center">
                       {formatSlotHour(slot)}
                     </div>
 
                     {currentWeekDays.map(day => {
                       const matched = filteredSessions.filter(s => s.session_date === day.isoDate && s.session_time.startsWith(hourPrefix));
                       return (
-                        <div key={day.isoDate} className="p-2 border-r border-[#1B0B38]/10 last:border-r-0 relative hover:bg-[#FAF9FC]/50 transition-colors">
+                        <div key={day.isoDate} className="p-2 border-r border-line last:border-r-0 relative hover:bg-surface-2/50 transition-colors">
                           <div className="space-y-1.5 h-full">
                             {matched.map(s => {
-                              let statusColor = "bg-[#7B3FE4] text-white border-white/20";
+                              let statusColor = "bg-accent text-white border-white/20";
                               if (s.status === "completed") statusColor = "bg-emerald-600 text-white border-white/20";
                               if (s.status === "no-show") statusColor = "bg-amber-600 text-white border-white/20";
                               if (s.status === "cancelled") statusColor = "bg-red-500/80 line-through opacity-85 text-white border-white/20";
@@ -659,24 +659,24 @@ export default function PtSchedulerPage() {
       {showAssignModal && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-xl w-full p-7 flex flex-col animate-fade-in space-y-4">
-            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-xl w-full p-7 flex flex-col animate-fade-in space-y-4">
+            <div className="flex items-center justify-between border-b border-line pb-4">
               <div>
-                <h3 className="text-xl font-extrabold text-[#1B0B38]">Assign Trainer &amp; Recurring Schedule</h3>
-                <p className="text-xs text-[#1B0B38]/50 mt-0.5">Assign a trainer to a member and pre-generate training blocks</p>
+                <h3 className="text-xl font-extrabold text-fg">Assign Trainer &amp; Recurring Schedule</h3>
+                <p className="text-xs text-fg-4 mt-0.5">Assign a trainer to a member and pre-generate training blocks</p>
               </div>
-              <button onClick={() => setShowAssignModal(false)} className="w-8 h-8 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-base font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
+              <button onClick={() => setShowAssignModal(false)} className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-base font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
             </div>
 
             <form onSubmit={handleAssignTrainer} className="space-y-4">
               {/* Member Selection */}
               <div>
-                <label className="block text-[11px] font-bold text-[#1B0B38]/60 uppercase tracking-wider mb-1.5">Select Member (Must have active PT Package) *</label>
+                <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Select Member (Must have active PT Package) *</label>
                 <select
                   required
                   value={assignMemberId}
                   onChange={(e) => setAssignMemberId(e.target.value)}
-                  className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none"
+                  className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
                 >
                   <option value="">-- Choose Member --</option>
                   {members.map(m => {
@@ -693,11 +693,11 @@ export default function PtSchedulerPage() {
 
               {/* Trainer Select */}
               <div>
-                <label className="block text-[11px] font-bold text-[#1B0B38]/60 uppercase tracking-wider mb-1.5">Trainer *</label>
+                <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Trainer *</label>
                 <select
                   value={assignTrainerName}
                   onChange={(e) => setAssignTrainerName(e.target.value)}
-                  className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none"
+                  className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
                 >
                   {TRAINERS.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
@@ -706,22 +706,22 @@ export default function PtSchedulerPage() {
               {/* Start Date, Time & Duration */}
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-[#1B0B38]/60 uppercase tracking-wider mb-1.5">Start Date *</label>
-                  <input type="date" required value={assignStartDate} onChange={(e) => setAssignStartDate(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38]" />
+                  <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Start Date *</label>
+                  <input type="date" required value={assignStartDate} onChange={(e) => setAssignStartDate(e.target.value)} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[#1B0B38]/60 uppercase tracking-wider mb-1.5">Start Time *</label>
-                  <input type="time" required value={assignStartTime} onChange={(e) => setAssignStartTime(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38]" />
+                  <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Start Time *</label>
+                  <input type="time" required value={assignStartTime} onChange={(e) => setAssignStartTime(e.target.value)} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[#1B0B38]/60 uppercase tracking-wider mb-1.5">Duration (mins)</label>
-                  <input type="number" min="15" step="15" value={assignDuration} onChange={(e) => setAssignDuration(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38]" />
+                  <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Duration (mins)</label>
+                  <input type="number" min="15" step="15" value={assignDuration} onChange={(e) => setAssignDuration(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg" />
                 </div>
               </div>
 
               {/* Day of Week Selector */}
               <div>
-                <label className="block text-[11px] font-bold text-[#1B0B38]/60 uppercase tracking-wider mb-2">Recurring Days *</label>
+                <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-2">Recurring Days *</label>
                 <div className="flex items-center gap-2 flex-wrap">
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
                     <button
@@ -730,8 +730,8 @@ export default function PtSchedulerPage() {
                       onClick={() => toggleAssignDay(i)}
                       className={`w-10 h-10 rounded-full text-xs font-extrabold transition-all ${
                         assignDays.includes(i)
-                          ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/30"
-                          : "bg-white border border-[#1B0B38]/20 text-[#1B0B38]/60 hover:border-[#7B3FE4]/50"
+                          ? "bg-accent text-white shadow-md shadow-accent/30"
+                          : "bg-surface border border-line/20 text-fg-3 hover:border-accent/50"
                       }`}
                     >
                       {day}
@@ -742,27 +742,27 @@ export default function PtSchedulerPage() {
 
               {/* Number of Weeks */}
               <div className="flex items-center gap-3 pt-2">
-                <span className="text-[11px] font-bold text-[#1B0B38]/60 uppercase tracking-wider">Repeat for</span>
+                <span className="text-[11px] font-bold text-fg-3 uppercase tracking-wider">Repeat for</span>
                 <input
                   type="number"
                   min="1"
                   max="12"
                   value={assignWeeks}
                   onChange={(e) => setAssignWeeks(Math.max(1, Number(e.target.value)))}
-                  className="w-16 p-2 bg-[#FAF9FC] border border-[#1B0B38]/15 rounded-lg text-center font-extrabold text-xs text-[#1B0B38] focus:outline-none"
+                  className="w-16 p-2 bg-surface-2 border border-line-2 rounded-lg text-center font-extrabold text-xs text-fg focus:outline-none"
                 />
-                <span className="text-[11px] font-bold text-[#1B0B38]/60">weeks</span>
+                <span className="text-[11px] font-bold text-fg-3">weeks</span>
                 {assignDays.length > 0 && (
-                  <span className="text-[10px] font-bold text-[#7B3FE4] bg-[#F2EBFE] px-2 py-1.5 rounded-lg">
+                  <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-1.5 rounded-lg">
                     = {assignDays.length * assignWeeks} sessions
                   </span>
                 )}
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1B0B38]/10">
-                <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 py-2.5 border border-[#1B0B38]/15 rounded-xl font-bold text-xs text-[#1B0B38] hover:bg-black/5">Cancel</button>
-                <button type="submit" disabled={actionLoading || assignDays.length === 0 || !assignMemberId} className="px-6 py-2.5 bg-[#7B3FE4] text-white font-extrabold text-xs rounded-xl hover:bg-[#6A2FD3] disabled:opacity-50">Assign &amp; Generate Sessions</button>
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-line">
+                <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-xs text-fg hover:bg-black/5">Cancel</button>
+                <button type="submit" disabled={actionLoading || assignDays.length === 0 || !assignMemberId} className="px-6 py-2.5 bg-accent text-white font-extrabold text-xs rounded-xl hover:bg-accent-2 disabled:opacity-50">Assign &amp; Generate Sessions</button>
               </div>
             </form>
           </div>
@@ -774,24 +774,24 @@ export default function PtSchedulerPage() {
       {showBookModal && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-4">
-            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-4">
+            <div className="flex items-center justify-between border-b border-line pb-4">
               <div>
-                <h3 className="text-xl font-extrabold text-[#1B0B38]">Book Individual Session</h3>
-                <p className="text-xs text-[#1B0B38]/50 mt-0.5">Schedule a single PT appointment for a trainer</p>
+                <h3 className="text-xl font-extrabold text-fg">Book Individual Session</h3>
+                <p className="text-xs text-fg-4 mt-0.5">Schedule a single PT appointment for a trainer</p>
               </div>
-              <button onClick={() => setShowBookModal(false)} className="w-8 h-8 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-base font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
+              <button onClick={() => setShowBookModal(false)} className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-base font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
             </div>
 
             <form onSubmit={handleBookIndividualSession} className="space-y-4">
               {/* Member Selector */}
               <div>
-                <label className="block text-[11px] font-bold text-[#1B0B38]/60 uppercase tracking-wider mb-1.5">Select Member *</label>
+                <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Select Member *</label>
                 <select
                   required
                   value={bookMemberId}
                   onChange={(e) => setBookMemberId(e.target.value)}
-                  className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none"
+                  className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
                 >
                   <option value="">-- Choose Member --</option>
                   {members.map(m => {
@@ -808,14 +808,14 @@ export default function PtSchedulerPage() {
 
               {/* Book Option Choice */}
               <div>
-                <label className="block text-[11px] font-bold text-[#1B0B38]/60 uppercase tracking-wider mb-2">Booking Option *</label>
+                <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-2">Booking Option *</label>
                 <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-2 text-xs font-bold text-[#1B0B38] cursor-pointer">
-                    <input type="radio" name="bookOption" checked={bookOption === "one"} onChange={() => setBookOption("one")} className="w-4 h-4 accent-[#7B3FE4]" />
+                  <label className="flex items-center gap-2 text-xs font-bold text-fg cursor-pointer">
+                    <input type="radio" name="bookOption" checked={bookOption === "one"} onChange={() => setBookOption("one")} className="w-4 h-4 accent-accent" />
                     Book One Session
                   </label>
-                  <label className="flex items-center gap-2 text-xs font-bold text-[#1B0B38] cursor-pointer">
-                    <input type="radio" name="bookOption" checked={bookOption === "all"} onChange={() => setBookOption("all")} className="w-4 h-4 accent-[#7B3FE4]" />
+                  <label className="flex items-center gap-2 text-xs font-bold text-fg cursor-pointer">
+                    <input type="radio" name="bookOption" checked={bookOption === "all"} onChange={() => setBookOption("all")} className="w-4 h-4 accent-accent" />
                     Book All Remaining Sessions
                   </label>
                 </div>
@@ -824,19 +824,19 @@ export default function PtSchedulerPage() {
               {/* Date & Time */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
-                  <label className="block text-[11px] font-bold text-[#1B0B38]/60 uppercase tracking-wider mb-1.5">Date *</label>
-                  <input type="date" required value={bookDate} onChange={(e) => setBookDate(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38]" />
+                  <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Date *</label>
+                  <input type="date" required value={bookDate} onChange={(e) => setBookDate(e.target.value)} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[#1B0B38]/60 uppercase tracking-wider mb-1.5">Time *</label>
-                  <input type="time" required value={bookTime} onChange={(e) => setBookTime(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38]" />
+                  <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Time *</label>
+                  <input type="time" required value={bookTime} onChange={(e) => setBookTime(e.target.value)} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg" />
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1B0B38]/10">
-                <button type="button" onClick={() => setShowBookModal(false)} className="px-5 py-2.5 border border-[#1B0B38]/15 rounded-xl font-bold text-xs text-[#1B0B38] hover:bg-black/5">Cancel</button>
-                <button type="submit" disabled={actionLoading || !bookMemberId} className="px-6 py-2.5 bg-[#7B3FE4] text-white font-extrabold text-xs rounded-xl hover:bg-[#6A2FD3] disabled:opacity-50">Book Session</button>
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-line">
+                <button type="button" onClick={() => setShowBookModal(false)} className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-xs text-fg hover:bg-black/5">Cancel</button>
+                <button type="submit" disabled={actionLoading || !bookMemberId} className="px-6 py-2.5 bg-accent text-white font-extrabold text-xs rounded-xl hover:bg-accent-2 disabled:opacity-50">Book Session</button>
               </div>
             </form>
           </div>
@@ -848,20 +848,20 @@ export default function PtSchedulerPage() {
       {showDetailModal && selectedSession && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5">
-            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4 flex-shrink-0">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5">
+            <div className="flex items-center justify-between border-b border-line pb-4 flex-shrink-0">
               <div>
-                <h3 className="text-xl font-extrabold text-[#1B0B38]">PT Session Details</h3>
-                <p className="text-xs text-[#1B0B38]/60 mt-0.5 font-medium">Manage this personal training session appointment</p>
+                <h3 className="text-xl font-extrabold text-fg">PT Session Details</h3>
+                <p className="text-xs text-fg-3 mt-0.5 font-medium">Manage this personal training session appointment</p>
               </div>
-              <button onClick={() => setShowDetailModal(false)} className="w-8 h-8 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-base font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
+              <button onClick={() => setShowDetailModal(false)} className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-base font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
             </div>
 
             {/* Session Info card */}
-            <div className="bg-[#FAF9FC] p-4 rounded-2xl border border-[#1B0B38]/10 text-xs space-y-1.5">
-              <p className="font-extrabold text-base text-[#1B0B38]">{selectedSession.approved_members?.full_name || "Member"}</p>
-              <p className="text-[#1B0B38]/70 font-semibold">Trainer: {selectedSession.trainer_name}</p>
-              <p className="text-[#1B0B38]/70 font-semibold">Date &amp; Time: {selectedSession.session_date} @ {selectedSession.session_time.substring(0, 5)} ({selectedSession.duration_minutes} mins)</p>
+            <div className="bg-surface-2 p-4 rounded-2xl border border-line text-xs space-y-1.5">
+              <p className="font-extrabold text-base text-fg">{selectedSession.approved_members?.full_name || "Member"}</p>
+              <p className="text-fg-2 font-semibold">Trainer: {selectedSession.trainer_name}</p>
+              <p className="text-fg-2 font-semibold">Date &amp; Time: {selectedSession.session_date} @ {selectedSession.session_time.substring(0, 5)} ({selectedSession.duration_minutes} mins)</p>
               <p className="font-bold">
                 Status: 
                 <span className={`ml-1.5 px-2 py-0.5 rounded-lg text-[10px] uppercase font-black ${
@@ -877,56 +877,56 @@ export default function PtSchedulerPage() {
 
             {/* Reschedule Subsection */}
             {isRescheduling ? (
-              <form onSubmit={handleReschedule} className="p-4 bg-[#FAF9FC] rounded-2xl border border-[#7B3FE4]/20 space-y-3">
-                <h4 className="text-xs font-bold text-[#7B3FE4] uppercase tracking-wider">Reschedule Appointment</h4>
+              <form onSubmit={handleReschedule} className="p-4 bg-surface-2 rounded-2xl border border-accent/20 space-y-3">
+                <h4 className="text-xs font-bold text-accent uppercase tracking-wider">Reschedule Appointment</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-[#1B0B38]/50 uppercase tracking-wider mb-1">New Date *</label>
-                    <input type="date" required value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="w-full p-2 bg-white border border-[#1B0B38]/15 rounded-xl text-xs" />
+                    <label className="block text-[10px] font-bold text-fg-4 uppercase tracking-wider mb-1">New Date *</label>
+                    <input type="date" required value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="w-full p-2 bg-surface border border-line-2 rounded-xl text-xs" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-[#1B0B38]/50 uppercase tracking-wider mb-1">New Time *</label>
-                    <input type="time" required value={reschedTime} onChange={(e) => setReschedTime(e.target.value)} className="w-full p-2 bg-white border border-[#1B0B38]/15 rounded-xl text-xs" />
+                    <label className="block text-[10px] font-bold text-fg-4 uppercase tracking-wider mb-1">New Time *</label>
+                    <input type="time" required value={reschedTime} onChange={(e) => setReschedTime(e.target.value)} className="w-full p-2 bg-surface border border-line-2 rounded-xl text-xs" />
                   </div>
                 </div>
                 <div className="flex items-center justify-end gap-2 pt-2">
-                  <button type="button" onClick={() => setIsRescheduling(false)} className="px-3.5 py-1.5 border border-[#1B0B38]/15 rounded-lg text-[10px] font-bold">Cancel</button>
-                  <button type="submit" disabled={actionLoading} className="px-4 py-1.5 bg-[#7B3FE4] text-white rounded-lg text-[10px] font-bold">Save Change</button>
+                  <button type="button" onClick={() => setIsRescheduling(false)} className="px-3.5 py-1.5 border border-line-2 rounded-lg text-[10px] font-bold">Cancel</button>
+                  <button type="submit" disabled={actionLoading} className="px-4 py-1.5 bg-accent text-white rounded-lg text-[10px] font-bold">Save Change</button>
                 </div>
               </form>
             ) : isReassigning ? (
-              <form onSubmit={handleReassign} className="p-4 bg-[#FAF9FC] rounded-2xl border border-[#7B3FE4]/20 space-y-3">
-                <h4 className="text-xs font-bold text-[#7B3FE4] uppercase tracking-wider">Reassign Trainer</h4>
+              <form onSubmit={handleReassign} className="p-4 bg-surface-2 rounded-2xl border border-accent/20 space-y-3">
+                <h4 className="text-xs font-bold text-accent uppercase tracking-wider">Reassign Trainer</h4>
                 <div>
-                  <label className="block text-[10px] font-bold text-[#1B0B38]/50 uppercase tracking-wider mb-1">Choose New Trainer *</label>
+                  <label className="block text-[10px] font-bold text-fg-4 uppercase tracking-wider mb-1">Choose New Trainer *</label>
                   <select
                     value={reassignTrainer}
                     onChange={(e) => setReassignTrainer(e.target.value)}
-                    className="w-full p-2 bg-white border border-[#1B0B38]/15 rounded-xl text-xs font-bold text-[#7B3FE4]"
+                    className="w-full p-2 bg-surface border border-line-2 rounded-xl text-xs font-bold text-accent"
                   >
                     {TRAINERS.filter(t => t !== selectedSession.trainer_name).map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-[#1B0B38]/50 uppercase tracking-wider mb-2">Scope of Reassignment</label>
-                  <div className="flex items-center gap-4 text-[11px] font-bold text-[#1B0B38]">
+                  <label className="block text-[10px] font-bold text-fg-4 uppercase tracking-wider mb-2">Scope of Reassignment</label>
+                  <div className="flex items-center gap-4 text-[11px] font-bold text-fg">
                     <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input type="radio" name="reassignScope" checked={reassignScope === "only"} onChange={() => setReassignScope("only")} className="w-3.5 h-3.5 accent-[#7B3FE4]" />
+                      <input type="radio" name="reassignScope" checked={reassignScope === "only"} onChange={() => setReassignScope("only")} className="w-3.5 h-3.5 accent-accent" />
                       Only this session
                     </label>
                     <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input type="radio" name="reassignScope" checked={reassignScope === "all"} onChange={() => setReassignScope("all")} className="w-3.5 h-3.5 accent-[#7B3FE4]" />
+                      <input type="radio" name="reassignScope" checked={reassignScope === "all"} onChange={() => setReassignScope("all")} className="w-3.5 h-3.5 accent-accent" />
                       This &amp; all upcoming
                     </label>
                   </div>
                 </div>
                 <div className="flex items-center justify-end gap-2 pt-2">
-                  <button type="button" onClick={() => setIsReassigning(false)} className="px-3.5 py-1.5 border border-[#1B0B38]/15 rounded-lg text-[10px] font-bold">Cancel</button>
-                  <button type="submit" disabled={actionLoading} className="px-4 py-1.5 bg-[#7B3FE4] text-white rounded-lg text-[10px] font-bold">Confirm Reassign</button>
+                  <button type="button" onClick={() => setIsReassigning(false)} className="px-3.5 py-1.5 border border-line-2 rounded-lg text-[10px] font-bold">Cancel</button>
+                  <button type="submit" disabled={actionLoading} className="px-4 py-1.5 bg-accent text-white rounded-lg text-[10px] font-bold">Confirm Reassign</button>
                 </div>
               </form>
             ) : (
-              <div className="flex flex-wrap gap-2 justify-center py-2 bg-[#FAF9FC] border border-[#1B0B38]/10 rounded-2xl">
+              <div className="flex flex-wrap gap-2 justify-center py-2 bg-surface-2 border border-line rounded-2xl">
                 {selectedSession.status === "scheduled" && (
                   <>
                     <button
@@ -970,15 +970,15 @@ export default function PtSchedulerPage() {
                   </>
                 )}
                 {selectedSession.status !== "scheduled" && (
-                  <p className="text-xs text-[#1B0B38]/60 font-semibold py-2">
+                  <p className="text-xs text-fg-3 font-semibold py-2">
                     Cannot modify a session that is already {selectedSession.status}.
                   </p>
                 )}
               </div>
             )}
 
-            <div className="flex items-center justify-end pt-3 border-t border-[#1B0B38]/10">
-              <button onClick={() => setShowDetailModal(false)} className="px-5 py-2.5 border border-[#1B0B38]/15 rounded-xl font-bold text-xs text-[#1B0B38] hover:bg-black/5">Close</button>
+            <div className="flex items-center justify-end pt-3 border-t border-line">
+              <button onClick={() => setShowDetailModal(false)} className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-xs text-fg hover:bg-black/5">Close</button>
             </div>
           </div>
         </div>

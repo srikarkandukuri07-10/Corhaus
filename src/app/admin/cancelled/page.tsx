@@ -76,41 +76,41 @@ export default function CancelledBookingsPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-light text-brand-navy">
+        <h1 className="text-2xl font-light text-fg">
           Cancelled <span className="font-medium">Bookings</span>
         </h1>
-        <p className="text-sm text-brand-navy/50 mt-1">
+        <p className="text-sm text-fg-4 mt-1">
           All cancelled class reservations
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-brand-sand/50 overflow-hidden">
+      <div className="bg-surface rounded-2xl border border-line overflow-hidden">
         {loading || isPending ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
           </div>
         ) : cancelled.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-brand-navy/40">No cancelled bookings</p>
+            <p className="text-fg-5">No cancelled bookings</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-brand-cream/50 border-b border-brand-sand/50">
-                  <th className="text-left py-3 px-5 font-medium text-brand-navy/60">
+                <tr className="bg-surface-2/50 border-b border-line">
+                  <th className="text-left py-3 px-5 font-medium text-fg-3">
                     Member
                   </th>
-                  <th className="text-left py-3 px-5 font-medium text-brand-navy/60">
+                  <th className="text-left py-3 px-5 font-medium text-fg-3">
                     Class
                   </th>
-                  <th className="text-left py-3 px-5 font-medium text-brand-navy/60">
+                  <th className="text-left py-3 px-5 font-medium text-fg-3">
                     Class Date
                   </th>
-                  <th className="text-left py-3 px-5 font-medium text-brand-navy/60">
+                  <th className="text-left py-3 px-5 font-medium text-fg-3">
                     Class Time
                   </th>
-                  <th className="text-left py-3 px-5 font-medium text-brand-navy/60">
+                  <th className="text-left py-3 px-5 font-medium text-fg-3">
                     Cancelled At
                   </th>
                 </tr>
@@ -119,20 +119,20 @@ export default function CancelledBookingsPage() {
                 {cancelled.map((item) => (
                   <tr
                     key={item.id}
-                    className="border-b border-brand-sand/30 last:border-0 hover:bg-brand-cream/30 transition-colors"
+                    className="border-b border-line last:border-0 hover:bg-surface-2/30 transition-colors"
                   >
                     <td className="py-3 px-5">
-                      <p className="font-medium text-brand-navy">
+                      <p className="font-medium text-fg">
                         {item.profiles?.full_name || "N/A"}
                       </p>
-                      <p className="text-xs text-brand-navy/50">
+                      <p className="text-xs text-fg-4">
                         {item.profiles?.email || "N/A"}
                       </p>
                     </td>
-                    <td className="py-3 px-5 text-brand-navy">
+                    <td className="py-3 px-5 text-fg">
                       {item.classes?.title || "N/A"}
                     </td>
-                    <td className="py-3 px-5 text-brand-navy/60">
+                    <td className="py-3 px-5 text-fg-3">
                       {item.classes?.class_date
                         ? new Date(
                             item.classes.class_date + "T00:00:00"
@@ -143,12 +143,12 @@ export default function CancelledBookingsPage() {
                           })
                         : "N/A"}
                     </td>
-                    <td className="py-3 px-5 text-brand-navy/60">
+                    <td className="py-3 px-5 text-fg-3">
                       {item.classes?.class_time
                         ? formatTime(item.classes.class_time)
                         : "N/A"}
                     </td>
-                    <td className="py-3 px-5 text-brand-navy/50 text-xs">
+                    <td className="py-3 px-5 text-fg-4 text-xs">
                       {item.cancelled_at
                         ? new Date(item.cancelled_at).toLocaleString("en-IN")
                         : new Date(item.created_at).toLocaleString("en-IN")}

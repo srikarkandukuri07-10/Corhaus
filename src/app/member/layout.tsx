@@ -9,6 +9,7 @@ import Logo from "@/components/logo";
 import LogoutButton from "@/components/logout-button";
 import ProfileModal from "@/components/profile-modal";
 import NotificationsButton from "@/components/notifications-button";
+import ThemeToggle from "@/components/theme-toggle";
 
 export default function MemberLayout({
   children,
@@ -28,17 +29,13 @@ export default function MemberLayout({
     let activeChannel: any = null;
 
     async function checkAuth() {
-      console.log("[DEBUG MemberLayout] checkAuth started. URL:", window.location.href);
       try {
         const {
           data: { user },
           error: userError,
         } = await supabase.auth.getUser();
 
-        console.log("[DEBUG MemberLayout] getUser completed. User:", user ? user.email : "null", "Error:", userError);
-
         if (userError || !user) {
-          console.warn("[DEBUG MemberLayout] redirecting to /auth/login because no user or error");
           router.push("/auth/login");
           return;
         }
@@ -54,42 +51,32 @@ export default function MemberLayout({
           .eq("id", user.id)
           .maybeSingle();
 
-        console.log("[DEBUG MemberLayout] profile query completed. Profile:", profile, "Error:", profileError);
-
         if (profileError) {
-          console.error("[DEBUG MemberLayout] profile query error, redirecting to login:", profileError);
           await supabase.auth.signOut();
           router.push("/auth/login");
           return;
         }
 
         if (profile?.role === "admin") {
-          console.warn("[DEBUG MemberLayout] user is admin, redirecting to /admin");
           router.push("/admin");
           return;
         }
 
-        // Check if membership is active in approved_members table
         const { data: memberRecord, error: memberError } = await supabase
           .from("approved_members")
           .select("id, membership_status")
           .eq("email", user.email || "")
           .maybeSingle();
 
-        console.log("[DEBUG MemberLayout] approved_members check completed. Record:", memberRecord, "Error:", memberError);
-
         if (memberError || !memberRecord || memberRecord.membership_status !== "active") {
-          console.error("[DEBUG MemberLayout] approval check failed or inactive. Status:", memberRecord?.membership_status, "Error:", memberError);
           await supabase.auth.signOut();
           router.push("/auth/login?error=not_approved");
           return;
         }
 
-        console.log("[DEBUG MemberLayout] auth verification passed. Setting isMember=true, loading=false");
         setIsMember(true);
         setLoading(false);
 
-        // Subscribe to membership changes for this user
         activeChannel = supabase
           .channel(`membership-status-${user.id}`)
           .on(
@@ -110,7 +97,6 @@ export default function MemberLayout({
           )
           .subscribe();
       } catch (err) {
-        console.error("[DEBUG MemberLayout] checkAuth caught exception:", err);
         await supabase.auth.signOut();
         router.push("/auth/login");
       }
@@ -127,10 +113,10 @@ export default function MemberLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-brand-cream">
+      <div className="min-h-screen flex items-center justify-center bg-canvas">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
-          <p className="text-sm text-brand-navy/40">Loading...</p>
+          <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+          <p className="text-sm text-fg-4">Loading...</p>
         </div>
       </div>
     );
@@ -147,8 +133,8 @@ export default function MemberLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-brand-cream">
-      <header className="bg-white border-b border-brand-sand/50 sticky top-0 z-50">
+    <div className="min-h-screen bg-canvas">
+      <header className="bg-bar border-b border-line sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-8">
@@ -167,7 +153,7 @@ export default function MemberLayout({
                         className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-300 transform active:scale-95 ${
                           isActive
                             ? "bg-gradient-to-r from-[#007BBF] via-[#6A22DF] to-[#D10066] text-white shadow-md shadow-[#6A22DF]/25"
-                            : "bg-gradient-to-r from-[#007BBF]/15 via-[#6A22DF]/15 to-[#D10066]/15 text-brand-navy/80 hover:from-[#007BBF]/25 hover:via-[#6A22DF]/25 hover:to-[#D10066]/25 border border-brand-sand/30"
+                            : "bg-gradient-to-r from-[#007BBF]/15 via-[#6A22DF]/15 to-[#D10066]/15 text-fg-2 hover:from-[#007BBF]/25 hover:via-[#6A22DF]/25 hover:to-[#D10066]/25 border border-line"
                         }`}
                       >
                         {item.label}
@@ -181,8 +167,8 @@ export default function MemberLayout({
                       href={item.href}
                       className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         isActive
-                          ? "bg-brand-navy text-white"
-                          : "text-brand-navy/60 hover:text-brand-navy hover:bg-brand-beige"
+                          ? "bg-accent text-white"
+                          : "text-fg-3 hover:text-fg hover:bg-hover"
                       }`}
                     >
                       {item.label}
@@ -192,12 +178,13 @@ export default function MemberLayout({
               </nav>
             </div>
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <NotificationsButton role="member" />
-              <span className="text-xs font-medium text-brand-success bg-brand-success/10 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+              <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full flex items-center gap-1.5">
                 Member
                 <button
                   onClick={() => setProfileOpen(true)}
-                  className="ml-0.5 p-0.5 rounded-full hover:bg-brand-success/20 transition-colors"
+                  className="ml-0.5 p-0.5 rounded-full hover:bg-green-500/20 transition-colors"
                   title="View Profile"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -212,7 +199,7 @@ export default function MemberLayout({
         </div>
 
         {/* Mobile nav */}
-        <div className="sm:hidden border-t border-brand-sand/50 px-4 py-2 flex gap-1 overflow-x-auto">
+        <div className="sm:hidden border-t border-line px-4 py-2 flex gap-1 overflow-x-auto">
           {navItems.map((item) => {
             const isActive = item.exact
               ? pathname === item.href
@@ -226,7 +213,7 @@ export default function MemberLayout({
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-300 active:scale-95 ${
                     isActive
                       ? "bg-gradient-to-r from-[#007BBF] via-[#6A22DF] to-[#D10066] text-white shadow-sm"
-                      : "bg-gradient-to-r from-[#007BBF]/15 via-[#6A22DF]/15 to-[#D10066]/15 text-brand-navy/80 border border-brand-sand/30"
+                      : "bg-gradient-to-r from-[#007BBF]/15 via-[#6A22DF]/15 to-[#D10066]/15 text-fg-2 border border-line"
                   }`}
                 >
                   {item.label}
@@ -240,8 +227,8 @@ export default function MemberLayout({
                 href={item.href}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                   isActive
-                    ? "bg-brand-navy text-white"
-                    : "text-brand-navy/60 hover:text-brand-navy"
+                    ? "bg-accent text-white"
+                    : "text-fg-3 hover:text-fg"
                 }`}
               >
                 {item.label}
@@ -252,13 +239,13 @@ export default function MemberLayout({
       </header>
 
       {needsPassword && showPasswordBanner && (
-        <div className="bg-brand-navy text-white px-4 py-3 flex items-center justify-between animate-fade-in relative z-40">
+        <div className="bg-rail text-white px-4 py-3 flex items-center justify-between animate-fade-in relative z-40">
           <div className="flex-1 text-center text-sm font-medium">
             Please secure your account by setting a password in your Profile Settings.
           </div>
           <button 
             onClick={() => setShowPasswordBanner(false)}
-            className="p-1 hover:bg-white/10 rounded-lg transition-colors absolute right-4"
+            className="p-1 hover:bg-surface/10 rounded-lg transition-colors absolute right-4"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

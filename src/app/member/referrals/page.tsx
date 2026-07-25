@@ -99,15 +99,15 @@ export default function ReferralsPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <div className="w-8 h-8 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin mb-3" />
-        <p className="text-sm text-brand-navy/40">Loading referrals details...</p>
+        <div className="w-8 h-8 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin mb-3" />
+        <p className="text-sm text-fg-5">Loading referrals details...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 bg-brand-error/10 border border-brand-error/20 text-brand-error rounded-xl text-center">
+      <div className="p-4 bg-red-500/10 border border-brand-error/20 text-red-500 rounded-xl text-center">
         {error}
       </div>
     );
@@ -119,28 +119,28 @@ export default function ReferralsPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-light text-brand-navy">My Referrals</h1>
-        <p className="text-sm text-brand-brown-light mt-1">
+        <h1 className="text-2xl font-light text-fg">My Referrals</h1>
+        <p className="text-sm text-fg-3 mt-1">
           Share your code and earn rewards
         </p>
       </div>
 
       {/* Referral Code Card */}
-      <div className="bg-white rounded-2xl border border-brand-sand/50 p-8 text-center space-y-6">
-        <h2 className="text-xs font-semibold text-brand-navy/50 uppercase tracking-widest">
+      <div className="bg-surface rounded-2xl border border-line p-8 text-center space-y-6">
+        <h2 className="text-xs font-semibold text-fg-4 uppercase tracking-widest">
           Your Personal Referral Code
         </h2>
-        <div className="text-3xl font-mono font-medium tracking-[0.3em] text-brand-navy select-all bg-brand-cream/40 py-4 px-6 rounded-xl border border-brand-sand/30 inline-block uppercase">
+        <div className="text-3xl font-mono font-medium tracking-[0.3em] text-fg select-all bg-surface-2/40 py-4 px-6 rounded-xl border border-line inline-block uppercase">
           {code}
         </div>
         <div>
           <button
             onClick={handleCopyCode}
-            className="px-6 py-2.5 rounded-xl bg-brand-navy text-white font-medium hover:bg-brand-navy/90 transition-all shadow-sm hover:shadow active:scale-[0.98] inline-flex items-center gap-2"
+            className="px-6 py-2.5 rounded-xl bg-rail text-white font-medium hover:bg-rail/90 transition-all shadow-sm hover:shadow active:scale-[0.98] inline-flex items-center gap-2"
           >
             {copied ? (
               <>
-                <svg className="w-4 h-4 text-brand-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
                 Copied!
@@ -155,16 +155,16 @@ export default function ReferralsPage() {
             )}
           </button>
         </div>
-        <p className="text-xs text-brand-navy/40">
+        <p className="text-xs text-fg-5">
           Share this code with friends to invite them to Corhaus Pilates.
         </p>
       </div>
 
       {/* Progress & Rewards Card */}
-      <div className="bg-white rounded-2xl border border-brand-sand/50 p-8 space-y-6">
+      <div className="bg-surface rounded-2xl border border-line p-8 space-y-6">
         <div className="flex justify-between items-baseline">
-          <h2 className="text-lg font-medium text-brand-navy">Reward Progress</h2>
-          <span className="text-sm font-semibold text-brand-brown">
+          <h2 className="text-lg font-medium text-fg">Reward Progress</h2>
+          <span className="text-sm font-semibold text-accent">
             {successCount} / 3 Referrals
           </span>
         </div>
@@ -175,7 +175,7 @@ export default function ReferralsPage() {
             <div
               key={stepNum}
               className={`flex-1 h-full rounded-full transition-all duration-500 ${
-                successCount >= stepNum ? "bg-brand-brown" : "bg-brand-sand/40"
+                successCount >= stepNum ? "bg-accent" : "bg-line/40"
               }`}
             />
           ))}
@@ -183,11 +183,11 @@ export default function ReferralsPage() {
 
         {/* Rewards Notice */}
         {referralData?.reward_eligible && !referralData?.reward_redeemed && (
-          <div className="p-4 rounded-xl bg-brand-success/10 border border-brand-success/20 text-brand-success flex items-start gap-3 animate-slide-up">
+          <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-600 flex items-start gap-3 animate-slide-up">
             <span className="text-xl">🎉</span>
             <div>
               <h3 className="font-semibold text-sm">15% Membership Discount Unlocked</h3>
-              <p className="text-xs text-brand-success/80 mt-1 leading-relaxed">
+              <p className="text-xs text-green-600/80 mt-1 leading-relaxed">
                 Congratulations! You got a 15% discount. Don't worry, it is reflected in the admin's dashboard and they are monitoring it. You will get your 15% discount.
               </p>
             </div>
@@ -195,11 +195,11 @@ export default function ReferralsPage() {
         )}
 
         {referralData?.reward_redeemed && (
-          <div className="p-4 rounded-xl bg-brand-navy/5 border border-brand-sand text-brand-navy/60 flex items-start gap-3">
+          <div className="p-4 rounded-xl bg-rail/5 border border-line text-fg-3 flex items-start gap-3">
             <span className="text-lg">✓</span>
             <div>
               <h3 className="font-semibold text-sm">Discount Redeemed</h3>
-              <p className="text-xs text-brand-navy/50 mt-1">
+              <p className="text-xs text-fg-4 mt-1">
                 Your 15% membership discount has been applied and marked as redeemed by the staff.
               </p>
             </div>
@@ -207,36 +207,36 @@ export default function ReferralsPage() {
         )}
 
         {!targetMet && (
-          <p className="text-xs text-brand-navy/50 leading-relaxed">
-            Refer <span className="font-semibold text-brand-navy">{3 - successCount} more</span> friends to unlock a 15% membership discount on your next month's membership!
+          <p className="text-xs text-fg-4 leading-relaxed">
+            Refer <span className="font-semibold text-fg">{3 - successCount} more</span> friends to unlock a 15% membership discount on your next month's membership!
           </p>
         )}
       </div>
 
       {/* Referred List Card */}
-      <div className="bg-white rounded-2xl border border-brand-sand/50 p-8 space-y-6">
-        <h2 className="text-lg font-medium text-brand-navy">Invited Friends</h2>
+      <div className="bg-surface rounded-2xl border border-line p-8 space-y-6">
+        <h2 className="text-lg font-medium text-fg">Invited Friends</h2>
 
         {referredList.length === 0 ? (
-          <div className="text-center py-6 text-brand-navy/40 text-sm">
+          <div className="text-center py-6 text-fg-5 text-sm">
             No successful referrals yet. Share your code to get started!
           </div>
         ) : (
           <div className="divide-y divide-brand-sand/30">
             {referredList.map((item) => (
               <div key={item.id} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
-                <div className="w-10 h-10 rounded-full bg-brand-cream border border-brand-sand/50 flex items-center justify-center text-xs font-semibold text-brand-brown">
+                <div className="w-10 h-10 rounded-full bg-surface-2 border border-line flex items-center justify-center text-xs font-semibold text-accent">
                   {getInitials(item.applicant_name)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-brand-navy truncate">
+                  <p className="text-sm font-medium text-fg truncate">
                     {item.applicant_name}
                   </p>
-                  <p className="text-xs text-brand-navy/40">
+                  <p className="text-xs text-fg-5">
                     Joined on {formatDate(item.created_at)}
                   </p>
                 </div>
-                <div className="text-xs font-medium text-brand-success bg-brand-success/10 px-2.5 py-1 rounded-full">
+                <div className="text-xs font-medium text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full">
                   Successful
                 </div>
               </div>

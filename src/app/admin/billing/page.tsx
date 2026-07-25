@@ -77,8 +77,8 @@ function BillingSubNav() {
           <Link key={item.href} href={item.href}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               active
-                ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/20"
-                : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
+                ? "bg-accent text-white shadow-md shadow-accent/20"
+                : "text-fg-3 hover:text-fg hover:bg-surface"
             }`}
           >{item.label}</Link>
         );
@@ -459,10 +459,10 @@ export default function CreateBillPage() {
     <div className="animate-fade-in">
       {/* Page title */}
       <div className="mb-1">
-        <h1 className="text-2xl font-light text-brand-navy">
+        <h1 className="text-2xl font-light text-fg">
           Billing <span className="font-medium">Point of Sale</span>
         </h1>
-        <p className="text-sm text-brand-navy/50 mt-0.5">
+        <p className="text-sm text-fg-4 mt-0.5">
           Create bills for members, walk-ins, and new registrations
         </p>
       </div>
@@ -471,23 +471,23 @@ export default function CreateBillPage() {
 
       {/* Success banner */}
       {completedInvoice && (
-        <div className="mb-4 p-4 rounded-2xl bg-brand-success/10 border border-brand-success/20 flex items-center justify-between animate-fade-in">
+        <div className="mb-4 p-4 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-brand-success flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <div>
-              <p className="font-semibold text-brand-success text-sm">Bill completed!</p>
-              <p className="text-xs text-brand-success/70">
+              <p className="font-semibold text-green-600 text-sm">Bill completed!</p>
+              <p className="text-xs text-green-600/70">
                 Invoice <span className="font-mono font-bold">{completedInvoice}</span> generated
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/admin/billing/invoices" className="text-xs text-brand-success underline">View Invoice</Link>
-            <button onClick={resetBill} className="px-4 py-2 rounded-xl bg-brand-success text-white text-sm font-semibold hover:bg-brand-success/80 transition-colors">
+            <Link href="/admin/billing/invoices" className="text-xs text-green-600 underline">View Invoice</Link>
+            <button onClick={resetBill} className="px-4 py-2 rounded-xl bg-green-500 text-white text-sm font-semibold hover:bg-green-500/80 transition-colors">
               New Bill
             </button>
           </div>
@@ -496,12 +496,12 @@ export default function CreateBillPage() {
 
       {/* Error banner */}
       {error && (
-        <div className="mb-4 p-3 rounded-xl bg-brand-error/10 border border-brand-error/20 text-brand-error text-sm flex items-center gap-2">
+        <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-brand-error/20 text-red-500 text-sm flex items-center gap-2">
           <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           {error}
-          <button onClick={() => setError(null)} className="ml-auto text-brand-error/60 hover:text-brand-error">✕</button>
+          <button onClick={() => setError(null)} className="ml-auto text-red-500/60 hover:text-red-500">✕</button>
         </div>
       )}
 
@@ -509,11 +509,11 @@ export default function CreateBillPage() {
       <div className="flex flex-col lg:flex-row gap-3 min-h-0 lg:h-[calc(100vh-12rem)] pb-2">
 
         {/* ── LEFT PANEL ─────────────────────────────────── */}
-        <div className="w-full lg:w-[260px] flex-shrink-0 bg-white rounded-2xl border border-brand-sand/50 flex flex-col overflow-y-auto shadow-sm">
+        <div className="w-full lg:w-[260px] flex-shrink-0 bg-surface rounded-2xl border border-line flex flex-col overflow-y-auto shadow-sm">
 
           {/* Customer section */}
-          <div className="p-4 border-b border-brand-sand/50 flex-shrink-0">
-            <p className="text-[10px] font-bold text-brand-navy/30 uppercase tracking-widest mb-3">
+          <div className="p-4 border-b border-line flex-shrink-0">
+            <p className="text-[10px] font-bold text-fg-5 uppercase tracking-widest mb-3">
               Customer
             </p>
 
@@ -521,7 +521,7 @@ export default function CreateBillPage() {
             {!selectedMember && !isWalkin && (
               <div ref={searchRef} className="space-y-2">
                 <div className="relative">
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-navy/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
                   </svg>
                   <input
@@ -529,24 +529,24 @@ export default function CreateBillPage() {
                     onChange={(e) => setCustomerSearch(e.target.value)}
                     onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
                     placeholder="Search member…"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-brand-sand bg-brand-cream/50 text-sm text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown transition-all"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-line bg-surface-2/50 text-sm text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
                   />
                   {searchLoading && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
                   )}
 
                   {/* Dropdown */}
                   {showDropdown && (
-                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white rounded-xl border border-brand-sand/60 shadow-xl overflow-hidden max-h-56 overflow-y-auto">
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-surface rounded-xl border border-line/60 shadow-xl overflow-hidden max-h-56 overflow-y-auto">
                       {searchResults.length === 0 ? (
-                        <p className="text-xs text-brand-navy/40 text-center py-3">No members found</p>
+                        <p className="text-xs text-fg-5 text-center py-3">No members found</p>
                       ) : (
                         searchResults.map((m) => (
                           <button key={m.id} onClick={() => handleSelectMember(m)}
-                            className="w-full text-left px-3 py-2.5 hover:bg-brand-cream/70 transition-colors border-b border-brand-sand/30 last:border-0"
+                            className="w-full text-left px-3 py-2.5 hover:bg-surface-2/70 transition-colors border-b border-line last:border-0"
                           >
-                            <p className="text-sm font-semibold text-brand-navy leading-tight">{m.full_name}</p>
-                            <p className="text-xs text-brand-navy/40 mt-0.5">{m.phone_number}</p>
+                            <p className="text-sm font-semibold text-fg leading-tight">{m.full_name}</p>
+                            <p className="text-xs text-fg-5 mt-0.5">{m.phone_number}</p>
                           </button>
                         ))
                       )}
@@ -555,7 +555,7 @@ export default function CreateBillPage() {
                 </div>
 
                 <button onClick={handleWalkin}
-                  className="w-full py-2.5 rounded-xl border border-dashed border-brand-sand text-brand-navy/50 text-sm font-medium hover:border-brand-brown/40 hover:text-brand-navy hover:bg-brand-cream/50 transition-all flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 rounded-xl border border-dashed border-line text-fg-4 text-sm font-medium hover:border-accent/40 hover:text-fg hover:bg-surface-2/50 transition-all flex items-center justify-center gap-1.5"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -567,8 +567,8 @@ export default function CreateBillPage() {
 
             {/* Member selected chip */}
             {selectedMember && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-brand-navy text-white">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold flex-shrink-0">
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-rail text-white">
+                <div className="w-8 h-8 rounded-full bg-surface/20 flex items-center justify-center text-xs font-bold flex-shrink-0">
                   {selectedMember.full_name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -587,20 +587,20 @@ export default function CreateBillPage() {
             {isWalkin && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-brand-brown">Walk-in Customer</span>
-                  <button onClick={clearCustomer} className="text-xs text-brand-error hover:underline">Cancel</button>
+                  <span className="text-xs font-semibold text-accent">Walk-in Customer</span>
+                  <button onClick={clearCustomer} className="text-xs text-red-500 hover:underline">Cancel</button>
                 </div>
                 <input type="text" value={walkinName} onChange={(e) => setWalkinName(e.target.value)}
                   placeholder="Name *"
-                  className="w-full px-3 py-2.5 rounded-xl border border-brand-sand bg-brand-cream/50 text-sm text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                  className="w-full px-3 py-2.5 rounded-xl border border-line bg-surface-2/50 text-sm text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent"
                 />
                 <input type="email" value={walkinEmail} onChange={(e) => setWalkinEmail(e.target.value)}
                   placeholder="Email (for plan access)"
-                  className="w-full px-3 py-2.5 rounded-xl border border-brand-sand bg-brand-cream/50 text-sm text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                  className="w-full px-3 py-2.5 rounded-xl border border-line bg-surface-2/50 text-sm text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent"
                 />
                 <input type="tel" value={walkinPhone} onChange={(e) => setWalkinPhone(e.target.value)}
                   placeholder="Phone (optional)"
-                  className="w-full px-3 py-2.5 rounded-xl border border-brand-sand bg-brand-cream/50 text-sm text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                  className="w-full px-3 py-2.5 rounded-xl border border-line bg-surface-2/50 text-sm text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent"
                 />
               </div>
             )}
@@ -608,7 +608,7 @@ export default function CreateBillPage() {
 
           {/* Categories list */}
           <div className="flex-1 overflow-y-auto p-3">
-            <p className="text-[10px] font-bold text-brand-navy/30 uppercase tracking-widest px-2 mb-2">
+            <p className="text-[10px] font-bold text-fg-5 uppercase tracking-widest px-2 mb-2">
               Categories
             </p>
             {CATEGORIES.map((cat) => {
@@ -617,14 +617,14 @@ export default function CreateBillPage() {
                 <button key={cat.id} onClick={() => handleCategoryChange(cat.id)}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all mb-0.5 ${
                     activeCategory === cat.id
-                      ? "bg-brand-navy text-white font-semibold"
-                      : "text-brand-navy/60 hover:text-brand-navy hover:bg-brand-beige"
+                      ? "bg-rail text-white font-semibold"
+                      : "text-fg-3 hover:text-fg hover:bg-hover"
                   }`}
                 >
                   <span className="text-left">{cat.label}</span>
                   {count > 0 && (
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                      activeCategory === cat.id ? "bg-white/20 text-white" : "bg-brand-sand/60 text-brand-navy/40"
+                      activeCategory === cat.id ? "bg-surface/20 text-white" : "bg-line/60 text-fg-5"
                     }`}>{count}</span>
                   )}
                 </button>
@@ -634,20 +634,20 @@ export default function CreateBillPage() {
         </div>
 
         {/* ── MIDDLE PANEL ─────────────────────────────────── */}
-        <div className="flex-1 bg-white rounded-2xl border border-brand-sand/50 flex flex-col overflow-hidden min-w-0 shadow-sm">
+        <div className="flex-1 bg-surface rounded-2xl border border-line flex flex-col overflow-hidden min-w-0 shadow-sm">
           {/* Header */}
-          <div className="p-4 border-b border-brand-sand/50 flex-shrink-0">
+          <div className="p-4 border-b border-line flex-shrink-0">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-brand-navy">{CATEGORIES.find((c) => c.id === activeCategory)?.label}</h2>
-              <span className="text-xs text-brand-navy/30">{filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}</span>
+              <h2 className="font-semibold text-fg">{CATEGORIES.find((c) => c.id === activeCategory)?.label}</h2>
+              <span className="text-xs text-fg-5">{filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}</span>
             </div>
             <div className="relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-navy/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
               </svg>
               <input type="text" value={itemSearch} onChange={(e) => setItemSearch(e.target.value)}
                 placeholder={`Search ${CATEGORIES.find((c) => c.id === activeCategory)?.label.toLowerCase()}…`}
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-brand-sand bg-brand-cream/50 text-sm text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown transition-all"
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-line bg-surface-2/50 text-sm text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
               />
             </div>
             {subcategories.length > 0 && (
@@ -656,8 +656,8 @@ export default function CreateBillPage() {
                   <button key={sc} onClick={() => setActiveSubcat(sc)}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
                       activeSubcat === sc
-                        ? "bg-brand-navy text-white"
-                        : "bg-brand-sand/40 text-brand-navy/60 hover:bg-brand-sand"
+                        ? "bg-rail text-white"
+                        : "bg-line/40 text-fg-3 hover:bg-brand-sand"
                     }`}
                   >{sc}</button>
                 ))}
@@ -670,21 +670,21 @@ export default function CreateBillPage() {
             {itemsLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-2">
-                  <div className="w-6 h-6 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
-                  <p className="text-xs text-brand-navy/40">Loading…</p>
+                  <div className="w-6 h-6 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+                  <p className="text-xs text-fg-5">Loading…</p>
                 </div>
               </div>
             ) : filteredItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <div className="w-12 h-12 rounded-full bg-brand-sand/40 flex items-center justify-center mb-3 text-brand-navy/30">
+                <div className="w-12 h-12 rounded-full bg-line/40 flex items-center justify-center mb-3 text-fg-5">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
                   </svg>
                 </div>
-                <p className="text-sm text-brand-navy/40">
+                <p className="text-sm text-fg-5">
                   {itemSearch ? "No items match your search" : "No items in this category yet"}
                 </p>
-                <Link href="/admin/billing/plan-items" className="text-xs text-brand-brown hover:underline mt-1">
+                <Link href="/admin/billing/plan-items" className="text-xs text-accent hover:underline mt-1">
                   + Add items in Plan Catalogue
                 </Link>
               </div>
@@ -715,30 +715,30 @@ export default function CreateBillPage() {
         </div>
 
         {/* ── RIGHT PANEL ──────────────────────────────────── */}
-        <div className="w-full lg:w-[360px] flex-shrink-0 bg-white rounded-2xl border border-brand-sand/50 flex flex-col overflow-hidden shadow-sm h-full">
+        <div className="w-full lg:w-[360px] flex-shrink-0 bg-surface rounded-2xl border border-line flex flex-col overflow-hidden shadow-sm h-full">
 
           {/* Header — shows who the bill is for */}
-          <div className="p-4 border-b border-brand-sand/50 flex-shrink-0 bg-white">
+          <div className="p-4 border-b border-line flex-shrink-0 bg-surface">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-brand-navy/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 text-fg-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
-                <span className="font-semibold text-brand-navy text-sm">Current Bill</span>
+                <span className="font-semibold text-fg text-sm">Current Bill</span>
               </div>
               {cartCount > 0 && (
-                <span className="bg-brand-brown text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                <span className="bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full">
                   {cartCount} item{cartCount !== 1 ? "s" : ""}
                 </span>
               )}
             </div>
             {/* Customer indicator */}
             {customerLabel && (
-              <div className="mt-2 flex items-center gap-1.5 text-xs text-brand-navy/50">
+              <div className="mt-2 flex items-center gap-1.5 text-xs text-fg-4">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <span>Bill for <span className="font-semibold text-brand-navy">{customerLabel}</span></span>
+                <span>Bill for <span className="font-semibold text-fg">{customerLabel}</span></span>
               </div>
             )}
           </div>
@@ -750,31 +750,31 @@ export default function CreateBillPage() {
               {cartItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center py-8">
                   <div className="w-14 h-14 rounded-2xl bg-brand-sand/30 flex items-center justify-center mb-3">
-                    <svg className="w-7 h-7 text-brand-navy/15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-7 h-7 text-fg/15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.4 7h12.8M7 13l-.4-2M17 21a2 2 0 100-4 2 2 0 000 4zm-10 0a2 2 0 100-4 2 2 0 000 4z" />
                     </svg>
                   </div>
-                  <p className="text-sm font-medium text-brand-navy/30">No items added</p>
-                  <p className="text-xs text-brand-navy/20 mt-0.5">Select items from the catalogue</p>
+                  <p className="text-sm font-medium text-fg-5">No items added</p>
+                  <p className="text-xs text-fg/20 mt-0.5">Select items from the catalogue</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {cartItems.map((item) => (
-                    <div key={item.cartId} className="flex items-start gap-2 p-2.5 rounded-xl bg-brand-cream/50 border border-brand-sand/40 hover:border-brand-sand transition-colors">
+                    <div key={item.cartId} className="flex items-start gap-2 p-2.5 rounded-xl bg-surface-2/50 border border-line hover:border-line transition-colors">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-brand-navy leading-tight">{item.name}</p>
-                        <p className="text-[10px] text-brand-navy/40 mt-0.5">{fmt(item.unit_price)} each</p>
+                        <p className="text-xs font-semibold text-fg leading-tight">{item.name}</p>
+                        <p className="text-[10px] text-fg-5 mt-0.5">{fmt(item.unit_price)} each</p>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <button onClick={() => updateQty(item.cartId, -1)}
-                          className="w-6 h-6 rounded-lg bg-brand-sand/60 text-brand-navy text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">−</button>
-                        <span className="text-sm font-bold text-brand-navy w-5 text-center">{item.quantity}</span>
+                          className="w-6 h-6 rounded-lg bg-line/60 text-fg text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">−</button>
+                        <span className="text-sm font-bold text-fg w-5 text-center">{item.quantity}</span>
                         <button onClick={() => updateQty(item.cartId, 1)}
-                          className="w-6 h-6 rounded-lg bg-brand-sand/60 text-brand-navy text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">+</button>
+                          className="w-6 h-6 rounded-lg bg-line/60 text-fg text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">+</button>
                       </div>
                       <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                        <span className="text-xs font-bold text-brand-navy">{fmt(item.unit_price * item.quantity)}</span>
-                        <button onClick={() => removeFromCart(item.cartId)} className="text-brand-error/40 hover:text-brand-error transition-colors">
+                        <span className="text-xs font-bold text-fg">{fmt(item.unit_price * item.quantity)}</span>
+                        <button onClick={() => removeFromCart(item.cartId)} className="text-red-500/40 hover:text-red-500 transition-colors">
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
@@ -787,19 +787,19 @@ export default function CreateBillPage() {
             </div>
 
             {/* Discount + Totals + Payment */}
-            <div className="border-t border-brand-sand/40 pt-3 space-y-3">
+            <div className="border-t border-line pt-3 space-y-3">
               {/* Discount accordion */}
-              <div className="rounded-xl border border-brand-sand/50 overflow-hidden bg-white">
+              <div className="rounded-xl border border-line overflow-hidden bg-surface">
                 <button onClick={() => setShowDiscount(!showDiscount)}
-                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-brand-navy/60 hover:bg-brand-cream/50 transition-colors"
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-fg-3 hover:bg-surface-2/50 transition-colors"
                 >
                   <span className="flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-brand-brown" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M17 17h.01M7 7l10 10M7 7a4 4 0 115.657 5.657M17 17a4 4 0 11-5.657-5.657" />
                     </svg>
                     Apply Discount
                     {discountAmount > 0 && (
-                      <span className="text-brand-success font-bold">−{fmt(discountAmount)}</span>
+                      <span className="text-green-600 font-bold">−{fmt(discountAmount)}</span>
                     )}
                   </span>
                   <svg className={`w-3.5 h-3.5 transition-transform ${showDiscount ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -807,24 +807,24 @@ export default function CreateBillPage() {
                   </svg>
                 </button>
                 {showDiscount && (
-                  <div className="px-3 pb-3 pt-2 border-t border-brand-sand/40 space-y-2 bg-brand-cream/20">
-                    <div className="flex rounded-lg border border-brand-sand/50 overflow-hidden text-xs">
+                  <div className="px-3 pb-3 pt-2 border-t border-line space-y-2 bg-surface-2/20">
+                    <div className="flex rounded-lg border border-line overflow-hidden text-xs">
                       <button onClick={() => setDiscountType("percentage")}
-                        className={`flex-1 py-1.5 font-semibold transition-colors ${discountType === "percentage" ? "bg-brand-navy text-white" : "bg-white text-brand-navy/60 hover:bg-brand-beige"}`}>
+                        className={`flex-1 py-1.5 font-semibold transition-colors ${discountType === "percentage" ? "bg-rail text-white" : "bg-surface text-fg-3 hover:bg-hover"}`}>
                         % Off
                       </button>
                       <button onClick={() => setDiscountType("flat")}
-                        className={`flex-1 py-1.5 font-semibold transition-colors ${discountType === "flat" ? "bg-brand-navy text-white" : "bg-white text-brand-navy/60 hover:bg-brand-beige"}`}>
+                        className={`flex-1 py-1.5 font-semibold transition-colors ${discountType === "flat" ? "bg-rail text-white" : "bg-surface text-fg-3 hover:bg-hover"}`}>
                         ₹ Flat
                       </button>
                     </div>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-brand-navy/40 font-semibold">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-fg-5 font-semibold">
                         {discountType === "percentage" ? "%" : "₹"}
                       </span>
                       <input type="number" min="0" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)}
                         placeholder={discountType === "percentage" ? "e.g. 10" : "e.g. 500"}
-                        className="w-full pl-7 pr-3 py-2 rounded-lg border border-brand-sand bg-white text-sm text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                        className="w-full pl-7 pr-3 py-2 rounded-lg border border-line bg-surface text-sm text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent"
                       />
                     </div>
                   </div>
@@ -833,30 +833,30 @@ export default function CreateBillPage() {
 
               {/* Totals */}
               <div className="space-y-1.5 px-1">
-                <div className="flex items-center justify-between text-xs text-brand-navy/50">
+                <div className="flex items-center justify-between text-xs text-fg-4">
                   <span>Subtotal</span><span>{fmt(subtotal)}</span>
                 </div>
                 {discountAmount > 0 && (
-                  <div className="flex items-center justify-between text-xs text-brand-success font-medium">
+                  <div className="flex items-center justify-between text-xs text-green-600 font-medium">
                     <span>Discount ({discountType === "percentage" ? discountValue + "%" : fmt(parseFloat(discountValue))})</span>
                     <span>− {fmt(discountAmount)}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between pt-2 border-t border-brand-sand/50">
-                  <span className="font-bold text-brand-navy text-sm">Grand Total</span>
-                  <span className="font-bold text-brand-brown text-lg">{fmt(grandTotal)}</span>
+                <div className="flex items-center justify-between pt-2 border-t border-line">
+                  <span className="font-bold text-fg text-sm">Grand Total</span>
+                  <span className="font-bold text-accent text-lg">{fmt(grandTotal)}</span>
                 </div>
               </div>
 
               {/* Payment Status & Options */}
               <div className="space-y-2">
-                <div className="flex rounded-xl border border-brand-sand/50 overflow-hidden text-xs">
+                <div className="flex rounded-xl border border-line overflow-hidden text-xs">
                   <button onClick={() => setPaymentStatus("paid")}
-                    className={`flex-1 py-2.5 font-semibold transition-colors ${paymentStatus === "paid" ? "bg-brand-navy text-white" : "bg-white text-brand-navy/60 hover:bg-brand-beige"}`}>
+                    className={`flex-1 py-2.5 font-semibold transition-colors ${paymentStatus === "paid" ? "bg-rail text-white" : "bg-surface text-fg-3 hover:bg-hover"}`}>
                     Paid Now
                   </button>
                   <button onClick={() => setPaymentStatus("due")}
-                    className={`flex-1 py-2.5 font-semibold transition-colors ${paymentStatus === "due" ? "bg-amber-500 text-white" : "bg-white text-brand-navy/60 hover:bg-brand-beige"}`}>
+                    className={`flex-1 py-2.5 font-semibold transition-colors ${paymentStatus === "due" ? "bg-amber-500 text-white" : "bg-surface text-fg-3 hover:bg-hover"}`}>
                     Payment Due
                   </button>
                 </div>
@@ -865,14 +865,14 @@ export default function CreateBillPage() {
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <div className="flex-1 relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-brand-navy/40 font-semibold">₹</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-fg-5 font-semibold">₹</span>
                         <input type="number" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)}
                           placeholder="0"
-                          className="w-full pl-7 pr-2 py-2 rounded-xl border border-brand-sand bg-brand-cream/50 text-sm text-brand-navy font-semibold placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                          className="w-full pl-7 pr-2 py-2 rounded-xl border border-line bg-surface-2/50 text-sm text-fg font-semibold placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent"
                         />
                       </div>
                       <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-                        className="flex-1 px-2 py-2 rounded-xl border border-brand-sand bg-brand-cream/50 text-xs text-brand-navy font-medium focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                        className="flex-1 px-2 py-2 rounded-xl border border-line bg-surface-2/50 text-xs text-fg font-medium focus:outline-none focus:ring-1 focus:ring-accent"
                       >
                         <option>Cash</option>
                         <option>UPI</option>
@@ -885,12 +885,12 @@ export default function CreateBillPage() {
                     <div className="flex gap-1.5">
                       {[500, 1000].map((amt) => (
                         <button key={amt} onClick={() => setAmountPaid(amt.toString())}
-                          className="flex-1 py-1.5 rounded-lg border border-brand-sand/60 text-xs text-brand-navy/60 hover:bg-brand-beige transition-colors font-medium">
+                          className="flex-1 py-1.5 rounded-lg border border-line/60 text-xs text-fg-3 hover:bg-hover transition-colors font-medium">
                           ₹{amt.toLocaleString("en-IN")}
                         </button>
                       ))}
                       <button onClick={() => setAmountPaid(grandTotal.toString())}
-                        className="flex-1 py-1.5 rounded-lg bg-brand-navy text-white text-xs font-bold hover:bg-brand-navy/90 transition-colors">
+                        className="flex-1 py-1.5 rounded-lg bg-rail text-white text-xs font-bold hover:bg-rail/90 transition-colors">
                         Exact
                       </button>
                     </div>
@@ -898,7 +898,7 @@ export default function CreateBillPage() {
                     {paymentMethod !== "Cash" && (
                       <input type="text" value={transactionRef} onChange={(e) => setTransactionRef(e.target.value)}
                         placeholder="Transaction ref / UTR (optional)"
-                        className="w-full px-3 py-2 rounded-xl border border-brand-sand bg-brand-cream/50 text-xs text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                        className="w-full px-3 py-2 rounded-xl border border-line bg-surface-2/50 text-xs text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent"
                       />
                     )}
                   </div>
@@ -912,16 +912,16 @@ export default function CreateBillPage() {
 
                 <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
                   placeholder="Notes (optional)" rows={1}
-                  className="w-full px-3 py-2 rounded-xl border border-brand-sand bg-brand-cream/50 text-xs text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown resize-none"
+                  className="w-full px-3 py-2 rounded-xl border border-line bg-surface-2/50 text-xs text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent resize-none"
                 />
               </div>
             </div>
           </div>
 
           {/* Sticky Bottom Action Bar (Complete Bill Button - ALWAYS VISIBLE!) */}
-          <div className="p-3 border-t border-brand-sand/50 bg-white flex-shrink-0 shadow-lg">
+          <div className="p-3 border-t border-line bg-surface flex-shrink-0 shadow-lg">
             <button onClick={handleCompleteBill} disabled={completing || !!completedInvoice}
-              className="w-full py-3.5 rounded-xl bg-[#7B3FE4] text-white font-bold text-sm hover:bg-[#6A2FD3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-[#7B3FE4]/20"
+              className="w-full py-3.5 rounded-xl bg-accent text-white font-bold text-sm hover:bg-accent-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-accent/20"
             >
               {completing ? (
                 <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Processing…</>
@@ -960,18 +960,18 @@ function PlanItemCard({
   return (
     <div className={`rounded-xl p-3.5 border flex flex-col gap-2 transition-all ${
       cartItem
-        ? "bg-brand-navy/3 border-brand-navy/20 shadow-sm"
-        : "bg-brand-cream/40 border-brand-sand/50 hover:border-brand-sand"
+        ? "bg-rail/3 border-fg/20 shadow-sm"
+        : "bg-surface-2/40 border-line hover:border-line"
     }`}>
       {/* Top badges row */}
       <div className="flex items-center gap-1 flex-wrap">
         {item.subcategory && (
-          <span className="text-[10px] bg-brand-brown/10 text-brand-brown px-2 py-0.5 rounded-full font-semibold">
+          <span className="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded-full font-semibold">
             {item.subcategory}
           </span>
         )}
         {cartItem && (
-          <span className="text-[10px] bg-brand-navy text-white px-2 py-0.5 rounded-full font-bold">
+          <span className="text-[10px] bg-rail text-white px-2 py-0.5 rounded-full font-bold">
             In cart
           </span>
         )}
@@ -979,29 +979,29 @@ function PlanItemCard({
 
       {/* Name + Price */}
       <div>
-        <h3 className="text-sm font-bold text-brand-navy leading-tight">{item.name}</h3>
+        <h3 className="text-sm font-bold text-fg leading-tight">{item.name}</h3>
         <div className="flex items-baseline gap-1.5 mt-0.5">
-          <span className="text-base font-bold text-brand-brown">{fmt(item.price)}</span>
+          <span className="text-base font-bold text-accent">{fmt(item.price)}</span>
           {item.original_price && (
-            <span className="text-xs text-brand-navy/25 line-through">{fmt(item.original_price)}</span>
+            <span className="text-xs text-fg/25 line-through">{fmt(item.original_price)}</span>
           )}
         </div>
         {item.stock_quantity !== null && item.stock_quantity !== undefined && (
           <span className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full font-semibold ${
             item.stock_quantity > 0
-              ? "bg-brand-success/10 text-brand-success"
-              : "bg-brand-error/10 text-brand-error"
+              ? "bg-green-500/10 text-green-600"
+              : "bg-red-500/10 text-red-500"
           }`}>
             {item.stock_quantity > 0 ? `${item.stock_quantity} in stock` : "Out of stock"}
           </span>
         )}
         {perSession && (
-          <p className="text-[10px] text-brand-navy/40 mt-0.5">
+          <p className="text-[10px] text-fg-5 mt-0.5">
             {item.sessions} sessions • {fmt(perSession)}/session
           </p>
         )}
         {item.validity_days && (
-          <p className="text-[10px] text-brand-navy/30">
+          <p className="text-[10px] text-fg-5">
             Valid {item.validity_days} day{item.validity_days !== 1 ? "s" : ""}
           </p>
         )}
@@ -1010,14 +1010,14 @@ function PlanItemCard({
       {/* Add / Qty control */}
       {cartItem ? (
         // Already in cart → show inline qty controls
-        <div className="mt-auto flex items-center justify-between gap-2 p-1.5 rounded-xl bg-brand-navy/8 border border-brand-navy/10">
+        <div className="mt-auto flex items-center justify-between gap-2 p-1.5 rounded-xl bg-rail/8 border border-fg/10">
           <button onClick={onDecrement}
-            className="w-8 h-8 rounded-lg bg-white border border-brand-sand/60 text-brand-navy font-bold flex items-center justify-center hover:bg-brand-beige transition-colors shadow-sm">
+            className="w-8 h-8 rounded-lg bg-surface border border-line/60 text-fg font-bold flex items-center justify-center hover:bg-hover transition-colors shadow-sm">
             −
           </button>
-          <span className="text-sm font-bold text-brand-navy">{cartItem.quantity}</span>
+          <span className="text-sm font-bold text-fg">{cartItem.quantity}</span>
           <button onClick={onIncrement}
-            className="w-8 h-8 rounded-lg bg-brand-navy text-white font-bold flex items-center justify-center hover:bg-brand-navy/90 transition-colors shadow-sm">
+            className="w-8 h-8 rounded-lg bg-rail text-white font-bold flex items-center justify-center hover:bg-rail/90 transition-colors shadow-sm">
             +
           </button>
         </div>
@@ -1025,10 +1025,10 @@ function PlanItemCard({
         <button onClick={onAdd} disabled={outOfStock}
           className={`mt-auto w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
             justAdded
-              ? "bg-brand-success text-white"
+              ? "bg-green-500 text-white"
               : outOfStock
-                ? "bg-brand-sand/50 text-brand-navy/30 cursor-not-allowed"
-                : "bg-brand-navy text-white hover:bg-brand-navy/90 active:scale-95"
+                ? "bg-brand-sand/50 text-fg-5 cursor-not-allowed"
+                : "bg-rail text-white hover:bg-rail/90 active:scale-95"
           }`}
         >
           {justAdded ? (

@@ -771,10 +771,10 @@ export default function AdminClassesModulePage() {
       {/* Top Banner Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#1B0B38] tracking-tight">
-            Classes &amp; Studio <span className="text-[#7B3FE4]">Management</span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-fg tracking-tight">
+            Classes &amp; Studio <span className="text-accent">Management</span>
           </h1>
-          <p className="text-sm text-[#1B0B38]/60 mt-1.5 font-medium">
+          <p className="text-sm text-fg-3 mt-1.5 font-medium">
             Manage class types, calendar schedule board, session bookings, and studio check-ins
           </p>
         </div>
@@ -785,7 +785,7 @@ export default function AdminClassesModulePage() {
               setSessTitle("");
               setShowScheduleModal(true);
             }}
-            className="px-6 py-3 rounded-2xl bg-[#7B3FE4] text-white text-xs font-bold hover:bg-[#6A2FD3] transition-all shadow-md shadow-[#7B3FE4]/25 flex items-center gap-2"
+            className="px-6 py-3 rounded-2xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-all shadow-md shadow-accent/25 flex items-center gap-2"
           >
             <span className="text-base font-extrabold">+</span> Schedule Session
           </button>
@@ -808,40 +808,40 @@ export default function AdminClassesModulePage() {
 
       {/* 4 REAL-TIME KPI SUMMARY CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-3xl p-6 border border-[#1B0B38]/10 shadow-xs hover:shadow-md transition-all flex items-center justify-between">
+        <div className="bg-surface rounded-3xl p-6 border border-line shadow-xs hover:shadow-md transition-all flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-[#1B0B38]/50 uppercase tracking-wider">Active Class Types</p>
-            <p className="text-3xl font-black text-[#1B0B38] mt-1.5">{loading ? "..." : kpiMetrics.activeClassTypes}</p>
+            <p className="text-xs font-bold text-fg-4 uppercase tracking-wider">Active Class Types</p>
+            <p className="text-3xl font-black text-fg mt-1.5">{loading ? "..." : kpiMetrics.activeClassTypes}</p>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-[#F2EBFE] text-[#7B3FE4] flex items-center justify-center shadow-xs">
+          <div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center shadow-xs">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" /></svg>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 border border-[#1B0B38]/10 shadow-xs hover:shadow-md transition-all flex items-center justify-between">
+        <div className="bg-surface rounded-3xl p-6 border border-line shadow-xs hover:shadow-md transition-all flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-[#1B0B38]/50 uppercase tracking-wider">Today&apos;s Sessions</p>
-            <p className="text-3xl font-black text-[#1B0B38] mt-1.5">{loading ? "..." : kpiMetrics.todaySessionsCount}</p>
+            <p className="text-xs font-bold text-fg-4 uppercase tracking-wider">Today&apos;s Sessions</p>
+            <p className="text-3xl font-black text-fg mt-1.5">{loading ? "..." : kpiMetrics.todaySessionsCount}</p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shadow-xs">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 border border-[#1B0B38]/10 shadow-xs hover:shadow-md transition-all flex items-center justify-between">
+        <div className="bg-surface rounded-3xl p-6 border border-line shadow-xs hover:shadow-md transition-all flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-[#1B0B38]/50 uppercase tracking-wider">Total Active Bookings</p>
-            <p className="text-3xl font-black text-[#1B0B38] mt-1.5">{loading ? "..." : kpiMetrics.totalActiveBookings}</p>
+            <p className="text-xs font-bold text-fg-4 uppercase tracking-wider">Total Active Bookings</p>
+            <p className="text-3xl font-black text-fg mt-1.5">{loading ? "..." : kpiMetrics.totalActiveBookings}</p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center shadow-xs">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 border border-[#1B0B38]/10 shadow-xs hover:shadow-md transition-all flex items-center justify-between">
+        <div className="bg-surface rounded-3xl p-6 border border-line shadow-xs hover:shadow-md transition-all flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-[#1B0B38]/50 uppercase tracking-wider">Attendance Rate</p>
-            <p className="text-3xl font-black text-[#1B0B38] mt-1.5">{loading ? "..." : `${kpiMetrics.avgAttendancePercent}%`}</p>
+            <p className="text-xs font-bold text-fg-4 uppercase tracking-wider">Attendance Rate</p>
+            <p className="text-3xl font-black text-fg mt-1.5">{loading ? "..." : `${kpiMetrics.avgAttendancePercent}%`}</p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-xs">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -850,13 +850,13 @@ export default function AdminClassesModulePage() {
       </div>
 
       {/* 4 INDEPENDENT TABS NAVIGATION */}
-      <div className="flex items-center gap-3 border-b border-[#1B0B38]/10 pb-4 overflow-x-auto">
+      <div className="flex items-center gap-3 border-b border-line pb-4 overflow-x-auto">
         <button
           onClick={() => setActiveTab("class_types")}
           className={`px-6 py-3 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap ${
             activeTab === "class_types"
-              ? "bg-[#7B3FE4] text-white shadow-lg shadow-[#7B3FE4]/25"
-              : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
+              ? "bg-accent text-white shadow-lg shadow-accent/25"
+              : "text-fg-3 hover:text-fg hover:bg-surface"
           }`}
         >
           <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
@@ -867,8 +867,8 @@ export default function AdminClassesModulePage() {
           onClick={() => setActiveTab("schedule")}
           className={`px-6 py-3 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap ${
             activeTab === "schedule"
-              ? "bg-[#7B3FE4] text-white shadow-lg shadow-[#7B3FE4]/25"
-              : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
+              ? "bg-accent text-white shadow-lg shadow-accent/25"
+              : "text-fg-3 hover:text-fg hover:bg-surface"
           }`}
         >
           <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -879,8 +879,8 @@ export default function AdminClassesModulePage() {
           onClick={() => setActiveTab("sessions")}
           className={`px-6 py-3 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap ${
             activeTab === "sessions"
-              ? "bg-[#7B3FE4] text-white shadow-lg shadow-[#7B3FE4]/25"
-              : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
+              ? "bg-accent text-white shadow-lg shadow-accent/25"
+              : "text-fg-3 hover:text-fg hover:bg-surface"
           }`}
         >
           <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -891,8 +891,8 @@ export default function AdminClassesModulePage() {
           onClick={() => setActiveTab("bookings")}
           className={`px-6 py-3 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap ${
             activeTab === "bookings"
-              ? "bg-[#7B3FE4] text-white shadow-lg shadow-[#7B3FE4]/25"
-              : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
+              ? "bg-accent text-white shadow-lg shadow-accent/25"
+              : "text-fg-3 hover:text-fg hover:bg-surface"
           }`}
         >
           <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
@@ -904,10 +904,10 @@ export default function AdminClassesModulePage() {
       {activeTab === "class_types" && (
         <div className="space-y-6 animate-fade-in">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-extrabold text-[#1B0B38]">Master Class Templates</h2>
+            <h2 className="text-xl font-extrabold text-fg">Master Class Templates</h2>
             <button
               onClick={handleOpenCreateClassType}
-              className="px-5 py-2.5 rounded-xl bg-[#7B3FE4] text-white text-xs font-bold hover:bg-[#6A2FD3] shadow-xs transition-all"
+              className="px-5 py-2.5 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent-2 shadow-xs transition-all"
             >
               + Create Class Type
             </button>
@@ -915,41 +915,41 @@ export default function AdminClassesModulePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {classTypes.map((ct) => (
-              <div key={ct.id} className="bg-white rounded-3xl border border-[#1B0B38]/10 p-6 shadow-xs flex flex-col justify-between space-y-5 hover:shadow-md transition-all">
+              <div key={ct.id} className="bg-surface rounded-3xl border border-line p-6 shadow-xs flex flex-col justify-between space-y-5 hover:shadow-md transition-all">
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <span className="text-[10px] font-bold text-[#7B3FE4] uppercase tracking-wider bg-[#F2EBFE] px-3 py-1 rounded-lg inline-block mb-2">
+                      <span className="text-[10px] font-bold text-accent uppercase tracking-wider bg-accent/10 px-3 py-1 rounded-lg inline-block mb-2">
                         {ct.category}
                       </span>
-                      <h3 className="text-xl font-extrabold text-[#1B0B38] leading-tight">{ct.name}</h3>
+                      <h3 className="text-xl font-extrabold text-fg leading-tight">{ct.name}</h3>
                     </div>
                     <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 flex-shrink-0">
                       {ct.difficulty}
                     </span>
                   </div>
-                  {ct.description && <p className="text-xs text-[#1B0B38]/60 mt-3 leading-relaxed line-clamp-2">{ct.description}</p>}
+                  {ct.description && <p className="text-xs text-fg-3 mt-3 leading-relaxed line-clamp-2">{ct.description}</p>}
                 </div>
 
-                <div className="pt-4 border-t border-[#1B0B38]/10 space-y-2 text-xs text-[#1B0B38]/70">
+                <div className="pt-4 border-t border-line space-y-2 text-xs text-fg-2">
                   <div className="flex justify-between">
-                    <span className="font-semibold text-[#1B0B38]/50">Trainer:</span>
-                    <span className="font-bold text-[#1B0B38]">{ct.trainer}</span>
+                    <span className="font-semibold text-fg-4">Trainer:</span>
+                    <span className="font-bold text-fg">{ct.trainer}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="font-semibold text-[#1B0B38]/50">Duration &amp; Capacity:</span>
-                    <span className="font-bold text-[#1B0B38]">{ct.duration_minutes} mins &bull; {ct.max_capacity} max</span>
+                    <span className="font-semibold text-fg-4">Duration &amp; Capacity:</span>
+                    <span className="font-bold text-fg">{ct.duration_minutes} mins &bull; {ct.max_capacity} max</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="font-semibold text-[#1B0B38]/50">Studio Room:</span>
-                    <span className="font-bold text-[#1B0B38]">{ct.location_room}</span>
+                    <span className="font-semibold text-fg-4">Studio Room:</span>
+                    <span className="font-bold text-fg">{ct.location_room}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 pt-3 border-t border-[#1B0B38]/10">
+                <div className="flex items-center gap-3 pt-3 border-t border-line">
                   <button
                     onClick={() => handleOpenEditClassType(ct)}
-                    className="flex-1 py-2.5 bg-[#FAF9FC] border border-[#7B3FE4]/20 text-[#7B3FE4] rounded-xl text-xs font-bold hover:bg-[#7B3FE4]/10 transition-colors"
+                    className="flex-1 py-2.5 bg-surface-2 border border-accent/20 text-accent rounded-xl text-xs font-bold hover:bg-accent/10 transition-colors"
                   >
                     Edit
                   </button>
@@ -963,7 +963,7 @@ export default function AdminClassesModulePage() {
                       setSessRoom(ct.location_room);
                       setShowScheduleModal(true);
                     }}
-                    className="flex-1 py-2.5 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3] transition-colors shadow-xs"
+                    className="flex-1 py-2.5 bg-accent text-white rounded-xl text-xs font-bold hover:bg-accent-2 transition-colors shadow-xs"
                   >
                     Schedule
                   </button>
@@ -978,39 +978,39 @@ export default function AdminClassesModulePage() {
       {activeTab === "schedule" && (
         <div className="space-y-6 animate-fade-in">
           {/* Calendar Toolbar Header */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-white rounded-3xl border border-[#1B0B38]/10 p-5 gap-4 shadow-xs">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-surface rounded-3xl border border-line p-5 gap-4 shadow-xs">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setWeekOffset((prev) => prev - 1)}
-                className="px-3.5 py-2 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] hover:bg-[#7B3FE4]/10 text-[#7B3FE4] font-bold text-xs transition-colors"
+                className="px-3.5 py-2 rounded-xl border border-line-2 bg-surface-2 hover:bg-accent/10 text-accent font-bold text-xs transition-colors"
               >
                 &larr; Prev Week
               </button>
               <button
                 onClick={() => setWeekOffset(0)}
-                className="px-4 py-2 rounded-xl bg-[#7B3FE4] text-white font-bold text-xs hover:bg-[#6A2FD3] transition-colors shadow-xs"
+                className="px-4 py-2 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-2 transition-colors shadow-xs"
               >
                 Today
               </button>
               <button
                 onClick={() => setWeekOffset((prev) => prev + 1)}
-                className="px-3.5 py-2 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] hover:bg-[#7B3FE4]/10 text-[#7B3FE4] font-bold text-xs transition-colors"
+                className="px-3.5 py-2 rounded-xl border border-line-2 bg-surface-2 hover:bg-accent/10 text-accent font-bold text-xs transition-colors"
               >
                 Next Week &rarr;
               </button>
-              <span className="text-base font-extrabold text-[#1B0B38] ml-3">{weekHeaderDateRange}</span>
+              <span className="text-base font-extrabold text-fg ml-3">{weekHeaderDateRange}</span>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 bg-[#FAF9FC] p-1.5 rounded-2xl border border-[#1B0B38]/10">
+              <div className="flex items-center gap-1 bg-surface-2 p-1.5 rounded-2xl border border-line">
                 {(["day", "week", "month"] as const).map((v) => (
                   <button
                     key={v}
                     onClick={() => setCalendarView(v)}
                     className={`px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all ${
                       calendarView === v
-                        ? "bg-[#7B3FE4] text-white shadow-xs"
-                        : "text-[#1B0B38]/60 hover:text-[#1B0B38]"
+                        ? "bg-accent text-white shadow-xs"
+                        : "text-fg-3 hover:text-fg"
                     }`}
                   >
                     {v}
@@ -1020,7 +1020,7 @@ export default function AdminClassesModulePage() {
 
               <button
                 onClick={() => setShowScheduleModal(true)}
-                className="px-5 py-2.5 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3] shadow-xs"
+                className="px-5 py-2.5 bg-accent text-white rounded-xl text-xs font-bold hover:bg-accent-2 shadow-xs"
               >
                 + Add Session
               </button>
@@ -1028,26 +1028,26 @@ export default function AdminClassesModulePage() {
           </div>
 
           {/* ── GOOGLE CALENDAR WEEKLY TIME GRID ── */}
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-md overflow-x-auto">
+          <div className="bg-surface rounded-3xl border border-line shadow-md overflow-x-auto">
             <div className="min-w-[950px]">
               {/* Day Columns Header Row */}
-              <div className="grid grid-cols-[90px_repeat(7,1fr)] border-b border-[#1B0B38]/10 bg-[#FAF9FC] text-center sticky top-0 z-10">
-                <div className="p-4 text-xs font-bold text-[#1B0B38]/50 border-r border-[#1B0B38]/10 uppercase flex items-center justify-center">
+              <div className="grid grid-cols-[90px_repeat(7,1fr)] border-b border-line bg-surface-2 text-center sticky top-0 z-10">
+                <div className="p-4 text-xs font-bold text-fg-4 border-r border-line uppercase flex items-center justify-center">
                   Time
                 </div>
                 {currentWeekDays.map((day) => (
                   <div
                     key={day.isoDate}
-                    className={`p-3.5 border-r border-[#1B0B38]/10 last:border-r-0 flex flex-col items-center justify-center transition-colors ${
-                      day.isToday ? "bg-[#7B3FE4]/10" : ""
+                    className={`p-3.5 border-r border-line last:border-r-0 flex flex-col items-center justify-center transition-colors ${
+                      day.isToday ? "bg-accent/10" : ""
                     }`}
                   >
-                    <span className="text-xs font-bold text-[#1B0B38]/60 uppercase">{day.dayName}</span>
+                    <span className="text-xs font-bold text-fg-3 uppercase">{day.dayName}</span>
                     <span
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black mt-1 ${
                         day.isToday
-                          ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/30"
-                          : "text-[#1B0B38]"
+                          ? "bg-accent text-white shadow-md shadow-accent/30"
+                          : "text-fg"
                       }`}
                     >
                       {day.dayNum}
@@ -1057,7 +1057,7 @@ export default function AdminClassesModulePage() {
               </div>
 
               {/* Time Slot Rows */}
-              <div className="divide-y divide-[#1B0B38]/10">
+              <div className="divide-y divide-line">
                 {TIME_SLOTS.map((slot) => {
                   const displayTimeLabel = formatSlotHour(slot);
                   const slotHourPrefix = slot.substring(0, 2);
@@ -1065,7 +1065,7 @@ export default function AdminClassesModulePage() {
                   return (
                     <div key={slot} className="grid grid-cols-[90px_repeat(7,1fr)] min-h-[95px]">
                       {/* Left Time Column */}
-                      <div className="p-2 text-xs font-bold text-[#1B0B38]/50 border-r border-[#1B0B38]/10 bg-[#FAF9FC]/60 text-center flex items-center justify-center">
+                      <div className="p-2 text-xs font-bold text-fg-4 border-r border-line bg-surface-2/60 text-center flex items-center justify-center">
                         {displayTimeLabel}
                       </div>
 
@@ -1085,13 +1085,13 @@ export default function AdminClassesModulePage() {
                                 setShowScheduleModal(true);
                               }
                             }}
-                            className={`p-2 border-r border-[#1B0B38]/10 last:border-r-0 relative group transition-colors hover:bg-[#FAF9FC] ${
-                              day.isToday ? "bg-[#7B3FE4]/3" : ""
+                            className={`p-2 border-r border-line last:border-r-0 relative group transition-colors hover:bg-surface-2 ${
+                              day.isToday ? "bg-accent/3" : ""
                             }`}
                           >
                             {matchedSessions.length === 0 ? (
                               <div className="w-full h-full min-h-[75px] rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span className="text-[10px] font-bold text-[#7B3FE4] bg-[#F2EBFE] px-2.5 py-1 rounded-lg">
+                                <span className="text-[10px] font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-lg">
                                   + Add {slot}
                                 </span>
                               </div>
@@ -1112,8 +1112,8 @@ export default function AdminClassesModulePage() {
                                         s.status === "cancelled"
                                           ? "bg-red-500/80 line-through opacity-80"
                                           : isFull
-                                          ? "bg-[#1B0B38]"
-                                          : "bg-gradient-to-r from-[#7B3FE4] to-[#5C24D4]"
+                                          ? "bg-rail"
+                                          : "bg-gradient-to-r from-accent to-[#5C24D4]"
                                       }`}
                                     >
                                       <p className="font-extrabold text-xs leading-tight line-clamp-1">
@@ -1123,7 +1123,7 @@ export default function AdminClassesModulePage() {
                                         {s.class_time} &bull; {s.instructor}
                                       </p>
                                       <div className="mt-1.5 flex items-center justify-between text-[9px]">
-                                        <span className="bg-white/20 px-2 py-0.5 rounded-md font-bold">
+                                        <span className="bg-surface/20 px-2 py-0.5 rounded-md font-bold">
                                           {booked}/{s.max_capacity}
                                         </span>
                                         {s.status === "cancelled" ? (
@@ -1153,22 +1153,22 @@ export default function AdminClassesModulePage() {
 
       {/* ─── TAB 3: SESSIONS LIST ─────────────────────────────────────────── */}
       {activeTab === "sessions" && (
-        <div className="bg-white rounded-3xl border border-[#1B0B38]/10 overflow-hidden shadow-xs animate-fade-in">
-          <div className="p-5 border-b border-[#1B0B38]/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="bg-surface rounded-3xl border border-line overflow-hidden shadow-xs animate-fade-in">
+          <div className="p-5 border-b border-line flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-extrabold text-[#1B0B38]">Sessions</h2>
-              <p className="text-xs text-[#1B0B38]/50 mt-0.5">Showing sessions for selected date</p>
+              <h2 className="text-lg font-extrabold text-fg">Sessions</h2>
+              <p className="text-xs text-fg-4 mt-0.5">Showing sessions for selected date</p>
             </div>
             <div className="flex items-center gap-3">
               <input
                 type="date"
                 value={selectedSessionDate}
                 onChange={(e) => setSelectedSessionDate(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38] focus:outline-none focus:ring-2 focus:ring-[#7B3FE4]/30"
+                className="px-3 py-2 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg focus:outline-none focus:ring-2 focus:ring-accent/30"
               />
               <button
                 onClick={() => setShowScheduleModal(true)}
-                className="px-5 py-2.5 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3]"
+                className="px-5 py-2.5 bg-accent text-white rounded-xl text-xs font-bold hover:bg-accent-2"
               >
                 + Add Session
               </button>
@@ -1176,7 +1176,7 @@ export default function AdminClassesModulePage() {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-[#FAF9FC] border-b border-[#1B0B38]/10 text-[#1B0B38]/60 uppercase font-bold text-[10px]">
+              <thead className="bg-surface-2 border-b border-line text-fg-3 uppercase font-bold text-[10px]">
                 <tr>
                   <th className="py-4 px-6">Session Title</th>
                   <th className="py-4 px-6">Trainer</th>
@@ -1187,18 +1187,18 @@ export default function AdminClassesModulePage() {
                   <th className="py-4 px-6 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1B0B38]/10">
+              <tbody className="divide-y divide-line">
                 {sessions
                   .filter((s) => s.class_date === selectedSessionDate)
                   .map((s) => {
                   const booked = sessionBookingCountMap[s.id] || 0;
                   return (
-                    <tr key={s.id} className="hover:bg-[#FAF9FC]/60 transition-colors">
-                      <td className="py-4 px-6 font-extrabold text-[#1B0B38] text-sm">{s.title}</td>
-                      <td className="py-4 px-6 font-semibold text-[#1B0B38]/70">{s.instructor}</td>
-                      <td className="py-4 px-6 font-bold text-[#1B0B38]">{s.class_date} @ {s.class_time}</td>
-                      <td className="py-4 px-6 text-[#1B0B38]/70 font-medium">{s.location_room}</td>
-                      <td className="py-4 px-6 font-extrabold text-[#7B3FE4]">{booked} / {s.max_capacity}</td>
+                    <tr key={s.id} className="hover:bg-surface-2/60 transition-colors">
+                      <td className="py-4 px-6 font-extrabold text-fg text-sm">{s.title}</td>
+                      <td className="py-4 px-6 font-semibold text-fg-2">{s.instructor}</td>
+                      <td className="py-4 px-6 font-bold text-fg">{s.class_date} @ {s.class_time}</td>
+                      <td className="py-4 px-6 text-fg-2 font-medium">{s.location_room}</td>
+                      <td className="py-4 px-6 font-extrabold text-accent">{booked} / {s.max_capacity}</td>
                       <td className="py-4 px-6">
                         <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase ${
                           s.status === "cancelled" ? "bg-red-100 text-red-800" : "bg-emerald-100 text-emerald-800"
@@ -1210,7 +1210,7 @@ export default function AdminClassesModulePage() {
                         <button
                           onClick={() => handleOpenAssignMember(s)}
                           disabled={s.status === "cancelled"}
-                          className="px-4 py-2 bg-[#7B3FE4] text-white rounded-xl text-xs font-bold hover:bg-[#6A2FD3] disabled:opacity-50 shadow-xs inline-block"
+                          className="px-4 py-2 bg-accent text-white rounded-xl text-xs font-bold hover:bg-accent-2 disabled:opacity-50 shadow-xs inline-block"
                         >
                           Assign Member
                         </button>
@@ -1236,16 +1236,16 @@ export default function AdminClassesModulePage() {
       {activeTab === "bookings" && (
         <div className="space-y-6 animate-fade-in font-sans">
           {/* Controls & Filters Bar */}
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 p-5 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div className="bg-surface rounded-3xl border border-line p-5 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
             <div className="relative flex-1 max-w-md">
               <input
                 type="text"
                 placeholder="Search member name or phone..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-[#FAF9FC] border border-[#1B0B38]/15 rounded-2xl text-xs text-[#1B0B38] focus:outline-none focus:ring-2 focus:ring-[#7B3FE4]/40"
+                className="w-full pl-10 pr-4 py-3 bg-surface-2 border border-line-2 rounded-2xl text-xs text-fg focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
-              <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1B0B38]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -1261,10 +1261,10 @@ export default function AdminClassesModulePage() {
           </div>
 
           {/* Bookings Table */}
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 overflow-hidden shadow-xs">
+          <div className="bg-surface rounded-3xl border border-line overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
-                <thead className="bg-[#FAF9FC] border-b border-[#1B0B38]/10 text-[#1B0B38]/60 uppercase font-bold text-[10px]">
+                <thead className="bg-surface-2 border-b border-line text-fg-3 uppercase font-bold text-[10px]">
                   <tr>
                     <th className="py-4 px-6">Member</th>
                     <th className="py-4 px-6">Phone</th>
@@ -1275,21 +1275,21 @@ export default function AdminClassesModulePage() {
                     <th className="py-4 px-6 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1B0B38]/10">
+                <tbody className="divide-y divide-line">
                   {filteredBookings.map((b) => (
-                    <tr key={b.id} className="hover:bg-[#FAF9FC]/60 transition-colors">
-                      <td className="py-4 px-6 font-extrabold text-[#1B0B38] text-sm">
+                    <tr key={b.id} className="hover:bg-surface-2/60 transition-colors">
+                      <td className="py-4 px-6 font-extrabold text-fg text-sm">
                         {b.approved_members?.full_name || "Member"}
-                        <span className="block text-xs text-[#1B0B38]/50 font-medium">{b.approved_members?.email}</span>
+                        <span className="block text-xs text-fg-4 font-medium">{b.approved_members?.email}</span>
                       </td>
-                      <td className="py-4 px-6 font-semibold text-[#1B0B38]/70">{b.approved_members?.phone_number || "N/A"}</td>
-                      <td className="py-4 px-6 font-bold text-[#1B0B38]">{b.classes?.title || "N/A"}</td>
-                      <td className="py-4 px-6 font-semibold text-[#1B0B38]">{b.classes?.class_date} @ {b.classes?.class_time}</td>
+                      <td className="py-4 px-6 font-semibold text-fg-2">{b.approved_members?.phone_number || "N/A"}</td>
+                      <td className="py-4 px-6 font-bold text-fg">{b.classes?.title || "N/A"}</td>
+                      <td className="py-4 px-6 font-semibold text-fg">{b.classes?.class_date} @ {b.classes?.class_time}</td>
                       <td className="py-4 px-6">
                         <select
                           value={b.booking_status}
                           onChange={(e) => handleUpdateBookingStatus(b.id, e.target.value)}
-                          className="p-2 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-bold text-[#7B3FE4]"
+                          className="p-2 rounded-xl border border-line-2 bg-surface-2 text-xs font-bold text-accent"
                         >
                           <option value="booked">Booked</option>
                           <option value="confirmed">Confirmed</option>
@@ -1304,7 +1304,7 @@ export default function AdminClassesModulePage() {
                         <select
                           value={b.attendance_status}
                           onChange={(e) => handleUpdateAttendance(b.id, e.target.value)}
-                          className="p-2 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-bold text-[#1B0B38]"
+                          className="p-2 rounded-xl border border-line-2 bg-surface-2 text-xs font-bold text-fg"
                         >
                           <option value="pending">Pending</option>
                           <option value="present">Mark Present</option>
@@ -1315,7 +1315,7 @@ export default function AdminClassesModulePage() {
                       <td className="py-4 px-6 text-right space-x-2">
                         <button
                           onClick={() => setRescheduleBookingTarget(b)}
-                          className="px-4 py-2 bg-[#FAF9FC] border border-[#7B3FE4]/30 text-[#7B3FE4] rounded-xl text-xs font-bold hover:bg-[#7B3FE4]/10"
+                          className="px-4 py-2 bg-surface-2 border border-accent/30 text-accent rounded-xl text-xs font-bold hover:bg-accent/10"
                         >
                           Reschedule
                         </button>
@@ -1333,75 +1333,75 @@ export default function AdminClassesModulePage() {
       {showCreateClassTypeModal && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-2xl w-full p-6 flex flex-col max-h-[90vh] animate-fade-in space-y-5 overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4 flex-shrink-0">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-2xl w-full p-6 flex flex-col max-h-[90vh] animate-fade-in space-y-5 overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-line pb-4 flex-shrink-0">
               <div>
-                <h3 className="text-2xl font-extrabold text-[#1B0B38]">{editingClassType ? "Edit Class Type" : "Create Master Class Type"}</h3>
-                <p className="text-xs text-[#1B0B38]/60 mt-0.5">Define master class template settings and booking policies</p>
+                <h3 className="text-2xl font-extrabold text-fg">{editingClassType ? "Edit Class Type" : "Create Master Class Type"}</h3>
+                <p className="text-xs text-fg-3 mt-0.5">Define master class template settings and booking policies</p>
               </div>
-              <button onClick={() => setShowCreateClassTypeModal(false)} className="w-8 h-8 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-base font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
+              <button onClick={() => setShowCreateClassTypeModal(false)} className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-base font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
             </div>
 
             <form onSubmit={handleSaveClassType} className="flex-1 overflow-y-auto pr-2 space-y-6 text-xs">
               <div className="space-y-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#7B3FE4]">Basic Information</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-accent">Basic Information</p>
                 
                 <div>
-                  <label className="block font-bold text-[#1B0B38] mb-1.5">Class Name *</label>
-                  <input type="text" required value={ctName} onChange={(e) => setCtName(e.target.value)} placeholder="e.g. Reformer Basic" className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                  <label className="block font-bold text-fg mb-1.5">Class Name *</label>
+                  <input type="text" required value={ctName} onChange={(e) => setCtName(e.target.value)} placeholder="e.g. Reformer Basic" className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-sm text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-[#1B0B38] mb-1.5">Category</label>
-                    <input type="text" value={ctCategory} onChange={(e) => setCtCategory(e.target.value)} className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    <label className="block font-bold text-fg mb-1.5">Category</label>
+                    <input type="text" value={ctCategory} onChange={(e) => setCtCategory(e.target.value)} className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-sm text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                   </div>
                   <div>
-                    <label className="block font-bold text-[#1B0B38] mb-1.5">Trainer *</label>
-                    <input type="text" required value={ctTrainer} onChange={(e) => setCtTrainer(e.target.value)} className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    <label className="block font-bold text-fg mb-1.5">Trainer *</label>
+                    <input type="text" required value={ctTrainer} onChange={(e) => setCtTrainer(e.target.value)} className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-sm text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#1B0B38] mb-1.5">Description</label>
-                  <textarea rows={2} value={ctDescription} onChange={(e) => setCtDescription(e.target.value)} placeholder="Class details and overview..." className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none resize-none" />
+                  <label className="block font-bold text-fg mb-1.5">Description</label>
+                  <textarea rows={2} value={ctDescription} onChange={(e) => setCtDescription(e.target.value)} placeholder="Class details and overview..." className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-sm text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none resize-none" />
                 </div>
               </div>
 
-              <div className="space-y-4 pt-2 border-t border-[#1B0B38]/10">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#7B3FE4]">Class Capacity &amp; Location</p>
+              <div className="space-y-4 pt-2 border-t border-line">
+                <p className="text-xs font-bold uppercase tracking-wider text-accent">Class Capacity &amp; Location</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block font-bold text-[#1B0B38] mb-1.5">Duration (mins) *</label>
-                    <input type="number" min="1" required value={ctDuration} onChange={(e) => setCtDuration(Number(e.target.value))} className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    <label className="block font-bold text-fg mb-1.5">Duration (mins) *</label>
+                    <input type="number" min="1" required value={ctDuration} onChange={(e) => setCtDuration(Number(e.target.value))} className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-sm text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                   </div>
                   <div>
-                    <label className="block font-bold text-[#1B0B38] mb-1.5">Max Capacity *</label>
-                    <input type="number" min="1" required value={ctCapacity} onChange={(e) => setCtCapacity(Number(e.target.value))} className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    <label className="block font-bold text-fg mb-1.5">Max Capacity *</label>
+                    <input type="number" min="1" required value={ctCapacity} onChange={(e) => setCtCapacity(Number(e.target.value))} className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-sm text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                   </div>
                   <div>
-                    <label className="block font-bold text-[#1B0B38] mb-1.5">Studio Room</label>
-                    <input type="text" value={ctRoom} onChange={(e) => setCtRoom(e.target.value)} className="w-full p-3 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-sm text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    <label className="block font-bold text-fg mb-1.5">Studio Room</label>
+                    <input type="text" value={ctRoom} onChange={(e) => setCtRoom(e.target.value)} className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-sm text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 bg-[#FAF9FC] rounded-2xl border border-[#1B0B38]/10 flex items-center justify-between gap-4">
+              <div className="p-4 bg-surface-2 rounded-2xl border border-line flex items-center justify-between gap-4">
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" checked={ctAllowBooking} onChange={(e) => setCtAllowBooking(e.target.checked)} className="w-4 h-4 accent-[#7B3FE4] rounded-md" />
-                  <span className="font-extrabold text-[#1B0B38] text-xs">Allow Member Self-Booking</span>
+                  <input type="checkbox" checked={ctAllowBooking} onChange={(e) => setCtAllowBooking(e.target.checked)} className="w-4 h-4 accent-accent rounded-md" />
+                  <span className="font-extrabold text-fg text-xs">Allow Member Self-Booking</span>
                 </label>
 
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" checked={ctWaitlistEnabled} onChange={(e) => setCtWaitlistEnabled(e.target.checked)} className="w-4 h-4 accent-[#7B3FE4] rounded-md" />
-                  <span className="font-extrabold text-[#1B0B38] text-xs">Enable Waitlist Queue</span>
+                  <input type="checkbox" checked={ctWaitlistEnabled} onChange={(e) => setCtWaitlistEnabled(e.target.checked)} className="w-4 h-4 accent-accent rounded-md" />
+                  <span className="font-extrabold text-fg text-xs">Enable Waitlist Queue</span>
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1B0B38]/10 flex-shrink-0">
-                <button type="button" onClick={() => setShowCreateClassTypeModal(false)} className="px-6 py-3 border border-[#1B0B38]/15 rounded-2xl font-bold text-xs text-[#1B0B38] hover:bg-black/5 transition-all">Cancel</button>
-                <button type="submit" disabled={actionLoading} className="px-7 py-3 bg-[#7B3FE4] text-white font-extrabold text-xs rounded-2xl hover:bg-[#6A2FD3] transition-all shadow-md shadow-[#7B3FE4]/20">Save Class Type</button>
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-line flex-shrink-0">
+                <button type="button" onClick={() => setShowCreateClassTypeModal(false)} className="px-6 py-3 border border-line-2 rounded-2xl font-bold text-xs text-fg hover:bg-black/5 transition-all">Cancel</button>
+                <button type="submit" disabled={actionLoading} className="px-7 py-3 bg-accent text-white font-extrabold text-xs rounded-2xl hover:bg-accent-2 transition-all shadow-md shadow-accent/20">Save Class Type</button>
               </div>
             </form>
           </div>
@@ -1413,14 +1413,14 @@ export default function AdminClassesModulePage() {
       {showScheduleModal && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-3 sm:p-4">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-3xl w-full p-5 flex flex-col animate-fade-in space-y-3.5">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-3xl w-full p-5 flex flex-col animate-fade-in space-y-3.5">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-2.5 flex-shrink-0">
+            <div className="flex items-center justify-between border-b border-line pb-2.5 flex-shrink-0">
               <div>
-                <h3 className="text-xl font-extrabold text-[#1B0B38]">{editingSession ? "Edit Class Session" : "Schedule Class Session"}</h3>
-                <p className="text-[11px] text-[#1B0B38]/60 mt-0.5">{editingSession ? "Modify the session details below" : "Fill session details below — fits in a single view"}</p>
+                <h3 className="text-xl font-extrabold text-fg">{editingSession ? "Edit Class Session" : "Schedule Class Session"}</h3>
+                <p className="text-[11px] text-fg-3 mt-0.5">{editingSession ? "Modify the session details below" : "Fill session details below — fits in a single view"}</p>
               </div>
-              <button onClick={() => setShowScheduleModal(false)} className="w-7 h-7 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-xs font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
+              <button onClick={() => setShowScheduleModal(false)} className="w-7 h-7 rounded-full bg-surface-2 hover:bg-accent/10 text-xs font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
             </div>
 
             {/* Form Body - Compact 2-Column Grid */}
@@ -1429,11 +1429,11 @@ export default function AdminClassesModulePage() {
                 {/* Left Column */}
                 <div className="space-y-2.5">
                   <div>
-                    <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Class Master Template (Optional)</label>
+                    <label className="block font-bold text-fg text-[11px] mb-1">Class Master Template (Optional)</label>
                     <select
                       value={sessClassTypeId}
                       onChange={(e) => handleSelectClassTypeForSession(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none"
+                      className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
                     >
                       <option value="">-- Custom Session --</option>
                       {classTypes.map((c) => (
@@ -1443,64 +1443,64 @@ export default function AdminClassesModulePage() {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Session Title *</label>
-                    <input type="text" required value={sessTitle} onChange={(e) => setSessTitle(e.target.value)} placeholder="e.g. Morning Reformer Group Class" className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    <label className="block font-bold text-fg text-[11px] mb-1">Session Title *</label>
+                    <input type="text" required value={sessTitle} onChange={(e) => setSessTitle(e.target.value)} placeholder="e.g. Morning Reformer Group Class" className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Trainer *</label>
-                    <input type="text" required value={sessTrainer} onChange={(e) => setSessTrainer(e.target.value)} placeholder="Rahul Sharma" className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    <label className="block font-bold text-fg text-[11px] mb-1">Trainer *</label>
+                    <input type="text" required value={sessTrainer} onChange={(e) => setSessTrainer(e.target.value)} placeholder="Rahul Sharma" className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Max Capacity *</label>
-                    <input type="number" min="1" required value={sessCapacity} onChange={(e) => setSessCapacity(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    <label className="block font-bold text-fg text-[11px] mb-1">Max Capacity *</label>
+                    <input type="number" min="1" required value={sessCapacity} onChange={(e) => setSessCapacity(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                   </div>
                 </div>
 
                 {/* Right Column */}
                 <div className="space-y-2.5">
                   <div>
-                    <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Date *</label>
-                    <input type="date" required value={sessDate} onChange={(e) => setSessDate(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                    <label className="block font-bold text-fg text-[11px] mb-1">Date *</label>
+                    <input type="date" required value={sessDate} onChange={(e) => setSessDate(e.target.value)} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Start Time *</label>
-                      <input type="time" required value={sessTime} onChange={(e) => setSessTime(e.target.value)} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                      <label className="block font-bold text-fg text-[11px] mb-1">Start Time *</label>
+                      <input type="time" required value={sessTime} onChange={(e) => setSessTime(e.target.value)} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                     </div>
                     <div>
-                      <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Duration (mins)</label>
-                      <input type="number" min="1" value={sessDuration} onChange={(e) => setSessDuration(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                      <label className="block font-bold text-fg text-[11px] mb-1">Duration (mins)</label>
+                      <input type="number" min="1" value={sessDuration} onChange={(e) => setSessDuration(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Buffer Time (mins)</label>
-                      <input type="number" min="0" value={sessBuffer} onChange={(e) => setSessBuffer(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                      <label className="block font-bold text-fg text-[11px] mb-1">Buffer Time (mins)</label>
+                      <input type="number" min="0" value={sessBuffer} onChange={(e) => setSessBuffer(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                     </div>
                     <div>
-                      <label className="block font-bold text-[#1B0B38] text-[11px] mb-1">Studio Room</label>
-                      <input type="text" value={sessRoom} onChange={(e) => setSessRoom(e.target.value)} placeholder="Studio Room A" className="w-full p-2.5 rounded-xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none" />
+                      <label className="block font-bold text-fg text-[11px] mb-1">Studio Room</label>
+                      <input type="text" value={sessRoom} onChange={(e) => setSessRoom(e.target.value)} placeholder="Studio Room A" className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Recurring Rules Section */}
-              <div className="p-3 bg-[#FAF9FC] rounded-2xl border border-[#1B0B38]/10 space-y-3">
+              <div className="p-3 bg-surface-2 rounded-2xl border border-line space-y-3">
                 <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input type="checkbox" checked={isRecurring} onChange={(e) => { setIsRecurring(e.target.checked); if (!e.target.checked) setRecurringDays([]); }} className="w-3.5 h-3.5 accent-[#7B3FE4] rounded-md" />
-                  <span className="font-extrabold text-[#1B0B38] text-xs">Recurring Session Schedule</span>
+                  <input type="checkbox" checked={isRecurring} onChange={(e) => { setIsRecurring(e.target.checked); if (!e.target.checked) setRecurringDays([]); }} className="w-3.5 h-3.5 accent-accent rounded-md" />
+                  <span className="font-extrabold text-fg text-xs">Recurring Session Schedule</span>
                 </label>
 
                 {isRecurring && (
-                  <div className="pt-2 border-t border-[#1B0B38]/10 space-y-3">
+                  <div className="pt-2 border-t border-line space-y-3">
                     {/* Day of Week Toggles */}
                     <div>
-                      <p className="text-[11px] font-bold text-[#1B0B38]/60 mb-2 uppercase tracking-wider">Repeat on</p>
+                      <p className="text-[11px] font-bold text-fg-3 mb-2 uppercase tracking-wider">Repeat on</p>
                       <div className="flex items-center gap-2 flex-wrap">
                         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
                           <button
@@ -1509,8 +1509,8 @@ export default function AdminClassesModulePage() {
                             onClick={() => toggleRecurringDay(i)}
                             className={`w-9 h-9 rounded-full text-[11px] font-extrabold transition-all ${
                               recurringDays.includes(i)
-                                ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/30"
-                                : "bg-white border border-[#1B0B38]/20 text-[#1B0B38]/60 hover:border-[#7B3FE4]/50"
+                                ? "bg-accent text-white shadow-md shadow-accent/30"
+                                : "bg-surface border border-line/20 text-fg-3 hover:border-accent/50"
                             }`}
                           >
                             {day}
@@ -1521,18 +1521,18 @@ export default function AdminClassesModulePage() {
 
                     {/* Number of Weeks */}
                     <div className="flex items-center gap-3">
-                      <span className="text-[11px] font-bold text-[#1B0B38]/60 uppercase tracking-wider">Repeat for</span>
+                      <span className="text-[11px] font-bold text-fg-3 uppercase tracking-wider">Repeat for</span>
                       <input
                         type="number"
                         min="1"
                         max="52"
                         value={recurringWeeks}
                         onChange={(e) => setRecurringWeeks(Math.max(1, Number(e.target.value)))}
-                        className="w-16 p-1.5 bg-white border border-[#1B0B38]/15 rounded-lg text-center font-extrabold text-xs text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none"
+                        className="w-16 p-1.5 bg-surface border border-line-2 rounded-lg text-center font-extrabold text-xs text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
                       />
-                      <span className="text-[11px] font-bold text-[#1B0B38]/60">weeks</span>
+                      <span className="text-[11px] font-bold text-fg-3">weeks</span>
                       {recurringDays.length > 0 && (
-                        <span className="text-[10px] font-semibold text-[#7B3FE4] bg-[#F2EBFE] px-2 py-1 rounded-lg">
+                        <span className="text-[10px] font-semibold text-accent bg-accent/10 px-2 py-1 rounded-lg">
                           = {recurringDays.length * recurringWeeks} sessions
                         </span>
                       )}
@@ -1553,9 +1553,9 @@ export default function AdminClassesModulePage() {
               )}
 
               {/* Footer Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1B0B38]/10">
-                <button type="button" onClick={() => setShowScheduleModal(false)} className="px-5 py-2.5 border border-[#1B0B38]/15 rounded-xl font-bold text-xs text-[#1B0B38] hover:bg-black/5 transition-all">Cancel</button>
-                <button type="submit" disabled={actionLoading} className="px-6 py-2.5 bg-[#7B3FE4] text-white font-extrabold text-xs rounded-xl hover:bg-[#6A2FD3] transition-all shadow-md shadow-[#7B3FE4]/20">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-line">
+                <button type="button" onClick={() => setShowScheduleModal(false)} className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-xs text-fg hover:bg-black/5 transition-all">Cancel</button>
+                <button type="submit" disabled={actionLoading} className="px-6 py-2.5 bg-accent text-white font-extrabold text-xs rounded-xl hover:bg-accent-2 transition-all shadow-md shadow-accent/20">
                   {editingSession ? "Save Changes" : "Save Session(s)"}
                 </button>
               </div>
@@ -1569,23 +1569,23 @@ export default function AdminClassesModulePage() {
       {showAssignMemberModal && targetSessionForAssign && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5">
-            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4 flex-shrink-0">
-              <h3 className="text-xl font-extrabold text-[#1B0B38]">Assign Member to Session</h3>
-              <button onClick={() => setShowAssignMemberModal(false)} className="w-8 h-8 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-base font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5">
+            <div className="flex items-center justify-between border-b border-line pb-4 flex-shrink-0">
+              <h3 className="text-xl font-extrabold text-fg">Assign Member to Session</h3>
+              <button onClick={() => setShowAssignMemberModal(false)} className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-base font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
             </div>
 
-            <div className="bg-[#FAF9FC] p-4 rounded-2xl border border-[#1B0B38]/10 text-xs space-y-1">
-              <p className="font-extrabold text-sm text-[#1B0B38]">{targetSessionForAssign.title}</p>
-              <p className="text-[#1B0B38]/60 font-semibold">{targetSessionForAssign.class_date} @ {targetSessionForAssign.class_time} &bull; {targetSessionForAssign.instructor}</p>
+            <div className="bg-surface-2 p-4 rounded-2xl border border-line text-xs space-y-1">
+              <p className="font-extrabold text-sm text-fg">{targetSessionForAssign.title}</p>
+              <p className="text-fg-3 font-semibold">{targetSessionForAssign.class_date} @ {targetSessionForAssign.class_time} &bull; {targetSessionForAssign.instructor}</p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#1B0B38] mb-2">Select Member *</label>
+              <label className="block text-xs font-bold text-fg mb-2">Select Member *</label>
               <select
                 value={selectedAssignMemberId}
                 onChange={(e) => setSelectedAssignMemberId(e.target.value)}
-                className="w-full p-3.5 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none"
+                className="w-full p-3.5 rounded-2xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
               >
                 <option value="">-- Choose Member --</option>
                 {membersList.map((m) => {
@@ -1609,9 +1609,9 @@ export default function AdminClassesModulePage() {
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1B0B38]/10 flex-shrink-0">
-              <button onClick={() => setShowAssignMemberModal(false)} className="px-6 py-3 border border-[#1B0B38]/15 rounded-2xl font-bold text-xs text-[#1B0B38] hover:bg-black/5 transition-all">Cancel</button>
-              <button onClick={handleConfirmMemberAssignment} disabled={actionLoading || !selectedAssignMemberId} className="px-7 py-3 bg-[#7B3FE4] text-white font-extrabold text-xs rounded-2xl hover:bg-[#6A2FD3] transition-all shadow-md shadow-[#7B3FE4]/20">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-line flex-shrink-0">
+              <button onClick={() => setShowAssignMemberModal(false)} className="px-6 py-3 border border-line-2 rounded-2xl font-bold text-xs text-fg hover:bg-black/5 transition-all">Cancel</button>
+              <button onClick={handleConfirmMemberAssignment} disabled={actionLoading || !selectedAssignMemberId} className="px-7 py-3 bg-accent text-white font-extrabold text-xs rounded-2xl hover:bg-accent-2 transition-all shadow-md shadow-accent/20">
                 {actionLoading ? "Assigning..." : "Confirm Booking"}
               </button>
             </div>
@@ -1624,22 +1624,22 @@ export default function AdminClassesModulePage() {
       {rescheduleBookingTarget && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5">
-            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4 flex-shrink-0">
-              <h3 className="text-xl font-extrabold text-[#1B0B38]">Reschedule Member Booking</h3>
-              <button onClick={() => setRescheduleBookingTarget(null)} className="w-8 h-8 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-base font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5">
+            <div className="flex items-center justify-between border-b border-line pb-4 flex-shrink-0">
+              <h3 className="text-xl font-extrabold text-fg">Reschedule Member Booking</h3>
+              <button onClick={() => setRescheduleBookingTarget(null)} className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-base font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
             </div>
 
-            <p className="text-xs text-[#1B0B38] leading-relaxed">
+            <p className="text-xs text-fg leading-relaxed">
               Rescheduling booking for <strong className="font-extrabold">{rescheduleBookingTarget.approved_members?.full_name}</strong> from <em>{rescheduleBookingTarget.classes?.title} ({rescheduleBookingTarget.classes?.class_date})</em>.
             </p>
 
             <div>
-              <label className="block text-xs font-bold text-[#1B0B38] mb-2">Target Session *</label>
+              <label className="block text-xs font-bold text-fg mb-2">Target Session *</label>
               <select
                 value={targetRescheduleSessionId}
                 onChange={(e) => setTargetRescheduleSessionId(e.target.value)}
-                className="w-full p-3.5 rounded-2xl border border-[#1B0B38]/15 bg-[#FAF9FC] text-xs font-semibold text-[#1B0B38] focus:ring-2 focus:ring-[#7B3FE4]/30 focus:outline-none"
+                className="w-full p-3.5 rounded-2xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
               >
                 <option value="">-- Choose New Session --</option>
                 {sessions.filter((s) => s.id !== rescheduleBookingTarget.class_id && s.status !== "cancelled").map((s) => (
@@ -1648,9 +1648,9 @@ export default function AdminClassesModulePage() {
               </select>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#1B0B38]/10 flex-shrink-0">
-              <button onClick={() => setRescheduleBookingTarget(null)} className="px-6 py-3 border border-[#1B0B38]/15 rounded-2xl font-bold text-xs text-[#1B0B38] hover:bg-black/5 transition-all">Cancel</button>
-              <button onClick={handleRescheduleBooking} disabled={actionLoading || !targetRescheduleSessionId} className="px-7 py-3 bg-[#7B3FE4] text-white font-extrabold text-xs rounded-2xl hover:bg-[#6A2FD3] transition-all shadow-md shadow-[#7B3FE4]/20">Confirm Reschedule</button>
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-line flex-shrink-0">
+              <button onClick={() => setRescheduleBookingTarget(null)} className="px-6 py-3 border border-line-2 rounded-2xl font-bold text-xs text-fg hover:bg-black/5 transition-all">Cancel</button>
+              <button onClick={handleRescheduleBooking} disabled={actionLoading || !targetRescheduleSessionId} className="px-7 py-3 bg-accent text-white font-extrabold text-xs rounded-2xl hover:bg-accent-2 transition-all shadow-md shadow-accent/20">Confirm Reschedule</button>
             </div>
           </div>
         </div>
@@ -1661,43 +1661,43 @@ export default function AdminClassesModulePage() {
       {showSessionDetailModal && selectedSessionForDetail && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-white rounded-3xl border border-[#1B0B38]/10 shadow-2xl max-w-2xl w-full p-7 flex flex-col animate-fade-in space-y-5 max-h-[85vh]">
-            <div className="flex items-center justify-between border-b border-[#1B0B38]/10 pb-4 flex-shrink-0">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-2xl w-full p-7 flex flex-col animate-fade-in space-y-5 max-h-[85vh]">
+            <div className="flex items-center justify-between border-b border-line pb-4 flex-shrink-0">
               <div>
-                <h3 className="text-xl font-extrabold text-[#1B0B38]">Class Session Details</h3>
-                <p className="text-xs text-[#1B0B38]/60 mt-0.5 font-medium">Manage session details, bookings, and operations</p>
+                <h3 className="text-xl font-extrabold text-fg">Class Session Details</h3>
+                <p className="text-xs text-fg-3 mt-0.5 font-medium">Manage session details, bookings, and operations</p>
               </div>
-              <button onClick={() => setShowSessionDetailModal(false)} className="w-8 h-8 rounded-full bg-[#FAF9FC] hover:bg-[#1B0B38]/10 text-base font-bold text-[#1B0B38]/60 flex items-center justify-center transition-colors">✕</button>
+              <button onClick={() => setShowSessionDetailModal(false)} className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-base font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
             </div>
 
             {/* Session Info Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-[#FAF9FC] rounded-2xl border border-[#1B0B38]/10 text-xs flex-shrink-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-surface-2 rounded-2xl border border-line text-xs flex-shrink-0">
               <div>
-                <span className="block text-[#1B0B38]/50 font-bold uppercase text-[9px] tracking-wider">Class Title</span>
-                <span className="font-extrabold text-[#1B0B38] text-sm">{selectedSessionForDetail.title}</span>
+                <span className="block text-fg-4 font-bold uppercase text-[9px] tracking-wider">Class Title</span>
+                <span className="font-extrabold text-fg text-sm">{selectedSessionForDetail.title}</span>
               </div>
               <div>
-                <span className="block text-[#1B0B38]/50 font-bold uppercase text-[9px] tracking-wider">Trainer</span>
-                <span className="font-bold text-[#1B0B38]">{selectedSessionForDetail.instructor}</span>
+                <span className="block text-fg-4 font-bold uppercase text-[9px] tracking-wider">Trainer</span>
+                <span className="font-bold text-fg">{selectedSessionForDetail.instructor}</span>
               </div>
               <div>
-                <span className="block text-[#1B0B38]/50 font-bold uppercase text-[9px] tracking-wider">Date &amp; Time</span>
-                <span className="font-bold text-[#1B0B38]">{selectedSessionForDetail.class_date} @ {selectedSessionForDetail.class_time}</span>
+                <span className="block text-fg-4 font-bold uppercase text-[9px] tracking-wider">Date &amp; Time</span>
+                <span className="font-bold text-fg">{selectedSessionForDetail.class_date} @ {selectedSessionForDetail.class_time}</span>
               </div>
               <div>
-                <span className="block text-[#1B0B38]/50 font-bold uppercase text-[9px] tracking-wider">Room &amp; Capacity</span>
-                <span className="font-bold text-[#1B0B38]">{selectedSessionForDetail.location_room} ({sessionBookingCountMap[selectedSessionForDetail.id] || 0} / {selectedSessionForDetail.max_capacity})</span>
+                <span className="block text-fg-4 font-bold uppercase text-[9px] tracking-wider">Room &amp; Capacity</span>
+                <span className="font-bold text-fg">{selectedSessionForDetail.location_room} ({sessionBookingCountMap[selectedSessionForDetail.id] || 0} / {selectedSessionForDetail.max_capacity})</span>
               </div>
             </div>
 
             {/* Booked Members List */}
             <div className="flex-1 overflow-y-auto min-h-[150px] space-y-3">
-              <h4 className="text-xs font-bold text-[#1B0B38]/70 uppercase tracking-wider">Booked Members ({bookings.filter(b => b.class_id === selectedSessionForDetail.id && b.booking_status !== 'cancelled').length})</h4>
+              <h4 className="text-xs font-bold text-fg-2 uppercase tracking-wider">Booked Members ({bookings.filter(b => b.class_id === selectedSessionForDetail.id && b.booking_status !== 'cancelled').length})</h4>
               {(() => {
                 const sessionBookings = bookings.filter(b => b.class_id === selectedSessionForDetail.id && b.booking_status !== 'cancelled');
                 if (sessionBookings.length === 0) {
                   return (
-                    <div className="py-8 text-center text-xs text-[#1B0B38]/50 bg-[#FAF9FC]/50 border border-dashed border-[#1B0B38]/15 rounded-2xl">
+                    <div className="py-8 text-center text-xs text-fg-4 bg-surface-2/50 border border-dashed border-line-2 rounded-2xl">
                       No members are booked for this session yet.
                     </div>
                   );
@@ -1705,16 +1705,16 @@ export default function AdminClassesModulePage() {
                 return (
                   <div className="space-y-2.5">
                     {sessionBookings.map(b => (
-                      <div key={b.id} className="p-3 bg-white border border-[#1B0B38]/10 rounded-2xl flex items-center justify-between text-xs shadow-2xs">
+                      <div key={b.id} className="p-3 bg-surface border border-line rounded-2xl flex items-center justify-between text-xs shadow-2xs">
                         <div>
-                          <p className="font-extrabold text-[#1B0B38]">{b.approved_members?.full_name || "Member"}</p>
-                          <p className="text-[10px] text-[#1B0B38]/50 mt-0.5">{b.approved_members?.phone_number || b.approved_members?.email || "No contact info"}</p>
+                          <p className="font-extrabold text-fg">{b.approved_members?.full_name || "Member"}</p>
+                          <p className="text-[10px] text-fg-4 mt-0.5">{b.approved_members?.phone_number || b.approved_members?.email || "No contact info"}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <select
                             value={b.booking_status}
                             onChange={(e) => handleUpdateBookingStatus(b.id, e.target.value)}
-                            className="p-1.5 rounded-lg border border-[#1B0B38]/15 bg-[#FAF9FC] text-[10px] font-bold text-[#7B3FE4] focus:outline-none"
+                            className="p-1.5 rounded-lg border border-line-2 bg-surface-2 text-[10px] font-bold text-accent focus:outline-none"
                           >
                             <option value="booked">Booked</option>
                             <option value="confirmed">Confirmed</option>
@@ -1726,7 +1726,7 @@ export default function AdminClassesModulePage() {
                           <select
                             value={b.attendance_status}
                             onChange={(e) => handleUpdateAttendance(b.id, e.target.value)}
-                            className="p-1.5 rounded-lg border border-[#1B0B38]/15 bg-[#FAF9FC] text-[10px] font-bold text-[#1B0B38] focus:outline-none"
+                            className="p-1.5 rounded-lg border border-line-2 bg-surface-2 text-[10px] font-bold text-fg focus:outline-none"
                           >
                             <option value="pending">Pending</option>
                             <option value="present">Present</option>
@@ -1742,11 +1742,11 @@ export default function AdminClassesModulePage() {
             </div>
 
             {/* Modal Footer Controls */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-[#1B0B38]/10 flex-shrink-0">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-line flex-shrink-0">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleOpenEditSession(selectedSessionForDetail)}
-                  className="px-4.5 py-2.5 border border-[#7B3FE4]/30 text-[#7B3FE4] hover:bg-[#7B3FE4]/5 rounded-xl font-bold text-xs transition-colors"
+                  className="px-4.5 py-2.5 border border-accent/30 text-accent hover:bg-accent/5 rounded-xl font-bold text-xs transition-colors"
                 >
                   Edit Session
                 </button>
@@ -1765,13 +1765,13 @@ export default function AdminClassesModulePage() {
                     setShowSessionDetailModal(false);
                   }}
                   disabled={selectedSessionForDetail.status === "cancelled"}
-                  className="px-5 py-2.5 bg-[#7B3FE4] text-white hover:bg-[#6A2FD3] rounded-xl font-extrabold text-xs transition-colors disabled:opacity-50"
+                  className="px-5 py-2.5 bg-accent text-white hover:bg-accent-2 rounded-xl font-extrabold text-xs transition-colors disabled:opacity-50"
                 >
                   Assign Member
                 </button>
                 <button
                   onClick={() => setShowSessionDetailModal(false)}
-                  className="px-5 py-2.5 border border-[#1B0B38]/15 rounded-xl font-bold text-xs text-[#1B0B38] hover:bg-black/5 transition-all"
+                  className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-xs text-fg hover:bg-black/5 transition-all"
                 >
                   Close
                 </button>

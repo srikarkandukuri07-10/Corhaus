@@ -147,9 +147,9 @@ export default function MembershipFreezeSection() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-brand-sand/50 p-6 shadow-xs animate-pulse">
-        <div className="h-5 w-48 bg-brand-sand/40 rounded mb-3" />
-        <div className="h-4 w-64 bg-brand-sand/20 rounded" />
+      <div className="bg-surface rounded-2xl border border-line p-6 shadow-xs animate-pulse">
+        <div className="h-5 w-48 bg-line/40 rounded mb-3" />
+        <div className="h-4 w-64 bg-line/20 rounded" />
       </div>
     );
   }
@@ -161,26 +161,26 @@ export default function MembershipFreezeSection() {
   const noFreezesLeft = data.freeze_remaining <= 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-brand-sand/50 p-6 shadow-xs space-y-5">
+    <div className="bg-surface rounded-2xl border border-line p-6 shadow-xs space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-sand/40 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-1.5 bg-brand-cream rounded-lg text-brand-brown">
+            <span className="p-1.5 bg-surface-2 rounded-lg text-accent">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </span>
-            <h2 className="font-serif text-xl font-bold text-brand-navy">Membership Freeze</h2>
+            <h2 className="font-serif text-xl font-bold text-fg">Membership Freeze</h2>
           </div>
-          <p className="text-xs text-brand-navy/60 mt-0.5">
+          <p className="text-xs text-fg-3 mt-0.5">
             Freeze your membership when travelling or taking time off (Max 2 freezes per membership).
           </p>
         </div>
 
         <button
           onClick={() => setShowHistoryModal(true)}
-          className="self-start sm:self-auto px-3.5 py-1.5 border border-brand-sand bg-brand-cream/50 hover:bg-brand-cream text-brand-navy rounded-xl text-xs font-medium transition-all"
+          className="self-start sm:self-auto px-3.5 py-1.5 border border-line bg-surface-2/50 hover:bg-surface-2 text-fg rounded-xl text-xs font-medium transition-all"
         >
           View Freeze History ({data.history.length})
         </button>
@@ -189,18 +189,18 @@ export default function MembershipFreezeSection() {
       {/* Grid Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Card 1: Current Membership Info */}
-        <div className="p-4 bg-brand-cream/40 rounded-xl border border-brand-sand/30 space-y-2">
-          <span className="text-[10px] uppercase font-bold text-brand-navy/50 tracking-wider">
+        <div className="p-4 bg-surface-2/40 rounded-xl border border-line space-y-2">
+          <span className="text-[10px] uppercase font-bold text-fg-4 tracking-wider">
             Current Membership
           </span>
           <div className="flex items-baseline justify-between">
-            <p className="text-base font-bold text-brand-navy">{data.membership_plan}</p>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-brand-sand/40 text-brand-navy">
+            <p className="text-base font-bold text-fg">{data.membership_plan}</p>
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-line/40 text-fg">
               {data.package_type}
             </span>
           </div>
-          <div className="pt-2 border-t border-brand-sand/30 flex items-center justify-between text-xs">
-            <span className="text-brand-navy/60">Membership Status:</span>
+          <div className="pt-2 border-t border-line flex items-center justify-between text-xs">
+            <span className="text-fg-3">Membership Status:</span>
             <span
               className={`font-bold capitalize px-2 py-0.5 rounded-md ${
                 isFrozen
@@ -216,19 +216,19 @@ export default function MembershipFreezeSection() {
         </div>
 
         {/* Card 2: Freeze Remaining */}
-        <div className="p-4 bg-brand-cream/40 rounded-xl border border-brand-sand/30 space-y-2">
-          <span className="text-[10px] uppercase font-bold text-brand-navy/50 tracking-wider">
+        <div className="p-4 bg-surface-2/40 rounded-xl border border-line space-y-2">
+          <span className="text-[10px] uppercase font-bold text-fg-4 tracking-wider">
             Freeze Remaining
           </span>
           <div className="flex items-baseline justify-between">
-            <p className="text-2xl font-mono font-bold text-brand-navy">
+            <p className="text-2xl font-mono font-bold text-fg">
               {data.freeze_remaining} / 2
             </p>
-            <span className="text-xs text-brand-navy/60 font-medium">
+            <span className="text-xs text-fg-3 font-medium">
               {data.freezes_used} used of 2 max
             </span>
           </div>
-          <p className="text-[11px] text-brand-navy/60 pt-1 border-t border-brand-sand/30">
+          <p className="text-[11px] text-fg-3 pt-1 border-t border-line">
             {noFreezesLeft
               ? "You have used all available freezes for your current membership."
               : `Each freeze can be 2 to 15 days.`}
@@ -246,7 +246,7 @@ export default function MembershipFreezeSection() {
             <button
               onClick={handleResumeEarly}
               disabled={resuming}
-              className="px-3.5 py-1.5 bg-brand-navy hover:bg-brand-navy/90 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
+              className="px-3.5 py-1.5 bg-rail hover:bg-rail/90 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
             >
               {resuming ? "Resuming..." : "Resume Membership Early"}
             </button>
@@ -285,12 +285,12 @@ export default function MembershipFreezeSection() {
         {isFrozen ? null : isPending ? (
           <button
             disabled
-            className="w-full py-3 bg-brand-sand/40 text-brand-navy/50 rounded-xl text-xs font-semibold cursor-not-allowed border border-brand-sand/60"
+            className="w-full py-3 bg-line/40 text-fg-4 rounded-xl text-xs font-semibold cursor-not-allowed border border-line/60"
           >
             Your freeze request is awaiting approval.
           </button>
         ) : noFreezesLeft ? (
-          <div className="p-3 bg-brand-cream/60 border border-brand-sand/40 rounded-xl text-center text-xs text-brand-navy/60 font-medium">
+          <div className="p-3 bg-surface-2/60 border border-line rounded-xl text-center text-xs text-fg-3 font-medium">
             You have used all available freezes for your current membership.
           </div>
         ) : (
@@ -309,15 +309,15 @@ export default function MembershipFreezeSection() {
       {/* ─── MEMBER REQUEST MODAL ────────────────────────────────────────────── */}
       {showRequestModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl border border-brand-sand/50 shadow-xl max-w-md w-full p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-brand-sand/50 pb-3">
+          <div className="bg-surface rounded-2xl border border-line shadow-xl max-w-md w-full p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
-                <h3 className="font-serif text-lg font-bold text-brand-navy">Request Membership Freeze</h3>
-                <p className="text-xs text-brand-navy/60">Choose your start date and duration (2-15 days)</p>
+                <h3 className="font-serif text-lg font-bold text-fg">Request Membership Freeze</h3>
+                <p className="text-xs text-fg-3">Choose your start date and duration (2-15 days)</p>
               </div>
               <button
                 onClick={() => setShowRequestModal(false)}
-                className="p-1 rounded-lg border border-brand-sand text-brand-navy/60 hover:text-brand-navy"
+                className="p-1 rounded-lg border border-line text-fg-3 hover:text-fg"
               >
                 ✕
               </button>
@@ -337,20 +337,20 @@ export default function MembershipFreezeSection() {
 
             <form onSubmit={handleSubmitRequest} className="space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-brand-navy mb-1">Preferred Freeze Start Date</label>
+                <label className="block font-bold text-fg mb-1">Preferred Freeze Start Date</label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full p-2.5 bg-brand-cream/50 border border-brand-sand rounded-xl text-xs text-brand-navy focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                  className="w-full p-2.5 bg-surface-2/50 border border-line rounded-xl text-xs text-fg focus:outline-none focus:ring-1 focus:ring-accent"
                   required
                 />
               </div>
 
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="font-bold text-brand-navy">Number of Days</label>
-                  <span className="font-mono font-bold text-brand-brown text-sm">{days} days</span>
+                  <label className="font-bold text-fg">Number of Days</label>
+                  <span className="font-mono font-bold text-accent text-sm">{days} days</span>
                 </div>
                 <input
                   type="range"
@@ -360,18 +360,18 @@ export default function MembershipFreezeSection() {
                   onChange={(e) => setDays(parseInt(e.target.value, 10))}
                   className="w-full accent-brand-brown"
                 />
-                <div className="flex justify-between text-[10px] text-brand-navy/50 mt-1">
+                <div className="flex justify-between text-[10px] text-fg-4 mt-1">
                   <span>2 Days</span>
                   <span>15 Days</span>
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-brand-navy mb-1">Reason (Optional)</label>
+                <label className="block font-bold text-fg mb-1">Reason (Optional)</label>
                 <select
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="w-full p-2.5 bg-brand-cream/50 border border-brand-sand rounded-xl text-xs text-brand-navy focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                  className="w-full p-2.5 bg-surface-2/50 border border-line rounded-xl text-xs text-fg focus:outline-none focus:ring-1 focus:ring-accent"
                 >
                   <option value="Vacation">Vacation</option>
                   <option value="Medical">Medical</option>
@@ -386,27 +386,27 @@ export default function MembershipFreezeSection() {
                     placeholder="Enter reason..."
                     value={customReason}
                     onChange={(e) => setCustomReason(e.target.value)}
-                    className="w-full mt-2 p-2.5 bg-brand-cream/50 border border-brand-sand rounded-xl text-xs text-brand-navy focus:outline-none focus:ring-1 focus:ring-brand-brown"
+                    className="w-full mt-2 p-2.5 bg-surface-2/50 border border-line rounded-xl text-xs text-fg focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 )}
               </div>
 
-              <div className="p-3 bg-brand-cream/60 rounded-xl border border-brand-sand/40 text-[11px] text-brand-navy/60">
+              <div className="p-3 bg-surface-2/60 rounded-xl border border-line text-[11px] text-fg-3">
                 ℹ️ Your request will be sent to Corhaus staff for approval. There is no fee for requesting a freeze.
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-brand-sand/50">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-line">
                 <button
                   type="button"
                   onClick={() => setShowRequestModal(false)}
-                  className="px-4 py-2 border border-brand-sand text-brand-navy rounded-xl text-xs font-semibold"
+                  className="px-4 py-2 border border-line text-fg rounded-xl text-xs font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-brand-navy hover:bg-brand-navy/90 text-white rounded-xl text-xs font-semibold shadow-sm"
+                  className="px-4 py-2 bg-rail hover:bg-rail/90 text-white rounded-xl text-xs font-semibold shadow-sm"
                 >
                   {submitting ? "Submitting..." : "Submit Request"}
                 </button>
@@ -419,15 +419,15 @@ export default function MembershipFreezeSection() {
       {/* ─── FREEZE HISTORY MODAL ──────────────────────────────────────────────── */}
       {showHistoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl border border-brand-sand/50 shadow-xl max-w-xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-brand-sand/50 pb-3">
+          <div className="bg-surface rounded-2xl border border-line shadow-xl max-w-xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
-                <h3 className="font-serif text-lg font-bold text-brand-navy">Freeze History</h3>
-                <p className="text-xs text-brand-navy/60">Your past membership freezes</p>
+                <h3 className="font-serif text-lg font-bold text-fg">Freeze History</h3>
+                <p className="text-xs text-fg-3">Your past membership freezes</p>
               </div>
               <button
                 onClick={() => setShowHistoryModal(false)}
-                className="p-1 rounded-lg border border-brand-sand text-brand-navy/60 hover:text-brand-navy"
+                className="p-1 rounded-lg border border-line text-fg-3 hover:text-fg"
               >
                 ✕
               </button>
@@ -435,17 +435,17 @@ export default function MembershipFreezeSection() {
 
             <div className="flex-1 overflow-y-auto space-y-3 pr-1">
               {data.history.length === 0 ? (
-                <p className="text-center py-8 text-xs text-brand-navy/50">
+                <p className="text-center py-8 text-xs text-fg-4">
                   You have no past freeze records.
                 </p>
               ) : (
                 data.history.map((f) => (
                   <div
                     key={f.id}
-                    className="p-4 bg-brand-cream/40 rounded-xl border border-brand-sand/40 text-xs space-y-1.5"
+                    className="p-4 bg-surface-2/40 rounded-xl border border-line text-xs space-y-1.5"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-brand-navy">{f.package_type}</span>
+                      <span className="font-bold text-fg">{f.package_type}</span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                           f.status === "active"
@@ -459,17 +459,17 @@ export default function MembershipFreezeSection() {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-brand-navy/80 pt-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-fg-2 pt-1">
                       <div>
-                        <span className="text-brand-navy/50 block">Period</span>
+                        <span className="text-fg-4 block">Period</span>
                         <span className="font-semibold">{f.freeze_start} to {f.freeze_end}</span>
                       </div>
                       <div>
-                        <span className="text-brand-navy/50 block">Duration</span>
+                        <span className="text-fg-4 block">Duration</span>
                         <span className="font-semibold">{f.freeze_days} Days</span>
                       </div>
                       <div>
-                        <span className="text-brand-navy/50 block">Resumed Early</span>
+                        <span className="text-fg-4 block">Resumed Early</span>
                         <span className="font-semibold">
                           {f.resumed_at ? new Date(f.resumed_at).toLocaleDateString("en-IN") : "No"}
                         </span>
@@ -477,7 +477,7 @@ export default function MembershipFreezeSection() {
                     </div>
 
                     {f.reason && (
-                      <p className="text-[11px] text-brand-navy/60 pt-1 border-t border-brand-sand/30">
+                      <p className="text-[11px] text-fg-3 pt-1 border-t border-line">
                         <strong>Reason:</strong> {f.reason}
                       </p>
                     )}
@@ -486,10 +486,10 @@ export default function MembershipFreezeSection() {
               )}
             </div>
 
-            <div className="pt-3 border-t border-brand-sand/50 text-right">
+            <div className="pt-3 border-t border-line text-right">
               <button
                 onClick={() => setShowHistoryModal(false)}
-                className="px-4 py-2 bg-brand-navy text-white text-xs font-semibold rounded-xl"
+                className="px-4 py-2 bg-rail text-white text-xs font-semibold rounded-xl"
               >
                 Close
               </button>

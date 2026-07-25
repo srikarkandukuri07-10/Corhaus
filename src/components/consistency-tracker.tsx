@@ -231,14 +231,14 @@ export default function ConsistencyTracker({
   const getColorClass = (status: string) => {
     switch (status) {
       case "attended":
-        return "bg-brand-success border border-brand-success";
+        return "bg-green-500 border border-green-500";
       case "missed":
-        return "bg-brand-error border border-brand-error";
+        return "bg-red-500 border border-brand-error";
       case "upcoming":
-        return "bg-white border-2 border-dashed border-brand-success/50 hover:border-brand-success";
+        return "bg-surface border-2 border-dashed border-green-500/50 hover:border-green-500";
       case "unused":
       default:
-        return "bg-white border border-brand-sand/50";
+        return "bg-surface border border-line";
     }
   };
 
@@ -255,40 +255,40 @@ export default function ConsistencyTracker({
   if (!currentTime) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-brand-sand/50 p-6 shadow-sm mb-8 animate-fade-in relative z-10">
+    <div className="bg-surface rounded-2xl border border-line p-6 shadow-sm mb-8 animate-fade-in relative z-10">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h2 className="text-xl font-medium text-brand-navy">Consistency Tracker</h2>
-          <p className="text-sm text-brand-navy/50 mt-1">Your attendance journey — Level: <span className="font-semibold">{membershipLevel}</span></p>
+          <h2 className="text-xl font-medium text-fg">Consistency Tracker</h2>
+          <p className="text-sm text-fg-4 mt-1">Your attendance journey — Level: <span className="font-semibold">{membershipLevel}</span></p>
         </div>
         {currentMonthRange && (
-          <div className="px-3 py-1 rounded-full bg-brand-cream/80 border border-brand-sand/30 text-xs text-brand-navy/60 font-medium">
+          <div className="px-3 py-1 rounded-full bg-surface-2/80 border border-line text-xs text-fg-3 font-medium">
             Renewal: {currentMonthRange.end.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
           </div>
         )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="p-4 rounded-xl bg-brand-cream/50 border border-brand-sand/50">
-          <p className="text-xs font-medium text-brand-navy/50 uppercase tracking-wider mb-1">Current Streak</p>
-          <p className="text-2xl font-light text-brand-navy">{stats.currentStreak} <span className="text-sm font-medium text-brand-navy/60">Days</span></p>
+        <div className="p-4 rounded-xl bg-surface-2/50 border border-line">
+          <p className="text-xs font-medium text-fg-4 uppercase tracking-wider mb-1">Current Streak</p>
+          <p className="text-2xl font-light text-fg">{stats.currentStreak} <span className="text-sm font-medium text-fg-3">Days</span></p>
         </div>
-        <div className="p-4 rounded-xl bg-brand-cream/50 border border-brand-sand/50">
-          <p className="text-xs font-medium text-brand-navy/50 uppercase tracking-wider mb-1">Best Streak</p>
-          <p className="text-2xl font-light text-brand-navy">{stats.longestStreak} <span className="text-sm font-medium text-brand-navy/60">Days</span></p>
+        <div className="p-4 rounded-xl bg-surface-2/50 border border-line">
+          <p className="text-xs font-medium text-fg-4 uppercase tracking-wider mb-1">Best Streak</p>
+          <p className="text-2xl font-light text-fg">{stats.longestStreak} <span className="text-sm font-medium text-fg-3">Days</span></p>
         </div>
-        <div className="p-4 rounded-xl bg-brand-cream/50 border border-brand-sand/50">
-          <p className="text-xs font-medium text-brand-navy/50 uppercase tracking-wider mb-1">Total Classes</p>
-          <p className="text-2xl font-light text-brand-navy">{stats.attendedLifetime}</p>
+        <div className="p-4 rounded-xl bg-surface-2/50 border border-line">
+          <p className="text-xs font-medium text-fg-4 uppercase tracking-wider mb-1">Total Classes</p>
+          <p className="text-2xl font-light text-fg">{stats.attendedLifetime}</p>
         </div>
-        <div className="p-4 rounded-xl bg-brand-cream/50 border border-brand-sand/50">
-          <p className="text-xs font-medium text-brand-navy/50 uppercase tracking-wider mb-1 font-semibold">Attendance Rate</p>
-          <p className="text-2xl font-light text-brand-navy">{stats.rate}%</p>
+        <div className="p-4 rounded-xl bg-surface-2/50 border border-line">
+          <p className="text-xs font-medium text-fg-4 uppercase tracking-wider mb-1 font-semibold">Attendance Rate</p>
+          <p className="text-2xl font-light text-fg">{stats.rate}%</p>
         </div>
       </div>
 
       <div className="relative">
-        <p className="text-xs font-medium text-brand-navy/40 uppercase tracking-wide mb-3">Monthly Credits & Status</p>
+        <p className="text-xs font-medium text-fg-5 uppercase tracking-wide mb-3">Monthly Credits & Status</p>
         <div className="overflow-x-auto pb-4 -mx-2 px-2">
           <div className="flex gap-2 min-w-max">
             {trackerBoxes.map((box, i) => (
@@ -310,7 +310,7 @@ export default function ConsistencyTracker({
                 <span className={`text-[10px] font-semibold ${
                   box.status === "attended" || box.status === "missed"
                     ? "text-white"
-                    : "text-brand-navy/40"
+                    : "text-fg-5"
                 }`}>
                   {i + 1}
                 </span>
@@ -322,13 +322,13 @@ export default function ConsistencyTracker({
 
       {tooltip && (
         <div 
-          className="fixed z-[100] bg-brand-navy text-white px-3 py-2 rounded-lg text-xs shadow-lg transform -translate-x-1/2 -translate-y-full pointer-events-none whitespace-nowrap"
+          className="fixed z-[100] bg-rail text-white px-3 py-2 rounded-lg text-xs shadow-lg transform -translate-x-1/2 -translate-y-full pointer-events-none whitespace-nowrap"
           style={{ left: tooltip.x, top: tooltip.y }}
         >
           <p className="font-semibold mb-0.5">{tooltip.date}</p>
           <p className="text-white/80">{tooltip.status}</p>
-          {tooltip.time && <p className="text-brand-beige/90 mt-0.5 text-[10px]">Time: {tooltip.time}</p>}
-          <div className="absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-brand-navy"></div>
+          {tooltip.time && <p className="text-surface-2/90 mt-0.5 text-[10px]">Time: {tooltip.time}</p>}
+          <div className="absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-rail"></div>
         </div>
       )}
     </div>

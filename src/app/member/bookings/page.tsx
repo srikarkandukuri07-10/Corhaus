@@ -206,10 +206,10 @@ export default function BookingsPage() {
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-light text-brand-navy">
+        <h1 className="text-2xl font-light text-fg">
           My <span className="font-medium">Bookings</span>
         </h1>
-        <p className="text-sm text-brand-navy/50 mt-1">
+        <p className="text-sm text-fg-4 mt-1">
           Manage your class reservations
         </p>
       </div>
@@ -218,8 +218,8 @@ export default function BookingsPage() {
         <div
           className={`p-4 rounded-xl text-sm flex items-center gap-2 ${
             message.type === "success"
-              ? "bg-brand-success/10 border border-brand-success/20 text-brand-success"
-              : "bg-brand-error/10 border border-brand-error/20 text-brand-error"
+              ? "bg-green-500/10 border border-green-500/20 text-green-600"
+              : "bg-red-500/10 border border-brand-error/20 text-red-500"
           }`}
         >
           {message.type === "success" ? (
@@ -257,18 +257,18 @@ export default function BookingsPage() {
 
       {loading || isPending ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
         </div>
       ) : (
         <>
           {/* Upcoming */}
           <section>
-            <h2 className="text-lg font-medium text-brand-navy mb-4">
+            <h2 className="text-lg font-medium text-fg mb-4">
               Upcoming Classes
             </h2>
             {upcomingBookings.length === 0 ? (
-              <div className="text-center py-8 bg-white rounded-2xl border border-brand-sand/50">
-                <p className="text-brand-navy/40 text-sm">
+              <div className="text-center py-8 bg-surface rounded-2xl border border-line">
+                <p className="text-fg-5 text-sm">
                   No upcoming bookings
                 </p>
               </div>
@@ -277,28 +277,28 @@ export default function BookingsPage() {
                 {upcomingBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="bg-white rounded-2xl border border-brand-sand/50 p-5 flex items-center justify-between"
+                    className="bg-surface rounded-2xl border border-line p-5 flex items-center justify-between"
                   >
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-medium text-brand-navy">
+                        <h3 className="font-medium text-fg">
                           {booking.classes?.title}
                         </h3>
                         {booking.isPT && (
-                          <span className="text-[10px] font-bold text-brand-success bg-brand-success/15 px-2.5 py-0.5 rounded-full">
+                          <span className="text-[10px] font-bold text-green-600 bg-green-500/15 px-2.5 py-0.5 rounded-full">
                             PT Session
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-brand-navy/50 mt-0.5">
+                      <p className="text-sm text-fg-4 mt-0.5">
                         {booking.classes?.instructor}
                       </p>
                       {booking.notes && (
-                        <div className="mt-1.5 text-[11px] font-semibold text-[#7B3FE4] bg-[#F2EBFE] px-2.5 py-1 rounded-lg flex items-center gap-1.5 inline-flex">
+                        <div className="mt-1.5 text-[11px] font-semibold text-accent bg-accent/10 px-2.5 py-1 rounded-lg flex items-center gap-1.5 inline-flex">
                           <span>✨</span> {booking.notes}
                         </div>
                       )}
-                      <div className="flex items-center gap-4 mt-2 text-sm text-brand-navy/60">
+                      <div className="flex items-center gap-4 mt-2 text-sm text-fg-3">
                         <span>
                           {booking.classes?.class_date
                             ? formatDate(booking.classes.class_date)
@@ -313,21 +313,21 @@ export default function BookingsPage() {
                     </div>
                     <div>
                       {booking.isPT ? (
-                        <span className="text-xs text-brand-navy/40 bg-brand-beige px-3 py-1.5 rounded-full">
+                        <span className="text-xs text-fg-5 bg-hover px-3 py-1.5 rounded-full">
                           PT Appointment
                         </span>
                       ) : canCancel(booking) ? (
                         <button
                           onClick={() => handleCancel(booking.id)}
                           disabled={cancellingId === booking.id}
-                          className="px-4 py-2 rounded-xl text-sm font-medium border border-brand-error/30 text-brand-error hover:bg-brand-error/5 transition-colors disabled:opacity-50"
+                          className="px-4 py-2 rounded-xl text-sm font-medium border border-brand-error/30 text-red-500 hover:bg-red-500/5 transition-colors disabled:opacity-50"
                         >
                           {cancellingId === booking.id
                             ? "Cancelling..."
                             : "Cancel"}
                         </button>
                       ) : (
-                        <span className="text-xs text-brand-navy/40 bg-brand-beige px-3 py-1.5 rounded-full">
+                        <span className="text-xs text-fg-5 bg-hover px-3 py-1.5 rounded-full">
                           Within 6hr window
                         </span>
                       )}
@@ -341,31 +341,31 @@ export default function BookingsPage() {
           {/* Cancelled */}
           {cancelledBookings.length > 0 && (
             <section>
-              <h2 className="text-lg font-medium text-brand-navy mb-4">
+              <h2 className="text-lg font-medium text-fg mb-4">
                 Cancelled Classes
               </h2>
               <div className="space-y-3">
                 {cancelledBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="bg-white rounded-2xl border border-brand-sand/50 p-5 opacity-60"
+                    className="bg-surface rounded-2xl border border-line p-5 opacity-60"
                   >
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-medium text-brand-navy line-through">
+                          <h3 className="font-medium text-fg line-through">
                             {booking.classes?.title}
                           </h3>
                           {booking.isPT && (
-                            <span className="text-[10px] font-bold text-brand-success bg-brand-success/15 px-2.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold text-green-600 bg-green-500/15 px-2.5 py-0.5 rounded-full">
                               PT Session
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-brand-navy/50 mt-0.5">
+                        <p className="text-sm text-fg-4 mt-0.5">
                           {booking.classes?.instructor}
                         </p>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-brand-navy/60">
+                        <div className="flex items-center gap-4 mt-2 text-sm text-fg-3">
                           <span>
                             {booking.classes?.class_date
                               ? formatDate(booking.classes.class_date)
@@ -379,11 +379,11 @@ export default function BookingsPage() {
                         </div>
                       </div>
                       <div className="text-right flex flex-col items-end">
-                        <span className="text-xs font-medium text-brand-error bg-brand-error/10 px-2.5 py-1 rounded-full">
+                        <span className="text-xs font-medium text-red-500 bg-red-500/10 px-2.5 py-1 rounded-full">
                           Cancelled
                         </span>
                         {booking.cancelled_at && (
-                          <span className="text-[10px] text-brand-navy/40 mt-1">
+                          <span className="text-[10px] text-fg-5 mt-1">
                             on {new Date(booking.cancelled_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                           </span>
                         )}
@@ -398,31 +398,31 @@ export default function BookingsPage() {
           {/* Past */}
           {pastBookings.length > 0 && (
             <section>
-              <h2 className="text-lg font-medium text-brand-navy mb-4">
+              <h2 className="text-lg font-medium text-fg mb-4">
                 Past Classes
               </h2>
               <div className="space-y-3">
                 {pastBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="bg-white rounded-2xl border border-brand-sand/50 p-5 opacity-50"
+                    className="bg-surface rounded-2xl border border-line p-5 opacity-50"
                   >
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-medium text-brand-navy">
+                          <h3 className="font-medium text-fg">
                             {booking.classes?.title}
                           </h3>
                           {booking.isPT && (
-                            <span className="text-[10px] font-bold text-brand-success bg-brand-success/15 px-2.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold text-green-600 bg-green-500/15 px-2.5 py-0.5 rounded-full">
                               PT Session
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-brand-navy/50 mt-0.5">
+                        <p className="text-sm text-fg-4 mt-0.5">
                           {booking.classes?.instructor}
                         </p>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-brand-navy/60">
+                        <div className="flex items-center gap-4 mt-2 text-sm text-fg-3">
                           <span>
                             {booking.classes?.class_date
                               ? formatDate(booking.classes.class_date)
@@ -435,7 +435,7 @@ export default function BookingsPage() {
                           </span>
                         </div>
                       </div>
-                       <span className="text-xs text-brand-navy/40 bg-brand-beige px-2.5 py-1 rounded-full">
+                       <span className="text-xs text-fg-5 bg-hover px-2.5 py-1 rounded-full">
                         {booking.isPT
                           ? booking.booking_status === "completed"
                             ? "Completed"

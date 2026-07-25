@@ -126,7 +126,7 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-full text-brand-navy/60 hover:text-brand-navy hover:bg-brand-sand/30 transition-colors relative"
+        className="p-2 rounded-full text-fg-3 hover:text-fg hover:bg-brand-sand/30 transition-colors relative"
         title="Notifications"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -138,18 +138,18 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-brand-sand/50 overflow-hidden z-50">
-          <div className="px-4 py-3 border-b border-brand-sand/50 bg-brand-cream/30 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-brand-navy">Notifications</h3>
+        <div className="absolute right-0 mt-2 w-80 bg-surface rounded-xl shadow-lg border border-line overflow-hidden z-50">
+          <div className="px-4 py-3 border-b border-line bg-surface-2/30 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-fg">Notifications</h3>
             {role === "admin" && notifications.length > 0 && (
-              <button onClick={markAllRead} className="text-xs text-brand-brown hover:text-brand-brown-dark font-medium">
+              <button onClick={markAllRead} className="text-xs text-accent hover:text-accent-dark font-medium">
                 Mark all read
               </button>
             )}
           </div>
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-brand-navy/50">
+              <div className="px-4 py-6 text-center text-sm text-fg-4">
                 No new notifications
               </div>
             ) : (
@@ -177,10 +177,10 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
                   );
                 }
                 return (
-                  <div key={notif.id} className="px-4 py-3 border-b border-brand-sand/30 hover:bg-brand-cream/30 transition-colors last:border-0">
-                    <p className="text-sm text-brand-navy">{notif.message}</p>
+                  <div key={notif.id} className="px-4 py-3 border-b border-line hover:bg-surface-2/30 transition-colors last:border-0">
+                    <p className="text-sm text-fg">{notif.message}</p>
                     {notif.time && (
-                      <span className="text-xs text-brand-navy/50 mt-1 block">{notif.time}</span>
+                      <span className="text-xs text-fg-4 mt-1 block">{notif.time}</span>
                     )}
                   </div>
                 );
@@ -285,8 +285,8 @@ function ReferralRequestNotificationItem({
 
   if (loading) {
     return (
-      <div className="px-4 py-3 border-b border-brand-sand/30 text-xs text-brand-navy/50 flex items-center justify-center gap-2">
-        <div className="w-3 h-3 border border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+      <div className="px-4 py-3 border-b border-line text-xs text-fg-4 flex items-center justify-center gap-2">
+        <div className="w-3 h-3 border border-accent/30 border-t-brand-brown rounded-full animate-spin" />
         Loading request details...
       </div>
     );
@@ -294,42 +294,42 @@ function ReferralRequestNotificationItem({
 
   if (error || !request) {
     return (
-      <div className="px-4 py-3 border-b border-brand-sand/30 hover:bg-brand-cream/30 transition-colors">
-        <p className="text-sm text-brand-navy">{notification.message}</p>
-        <span className="text-xs text-brand-navy/40 mt-1 block">Referral Request (Details unavailable)</span>
+      <div className="px-4 py-3 border-b border-line hover:bg-surface-2/30 transition-colors">
+        <p className="text-sm text-fg">{notification.message}</p>
+        <span className="text-xs text-fg-5 mt-1 block">Referral Request (Details unavailable)</span>
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-4 border-b border-brand-sand/30 bg-brand-cream/10 space-y-3">
+    <div className="px-4 py-4 border-b border-line bg-surface-2/10 space-y-3">
       <div className="flex justify-between items-start">
-        <span className="text-[10px] font-semibold text-brand-brown uppercase tracking-wider bg-brand-brown/10 px-2 py-0.5 rounded-full">
+        <span className="text-[10px] font-semibold text-accent uppercase tracking-wider bg-accent/10 px-2 py-0.5 rounded-full">
           Referral Request
         </span>
         {notification.time && (
-          <span className="text-xs text-brand-navy/40">{notification.time}</span>
+          <span className="text-xs text-fg-5">{notification.time}</span>
         )}
       </div>
 
-      <div className="space-y-1.5 text-xs text-brand-navy/80">
+      <div className="space-y-1.5 text-xs text-fg-2">
         <div>
-          <span className="font-semibold text-brand-navy/60">Applicant:</span> {request.applicant_name}
+          <span className="font-semibold text-fg-3">Applicant:</span> {request.applicant_name}
         </div>
         <div>
-          <span className="font-semibold text-brand-navy/60">Phone:</span> {request.applicant_phone}
+          <span className="font-semibold text-fg-3">Phone:</span> {request.applicant_phone}
         </div>
         <div>
-          <span className="font-semibold text-brand-navy/60">Email:</span> {request.applicant_email}
+          <span className="font-semibold text-fg-3">Email:</span> {request.applicant_email}
         </div>
         <div>
-          <span className="font-semibold text-brand-navy/60">Code:</span> {request.referral_code}
+          <span className="font-semibold text-fg-3">Code:</span> {request.referral_code}
         </div>
         <div>
-          <span className="font-semibold text-brand-navy/60">Referred by:</span> {request.referrer_name}
+          <span className="font-semibold text-fg-3">Referred by:</span> {request.referrer_name}
         </div>
         <div>
-          <span className="font-semibold text-brand-navy/60">Date:</span> {new Date(request.created_at).toLocaleDateString("en-IN")}
+          <span className="font-semibold text-fg-3">Date:</span> {new Date(request.created_at).toLocaleDateString("en-IN")}
         </div>
       </div>
 
@@ -337,14 +337,14 @@ function ReferralRequestNotificationItem({
         <button
           onClick={() => handleResolve("approve")}
           disabled={resolving}
-          className="flex-1 py-1.5 rounded-lg bg-brand-success text-white font-medium text-xs hover:bg-brand-success/90 transition-colors disabled:opacity-50"
+          className="flex-1 py-1.5 rounded-lg bg-green-500 text-white font-medium text-xs hover:bg-green-500/90 transition-colors disabled:opacity-50"
         >
           Approve
         </button>
         <button
           onClick={() => handleResolve("reject")}
           disabled={resolving}
-          className="flex-1 py-1.5 rounded-lg border border-brand-error text-brand-error font-medium text-xs hover:bg-brand-error/5 transition-colors disabled:opacity-50"
+          className="flex-1 py-1.5 rounded-lg border border-brand-error text-red-500 font-medium text-xs hover:bg-red-500/5 transition-colors disabled:opacity-50"
         >
           Reject
         </button>
@@ -456,7 +456,7 @@ function FreezeRequestNotificationItem({
 
   if (loading) {
     return (
-      <div className="px-4 py-3 border-b border-brand-sand/30 text-xs text-brand-navy/60">
+      <div className="px-4 py-3 border-b border-line text-xs text-fg-3">
         Loading request details...
       </div>
     );
@@ -464,8 +464,8 @@ function FreezeRequestNotificationItem({
 
   if (error || !request) {
     return (
-      <div className="px-4 py-3 border-b border-brand-sand/30 flex items-center justify-between">
-        <p className="text-xs text-brand-navy">{notification.message}</p>
+      <div className="px-4 py-3 border-b border-line flex items-center justify-between">
+        <p className="text-xs text-fg">{notification.message}</p>
         <button
           onClick={async () => {
             await markNotificationRead();
@@ -482,54 +482,54 @@ function FreezeRequestNotificationItem({
   const memberName = request.approved_members?.full_name || "Member";
 
   return (
-    <div className="px-4 py-3 border-b border-brand-sand/30 hover:bg-brand-cream/30 transition-colors last:border-0 space-y-2">
+    <div className="px-4 py-3 border-b border-line hover:bg-surface-2/30 transition-colors last:border-0 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-brand-navy">Membership Freeze Request</span>
+        <span className="text-xs font-bold text-fg">Membership Freeze Request</span>
         {notification.time && (
-          <span className="text-[10px] text-brand-navy/40">{notification.time}</span>
+          <span className="text-[10px] text-fg-5">{notification.time}</span>
         )}
       </div>
 
-      <div className="space-y-1 text-xs text-brand-navy/80 bg-brand-cream/40 p-2.5 rounded-lg border border-brand-sand/40">
+      <div className="space-y-1 text-xs text-fg-2 bg-surface-2/40 p-2.5 rounded-lg border border-line">
         <div>
-          <span className="font-semibold text-brand-navy/60">Member Name:</span> {memberName}
+          <span className="font-semibold text-fg-3">Member Name:</span> {memberName}
         </div>
         <div>
-          <span className="font-semibold text-brand-navy/60">Membership Type:</span> {request.package_type}
+          <span className="font-semibold text-fg-3">Membership Type:</span> {request.package_type}
         </div>
         <div>
-          <span className="font-semibold text-brand-navy/60">Requested Start Date:</span> {request.requested_start_date}
+          <span className="font-semibold text-fg-3">Requested Start Date:</span> {request.requested_start_date}
         </div>
         <div>
-          <span className="font-semibold text-brand-navy/60">Requested Days:</span> {request.requested_days} Days
+          <span className="font-semibold text-fg-3">Requested Days:</span> {request.requested_days} Days
         </div>
         {request.reason && (
           <div>
-            <span className="font-semibold text-brand-navy/60">Reason:</span> {request.reason}
+            <span className="font-semibold text-fg-3">Reason:</span> {request.reason}
           </div>
         )}
       </div>
 
       {isEditing ? (
-        <div className="space-y-2 pt-1 border-t border-brand-sand/40 text-xs">
+        <div className="space-y-2 pt-1 border-t border-line text-xs">
           <div>
-            <label className="block text-[10px] font-bold text-brand-navy mb-0.5">Edit Start Date:</label>
+            <label className="block text-[10px] font-bold text-fg mb-0.5">Edit Start Date:</label>
             <input
               type="date"
               value={editStartDate}
               onChange={(e) => setEditStartDate(e.target.value)}
-              className="w-full p-1.5 border border-brand-sand rounded text-xs text-brand-navy"
+              className="w-full p-1.5 border border-line rounded text-xs text-fg"
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-brand-navy mb-0.5">Edit Days (2-15):</label>
+            <label className="block text-[10px] font-bold text-fg mb-0.5">Edit Days (2-15):</label>
             <input
               type="number"
               min="2"
               max="15"
               value={editDays}
               onChange={(e) => setEditDays(parseInt(e.target.value, 10))}
-              className="w-full p-1.5 border border-brand-sand rounded text-xs text-brand-navy font-mono"
+              className="w-full p-1.5 border border-line rounded text-xs text-fg font-mono"
             />
           </div>
           <div className="flex gap-2">
@@ -542,7 +542,7 @@ function FreezeRequestNotificationItem({
             </button>
             <button
               onClick={() => setIsEditing(false)}
-              className="px-2 py-1 rounded border border-brand-sand text-brand-navy text-xs"
+              className="px-2 py-1 rounded border border-line text-fg text-xs"
             >
               Cancel
             </button>

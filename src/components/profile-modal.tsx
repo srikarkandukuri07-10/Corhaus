@@ -168,12 +168,12 @@ export default function ProfileModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 animate-fade-in">
+      <div className="relative bg-surface rounded-2xl shadow-xl max-w-md w-full p-6 animate-fade-in">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-medium text-brand-navy">My Profile</h2>
+          <h2 className="text-lg font-medium text-fg">My Profile</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-brand-beige text-brand-navy/50 hover:text-brand-navy transition-colors"
+            className="p-1.5 rounded-lg hover:bg-hover text-fg-4 hover:text-fg transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -183,29 +183,29 @@ export default function ProfileModal({
 
         {!profile ? (
           <div className="flex justify-center py-8">
-            <div className="w-6 h-6 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
           </div>
         ) : (
           <div className="space-y-4">
             {success && (
-              <p className="text-sm text-brand-success bg-brand-success/10 px-3 py-2 rounded-lg">
+              <p className="text-sm text-green-600 bg-green-500/10 px-3 py-2 rounded-lg">
                 Profile updated successfully!
               </p>
             )}
             {error && (
-              <p className="text-sm text-brand-error bg-brand-error/10 px-3 py-2 rounded-lg">
+              <p className="text-sm text-red-500 bg-red-500/10 px-3 py-2 rounded-lg">
                 {error}
               </p>
             )}
 
             <div className="flex flex-col items-center justify-center pb-4 pt-2">
-              <div className="relative group w-24 h-24 rounded-full overflow-hidden border-2 border-brand-sand/50 bg-brand-cream/50 flex items-center justify-center shadow-inner">
+              <div className="relative group w-24 h-24 rounded-full overflow-hidden border-2 border-line bg-surface-2/50 flex items-center justify-center shadow-inner">
                 {uploading ? (
-                  <div className="w-6 h-6 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
                 ) : avatarUrl ? (
                   <img src={avatarUrl} alt="Profile Photo" className="w-full h-full object-cover" />
                 ) : (
-                  <svg className="w-12 h-12 text-brand-navy/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-12 h-12 text-fg-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 )}
@@ -226,43 +226,43 @@ export default function ProfileModal({
                   </label>
                 )}
               </div>
-              <p className="text-[10px] text-brand-navy/40 mt-1.5 font-medium">Click photo to update</p>
+              <p className="text-[10px] text-fg-5 mt-1.5 font-medium">Click photo to update</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-brand-navy/60 mb-1">Email</label>
-              <p className="text-brand-navy bg-brand-cream/50 px-3 py-2.5 rounded-xl border border-brand-sand text-sm">
+              <label className="block text-sm font-medium text-fg-3 mb-1">Email</label>
+              <p className="text-fg bg-surface-2/50 px-3 py-2.5 rounded-xl border border-line text-sm">
                 {profile.email}
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-brand-navy/60 mb-1">Full Name</label>
+              <label className="block text-sm font-medium text-fg-3 mb-1">Full Name</label>
               {editing ? (
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-brand-sand bg-white text-brand-navy text-sm transition-all"
+                  className="w-full px-3 py-2.5 rounded-xl border border-line bg-surface text-fg text-sm transition-all"
                 />
               ) : (
-                <p className="text-brand-navy bg-brand-cream/50 px-3 py-2.5 rounded-xl border border-brand-sand text-sm">
+                <p className="text-fg bg-surface-2/50 px-3 py-2.5 rounded-xl border border-line text-sm">
                   {profile.full_name || "—"}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-brand-navy/60 mb-1">Phone Number</label>
+              <label className="block text-sm font-medium text-fg-3 mb-1">Phone Number</label>
               {editing ? (
                 <input
                   type="text"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-brand-sand bg-white text-brand-navy text-sm transition-all"
+                  className="w-full px-3 py-2.5 rounded-xl border border-line bg-surface text-fg text-sm transition-all"
                 />
               ) : (
-                <p className="text-brand-navy bg-brand-cream/50 px-3 py-2.5 rounded-xl border border-brand-sand text-sm">
+                <p className="text-fg bg-surface-2/50 px-3 py-2.5 rounded-xl border border-line text-sm">
                   {profile.phone_number || "—"}
                 </p>
               )}
@@ -273,14 +273,14 @@ export default function ProfileModal({
                 <>
                   <button
                     onClick={() => { setEditing(false); setFullName(profile.full_name); setPhoneNumber(profile.phone_number); }}
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-brand-sand text-brand-navy/60 font-medium hover:bg-brand-beige transition-colors text-sm"
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-line text-fg-3 font-medium hover:bg-hover transition-colors text-sm"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-brand-brown text-white font-medium hover:bg-brand-brown-dark transition-colors disabled:opacity-50 text-sm"
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-accent text-white font-medium hover:bg-accent-dark transition-colors disabled:opacity-50 text-sm"
                   >
                     {saving ? "Saving..." : "Save"}
                   </button>
@@ -288,18 +288,18 @@ export default function ProfileModal({
               ) : (
                 <button
                   onClick={() => setEditing(true)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-brand-navy text-white font-medium hover:bg-brand-navy/90 transition-colors text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl bg-rail text-white font-medium hover:bg-rail/90 transition-colors text-sm"
                 >
                   Edit Profile
                 </button>
               )}
             </div>
 
-            <div className="pt-4 border-t border-brand-sand/50 mt-4">
-              <label className="block text-sm font-medium text-brand-navy/60 mb-2">Security</label>
+            <div className="pt-4 border-t border-line mt-4">
+              <label className="block text-sm font-medium text-fg-3 mb-2">Security</label>
               
               {passwordSuccess && (
-                <p className="text-sm text-brand-success bg-brand-success/10 px-3 py-2 rounded-lg mb-3">
+                <p className="text-sm text-green-600 bg-green-500/10 px-3 py-2 rounded-lg mb-3">
                   Password updated successfully!
                 </p>
               )}
@@ -313,12 +313,12 @@ export default function ProfileModal({
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       autoComplete="new-password"
-                      className="w-full px-3 py-2.5 rounded-xl border border-brand-sand bg-white text-brand-navy text-sm transition-all pr-12"
+                      className="w-full px-3 py-2.5 rounded-xl border border-line bg-surface text-fg text-sm transition-all pr-12"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-navy/40 hover:text-brand-navy/60 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-5 hover:text-fg-3 transition-colors"
                     >
                       {showPassword ? (
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -335,14 +335,14 @@ export default function ProfileModal({
                   <div className="flex gap-2">
                     <button
                       onClick={() => { setIsChangingPassword(false); setNewPassword(""); }}
-                      className="flex-1 px-3 py-2 rounded-xl border border-brand-sand text-brand-navy/60 font-medium hover:bg-brand-beige transition-colors text-sm"
+                      className="flex-1 px-3 py-2 rounded-xl border border-line text-fg-3 font-medium hover:bg-hover transition-colors text-sm"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handlePasswordChange}
                       disabled={saving || newPassword.length < 6}
-                      className="flex-1 px-3 py-2 rounded-xl bg-brand-navy text-white font-medium hover:bg-brand-navy/90 transition-colors disabled:opacity-50 text-sm"
+                      className="flex-1 px-3 py-2 rounded-xl bg-rail text-white font-medium hover:bg-rail/90 transition-colors disabled:opacity-50 text-sm"
                     >
                       {saving ? "Saving..." : "Save Password"}
                     </button>
@@ -351,7 +351,7 @@ export default function ProfileModal({
               ) : (
                 <button
                   onClick={() => { setIsChangingPassword(true); setSuccess(false); setPasswordSuccess(false); setError(null); }}
-                  className="w-full px-4 py-2.5 rounded-xl border border-brand-sand text-brand-navy font-medium hover:bg-brand-beige transition-colors text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-line text-fg font-medium hover:bg-hover transition-colors text-sm"
                 >
                   {hasEmailProvider ? "Change Password" : "Set Password"}
                 </button>

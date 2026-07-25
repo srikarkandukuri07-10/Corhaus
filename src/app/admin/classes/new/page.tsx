@@ -100,16 +100,16 @@ export default function CreateClassPage() {
   return (
     <div className="max-w-2xl mx-auto animate-fade-in">
       <div className="mb-8">
-        <h1 className="text-2xl font-light text-brand-navy">
+        <h1 className="text-2xl font-light text-fg">
           Create <span className="font-medium">Class</span>
         </h1>
-        <p className="text-sm text-brand-navy/50 mt-1">
+        <p className="text-sm text-fg-4 mt-1">
           Add a new class to the schedule
         </p>
       </div>
 
       {success && (
-        <div className="mb-6 p-4 rounded-xl bg-brand-success/10 border border-brand-success/20 text-brand-success text-sm flex items-center gap-2">
+        <div className="mb-6 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-600 text-sm flex items-center gap-2">
           <svg
             className="w-5 h-5"
             fill="none"
@@ -127,16 +127,16 @@ export default function CreateClassPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-lg shadow-brand-navy/5 p-8 border border-brand-sand/50">
+      <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line">
         {error && (
-          <div className="mb-6 p-3 rounded-lg bg-brand-error/10 border border-brand-error/20 text-brand-error text-sm">
+          <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-brand-error/20 text-red-500 text-sm">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
+            <label className="block text-sm font-medium text-fg/70 mb-1.5">
               Class Name *
             </label>
             <input
@@ -144,13 +144,13 @@ export default function CreateClassPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all text-sm"
+              className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all text-sm"
               placeholder="e.g. Reformer Group Class, Mat Pilates, PT Session"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
+            <label className="block text-sm font-medium text-fg/70 mb-1.5">
               Instructor Name
             </label>
             <input
@@ -158,14 +158,14 @@ export default function CreateClassPage() {
               value={instructor}
               onChange={(e) => setInstructor(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all"
               placeholder="e.g. Sarah"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
+              <label className="block text-sm font-medium text-fg/70 mb-1.5">
                 Date
               </label>
               <input
@@ -173,12 +173,12 @@ export default function CreateClassPage() {
                 value={classDate}
                 onChange={(e) => setClassDate(e.target.value)}
                 required
-                className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
+              <label className="block text-sm font-medium text-fg/70 mb-1.5">
                 Time
               </label>
               <input
@@ -186,13 +186,13 @@ export default function CreateClassPage() {
                 value={classTime}
                 onChange={(e) => setClassTime(e.target.value)}
                 required
-                className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">
+            <label className="block text-sm font-medium text-fg/70 mb-1.5">
               Maximum Members
             </label>
             <input
@@ -201,7 +201,7 @@ export default function CreateClassPage() {
               onChange={(e) => setMaxCapacity(e.target.value)}
               required
               min="1"
-              className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all"
               placeholder="e.g. 12"
             />
           </div>
@@ -210,14 +210,14 @@ export default function CreateClassPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-6 py-3 rounded-xl border border-brand-sand text-brand-navy/60 font-medium hover:bg-brand-beige transition-colors"
+              className="px-6 py-3 rounded-xl border border-line text-fg-3 font-medium hover:bg-hover transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-3 rounded-xl bg-brand-brown text-white font-medium hover:bg-brand-brown-dark transition-colors disabled:opacity-50"
+              className="px-6 py-3 rounded-xl bg-accent text-white font-medium hover:bg-accent-dark transition-colors disabled:opacity-50"
             >
               {loading ? "Creating..." : "Create Class"}
             </button>

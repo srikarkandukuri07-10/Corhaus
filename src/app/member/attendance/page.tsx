@@ -115,14 +115,14 @@ export default function AttendancePage() {
   return (
     <div className="space-y-8 animate-fade-in">
       {!currentTime && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-sm">
-          <div className="w-8 h-8 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface/50 backdrop-blur-sm">
+          <div className="w-8 h-8 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
         </div>
       )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
         </div>
       ) : (
         <ConsistencyTracker 

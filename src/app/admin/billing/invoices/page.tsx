@@ -64,7 +64,7 @@ function formatDateTime(iso: string) {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  paid: "bg-brand-success/10 text-brand-success",
+  paid: "bg-green-500/10 text-green-600",
   due: "bg-amber-100 text-amber-700",
   partial: "bg-blue-100 text-blue-700",
 };
@@ -90,8 +90,8 @@ function BillingSubNav() {
             href={item.href}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               active
-                ? "bg-[#7B3FE4] text-white shadow-md shadow-[#7B3FE4]/20"
-                : "text-[#1B0B38]/60 hover:text-[#1B0B38] hover:bg-white"
+                ? "bg-accent text-white shadow-md shadow-accent/20"
+                : "text-fg-3 hover:text-fg hover:bg-surface"
             }`}
           >
             {item.label}
@@ -177,10 +177,10 @@ export default function InvoicesPage() {
   return (
     <div className="animate-fade-in">
       <div className="mb-1">
-        <h1 className="text-2xl font-light text-brand-navy">
+        <h1 className="text-2xl font-light text-fg">
           Billing <span className="font-medium">Invoices</span>
         </h1>
-        <p className="text-sm text-brand-navy/50 mt-0.5">
+        <p className="text-sm text-fg-4 mt-0.5">
           View and manage all billing transactions
         </p>
       </div>
@@ -190,26 +190,26 @@ export default function InvoicesPage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
-          { label: "Total Invoices", value: stats.total, color: "text-brand-navy" },
-          { label: "Paid", value: stats.paid, color: "text-brand-success" },
+          { label: "Total Invoices", value: stats.total, color: "text-fg" },
+          { label: "Paid", value: stats.paid, color: "text-green-600" },
           { label: "Payment Due", value: stats.due, color: "text-amber-600" },
-          { label: "Revenue Collected", value: fmt(stats.revenue), color: "text-brand-brown" },
+          { label: "Revenue Collected", value: fmt(stats.revenue), color: "text-accent" },
         ].map((s) => (
           <div
             key={s.label}
-            className="bg-white rounded-2xl border border-brand-sand/50 p-4"
+            className="bg-surface rounded-2xl border border-line p-4"
           >
-            <p className="text-xs text-brand-navy/40 mb-1">{s.label}</p>
+            <p className="text-xs text-fg-5 mb-1">{s.label}</p>
             <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Search + filter bar */}
-      <div className="bg-white rounded-2xl border border-brand-sand/50 p-4 mb-4 flex flex-col sm:flex-row gap-3">
+      <div className="bg-surface rounded-2xl border border-line p-4 mb-4 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-navy/30"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-5"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -226,18 +226,18 @@ export default function InvoicesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search invoice number, customer name, email…"
-            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-brand-sand bg-brand-cream/50 text-sm text-brand-navy placeholder:text-brand-navy/30 focus:outline-none focus:ring-1 focus:ring-brand-brown transition-all"
+            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-line bg-surface-2/50 text-sm text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
           />
         </div>
-        <div className="flex gap-1 rounded-xl border border-brand-sand/50 overflow-hidden p-0.5 bg-brand-cream/30">
+        <div className="flex gap-1 rounded-xl border border-line overflow-hidden p-0.5 bg-surface-2/30">
           {(["all", "paid", "due", "partial"] as FilterStatus[]).map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
               className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all ${
                 filterStatus === s
-                  ? "bg-white text-brand-navy shadow-sm"
-                  : "text-brand-navy/50 hover:text-brand-navy"
+                  ? "bg-surface text-fg shadow-sm"
+                  : "text-fg-4 hover:text-fg"
               }`}
             >
               {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
@@ -250,27 +250,27 @@ export default function InvoicesPage() {
       {loading ? (
         <div className="flex items-center justify-center py-24">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
-            <p className="text-sm text-brand-navy/40">Loading invoices…</p>
+            <div className="w-8 h-8 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
+            <p className="text-sm text-fg-5">Loading invoices…</p>
           </div>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-brand-sand/50 p-12 text-center">
+        <div className="bg-surface rounded-2xl border border-line p-12 text-center">
           <div className="w-16 h-16 mx-auto rounded-2xl bg-brand-sand/30 flex items-center justify-center mb-4">
-            <svg className="w-8 h-8 text-brand-navy/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-8 h-8 text-fg/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <p className="text-brand-navy/50 font-medium">
+          <p className="text-fg-4 font-medium">
             {search || filterStatus !== "all"
               ? "No invoices match your filters"
               : "No invoices yet"}
           </p>
-          <p className="text-sm text-brand-navy/30 mt-1">
+          <p className="text-sm text-fg-5 mt-1">
             {!search && filterStatus === "all" && (
               <>
                 Create your first bill from the{" "}
-                <Link href="/admin/billing" className="text-brand-brown hover:underline">
+                <Link href="/admin/billing" className="text-accent hover:underline">
                   Create Bill
                 </Link>{" "}
                 screen.
@@ -279,12 +279,12 @@ export default function InvoicesPage() {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-brand-sand/50 overflow-hidden">
+        <div className="bg-surface rounded-2xl border border-line overflow-hidden">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_1.5fr_1fr_1fr_1fr_auto] gap-4 px-5 py-3 border-b border-brand-sand/50 bg-brand-cream/30">
+          <div className="grid grid-cols-[1fr_1.5fr_1fr_1fr_1fr_auto] gap-4 px-5 py-3 border-b border-line bg-surface-2/30">
             {["Invoice #", "Customer", "Date", "Amount", "Status", ""].map(
               (h) => (
-                <p key={h} className="text-xs font-semibold text-brand-navy/40 uppercase tracking-wide">
+                <p key={h} className="text-xs font-semibold text-fg-5 uppercase tracking-wide">
                   {h}
                 </p>
               )
@@ -298,34 +298,34 @@ export default function InvoicesPage() {
                 {/* Main row */}
                 <button
                   onClick={() => handleExpand(inv.id)}
-                  className="w-full grid grid-cols-[1fr_1.5fr_1fr_1fr_1fr_auto] gap-4 px-5 py-4 hover:bg-brand-cream/30 transition-colors text-left"
+                  className="w-full grid grid-cols-[1fr_1.5fr_1fr_1fr_1fr_auto] gap-4 px-5 py-4 hover:bg-surface-2/30 transition-colors text-left"
                 >
                   <div>
-                    <p className="text-sm font-mono font-semibold text-brand-navy">
+                    <p className="text-sm font-mono font-semibold text-fg">
                       {inv.invoice_number}
                     </p>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-brand-navy truncate">
+                    <p className="text-sm font-medium text-fg truncate">
                       {inv.customer_name}
                     </p>
                     {inv.customer_phone && (
-                      <p className="text-xs text-brand-navy/40 truncate">
+                      <p className="text-xs text-fg-5 truncate">
                         {inv.customer_phone}
                       </p>
                     )}
                   </div>
                   <div>
-                    <p className="text-sm text-brand-navy/70">
+                    <p className="text-sm text-fg/70">
                       {formatDate(inv.created_at)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-brand-navy">
+                    <p className="text-sm font-bold text-fg">
                       {fmt(inv.grand_total)}
                     </p>
                     {inv.discount_amount > 0 && (
-                      <p className="text-xs text-brand-success">
+                      <p className="text-xs text-green-600">
                         −{fmt(inv.discount_amount)} off
                       </p>
                     )}
@@ -341,7 +341,7 @@ export default function InvoicesPage() {
                   </div>
                   <div>
                     <svg
-                      className={`w-4 h-4 text-brand-navy/40 transition-transform ${
+                      className={`w-4 h-4 text-fg-5 transition-transform ${
                         expandedId === inv.id ? "rotate-180" : ""
                       }`}
                       fill="none"
@@ -355,16 +355,16 @@ export default function InvoicesPage() {
 
                 {/* Expanded detail */}
                 {expandedId === inv.id && (
-                  <div className="px-5 pb-5 border-t border-brand-sand/30 bg-brand-cream/20">
+                  <div className="px-5 pb-5 border-t border-line bg-surface-2/20">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                       {/* Invoice items */}
                       <div>
-                        <p className="text-xs font-semibold text-brand-navy/40 uppercase tracking-wide mb-3">
+                        <p className="text-xs font-semibold text-fg-5 uppercase tracking-wide mb-3">
                           Items
                         </p>
                         {itemsLoading === inv.id ? (
-                          <div className="flex items-center gap-2 py-4 text-sm text-brand-navy/40">
-                            <div className="w-4 h-4 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+                          <div className="flex items-center gap-2 py-4 text-sm text-fg-5">
+                            <div className="w-4 h-4 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
                             Loading items…
                           </div>
                         ) : (
@@ -372,23 +372,23 @@ export default function InvoicesPage() {
                             {(itemsMap[inv.id] || []).map((item) => (
                               <div
                                 key={item.id}
-                                className="flex items-center justify-between py-2 border-b border-brand-sand/30 last:border-0"
+                                className="flex items-center justify-between py-2 border-b border-line last:border-0"
                               >
                                 <div>
-                                  <p className="text-sm font-medium text-brand-navy">
+                                  <p className="text-sm font-medium text-fg">
                                     {item.name}
                                   </p>
-                                  <p className="text-xs text-brand-navy/40">
+                                  <p className="text-xs text-fg-5">
                                     {item.category} •{" "}
                                     {fmt(item.unit_price)} × {item.quantity}
                                     {item.grants_member_dashboard_access && (
-                                      <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded-full bg-brand-success/10 text-brand-success text-[10px] font-medium">
+                                      <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-600 text-[10px] font-medium">
                                         Dashboard Access
                                       </span>
                                     )}
                                   </p>
                                 </div>
-                                <p className="text-sm font-bold text-brand-navy">
+                                <p className="text-sm font-bold text-fg">
                                   {fmt(item.total_price)}
                                 </p>
                               </div>
@@ -399,7 +399,7 @@ export default function InvoicesPage() {
 
                       {/* Invoice details */}
                       <div>
-                        <p className="text-xs font-semibold text-brand-navy/40 uppercase tracking-wide mb-3">
+                        <p className="text-xs font-semibold text-fg-5 uppercase tracking-wide mb-3">
                           Payment Details
                         </p>
                         <div className="space-y-2">
@@ -412,7 +412,7 @@ export default function InvoicesPage() {
                           {inv.customer_phone && (
                             <DetailRow label="Phone" value={inv.customer_phone} />
                           )}
-                          <div className="border-t border-brand-sand/40 pt-2 mt-2" />
+                          <div className="border-t border-line pt-2 mt-2" />
                           <DetailRow label="Subtotal" value={fmt(inv.subtotal)} />
                           {inv.discount_amount > 0 && (
                             <DetailRow
@@ -422,7 +422,7 @@ export default function InvoicesPage() {
                                   : fmt(inv.discount_value)
                               })`}
                               value={"− " + fmt(inv.discount_amount)}
-                              valueClass="text-brand-success"
+                              valueClass="text-green-600"
                             />
                           )}
                           <DetailRow
@@ -435,7 +435,7 @@ export default function InvoicesPage() {
                             value={inv.payment_status.charAt(0).toUpperCase() + inv.payment_status.slice(1)}
                             valueClass={
                               inv.payment_status === "paid"
-                                ? "text-brand-success font-semibold"
+                                ? "text-green-600 font-semibold"
                                 : "text-amber-600 font-semibold"
                             }
                           />
@@ -480,10 +480,10 @@ function DetailRow({
 }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <span className="text-xs text-brand-navy/40 flex-shrink-0">{label}</span>
+      <span className="text-xs text-fg-5 flex-shrink-0">{label}</span>
       <span
         className={`text-xs text-right break-all ${
-          bold ? "font-bold text-brand-navy" : "text-brand-navy/80"
+          bold ? "font-bold text-fg" : "text-fg-2"
         } ${mono ? "font-mono" : ""} ${valueClass || ""}`}
       >
         {value}

@@ -19,13 +19,13 @@ class LoginErrorBoundary extends Component<{ children: React.ReactNode }, { hasE
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-brand-cream px-4">
-          <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md text-center">
-            <h2 className="text-xl font-medium text-brand-navy mb-4">Something went wrong</h2>
-            <p className="text-brand-error text-sm mb-6">{this.state.error}</p>
+        <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4">
+          <div className="bg-surface rounded-2xl shadow-lg p-8 max-w-md text-center">
+            <h2 className="text-xl font-medium text-fg mb-4">Something went wrong</h2>
+            <p className="text-red-500 text-sm mb-6">{this.state.error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-6 py-3 rounded-xl bg-brand-navy text-white font-medium"
+              className="px-6 py-3 rounded-xl bg-rail text-white font-medium"
             >
               Reload page
             </button>
@@ -130,39 +130,39 @@ function LoginForm() {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-cream px-4">
+    <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4">
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-light tracking-tight text-brand-navy">
-            Cor<span className="text-brand-brown font-medium">haus</span>
+          <h1 className="text-4xl font-light tracking-tight text-fg">
+            Cor<span className="text-accent font-medium">haus</span>
           </h1>
-          <p className="text-brand-brown-light mt-2 text-sm tracking-widest uppercase">
+          <p className="text-fg-3 mt-2 text-sm tracking-widest uppercase">
             Pilates for everyone
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg shadow-brand-navy/5 p-8 border border-brand-sand/50">
-          <h2 className="text-xl font-medium text-brand-navy mb-6">Welcome back</h2>
+        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line">
+          <h2 className="text-xl font-medium text-fg mb-6">Welcome back</h2>
 
               {notApprovedError && (
-                <div className="mb-4 p-4 rounded-xl bg-brand-error/10 border border-brand-error/20 text-brand-error text-sm leading-relaxed">
+                <div className="mb-4 p-4 rounded-xl bg-red-500/10 border border-brand-error/20 text-red-500 text-sm leading-relaxed">
                   {notApprovedError}
                 </div>
               )}
               {error && (
-                <div className="mb-4 p-3 rounded-lg bg-brand-error/10 border border-brand-error/20 text-brand-error text-sm">
+                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-brand-error/20 text-red-500 text-sm">
                   {error}
                 </div>
               )}
 
               {prefillEmail && (
-                <div className="mb-4 p-4 rounded-xl bg-brand-brown/10 border border-brand-brown/20 text-center space-y-3">
-                  <p className="text-sm text-brand-navy">
+                <div className="mb-4 p-4 rounded-xl bg-accent/10 border border-accent/20 text-center space-y-3">
+                  <p className="text-sm text-fg">
                     Set up your password now to activate your dashboard.
                   </p>
                   <Link
                     href={`/auth/signup?email=${encodeURIComponent(prefillEmail)}`}
-                    className="inline-block px-5 py-2.5 rounded-xl bg-brand-brown text-white text-xs font-medium hover:bg-brand-brown-dark transition-colors"
+                    className="inline-block px-5 py-2.5 rounded-xl bg-accent text-white text-xs font-medium hover:bg-accent-dark transition-colors"
                   >
                     Set Password & Activate
                   </Link>
@@ -171,20 +171,20 @@ function LoginForm() {
 
               <form onSubmit={handleEmailLogin} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">Email</label>
+                  <label className="block text-sm font-medium text-fg/70 mb-1.5">Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     autoComplete="off"
-                    className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all"
                     placeholder="you@example.com"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-brand-navy/70 mb-1.5">Password</label>
+                  <label className="block text-sm font-medium text-fg/70 mb-1.5">Password</label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -192,13 +192,13 @@ function LoginForm() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       autoComplete="new-password"
-                      className="w-full px-4 py-3 rounded-xl border border-brand-sand bg-brand-cream/50 text-brand-navy placeholder:text-brand-navy/30 transition-all pr-12"
+                      className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all pr-12"
                       placeholder="Enter your password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-navy/40 hover:text-brand-navy/60 transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-fg-5 hover:text-fg-3 transition-colors"
                     >
                       {showPassword ? (
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -217,7 +217,7 @@ function LoginForm() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-xl bg-brand-navy text-white font-medium hover:bg-brand-navy/90 transition-colors disabled:opacity-50 [touch-action:manipulation]"
+                  className="w-full py-3 rounded-xl bg-rail text-white font-medium hover:bg-rail/90 transition-colors disabled:opacity-50 [touch-action:manipulation]"
                 >
                   {loading ? "Signing in..." : "Sign In"}
                 </button>
@@ -226,21 +226,21 @@ function LoginForm() {
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-brand-sand" />
+                  <div className="w-full border-t border-line" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="bg-white px-3 text-brand-navy/40">or</span>
+                  <span className="bg-surface px-3 text-fg-5">or</span>
                 </div>
               </div>
 
               <button
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="w-full py-3 rounded-xl border border-brand-sand bg-white text-brand-navy font-medium hover:bg-brand-cream/50 transition-colors flex items-center justify-center gap-3 disabled:opacity-50 [touch-action:manipulation]"
+                className="w-full py-3 rounded-xl border border-line bg-surface text-fg font-medium hover:bg-surface-2/50 transition-colors flex items-center justify-center gap-3 disabled:opacity-50 [touch-action:manipulation]"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-brand-navy/30 border-t-brand-navy rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-fg/30 border-t-brand-navy rounded-full animate-spin" />
                     Signing in...
                   </span>
                 ) : (
@@ -256,9 +256,9 @@ function LoginForm() {
                 )}
               </button>
 
-              <p className="mt-6 text-center text-sm text-brand-navy/50">
+              <p className="mt-6 text-center text-sm text-fg-4">
                 Don&apos;t have an account?{" "}
-                <Link href="/auth/signup" className="text-brand-brown font-medium hover:text-brand-brown-dark transition-colors">
+                <Link href="/auth/signup" className="text-accent font-medium hover:text-accent-dark transition-colors">
                   Sign up
                 </Link>
               </p>
@@ -272,8 +272,8 @@ export default function LoginPage() {
   return (
     <LoginErrorBoundary>
       <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-brand-cream">
-          <div className="w-8 h-8 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+        <div className="min-h-screen flex items-center justify-center bg-surface-2">
+          <div className="w-8 h-8 border-2 border-accent/30 border-t-brand-brown rounded-full animate-spin" />
         </div>
       }>
         <LoginForm />

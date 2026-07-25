@@ -9,12 +9,12 @@ export default function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   return (
     <Link href="/" className="inline-block">
       <span
-        className={`${textSize} font-light tracking-tight text-brand-navy`}
+        className={`${textSize} font-light tracking-tight text-fg`}
       >
-        Cor<span className="text-brand-brown font-medium">haus</span>
+        Cor<span className="text-accent font-medium">haus</span>
       </span>
       <p
-        className={`${subtextSize} text-brand-brown-light tracking-[0.2em] uppercase -mt-1`}
+        className={`${subtextSize} text-fg-3 tracking-[0.2em] uppercase -mt-1`}
       >
         Pilates for everyone
       </p>
