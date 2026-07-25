@@ -79,16 +79,22 @@ function formatSlotHour(time24: string): string {
   return `${displayH}:00 ${ampm}`;
 }
 
-const TRAINERS = ["Rahul Sharma", "Sneha Reddy", "Amit Patel"];
+interface TrainerOption {
+  id: string;
+  full_name: string;
+  designation: string;
+  specialization: string | null;
+}
 
 export default function PtSchedulerPage() {
-  const [selectedTrainer, setSelectedTrainer] = useState("Rahul Sharma");
+  const [selectedTrainer, setSelectedTrainer] = useState("");
   const [weekOffset, setWeekOffset] = useState(0);
 
   // Data States
   const [members, setMembers] = useState<MemberOption[]>([]);
   const [assignments, setAssignments] = useState<PtAssignment[]>([]);
   const [sessions, setSessions] = useState<PtSession[]>([]);
+  const [trainers, setTrainers] = useState<TrainerOption[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -149,6 +155,12 @@ export default function PtSchedulerPage() {
       const { data: assignData } = await supabase.from("pt_assignments").select("*");
       const { data: sessData } = await supabase.from("pt_sessions").select("*").order("session_date").order("session_time");
       const { data: profilesList } = await supabase.from("profiles").select("id, email");
+      const { data: trainersData } = await supabase
+        .from("staff_members")
+        .select("id, full_name, designation, specialization")
+        .eq("role", "Trainer")
+        .eq("employment_status", "Active")
+        .order("full_name");
 
       // Lookup maps
       const memberMap: Record<string, any> = {};
@@ -194,6 +206,7 @@ export default function PtSchedulerPage() {
         setMembers(membersWithOptions as MemberOption[]);
         setAssignments(enrichedAssignments as PtAssignment[]);
         setSessions(enrichedSessions as PtSession[]);
+        setTrainers((trainersData || []) as TrainerOption[]);
         setLoading(false);
       });
     } catch (err) {
@@ -206,6 +219,13 @@ export default function PtSchedulerPage() {
     loadData();
   }, [loadData]);
 
+  // Set default selected trainer once loaded
+  useEffect(() => {
+    if (trainers.length > 0 && !selectedTrainer) {
+      setSelectedTrainer(trainers[0].full_name);
+    }
+  }, [trainers, selectedTrainer]);
+
   // Realtime
   useEffect(() => {
     const channel = supabase
@@ -213,6 +233,7 @@ export default function PtSchedulerPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "pt_assignments" }, () => loadData())
       .on("postgres_changes", { event: "*", schema: "public", table: "pt_sessions" }, () => loadData())
       .on("postgres_changes", { event: "*", schema: "public", table: "member_purchased_plans" }, () => loadData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "staff_members" }, () => loadData())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -523,7 +544,7 @@ export default function PtSchedulerPage() {
               onChange={(e) => setSelectedTrainer(e.target.value)}
               className="p-2.5 rounded-xl border border-line-2 bg-surface text-xs font-bold text-accent focus:outline-none"
             >
-              {TRAINERS.map(t => <option key={t} value={t}>{t}</option>)}
+              {trainers.map(t => <option key={t.id} value={t.full_name}>{t.full_name}{t.specialization ? ` — ${t.specialization}` : ""}</option>)}
             </select>
           </div>
 
@@ -699,7 +720,8 @@ export default function PtSchedulerPage() {
                   onChange={(e) => setAssignTrainerName(e.target.value)}
                   className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
                 >
-                  {TRAINERS.map(t => <option key={t} value={t}>{t}</option>)}
+                  {trainers.length === 0 && <option value="" disabled>No trainers found in staff</option>}
+                  {trainers.map(t => <option key={t.id} value={t.full_name}>{t.full_name}{t.specialization ? ` — ${t.specialization}` : ""}</option>)}
                 </select>
               </div>
 
@@ -904,7 +926,7 @@ export default function PtSchedulerPage() {
                     onChange={(e) => setReassignTrainer(e.target.value)}
                     className="w-full p-2 bg-surface border border-line-2 rounded-xl text-xs font-bold text-accent"
                   >
-                    {TRAINERS.filter(t => t !== selectedSession.trainer_name).map(t => <option key={t} value={t}>{t}</option>)}
+                    {trainers.filter(t => t.full_name !== selectedSession.trainer_name).map(t => <option key={t.id} value={t.full_name}>{t.full_name}{t.specialization ? ` — ${t.specialization}` : ""}</option>)}
                   </select>
                 </div>
                 <div>
@@ -953,7 +975,7 @@ export default function PtSchedulerPage() {
                     </button>
                     <button
                       onClick={() => {
-                        setReassignTrainer(TRAINERS.find(t => t !== selectedSession.trainer_name) || "");
+                        setReassignTrainer(trainers.find(t => t.full_name !== selectedSession.trainer_name)?.full_name || "");
                         setReassignScope("only");
                         setIsReassigning(true);
                       }}
