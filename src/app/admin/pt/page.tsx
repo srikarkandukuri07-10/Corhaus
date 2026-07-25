@@ -542,9 +542,9 @@ export default function PtSchedulerPage() {
             <select
               value={selectedTrainer}
               onChange={(e) => setSelectedTrainer(e.target.value)}
-              className="p-2.5 rounded-xl border border-line-2 bg-surface text-xs font-bold text-accent focus:outline-none"
+              className="p-2 rounded-lg border border-line-2 bg-surface text-[11px] font-bold text-accent focus:outline-none"
             >
-              {trainers.map(t => <option key={t.id} value={t.full_name}>{t.full_name}{t.specialization ? ` — ${t.specialization}` : ""}</option>)}
+              {trainers.map(t => <option key={t.id} value={t.full_name}>{t.full_name}</option>)}
             </select>
           </div>
 
@@ -718,7 +718,7 @@ export default function PtSchedulerPage() {
                 <select
                   value={assignTrainerName}
                   onChange={(e) => setAssignTrainerName(e.target.value)}
-                  className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
+                  className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-[11px] font-semibold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
                 >
                   {trainers.length === 0 && <option value="" disabled>No trainers found in staff</option>}
                   {trainers.map(t => <option key={t.id} value={t.full_name}>{t.full_name}{t.specialization ? ` — ${t.specialization}` : ""}</option>)}
@@ -924,7 +924,7 @@ export default function PtSchedulerPage() {
                   <select
                     value={reassignTrainer}
                     onChange={(e) => setReassignTrainer(e.target.value)}
-                    className="w-full p-2 bg-surface border border-line-2 rounded-xl text-xs font-bold text-accent"
+                    className="w-full p-2 bg-surface border border-line-2 rounded-xl text-[11px] font-bold text-accent"
                   >
                     {trainers.filter(t => t.full_name !== selectedSession.trainer_name).map(t => <option key={t.id} value={t.full_name}>{t.full_name}{t.specialization ? ` — ${t.specialization}` : ""}</option>)}
                   </select>
