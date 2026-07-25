@@ -62,7 +62,13 @@ function LoginForm() {
         .eq("email", normalizedEmail)
         .maybeSingle();
 
-      if (!member || member.membership_status !== "active") {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      if ((!member || member.membership_status !== "active") && !profile) {
         setError("This email is not approved for access. Please contact Corhaus staff to activate your membership.");
         setLoading(false);
         return;
