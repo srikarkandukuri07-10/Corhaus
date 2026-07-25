@@ -56,19 +56,14 @@ function LoginForm() {
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
-      const { data: member } = await supabase
-        .from("approved_members")
-        .select("membership_status")
-        .eq("email", normalizedEmail)
-        .maybeSingle();
+      const res = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+      const { approved } = await res.json();
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", normalizedEmail)
-        .maybeSingle();
-
-      if ((!member || member.membership_status !== "active") && !profile) {
+      if (!approved) {
         setError("This email is not approved for access. Please contact Corhaus staff to activate your membership.");
         setLoading(false);
         return;

@@ -76,20 +76,21 @@ function SignupForm() {
       return;
     }
 
-    const { data: member } = await supabase
-      .from("approved_members")
-      .select("membership_status")
-      .eq("email", normalizedEmail)
-      .maybeSingle();
+    try {
+      const res = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+      const { approved } = await res.json();
 
-    const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", normalizedEmail)
-      .maybeSingle();
-
-    if ((!member || member.membership_status !== "active") && !existingProfile) {
-      setError("This email is not approved for access. Please contact Corhaus staff to activate your membership.");
+      if (!approved) {
+        setError("This email is not approved for access. Please contact Corhaus staff to activate your membership.");
+        setLoading(false);
+        return;
+      }
+    } catch {
+      setError("Failed to verify email. Please try again.");
       setLoading(false);
       return;
     }
