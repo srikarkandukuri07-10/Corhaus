@@ -9,10 +9,9 @@ function SignupForm() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const supabase = createClient();
@@ -77,69 +76,37 @@ function SignupForm() {
       return;
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
+    const { data: member } = await supabase
+      .from("approved_members")
+      .select("membership_status")
+      .eq("email", normalizedEmail)
+      .maybeSingle();
+
+    if (!member || member.membership_status !== "active") {
+      setError("This email is not approved for access. Please contact Corhaus staff to activate your membership.");
+      setLoading(false);
+      return;
+    }
+
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: normalizedEmail,
       options: {
         data: {
           full_name: fullName,
           phone_number: phoneNumber,
         },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
-    if (error) {
-      const errMsg = error.message.toLowerCase();
-      if (errMsg.includes("already registered") || errMsg.includes("already exists") || errMsg.includes("already taken")) {
-        try {
-          const { data: member } = await supabase
-            .from("approved_members")
-            .select("membership_status")
-            .eq("email", normalizedEmail)
-            .maybeSingle();
-
-          if (member && member.membership_status === "active") {
-            setError("This email is already registered and approved. Please go to the Login page to sign in with your password.");
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          console.error("Error checking member approval during signup error:", e);
-        }
-      }
-      setError(error.message);
+    if (otpError) {
+      setError(otpError.message);
       setLoading(false);
       return;
     }
 
-    if (data?.user && avatarFile) {
-      try {
-        const fileExt = avatarFile.name.split(".").pop();
-        const filePath = `${data.user.id}/photo.${fileExt}`;
-
-        // Upload avatar file to Supabase storage profile-photos bucket
-        const { error: uploadError } = await supabase.storage
-          .from("profile-photos")
-          .upload(filePath, avatarFile, { cacheControl: "3600", upsert: true });
-
-        if (!uploadError) {
-          // Get public URL
-          const { data: { publicUrl } } = supabase.storage
-            .from("profile-photos")
-            .getPublicUrl(filePath);
-
-          // Update profiles table
-          await supabase
-            .from("profiles")
-            .update({ avatar_url: publicUrl })
-            .eq("id", data.user.id);
-        }
-      } catch (err) {
-        console.error("Avatar upload failed during signup:", err);
-      }
-    }
-
-    window.location.href = "/member";
+    setSent(true);
+    setLoading(false);
   }
 
   async function handleGoogleSignup() {
@@ -153,6 +120,44 @@ function SignupForm() {
     if (error) {
       setError(error.message);
     }
+  }
+
+  if (sent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4 py-8">
+        <div className="w-full max-w-md animate-fade-in">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-light tracking-tight text-fg">
+              Cor<span className="text-accent font-medium">haus</span>
+            </h1>
+            <p className="text-fg-3 mt-2 text-sm tracking-widest uppercase">
+              Pilates for everyone
+            </p>
+          </div>
+          <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line text-center">
+            <div className="w-16 h-16 mx-auto rounded-full bg-accent/10 flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-medium text-fg mb-2">Check your email</h2>
+            <p className="text-sm text-fg-4 mb-6">
+              We sent a sign-in link to<br />
+              <span className="font-medium text-fg">{email.trim().toLowerCase()}</span>
+            </p>
+            <p className="text-xs text-fg-5 mb-6">
+              Click the link in the email to access your dashboard. You can close this tab.
+            </p>
+            <button
+              onClick={() => { setSent(false); setError(null); }}
+              className="text-sm text-accent font-medium hover:text-accent-dark transition-colors"
+            >
+              Use a different email
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -174,7 +179,7 @@ function SignupForm() {
 
           {emailReadOnly && (
             <div className="mb-4 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-600 text-xs leading-relaxed">
-              Your membership is approved! Choose a password below to activate your account.
+              Your membership is approved! Enter your details below to get started.
             </div>
           )}
 
@@ -264,46 +269,12 @@ function SignupForm() {
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-fg/70 mb-1.5">
-                Set a password for your dashboard
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  autoComplete="new-password"
-                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all pr-12"
-                  placeholder="At least 6 characters"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-fg-5 hover:text-fg-3 transition-colors"
-                >
-                  {showPassword ? (
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.543 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
-
             <button
               type="submit"
               disabled={loading}
               className="w-full py-3 rounded-xl bg-rail text-white font-medium hover:bg-rail/90 transition-colors disabled:opacity-50 [touch-action:manipulation]"
             >
-              {loading ? "Creating account..." : "Create Account"}
+              {loading ? "Sending link..." : "Send Sign-In Link"}
             </button>
           </form>
 
