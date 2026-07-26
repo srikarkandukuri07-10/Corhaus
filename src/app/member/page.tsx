@@ -213,9 +213,14 @@ export default function MemberDashboard() {
         notes: null,
         classes: { class_date: pt.session_date },
       }));
-    const allBookings = [...userBookings, ...ptBookings];
-    setBookings(allBookings);
-    bookingsRef.current = allBookings;
+    const dbBookings = [...userBookings, ...ptBookings];
+    setBookings(prev => {
+      // Preserve local bookings for classes not yet in DB results
+      const dbClassIds = new Set(dbBookings.map(b => b.class_id));
+      const merged = [...dbBookings, ...prev.filter(b => b.booking_status === "booked" && !dbClassIds.has(b.class_id))];
+      bookingsRef.current = merged;
+      return merged;
+    });
 
     if (ar.data) setAttendanceRecords(ar.data as AttendanceData[]);
 
@@ -440,12 +445,12 @@ export default function MemberDashboard() {
     const booking = bookings.find(b => b.class_id === cls.id && b.booking_status === "booked");
     if (!booking) return;
     setBookingLoading(cls.id);
-    const { error } = await supabase.from("bookings").update({ booking_status: "cancelled" }).eq("id", booking.id).eq("member_id", uid);
+    const { error } = await supabase.from("bookings").update({ booking_status: "cancelled" }).eq("class_id", cls.id).eq("member_id", uid).eq("booking_status", "booked");
     if (error) { setBookingLoading(null); setMessage({ type: "error", text: error.message }); return; }
     setMessage({ type: "success", text: "Booking cancelled successfully!" });
 
-    setBookings(prev => prev.filter(b => b.id !== booking.id));
-    bookingsRef.current = bookingsRef.current.filter(b => b.id !== booking.id);
+    setBookings(prev => prev.filter(b => b.class_id !== cls.id || b.booking_status !== "booked"));
+    bookingsRef.current = bookingsRef.current.filter(b => b.class_id !== cls.id || b.booking_status !== "booked");
     setQrDataUrls(prev => { const n = { ...prev }; delete n[cls.id]; return n; });
     delete qrDataUrlsRef.current[cls.id];
     setBookingLoading(null);
