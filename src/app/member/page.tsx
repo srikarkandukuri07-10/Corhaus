@@ -91,6 +91,8 @@ export default function MemberDashboard() {
   const [totalCredits, setTotalCredits] = useState(6);
   const [usedCredits, setUsedCredits] = useState(0);
   const [classTypes, setClassTypes] = useState<Record<string, string>>({});
+  const [showBookConfirm, setShowBookConfirm] = useState(false);
+  const [bookConfirmClass, setBookConfirmClass] = useState<ClassData | null>(null);
 
   // Store latest data in refs for interval access
   const classesRef = useRef<ClassData[]>([]);
@@ -332,6 +334,17 @@ export default function MemberDashboard() {
       return;
     }
 
+    setBookConfirmClass(cls);
+    setShowBookConfirm(true);
+  }
+
+  async function confirmBook() {
+    const cls = bookConfirmClass;
+    if (!cls) return;
+    const uid = userIdRef.current;
+    if (!uid) return;
+
+    setShowBookConfirm(false);
     setBookingLoading(cls.id);
     const cancelled = await supabase.from("bookings").select("id").eq("class_id", cls.id).eq("member_id", uid).eq("booking_status", "cancelled").maybeSingle();
     let error;
@@ -341,6 +354,7 @@ export default function MemberDashboard() {
       ({ error } = await supabase.from("bookings").insert({ class_id: cls.id, member_id: uid, booking_status: "booked" }));
     }
     setBookingLoading(null);
+    setBookConfirmClass(null);
     if (error) { setMessage({ type: "error", text: error.message }); return; }
     setMessage({ type: "success", text: "Class booked successfully!" });
     fetchData();
@@ -545,6 +559,50 @@ export default function MemberDashboard() {
         </div>
       )}
       </div>
+
+      {showBookConfirm && bookConfirmClass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-surface rounded-2xl border border-line shadow-xl max-w-md w-full p-6 space-y-5 animate-fade-in">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <div>
+                <h3 className="text-lg font-bold text-fg">Confirm Booking</h3>
+                <p className="text-xs text-fg-3">You are about to book this class</p>
+              </div>
+              <button onClick={() => { setShowBookConfirm(false); setBookConfirmClass(null); }} className="p-1.5 rounded-lg border border-line text-fg-3 hover:text-fg transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-4 bg-surface-2 rounded-xl border border-line">
+                <h4 className="text-sm font-bold text-fg">{bookConfirmClass.title}</h4>
+                <p className="text-xs text-fg-3 mt-1">Instructor: {bookConfirmClass.instructor}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-surface-2 rounded-xl border border-line text-center">
+                  <p className="text-[10px] text-fg-5 uppercase tracking-wider font-semibold">Date</p>
+                  <p className="text-xs font-bold text-fg mt-1">{formatDate(bookConfirmClass.class_date)}</p>
+                </div>
+                <div className="p-3 bg-surface-2 rounded-xl border border-line text-center">
+                  <p className="text-[10px] text-fg-5 uppercase tracking-wider font-semibold">Time</p>
+                  <p className="text-xs font-bold text-fg mt-1">{formatTime(bookConfirmClass.class_time)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-line">
+              <button onClick={() => { setShowBookConfirm(false); setBookConfirmClass(null); }}
+                className="px-5 py-2.5 border border-line rounded-xl text-xs font-semibold text-fg hover:bg-surface-2 transition-colors">
+                Cancel
+              </button>
+              <button onClick={confirmBook} disabled={bookingLoading === bookConfirmClass.id}
+                className="px-5 py-2.5 bg-rail text-white rounded-xl text-xs font-semibold hover:bg-rail/90 disabled:opacity-50 transition-colors">
+                {bookingLoading === bookConfirmClass.id ? "Booking..." : "Confirm Booking"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {mounted && createPortal(
         <a
