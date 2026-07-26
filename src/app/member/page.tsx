@@ -346,10 +346,22 @@ export default function MemberDashboard() {
 
     setShowBookConfirm(false);
     setBookingLoading(cls.id);
-    const cancelled = await supabase.from("bookings").select("id").eq("class_id", cls.id).eq("member_id", uid).eq("booking_status", "cancelled").maybeSingle();
+
+    const { data: existing } = await supabase.from("bookings").select("id, booking_status")
+      .eq("class_id", cls.id).eq("member_id", uid).maybeSingle();
+
     let error;
-    if (cancelled.data) {
-      ({ error } = await supabase.from("bookings").update({ booking_status: "booked" }).eq("id", cancelled.data.id));
+    if (existing) {
+      if (existing.booking_status === "booked") {
+        setBookingLoading(null);
+        setBookConfirmClass(null);
+        setMessage({ type: "error", text: "You already have a booking for this class." });
+        fetchData();
+        return;
+      }
+      if (existing.booking_status === "cancelled") {
+        ({ error } = await supabase.from("bookings").update({ booking_status: "booked" }).eq("id", existing.id));
+      }
     } else {
       ({ error } = await supabase.from("bookings").insert({ class_id: cls.id, member_id: uid, booking_status: "booked" }));
     }
@@ -357,7 +369,7 @@ export default function MemberDashboard() {
     setBookConfirmClass(null);
     if (error) { setMessage({ type: "error", text: error.message }); return; }
     setMessage({ type: "success", text: "Class booked successfully!" });
-    fetchData();
+    await fetchData();
   }
 
   function canCancel(cls: ClassData, now: number) {
