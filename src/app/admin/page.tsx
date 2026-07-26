@@ -168,6 +168,7 @@ export default function AdminDashboard() {
         .from("bookings")
         .select("*, profiles(full_name, email, phone_number, avatar_url)")
         .eq("class_id", classId)
+        .eq("booking_status", "booked")
         .order("created_at", { ascending: true });
 
       if (!error && data) {
@@ -511,7 +512,7 @@ export default function AdminDashboard() {
                       className="p-3 rounded-xl bg-surface-2 border border-line flex items-center justify-between text-xs"
                     >
                       <div>
-                        <p className="font-bold text-fg">{b.profiles?.full_name || "Member"}</p>
+                        <p className="font-bold text-fg">{b.profiles?.full_name || b.profiles?.email || "Member"}</p>
                         <p className="text-[11px] text-fg-3">{b.profiles?.phone_number || b.profiles?.email}</p>
                       </div>
                       <span className="px-2 py-0.5 rounded-full bg-accent/10 text-accent font-bold text-[10px]">
