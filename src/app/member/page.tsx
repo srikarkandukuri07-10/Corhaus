@@ -409,11 +409,19 @@ export default function MemberDashboard() {
     } else {
       ({ error } = await supabase.from("bookings").insert({ class_id: cls.id, member_id: uid, booking_status: "booked" }));
     }
+    if (error) { setBookingLoading(null); setBookConfirmClass(null); setMessage({ type: "error", text: error.message }); return; }
+    setMessage({ type: "success", text: "Class booked successfully!" });
+
+    const { data: fresh } = await supabase.from("bookings").select("id, class_id, booking_status, notes, classes(class_date)").eq("member_id", uid);
+    if (fresh) {
+      const ptBookings = ptSessions.filter(pt => pt.status === "scheduled").map(pt => ({ id: pt.id, class_id: `pt_${pt.id}`, booking_status: "booked", notes: null, classes: { class_date: pt.session_date } }));
+      const all = [...fresh, ...ptBookings];
+      setBookings(all as BookingData[]);
+      bookingsRef.current = all as BookingData[];
+    }
+
     setBookingLoading(null);
     setBookConfirmClass(null);
-    if (error) { setMessage({ type: "error", text: error.message }); return; }
-    setMessage({ type: "success", text: "Class booked successfully!" });
-    await fetchData();
   }
 
   function canCancel(cls: ClassData, now: number) {
@@ -428,10 +436,19 @@ export default function MemberDashboard() {
     if (!booking) return;
     setBookingLoading(cls.id);
     const { error } = await supabase.from("bookings").update({ booking_status: "cancelled" }).eq("id", booking.id).eq("member_id", uid);
-    setBookingLoading(null);
-    if (error) { setMessage({ type: "error", text: error.message }); return; }
+    if (error) { setBookingLoading(null); setMessage({ type: "error", text: error.message }); return; }
     setMessage({ type: "success", text: "Booking cancelled successfully!" });
-    await fetchData();
+
+    const { data: fresh } = await supabase.from("bookings").select("id, class_id, booking_status, notes, classes(class_date)").eq("member_id", uid);
+    if (fresh) {
+      const ptBookings = ptSessions.filter(pt => pt.status === "scheduled").map(pt => ({ id: pt.id, class_id: `pt_${pt.id}`, booking_status: "booked", notes: null, classes: { class_date: pt.session_date } }));
+      const all = [...fresh, ...ptBookings];
+      setBookings(all as BookingData[]);
+      bookingsRef.current = all as BookingData[];
+    }
+    setQrDataUrls(prev => { const n = { ...prev }; delete n[cls.id]; return n; });
+    delete qrDataUrlsRef.current[cls.id];
+    setBookingLoading(null);
   }
 
   function formatTime(time: string) {
