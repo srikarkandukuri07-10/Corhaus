@@ -10,13 +10,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { bookingId, classId } = await req.json();
+    const { bookingId, classId, memberId, isPtSession } = await req.json();
 
     if (!bookingId || !classId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Verify that the booking belongs to the authenticated user
+    const supabaseService = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    if (isPtSession) {
+      const token = crypto.randomUUID();
+      const { error } = await supabaseService.from("attendance").insert({
+        booking_id: bookingId,
+        class_id: classId,
+        member_id: user.id,
+        attendance_token: token,
+        attendance_status: "pending",
+      });
+      if (error) {
+        return NextResponse.json({ error: "Failed to generate attendance token" }, { status: 500 });
+      }
+      return NextResponse.json({ token });
+    }
+
     const { data: booking, error: bookingError } = await supabaseServer
       .from("bookings")
       .select("id")
@@ -30,15 +49,10 @@ export async function POST(req: Request) {
 
     const token = crypto.randomUUID();
 
-    const supabaseService = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
     const { error } = await supabaseService.from("attendance").insert({
       booking_id: bookingId,
       class_id: classId,
-      member_id: user.id, // Derived securely from authenticated session
+      member_id: user.id,
       attendance_token: token,
       attendance_status: "pending",
     });
@@ -52,4 +66,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

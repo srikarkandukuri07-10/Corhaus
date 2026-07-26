@@ -34,6 +34,17 @@ interface AttendanceData {
   };
 }
 
+interface PtSessionData {
+  id: string;
+  member_id: string;
+  trainer_name: string;
+  session_date: string;
+  session_time: string;
+  duration_minutes: number;
+  status: string;
+  purchased_plan_id: string | null;
+}
+
 // IST constant
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
@@ -76,6 +87,7 @@ export default function MemberDashboard() {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceData[]>([]);
+  const [ptSessions, setPtSessions] = useState<PtSessionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
   const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
@@ -135,13 +147,16 @@ export default function MemberDashboard() {
       planQuery = planQuery.eq("approved_member_id", user.id);
     }
 
-    const [cr, br, ar, ct, tiers, plans] = await Promise.all([
+    const [cr, br, ar, ct, tiers, plans, ptData] = await Promise.all([
       supabase.from("classes").select("*").gte("class_date", today).order("class_date", { ascending: true }).order("class_time", { ascending: true }),
       bookingsQuery,
       attendanceQuery,
       supabase.from("class_types").select("*"),
       supabase.from("membership_credit_tiers").select("*"),
       planQuery,
+      approvedMemberId
+        ? supabase.from("pt_sessions").select("*").eq("member_id", approvedMemberId).in("status", ["scheduled", "completed"]).order("session_date", { ascending: true }).order("session_time", { ascending: true })
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
     // Map class types to descriptions
@@ -164,15 +179,40 @@ export default function MemberDashboard() {
       classesRef.current = cr.data;
     }
 
+    const ptSessionsList = (ptData.data || []) as PtSessionData[];
+    setPtSessions(ptSessionsList);
+
+    const ptAsClasses: ClassData[] = ptSessionsList
+      .filter(pt => pt.status === "scheduled")
+      .map(pt => ({
+        id: `pt_${pt.id}`,
+        title: `PT Session with ${pt.trainer_name}`,
+        instructor: pt.trainer_name,
+        class_date: pt.session_date,
+        class_time: pt.session_time,
+        max_capacity: 1,
+      }));
+    const allClasses = [...(cr.data || []), ...ptAsClasses];
+    setClasses(allClasses);
+    classesRef.current = allClasses;
+
     let userBookings: BookingData[] = [];
     if (br.data) {
       userBookings = br.data as unknown as BookingData[];
-      setBookings(userBookings);
-      bookingsRef.current = userBookings;
-    } else {
-      setBookings([]);
-      bookingsRef.current = [];
     }
+    const ptBookings: BookingData[] = ptSessionsList
+      .filter(pt => pt.status === "scheduled")
+      .map(pt => ({
+        id: pt.id,
+        class_id: `pt_${pt.id}`,
+        booking_status: "booked",
+        notes: null,
+        classes: { class_date: pt.session_date },
+      }));
+    const allBookings = [...userBookings, ...ptBookings];
+    setBookings(allBookings);
+    bookingsRef.current = allBookings;
+
     if (ar.data) setAttendanceRecords(ar.data as AttendanceData[]);
 
     // Find active purchased plan
@@ -213,6 +253,7 @@ export default function MemberDashboard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => fetchData())
       .on("postgres_changes", { event: "*", schema: "public", table: "classes" }, () => fetchData())
       .on("postgres_changes", { event: "*", schema: "public", table: "attendance" }, () => fetchData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "pt_sessions" }, () => fetchData())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [supabase, fetchData]);
@@ -241,13 +282,13 @@ export default function MemberDashboard() {
 
   // Generate QR — reads from refs for latest data
   const generateQrForClass = useCallback(async (cls: ClassData) => {
+    const isPt = cls.id.startsWith("pt_");
     const booking = bookingsRef.current.find(b => b.class_id === cls.id && b.booking_status === "booked");
     const uid = userIdRef.current;
     if (!booking || !uid) return;
     if (qrDataUrlsRef.current[cls.id]) return;
     if (generatingRef.current.has(cls.id)) return;
 
-    // Check existing attendance
     const existing = attendanceRecords.find(a => a.class_id === cls.id);
     if (existing) {
       const dataUrl = await QRCode.toDataURL(
@@ -263,10 +304,11 @@ export default function MemberDashboard() {
     setIsGenerating(prev => ({ ...prev, [cls.id]: true }));
 
     try {
+      const realClassId = isPt ? cls.id.replace("pt_", "") : cls.id;
       const res = await fetch("/api/attendance/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId: booking.id, classId: cls.id, memberId: uid }),
+        body: JSON.stringify({ bookingId: booking.id, classId: realClassId, memberId: uid, isPtSession: isPt }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -473,6 +515,7 @@ export default function MemberDashboard() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {classes.filter(cls => !isClassOver(cls, currentTime)).map((cls) => {
+            const isPt = cls.id.startsWith("pt_");
             const booked = bookings.some(b => b.class_id === cls.id && b.booking_status === "booked");
             const attendance = attendanceRecords.find(a => a.class_id === cls.id);
             const showQr = booked && shouldShowQr(cls, currentTime) && !isClassStarted(cls, currentTime);
@@ -485,7 +528,10 @@ export default function MemberDashboard() {
                 <div>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-medium text-fg text-lg">{cls.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-fg text-lg">{cls.title}</h3>
+                        {isPt && <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full uppercase tracking-wider">PT</span>}
+                      </div>
                       <p className="text-sm text-fg-4 mt-1">{cls.instructor}</p>
                       {classTypes[cls.title] && (
                         <p className="text-xs text-fg-3 mt-2 italic leading-relaxed">
@@ -552,7 +598,11 @@ export default function MemberDashboard() {
                 </div>
 
                 <div className="mt-4 space-y-2">
-                  {ongoing && booked ? (
+                  {isPt && booked && !started ? (
+                    <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-accent/10 text-accent border border-accent/20">
+                      Personal Training Session
+                    </div>
+                  ) : ongoing && booked ? (
                     <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-text-gold/10 text-text-gold border border-text-gold/20">
                       Ongoing Class
                     </div>
