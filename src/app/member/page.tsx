@@ -110,7 +110,6 @@ export default function MemberDashboard() {
   const classesRef = useRef<ClassData[]>([]);
   const bookingsRef = useRef<BookingData[]>([]);
   const qrDataUrlsRef = useRef<Record<string, string>>({});
-  const recentlyBookedRef = useRef<Map<string, number>>(new Map());
 
   const fetchData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -212,21 +211,9 @@ export default function MemberDashboard() {
       }));
     const dbBookings = [...userBookings, ...ptBookings];
     setBookings(prev => {
-      const recent = recentlyBookedRef.current;
-      const now = Date.now();
-      // Clean up expired entries
-      for (const [key, ts] of recent) {
-        if (now - ts >= 15000) recent.delete(key);
-      }
-      if (recent.size === 0) { bookingsRef.current = dbBookings; return dbBookings; }
-      const merged = [...dbBookings];
-      const dbIds = new Set(dbBookings.map(b => b.class_id));
-      for (const pb of prev) {
-        const ts = recent.get(pb.class_id);
-        if (pb.booking_status === "booked" && ts !== undefined && now - ts < 15000 && !dbIds.has(pb.class_id)) {
-          merged.push(pb);
-        }
-      }
+      const result = new Map(prev.map(b => [b.class_id, b]));
+      for (const b of dbBookings) result.set(b.class_id, b);
+      const merged = Array.from(result.values());
       bookingsRef.current = merged;
       return merged;
     });
@@ -413,8 +400,6 @@ export default function MemberDashboard() {
     const { data: existing } = await supabase.from("bookings").select("id, booking_status")
       .eq("class_id", cls.id).eq("member_id", uid).maybeSingle();
 
-    let error;
-    let realBookingId;
     if (existing) {
       if (existing.booking_status === "booked") {
         setBookingLoading(null);
@@ -423,31 +408,20 @@ export default function MemberDashboard() {
         return;
       }
       if (existing.booking_status === "cancelled") {
-        ({ error } = await supabase.from("bookings").update({ booking_status: "booked" }).eq("id", existing.id));
-        realBookingId = existing.id;
+        await supabase.from("bookings").update({ booking_status: "booked" }).eq("id", existing.id);
       }
     } else {
-      ({ error } = await supabase.from("bookings").insert({ class_id: cls.id, member_id: uid, booking_status: "booked" }));
+      await supabase.from("bookings").insert({ class_id: cls.id, member_id: uid, booking_status: "booked" });
     }
-    if (error) { setBookingLoading(null); setBookConfirmClass(null); setMessage({ type: "error", text: error.message }); return; }
+
+    const tmpId = crypto.randomUUID();
+    const newBooking: BookingData = { id: tmpId, class_id: cls.id, booking_status: "booked", notes: null, classes: { class_date: cls.class_date } };
+    setBookings(prev => {
+      const updated = [...prev, newBooking];
+      bookingsRef.current = updated;
+      return updated;
+    });
     setMessage({ type: "success", text: "Class booked successfully!" });
-
-    recentlyBookedRef.current.set(cls.id, Date.now());
-
-    if (!realBookingId) {
-      await new Promise(r => setTimeout(r, 200));
-      const { data: dbBooking } = await supabase.from("bookings")
-        .select("id, class_id, booking_status, notes, classes(class_date)")
-        .eq("class_id", cls.id).eq("member_id", uid).eq("booking_status", "booked")
-        .maybeSingle();
-      if (dbBooking) realBookingId = dbBooking.id;
-    }
-
-    const finalId = realBookingId || crypto.randomUUID();
-    const newBooking: BookingData = { id: finalId, class_id: cls.id, booking_status: "booked", notes: null, classes: { class_date: cls.class_date } };
-    setBookings(prev => [...prev, newBooking]);
-    bookingsRef.current = [...bookingsRef.current, newBooking];
-
     setBookingLoading(null);
     setBookConfirmClass(null);
   }
@@ -469,7 +443,6 @@ export default function MemberDashboard() {
 
     setBookings(prev => prev.filter(b => b.class_id !== cls.id || b.booking_status !== "booked"));
     bookingsRef.current = bookingsRef.current.filter(b => b.class_id !== cls.id || b.booking_status !== "booked");
-    recentlyBookedRef.current.delete(cls.id);
     setQrDataUrls(prev => { const n = { ...prev }; delete n[cls.id]; return n; });
     delete qrDataUrlsRef.current[cls.id];
     setBookingLoading(null);
