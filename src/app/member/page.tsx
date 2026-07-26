@@ -110,10 +110,14 @@ export default function MemberDashboard() {
   const classesRef = useRef<ClassData[]>([]);
   const bookingsRef = useRef<BookingData[]>([]);
   const qrDataUrlsRef = useRef<Record<string, string>>({});
+  const fetchingRef = useRef(false);
 
   const fetchData = useCallback(async () => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+    try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { fetchingRef.current = false; return; }
     userIdRef.current = user.id;
 
     const today = new Date(Date.now() + IST_OFFSET_MS).toISOString().split("T")[0];
@@ -239,6 +243,9 @@ export default function MemberDashboard() {
     }
 
     setLoading(false);
+    } finally {
+      fetchingRef.current = false;
+    }
   }, [supabase]);
 
   useEffect(() => {
@@ -395,7 +402,6 @@ export default function MemberDashboard() {
     const { data: existing } = await supabase.from("bookings").select("id, booking_status")
       .eq("class_id", cls.id).eq("member_id", uid).maybeSingle();
 
-    let bookingId;
     let error;
     if (existing) {
       if (existing.booking_status === "booked") {
@@ -406,23 +412,18 @@ export default function MemberDashboard() {
       }
       if (existing.booking_status === "cancelled") {
         ({ error } = await supabase.from("bookings").update({ booking_status: "booked" }).eq("id", existing.id));
-        bookingId = existing.id;
       }
     } else {
-      const { data: inserted, error: insertError } = await supabase
-        .from("bookings").insert({ class_id: cls.id, member_id: uid, booking_status: "booked" })
-        .select("id").single();
-      error = insertError;
-      bookingId = inserted?.id;
+      ({ error } = await supabase.from("bookings").insert({ class_id: cls.id, member_id: uid, booking_status: "booked" }));
     }
     if (error) { setBookingLoading(null); setBookConfirmClass(null); setMessage({ type: "error", text: error.message }); return; }
     setMessage({ type: "success", text: "Class booked successfully!" });
 
-    if (bookingId) {
-      const newBooking: BookingData = { id: bookingId, class_id: cls.id, booking_status: "booked", notes: null, classes: { class_date: cls.class_date } };
-      setBookings(prev => [...prev, newBooking]);
-      bookingsRef.current = [...bookingsRef.current, newBooking];
-    }
+    // Immediately add to local state — will be confirmed by poll/realtime
+    const tmpId = crypto.randomUUID();
+    const newBooking: BookingData = { id: tmpId, class_id: cls.id, booking_status: "booked", notes: null, classes: { class_date: cls.class_date } };
+    setBookings(prev => [...prev, newBooking]);
+    bookingsRef.current = [...bookingsRef.current, newBooking];
 
     setBookingLoading(null);
     setBookConfirmClass(null);
