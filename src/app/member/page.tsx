@@ -110,7 +110,7 @@ export default function MemberDashboard() {
   const classesRef = useRef<ClassData[]>([]);
   const bookingsRef = useRef<BookingData[]>([]);
   const qrDataUrlsRef = useRef<Record<string, string>>({});
-  const recentlyBookedRef = useRef<Set<string>>(new Set());
+  const recentlyBookedRef = useRef<Map<string, number>>(new Map());
 
   const fetchData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -213,11 +213,17 @@ export default function MemberDashboard() {
     const dbBookings = [...userBookings, ...ptBookings];
     setBookings(prev => {
       const recent = recentlyBookedRef.current;
+      const now = Date.now();
+      // Clean up expired entries
+      for (const [key, ts] of recent) {
+        if (now - ts >= 15000) recent.delete(key);
+      }
       if (recent.size === 0) { bookingsRef.current = dbBookings; return dbBookings; }
       const merged = [...dbBookings];
       const dbIds = new Set(dbBookings.map(b => b.class_id));
       for (const pb of prev) {
-        if (pb.booking_status === "booked" && recent.has(pb.class_id) && !dbIds.has(pb.class_id)) {
+        const ts = recent.get(pb.class_id);
+        if (pb.booking_status === "booked" && ts !== undefined && now - ts < 15000 && !dbIds.has(pb.class_id)) {
           merged.push(pb);
         }
       }
@@ -426,8 +432,7 @@ export default function MemberDashboard() {
     if (error) { setBookingLoading(null); setBookConfirmClass(null); setMessage({ type: "error", text: error.message }); return; }
     setMessage({ type: "success", text: "Class booked successfully!" });
 
-    recentlyBookedRef.current.add(cls.id);
-    setTimeout(() => { recentlyBookedRef.current.delete(cls.id); }, 10000);
+    recentlyBookedRef.current.set(cls.id, Date.now());
 
     if (!realBookingId) {
       await new Promise(r => setTimeout(r, 200));
