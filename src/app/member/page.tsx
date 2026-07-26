@@ -106,10 +106,27 @@ export default function MemberDashboard() {
   const [showBookConfirm, setShowBookConfirm] = useState(false);
   const [bookConfirmClass, setBookConfirmClass] = useState<ClassData | null>(null);
 
+  const LOCAL_STORAGE_KEY = "corhaus_booked_ids";
+
+  const [forceBookedIds, setForceBookedIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (raw) return new Set(JSON.parse(raw) as string[]);
+    } catch {}
+    return new Set();
+  });
+
+  const saveForceBooked = (ids: Set<string>) => {
+    try { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([...ids])); } catch {}
+  };
+
   // Store latest data in refs for interval access
   const classesRef = useRef<ClassData[]>([]);
   const bookingsRef = useRef<BookingData[]>([]);
   const qrDataUrlsRef = useRef<Record<string, string>>({});
+  const forceBookedIdsRef = useRef(forceBookedIds);
+  forceBookedIdsRef.current = forceBookedIds;
 
   const fetchData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -210,12 +227,19 @@ export default function MemberDashboard() {
         classes: { class_date: pt.session_date },
       }));
     const dbBookings = [...userBookings, ...ptBookings];
-    setBookings(prev => {
-      const result = new Map(prev.map(b => [b.class_id, b]));
-      for (const b of dbBookings) result.set(b.class_id, b);
-      const merged = Array.from(result.values());
-      bookingsRef.current = merged;
-      return merged;
+    setBookings(dbBookings);
+    bookingsRef.current = dbBookings;
+
+    setForceBookedIds(prev => {
+      const next = new Set(prev);
+      for (const b of dbBookings) {
+        if (b.booking_status === "booked") next.add(b.class_id);
+      }
+      for (const b of dbBookings) {
+        if (b.booking_status !== "booked") next.delete(b.class_id);
+      }
+      saveForceBooked(next);
+      return next;
     });
 
     if (ar.data) setAttendanceRecords(ar.data as AttendanceData[]);
@@ -340,7 +364,7 @@ export default function MemberDashboard() {
     const id = setInterval(() => {
       const now = Date.now();
       for (const cls of classesRef.current) {
-        if (!bookingsRef.current.some(b => b.class_id === cls.id && b.booking_status === "booked")) continue;
+        if (!bookingsRef.current.some(b => b.class_id === cls.id && b.booking_status === "booked") && !forceBookedIdsRef.current.has(cls.id)) continue;
         const classStart = parseAsIst(cls.class_date, cls.class_time);
         const qrRelease = classStart - 30 * 60 * 1000;
         if (now < qrRelease || now >= classStart) continue;
@@ -359,7 +383,7 @@ export default function MemberDashboard() {
     renderCheckCount.current++;
     const now = Date.now();
     for (const cls of classes) {
-      if (!bookings.some(b => b.class_id === cls.id && b.booking_status === "booked")) continue;
+      if (!bookings.some(b => b.class_id === cls.id && b.booking_status === "booked") && !forceBookedIds.has(cls.id)) continue;
       const classStart = parseAsIst(cls.class_date, cls.class_time);
       const qrRelease = classStart - 30 * 60 * 1000;
       if (now < qrRelease || now >= classStart) continue;
@@ -416,11 +440,20 @@ export default function MemberDashboard() {
 
     const tmpId = crypto.randomUUID();
     const newBooking: BookingData = { id: tmpId, class_id: cls.id, booking_status: "booked", notes: null, classes: { class_date: cls.class_date } };
+    
     setBookings(prev => {
-      const updated = [...prev, newBooking];
+      const updated = [...prev.filter(b => b.class_id !== cls.id), newBooking];
       bookingsRef.current = updated;
       return updated;
     });
+
+    setForceBookedIds(prev => {
+      const next = new Set(prev);
+      next.add(cls.id);
+      saveForceBooked(next);
+      return next;
+    });
+
     setMessage({ type: "success", text: "Class booked successfully!" });
     setBookingLoading(null);
     setBookConfirmClass(null);
@@ -434,15 +467,25 @@ export default function MemberDashboard() {
     const uid = userIdRef.current;
     if (!uid) return;
     if (!canCancel(cls, Date.now())) { setMessage({ type: "error", text: "Cannot cancel \u2014 less than 6 hours before class starts." }); return; }
-    const booking = bookings.find(b => b.class_id === cls.id && b.booking_status === "booked");
+    const booking = bookings.find(b => b.class_id === cls.id && b.booking_status === "booked") || (forceBookedIds.has(cls.id) ? {} as BookingData : undefined);
     if (!booking) return;
     setBookingLoading(cls.id);
     const { error } = await supabase.from("bookings").update({ booking_status: "cancelled" }).eq("class_id", cls.id).eq("member_id", uid).eq("booking_status", "booked");
     if (error) { setBookingLoading(null); setMessage({ type: "error", text: error.message }); return; }
     setMessage({ type: "success", text: "Booking cancelled successfully!" });
 
-    setBookings(prev => prev.filter(b => b.class_id !== cls.id || b.booking_status !== "booked"));
-    bookingsRef.current = bookingsRef.current.filter(b => b.class_id !== cls.id || b.booking_status !== "booked");
+    setBookings(prev => {
+      const updated = prev.filter(b => b.class_id !== cls.id || b.booking_status !== "booked");
+      bookingsRef.current = updated;
+      return updated;
+    });
+
+    setForceBookedIds(prev => {
+      const next = new Set(prev);
+      next.delete(cls.id);
+      saveForceBooked(next);
+      return next;
+    });
     setQrDataUrls(prev => { const n = { ...prev }; delete n[cls.id]; return n; });
     delete qrDataUrlsRef.current[cls.id];
     setBookingLoading(null);
@@ -523,7 +566,7 @@ export default function MemberDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {classes.filter(cls => !isClassOver(cls, currentTime)).map((cls) => {
             const isPt = cls.id.startsWith("pt_");
-            const booked = bookings.some(b => b.class_id === cls.id && b.booking_status === "booked");
+            const booked = bookings.some(b => b.class_id === cls.id && b.booking_status === "booked") || forceBookedIds.has(cls.id);
             const attendance = attendanceRecords.find(a => a.class_id === cls.id);
             const showQr = booked && shouldShowQr(cls, currentTime) && !isClassStarted(cls, currentTime);
             const qrUrl = qrDataUrls[cls.id];
