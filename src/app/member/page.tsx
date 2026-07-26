@@ -169,6 +169,9 @@ export default function MemberDashboard() {
       userBookings = br.data as unknown as BookingData[];
       setBookings(userBookings);
       bookingsRef.current = userBookings;
+    } else {
+      setBookings([]);
+      bookingsRef.current = [];
     }
     if (ar.data) setAttendanceRecords(ar.data as AttendanceData[]);
 
@@ -369,6 +372,10 @@ export default function MemberDashboard() {
     setBookConfirmClass(null);
     if (error) { setMessage({ type: "error", text: error.message }); return; }
     setMessage({ type: "success", text: "Class booked successfully!" });
+
+    const newBooking: BookingData = { id: crypto.randomUUID(), class_id: cls.id, booking_status: "booked", notes: null, classes: { class_date: cls.class_date } };
+    setBookings(prev => [...prev, newBooking]);
+    bookingsRef.current = [...bookingsRef.current, newBooking];
     await fetchData();
   }
 
@@ -387,7 +394,9 @@ export default function MemberDashboard() {
     setBookingLoading(null);
     if (error) { setMessage({ type: "error", text: error.message }); return; }
     setMessage({ type: "success", text: "Booking cancelled successfully!" });
-    fetchData();
+    setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, booking_status: "cancelled" } : b));
+    bookingsRef.current = bookingsRef.current.map(b => b.id === booking.id ? { ...b, booking_status: "cancelled" } : b);
+    await fetchData();
   }
 
   function formatTime(time: string) {
