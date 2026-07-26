@@ -395,6 +395,7 @@ export default function MemberDashboard() {
     const { data: existing } = await supabase.from("bookings").select("id, booking_status")
       .eq("class_id", cls.id).eq("member_id", uid).maybeSingle();
 
+    let bookingId;
     let error;
     if (existing) {
       if (existing.booking_status === "booked") {
@@ -405,19 +406,22 @@ export default function MemberDashboard() {
       }
       if (existing.booking_status === "cancelled") {
         ({ error } = await supabase.from("bookings").update({ booking_status: "booked" }).eq("id", existing.id));
+        bookingId = existing.id;
       }
     } else {
-      ({ error } = await supabase.from("bookings").insert({ class_id: cls.id, member_id: uid, booking_status: "booked" }));
+      const { data: inserted, error: insertError } = await supabase
+        .from("bookings").insert({ class_id: cls.id, member_id: uid, booking_status: "booked" })
+        .select("id").single();
+      error = insertError;
+      bookingId = inserted?.id;
     }
     if (error) { setBookingLoading(null); setBookConfirmClass(null); setMessage({ type: "error", text: error.message }); return; }
     setMessage({ type: "success", text: "Class booked successfully!" });
 
-    const { data: fresh } = await supabase.from("bookings").select("id, class_id, booking_status, notes, classes(class_date)").eq("member_id", uid);
-    if (fresh) {
-      const ptBookings = ptSessions.filter(pt => pt.status === "scheduled").map(pt => ({ id: pt.id, class_id: `pt_${pt.id}`, booking_status: "booked", notes: null, classes: { class_date: pt.session_date } }));
-      const all = [...fresh, ...ptBookings];
-      setBookings(all as BookingData[]);
-      bookingsRef.current = all as BookingData[];
+    if (bookingId) {
+      const newBooking: BookingData = { id: bookingId, class_id: cls.id, booking_status: "booked", notes: null, classes: { class_date: cls.class_date } };
+      setBookings(prev => [...prev, newBooking]);
+      bookingsRef.current = [...bookingsRef.current, newBooking];
     }
 
     setBookingLoading(null);
@@ -439,13 +443,8 @@ export default function MemberDashboard() {
     if (error) { setBookingLoading(null); setMessage({ type: "error", text: error.message }); return; }
     setMessage({ type: "success", text: "Booking cancelled successfully!" });
 
-    const { data: fresh } = await supabase.from("bookings").select("id, class_id, booking_status, notes, classes(class_date)").eq("member_id", uid);
-    if (fresh) {
-      const ptBookings = ptSessions.filter(pt => pt.status === "scheduled").map(pt => ({ id: pt.id, class_id: `pt_${pt.id}`, booking_status: "booked", notes: null, classes: { class_date: pt.session_date } }));
-      const all = [...fresh, ...ptBookings];
-      setBookings(all as BookingData[]);
-      bookingsRef.current = all as BookingData[];
-    }
+    setBookings(prev => prev.filter(b => b.id !== booking.id));
+    bookingsRef.current = bookingsRef.current.filter(b => b.id !== booking.id);
     setQrDataUrls(prev => { const n = { ...prev }; delete n[cls.id]; return n; });
     delete qrDataUrlsRef.current[cls.id];
     setBookingLoading(null);
