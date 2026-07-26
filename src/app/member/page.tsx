@@ -418,7 +418,6 @@ export default function MemberDashboard() {
     const newBooking: BookingData = { id: crypto.randomUUID(), class_id: cls.id, booking_status: "booked", notes: null, classes: { class_date: cls.class_date } };
     setBookings(prev => [...prev, newBooking]);
     bookingsRef.current = [...bookingsRef.current, newBooking];
-    await fetchData();
   }
 
   function canCancel(cls: ClassData, now: number) {
@@ -438,7 +437,6 @@ export default function MemberDashboard() {
     setMessage({ type: "success", text: "Booking cancelled successfully!" });
     setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, booking_status: "cancelled" } : b));
     bookingsRef.current = bookingsRef.current.map(b => b.id === booking.id ? { ...b, booking_status: "cancelled" } : b);
-    await fetchData();
   }
 
   function formatTime(time: string) {
