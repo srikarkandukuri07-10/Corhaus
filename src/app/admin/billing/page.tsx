@@ -774,13 +774,34 @@ export default function CreateBillPage() {
                 </span>
               )}
             </div>
-            {/* Customer indicator */}
+            {/* Customer indicator & Discount Status text */}
             {customerLabel && (
-              <div className="mt-2 flex items-center gap-1.5 text-xs text-fg-4">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <span>Bill for <span className="font-semibold text-fg">{customerLabel}</span></span>
+              <div className="mt-2 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs text-fg-4">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span>Bill for <span className="font-semibold text-fg">{customerLabel}</span></span>
+                </div>
+
+                {/* Member Discount Status Text */}
+                {selectedMember && (
+                  appliedDiscountId ? (
+                    <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-600 font-bold flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M17 17h.01M7 7l10 10M7 7a4 4 0 115.657 5.657M17 17a4 4 0 11-5.657-5.657" />
+                        </svg>
+                        <span>Discount: {discountType === "percentage" ? `${discountValue}% OFF` : `₹${parseFloat(discountValue || "0").toLocaleString("en-IN")} OFF`}</span>
+                      </div>
+                      {discountAmount > 0 && <span className="font-black text-emerald-600">−{fmt(discountAmount)}</span>}
+                    </div>
+                  ) : (
+                    <div className="text-[11px] font-medium text-fg-4 px-1">
+                      Discount: <span className="text-fg-5">No active discount</span>
+                    </div>
+                  )
+                )}
               </div>
             )}
           </div>
@@ -828,71 +849,16 @@ export default function CreateBillPage() {
               )}
             </div>
 
-            {/* Discount + Totals + Payment */}
+            {/* Totals Breakdown & Payment */}
             <div className="border-t border-line pt-3 space-y-3">
-              {/* Auto Discount Banner */}
-              {autoDiscountAlert && (
-                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-600 font-bold flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>{autoDiscountAlert}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Discount accordion */}
-              <div className="rounded-xl border border-line overflow-hidden bg-surface">
-                <button onClick={() => setShowDiscount(!showDiscount)}
-                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-fg-3 hover:bg-surface-2/50 transition-colors"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M17 17h.01M7 7l10 10M7 7a4 4 0 115.657 5.657M17 17a4 4 0 11-5.657-5.657" />
-                    </svg>
-                    Apply Discount
-                    {discountAmount > 0 && (
-                      <span className="text-green-600 font-bold">−{fmt(discountAmount)}</span>
-                    )}
-                  </span>
-                  <svg className={`w-3.5 h-3.5 transition-transform ${showDiscount ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {showDiscount && (
-                  <div className="px-3 pb-3 pt-2 border-t border-line space-y-2 bg-surface-2/20">
-                    <div className="flex rounded-lg border border-line overflow-hidden text-xs">
-                      <button onClick={() => setDiscountType("percentage")}
-                        className={`flex-1 py-1.5 font-semibold transition-colors ${discountType === "percentage" ? "bg-rail text-white" : "bg-surface text-fg-3 hover:bg-hover"}`}>
-                        % Off
-                      </button>
-                      <button onClick={() => setDiscountType("flat")}
-                        className={`flex-1 py-1.5 font-semibold transition-colors ${discountType === "flat" ? "bg-rail text-white" : "bg-surface text-fg-3 hover:bg-hover"}`}>
-                        ₹ Flat
-                      </button>
-                    </div>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-fg-5 font-semibold">
-                        {discountType === "percentage" ? "%" : "₹"}
-                      </span>
-                      <input type="number" min="0" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)}
-                        placeholder={discountType === "percentage" ? "e.g. 10" : "e.g. 500"}
-                        className="w-full pl-7 pr-3 py-2 rounded-lg border border-line bg-surface text-sm text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {/* Totals */}
               <div className="space-y-1.5 px-1">
                 <div className="flex items-center justify-between text-xs text-fg-4">
                   <span>Subtotal</span><span>{fmt(subtotal)}</span>
                 </div>
                 {discountAmount > 0 && (
-                  <div className="flex items-center justify-between text-xs text-green-600 font-medium">
-                    <span>Discount ({discountType === "percentage" ? discountValue + "%" : fmt(parseFloat(discountValue))})</span>
+                  <div className="flex items-center justify-between text-xs text-emerald-600 font-bold">
+                    <span>Member Discount ({discountType === "percentage" ? discountValue + "% OFF" : fmt(parseFloat(discountValue))})</span>
                     <span>− {fmt(discountAmount)}</span>
                   </div>
                 )}
