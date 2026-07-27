@@ -10,6 +10,22 @@ function getServiceSupabase() {
   );
 }
 
+async function ensureProfile(supabase: any, user: any) {
+  try {
+    await supabase.from("profiles").upsert(
+      {
+        id: user.id,
+        email: user.email || "",
+        full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
+        role: user.email === "kandukurisrikar10@gmail.com" ? "developer" : (user.email === "admin@corhaus.com" ? "admin" : "member"),
+      },
+      { onConflict: "id" }
+    );
+  } catch (err) {
+    console.error("Profile upsert error:", err);
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const supabaseServer = await createServerClient();
@@ -27,6 +43,7 @@ export async function POST(req: Request) {
     }
 
     const supabase = getServiceSupabase();
+    await ensureProfile(supabase, user);
 
     // Check user profile role
     const { data: profile } = await supabase
@@ -72,7 +89,7 @@ export async function POST(req: Request) {
         attachment_name: attachmentName || null,
         created_at: new Date().toISOString(),
       })
-      .select("*, profiles:sender_id(id, full_name, email)")
+      .select("*")
       .single();
 
     if (msgError || !newMsg) {
@@ -85,7 +102,6 @@ export async function POST(req: Request) {
       last_updated_at: new Date().toISOString(),
     };
 
-    // If client sends message on resolved ticket, revert to In Progress
     if (!isDeveloper && ticket.status === "Resolved") {
       ticketUpdates.status = "In Progress";
     }
@@ -95,7 +111,19 @@ export async function POST(req: Request) {
       .update(ticketUpdates)
       .eq("id", ticketId);
 
-    return NextResponse.json({ success: true, message: newMsg });
+    const { data: senderProfile } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    return NextResponse.json({
+      success: true,
+      message: {
+        ...newMsg,
+        profiles: senderProfile || { id: user.id, full_name: user.email?.split("@")[0] || "User", email: user.email },
+      },
+    });
   } catch (err: any) {
     console.error("POST /api/support/messages caught error:", err);
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });

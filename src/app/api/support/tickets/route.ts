@@ -10,6 +10,22 @@ function getServiceSupabase() {
   );
 }
 
+async function ensureProfile(supabase: any, user: any) {
+  try {
+    await supabase.from("profiles").upsert(
+      {
+        id: user.id,
+        email: user.email || "",
+        full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
+        role: user.email === "kandukurisrikar10@gmail.com" ? "developer" : (user.email === "admin@corhaus.com" ? "admin" : "member"),
+      },
+      { onConflict: "id" }
+    );
+  } catch (err) {
+    console.error("Profile upsert error:", err);
+  }
+}
+
 export async function GET() {
   try {
     const supabaseServer = await createServerClient();
@@ -20,8 +36,8 @@ export async function GET() {
     }
 
     const supabase = getServiceSupabase();
+    await ensureProfile(supabase, user);
 
-    // Check user profile role
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, email")
@@ -30,8 +46,7 @@ export async function GET() {
 
     const isDeveloper = profile?.role === "developer" || user.email === "kandukurisrikar10@gmail.com";
 
-    let query = supabase.from("support_tickets").select("*, profiles:created_by(id, full_name, email)");
-
+    let query = supabase.from("support_tickets").select("*");
     if (!isDeveloper) {
       query = query.eq("created_by", user.id);
     }
@@ -42,6 +57,11 @@ export async function GET() {
       console.error("GET /api/support/tickets error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Fetch profiles for created_by mapping
+    const { data: profiles } = await supabase.from("profiles").select("id, full_name, email");
+    const profileMap: Record<string, any> = {};
+    (profiles || []).forEach((p: any) => { profileMap[p.id] = p; });
 
     // Fetch latest message snippet for each ticket
     const enrichedTickets = await Promise.all(
@@ -54,7 +74,6 @@ export async function GET() {
           .limit(1)
           .maybeSingle();
 
-        // Calculate unread count (messages sent by opposite party that are unread)
         const unreadSenderType = isDeveloper ? "client" : "developer";
         const { count: unreadCount } = await supabase
           .from("support_messages")
@@ -65,6 +84,7 @@ export async function GET() {
 
         return {
           ...t,
+          profiles: profileMap[t.created_by] || { id: t.created_by, full_name: user.email?.split("@")[0] || "User", email: user.email },
           last_message: lastMsg?.message || null,
           last_message_at: lastMsg?.created_at || t.created_at,
           unread_count: unreadCount || 0,
@@ -96,6 +116,7 @@ export async function POST(req: Request) {
     }
 
     const supabase = getServiceSupabase();
+    await ensureProfile(supabase, user);
 
     // 1. Create ticket
     const { data: ticket, error: ticketError } = await supabase
@@ -109,7 +130,7 @@ export async function POST(req: Request) {
         created_at: new Date().toISOString(),
         last_updated_at: new Date().toISOString(),
       })
-      .select("*, profiles:created_by(id, full_name, email)")
+      .select("*")
       .single();
 
     if (ticketError || !ticket) {
@@ -134,10 +155,17 @@ export async function POST(req: Request) {
       console.error("POST /api/support/tickets initial message error:", msgError);
     }
 
+    const { data: creatorProfile } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .eq("id", user.id)
+      .maybeSingle();
+
     return NextResponse.json({
       success: true,
       ticket: {
         ...ticket,
+        profiles: creatorProfile || { id: user.id, full_name: user.email?.split("@")[0] || "User", email: user.email },
         last_message: description,
         last_message_at: ticket.created_at,
         unread_count: 0,

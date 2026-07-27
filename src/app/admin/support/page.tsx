@@ -176,12 +176,15 @@ export default function SupportCenterPage() {
     return null;
   };
 
+  const [modalError, setModalError] = useState<string | null>(null);
+
   // Create Ticket Handler
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSubject.trim() || !newDescription.trim()) return;
 
     setCreatingTicket(true);
+    setModalError(null);
     let attachmentUrl = null;
     let attachmentName = null;
 
@@ -207,19 +210,24 @@ export default function SupportCenterPage() {
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      const data = await res.json();
+
+      if (res.ok && data.success) {
         setShowNewTicketModal(false);
         setNewSubject("");
         setNewDescription("");
         setNewAttachment(null);
+        setModalError(null);
         await fetchTickets();
         if (data.ticket) {
           handleSelectTicket(data.ticket);
         }
+      } else {
+        setModalError(data.error || "Failed to create ticket");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to create ticket:", err);
+      setModalError(err.message || "An unexpected error occurred");
     } finally {
       setCreatingTicket(false);
     }
@@ -687,6 +695,12 @@ export default function SupportCenterPage() {
             </div>
 
             <form onSubmit={handleCreateTicket} className="space-y-4 text-xs">
+              {modalError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold rounded-xl flex items-center justify-between">
+                  <span>{modalError}</span>
+                  <button type="button" onClick={() => setModalError(null)} className="text-red-400 font-bold ml-2">✕</button>
+                </div>
+              )}
               <div>
                 <label className="block font-bold text-fg mb-1">Subject *</label>
                 <input

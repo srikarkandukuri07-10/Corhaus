@@ -10,6 +10,22 @@ function getServiceSupabase() {
   );
 }
 
+async function ensureProfile(supabase: any, user: any) {
+  try {
+    await supabase.from("profiles").upsert(
+      {
+        id: user.id,
+        email: user.email || "",
+        full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
+        role: user.email === "kandukurisrikar10@gmail.com" ? "developer" : (user.email === "admin@corhaus.com" ? "admin" : "member"),
+      },
+      { onConflict: "id" }
+    );
+  } catch (err) {
+    console.error("Profile upsert error:", err);
+  }
+}
+
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: ticketId } = await params;
@@ -21,6 +37,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const supabase = getServiceSupabase();
+    await ensureProfile(supabase, user);
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -33,7 +50,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     // 1. Fetch ticket
     const { data: ticket, error: ticketError } = await supabase
       .from("support_tickets")
-      .select("*, profiles:created_by(id, full_name, email)")
+      .select("*")
       .eq("id", ticketId)
       .single();
 
@@ -46,10 +63,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // 2. Fetch messages
-    const { data: messages, error: msgError } = await supabase
+    // 2. Fetch profiles lookup map
+    const { data: profiles } = await supabase.from("profiles").select("id, full_name, email");
+    const profileMap: Record<string, any> = {};
+    (profiles || []).forEach((p: any) => { profileMap[p.id] = p; });
+
+    // 3. Fetch messages
+    const { data: rawMessages, error: msgError } = await supabase
       .from("support_messages")
-      .select("*, profiles:sender_id(id, full_name, email)")
+      .select("*")
       .eq("ticket_id", ticketId)
       .order("created_at", { ascending: true });
 
@@ -57,7 +79,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       console.error("Fetch messages error:", msgError);
     }
 
-    // 3. Mark unread messages sent by opposite party as read
+    const messages = (rawMessages || []).map((m: any) => ({
+      ...m,
+      profiles: profileMap[m.sender_id] || { id: m.sender_id, full_name: "User", email: "" },
+    }));
+
+    // 4. Mark unread messages sent by opposite party as read
     const oppositeSenderType = isDeveloper ? "client" : "developer";
     await supabase
       .from("support_messages")
@@ -67,8 +94,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       .is("read_at", null);
 
     return NextResponse.json({
-      ticket,
-      messages: messages || [],
+      ticket: {
+        ...ticket,
+        profiles: profileMap[ticket.created_by] || { id: ticket.created_by, full_name: "User", email: "" },
+      },
+      messages,
       isDeveloper,
     });
   } catch (err: any) {
@@ -88,6 +118,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     const supabase = getServiceSupabase();
+    await ensureProfile(supabase, user);
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -123,7 +154,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       if (action === "reopen" || action === "still_having_issue") {
         newStatus = "In Progress";
         resolvedAt = null;
-        // Post automatic system message
         await supabase.from("support_messages").insert({
           ticket_id: ticketId,
           sender_type: "client",
@@ -133,7 +163,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         });
       } else if (action === "accept_resolution") {
         newStatus = "Resolved";
-        // Post automatic system message
         await supabase.from("support_messages").insert({
           ticket_id: ticketId,
           sender_type: "client",
@@ -166,7 +195,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         last_updated_at: new Date().toISOString(),
       })
       .eq("id", ticketId)
-      .select("*, profiles:created_by(id, full_name, email)")
+      .select("*")
       .single();
 
     if (updateError) {
