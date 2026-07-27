@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo, useTransition } from "react";
+import { useEffect, useState, useCallback, useMemo, useTransition, useRef } from "react";
 import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -130,6 +130,7 @@ export default function AdminClassesModulePage() {
   const [membersList, setMembersList] = useState<MemberOption[]>([]);
   
   const [loading, setLoading] = useState(true);
+  const isInitialLoadRef = useRef(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -244,9 +245,12 @@ export default function AdminClassesModulePage() {
   }, [currentWeekDays]);
 
   // ─── LOAD DATA FROM SUPABASE ───────────────────────────────────────────────
-  const fetchAllData = useCallback(async () => {
+  const fetchAllData = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      // Only show loading spinner on the very first load
+      if (!silent && isInitialLoadRef.current) {
+        setLoading(true);
+      }
 
       const { data: ctData } = await supabase.from("class_types").select("*").order("name");
       const { data: sessData } = await supabase.from("classes").select("*").order("class_date", { ascending: true }).order("class_time", { ascending: true });
@@ -300,11 +304,14 @@ export default function AdminClassesModulePage() {
         if (sessData) setSessions(sessData as ScheduledSession[]);
         setBookings(enrichedBookings as BookingRecord[]);
         setMembersList(membersWithPlans as any[]);
-        setLoading(false);
+        if (isInitialLoadRef.current) {
+          setLoading(false);
+          isInitialLoadRef.current = false;
+        }
       });
     } catch (err) {
       console.error("Error fetching studio classes data:", err);
-      setLoading(false);
+      if (isInitialLoadRef.current) setLoading(false);
     }
   }, [supabase]);
 
@@ -315,15 +322,21 @@ export default function AdminClassesModulePage() {
   useEffect(() => {
     const channel = supabase
       .channel("studio-classes-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "classes" }, () => fetchAllData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => fetchAllData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "class_types" }, () => fetchAllData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "classes" }, () => fetchAllData(true))
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => fetchAllData(true))
+      .on("postgres_changes", { event: "*", schema: "public", table: "class_types" }, () => fetchAllData(true))
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, [supabase, fetchAllData]);
+
+  // 5-second polling as safety net in case Realtime misses an event
+  useEffect(() => {
+    const interval = setInterval(() => fetchAllData(true), 5000);
+    return () => clearInterval(interval);
+  }, [fetchAllData]);
 
   // ─── KPI METRICS ───────────────────────────────────────────────────────────
   const kpiMetrics = useMemo(() => {
