@@ -4,46 +4,60 @@ import { createClient } from "@supabase/supabase-js";
 
 export async function GET() {
   try {
-    // 1. Verify the requester is an admin
+    // 1. Verify the requester is authenticated
     const supabaseServer = await createServerClient();
-    const { data: { user } } = await supabaseServer.auth.getUser();
-    if (!user) {
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
+
+    if (authError || !user) {
+      console.error("[ADMIN BOOKINGS] Auth error:", authError);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: profile } = await supabaseServer
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    const isAdmin = profile?.role === "admin" || user.email === process.env.ADMIN_EMAIL;
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    // 2. Use service role to bypass RLS and fetch ALL bookings
+    // 2. Create service role client (bypasses all RLS)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const [bookingsRes, membersRes, profilesRes] = await Promise.all([
-      supabase
-        .from("bookings")
-        .select("*, classes(id, title, instructor, class_date, class_time, max_capacity, location_room, category)")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("approved_members")
-        .select("id, full_name, email, phone_number")
-        .order("full_name"),
-      supabase
+    // 3. Verify admin — check by email first (most reliable), then profile role
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const isAdminByEmail = adminEmail && user.email?.toLowerCase() === adminEmail.toLowerCase();
+
+    let isAdmin = isAdminByEmail;
+    if (!isAdmin) {
+      const { data: profile } = await supabase
         .from("profiles")
-        .select("id, email"),
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      isAdmin = profile?.role === "admin";
+    }
+
+    if (!isAdmin) {
+      console.warn("[ADMIN BOOKINGS] Non-admin access attempt:", user.email);
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // 4. Fetch ALL bookings using service role (bypasses RLS entirely)
+    const { data: bookings, error: bkError } = await supabase
+      .from("bookings")
+      .select("*, classes(id, title, instructor, class_date, class_time, max_capacity, location_room, category)")
+      .order("created_at", { ascending: false });
+
+    if (bkError) {
+      console.error("[ADMIN BOOKINGS] Bookings fetch error:", bkError);
+      return NextResponse.json({ error: bkError.message }, { status: 500 });
+    }
+
+    console.log("[ADMIN BOOKINGS] Total bookings fetched:", bookings?.length ?? 0);
+
+    // 5. Fetch members and profiles for enrichment
+    const [membersRes, profilesRes] = await Promise.all([
+      supabase.from("approved_members").select("id, full_name, email, phone_number").order("full_name"),
+      supabase.from("profiles").select("id, email"),
     ]);
 
-    const bookings = bookingsRes.data || [];
     const members = membersRes.data || [];
     const profiles = profilesRes.data || [];
 
@@ -60,11 +74,11 @@ export async function GET() {
       if (p.email) profileEmailById[p.id] = p.email.toLowerCase();
     });
 
-    // Enrich bookings with member info using both UUID lookup paths
-    const enrichedBookings = bookings.map((b: any) => {
-      // Path 1: booking.member_id == approved_members.id (old bookings)
+    // Enrich each booking with member info
+    const enrichedBookings = (bookings || []).map((b: any) => {
+      // Path 1: booking.member_id == approved_members.id (admin-assigned old bookings)
       let member = memberById[b.member_id] || null;
-      // Path 2: booking.member_id == profiles.id (auth.uid) → resolve via email
+      // Path 2: booking.member_id == profiles.id (auth.uid - member self-bookings)
       if (!member) {
         const email = profileEmailById[b.member_id];
         if (email) member = memberByEmail[email] || null;
@@ -72,9 +86,9 @@ export async function GET() {
       return { ...b, approved_members: member };
     });
 
-    return NextResponse.json({ bookings: enrichedBookings });
+    return NextResponse.json({ bookings: enrichedBookings, total: enrichedBookings.length });
   } catch (err: any) {
-    console.error("GET /api/admin/bookings error:", err);
+    console.error("[ADMIN BOOKINGS] Unexpected error:", err);
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
   }
 }

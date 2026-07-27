@@ -256,19 +256,55 @@ export default function AdminClassesModulePage() {
       const { data: sessData } = await supabase.from("classes").select("*").order("class_date", { ascending: true }).order("class_time", { ascending: true });
       const { data: memData } = await supabase.from("approved_members").select("id, full_name, email, phone_number").order("full_name");
       const { data: plansData } = await supabase.from("member_purchased_plans").select("id, approved_member_id, plan_name, category, sessions_remaining, sessions_total, valid_until, status");
+      const { data: profilesList } = await supabase.from("profiles").select("id, email");
 
-      // Fetch bookings via service-role API to bypass RLS — this guarantees admin sees ALL bookings
+      // Build member lookup maps (used in both API-path and fallback-path)
+      const memberById: Record<string, any> = {};
+      const memberByEmail: Record<string, any> = {};
+      (memData || []).forEach((m: any) => {
+        memberById[m.id] = m;
+        if (m.email) memberByEmail[m.email.toLowerCase()] = m;
+      });
+      const profileEmailById: Record<string, string> = {};
+      (profilesList || []).forEach((p: any) => {
+        if (p.email) profileEmailById[p.id] = p.email.toLowerCase();
+      });
+
+      const enrichMember = (b: any) => {
+        let member = memberById[b.member_id] || null;
+        if (!member) {
+          const email = profileEmailById[b.member_id];
+          if (email) member = memberByEmail[email] || null;
+        }
+        return { ...b, approved_members: member };
+      };
+
+      // Fetch bookings via service-role API to bypass RLS
       let enrichedBookings: any[] = [];
       try {
         const bkRes = await fetch("/api/admin/bookings", { cache: "no-store" });
-        if (bkRes.ok) {
-          const bkJson = await bkRes.json();
-          enrichedBookings = bkJson.bookings || [];
+        const bkJson = await bkRes.json();
+        if (bkRes.ok && Array.isArray(bkJson.bookings)) {
+          enrichedBookings = bkJson.bookings;
+          console.log("[Admin] Bookings loaded via API:", enrichedBookings.length);
         } else {
-          console.error("Admin bookings API error:", await bkRes.text());
+          // API failed — fall back to direct query (works if admin RLS migration has been run)
+          console.warn("[Admin] API failed, falling back to direct query. Error:", bkJson.error);
+          const { data: bkData } = await supabase
+            .from("bookings")
+            .select("*, classes(id, title, instructor, class_date, class_time, max_capacity, location_room, category)")
+            .order("created_at", { ascending: false });
+          enrichedBookings = (bkData || []).map(enrichMember);
+          console.log("[Admin] Bookings loaded via direct query:", enrichedBookings.length);
         }
       } catch (bkErr) {
-        console.error("Failed to fetch admin bookings:", bkErr);
+        // Network error — fall back to direct query
+        console.error("[Admin] API fetch failed, falling back:", bkErr);
+        const { data: bkData } = await supabase
+          .from("bookings")
+          .select("*, classes(id, title, instructor, class_date, class_time, max_capacity, location_room, category)")
+          .order("created_at", { ascending: false });
+        enrichedBookings = (bkData || []).map(enrichMember);
       }
 
       const membersWithPlans = (memData || []).map((m: any) => {
