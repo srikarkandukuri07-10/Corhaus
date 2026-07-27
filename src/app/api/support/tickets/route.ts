@@ -12,15 +12,27 @@ function getServiceSupabase() {
 
 async function ensureProfile(supabase: any, user: any) {
   try {
-    await supabase.from("profiles").upsert(
+    const role = user.email === "kandukurisrikar10@gmail.com" ? "developer" : (user.email === "admin@corhaus.com" ? "admin" : "member");
+    const { error } = await supabase.from("profiles").upsert(
       {
         id: user.id,
         email: user.email || "",
         full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
-        role: user.email === "kandukurisrikar10@gmail.com" ? "developer" : (user.email === "admin@corhaus.com" ? "admin" : "member"),
+        role,
       },
       { onConflict: "id" }
     );
+    if (error && error.message?.includes("profiles_role_check")) {
+      await supabase.from("profiles").upsert(
+        {
+          id: user.id,
+          email: user.email || "",
+          full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
+          role: "admin",
+        },
+        { onConflict: "id" }
+      );
+    }
   } catch (err) {
     console.error("Profile upsert error:", err);
   }

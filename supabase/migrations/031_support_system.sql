@@ -49,7 +49,11 @@ BEFORE INSERT ON public.support_tickets
 FOR EACH ROW
 EXECUTE FUNCTION public.set_support_ticket_number();
 
--- 4. Set Developer Account Role
+-- 4. Drop and update profiles_role_check constraint to allow 'developer'
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('admin', 'member', 'trainer', 'staff', 'developer'));
+
+-- Set Developer Account Role
 UPDATE public.profiles
 SET role = 'developer'
 WHERE email = 'kandukurisrikar10@gmail.com';
