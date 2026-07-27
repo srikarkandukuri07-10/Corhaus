@@ -12,7 +12,7 @@ function getServiceRoleClient() {
 
 // ─── GET /api/admin/discounts ──────────────────────────────────────────────────
 // Returns all registered members with their active/past discounts and purchased plans
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const supabaseServer = await createServerClient();
     const { data: { user } } = await supabaseServer.auth.getUser();
@@ -20,7 +20,27 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const memberId = searchParams.get("member_id");
+
     const supabase = getServiceRoleClient();
+
+    if (memberId) {
+      const { data: activeDiscount, error } = await supabase
+        .from("member_discounts")
+        .select("*")
+        .eq("approved_member_id", memberId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ activeDiscount });
+    }
 
     // Fetch approved members, purchased plans, and member discounts in parallel
     const [membersRes, plansRes, discountsRes] = await Promise.all([

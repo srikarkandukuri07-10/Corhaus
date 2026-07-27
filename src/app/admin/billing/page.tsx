@@ -246,16 +246,11 @@ export default function CreateBillPage() {
     setWalkinName(""); setWalkinEmail(""); setWalkinPhone("");
     setAutoDiscountAlert(null); setAppliedDiscountId(null);
 
-    // Automatically detect active discount for member
+    // Automatically detect active discount for member via API (service role bypasses RLS)
     try {
-      const { data: disc } = await supabase
-        .from("member_discounts")
-        .select("*")
-        .eq("approved_member_id", m.id)
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const res = await fetch(`/api/admin/discounts?member_id=${m.id}`);
+      const data = await res.json();
+      const disc = data.activeDiscount;
 
       if (disc) {
         setShowDiscount(true);
@@ -267,6 +262,7 @@ export default function CreateBillPage() {
       } else {
         setShowDiscount(false);
         setDiscountValue("");
+        setAppliedDiscountId(null);
       }
     } catch (err) {
       console.error("Error auto-checking member discount:", err);
