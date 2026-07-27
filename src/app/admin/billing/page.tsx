@@ -259,7 +259,7 @@ export default function CreateBillPage() {
 
       if (disc) {
         setShowDiscount(true);
-        setDiscountType(disc.discount_type as "percentage" | "fixed");
+        setDiscountType(disc.discount_type === "percentage" ? "percentage" : "flat");
         setDiscountValue(disc.discount_value.toString());
         setAppliedDiscountId(disc.id);
         const label = disc.discount_type === "percentage" ? `${disc.discount_value}%` : `₹${disc.discount_value.toLocaleString("en-IN")}`;
