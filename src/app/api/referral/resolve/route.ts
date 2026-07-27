@@ -98,6 +98,80 @@ export async function POST(request: Request) {
       );
     }
 
+    // 7. Automatic Business Rule: Check if referrer has completed 3 approved referrals
+    try {
+      const referrerEmail = referralRequest.referrer_email;
+      const referrerCode = referralRequest.referral_code;
+
+      if (referrerEmail || referrerCode) {
+        let query = serviceClient.from("approved_members").select("id, full_name, email");
+        if (referrerCode) {
+          query = query.or(`referral_code.eq.${referrerCode},email.eq.${referrerEmail || ""}`);
+        } else {
+          query = query.eq("email", referrerEmail);
+        }
+
+        const { data: referrerMember } = await query.maybeSingle();
+
+        if (referrerMember) {
+          let countQuery = serviceClient
+            .from("referral_requests")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "approved");
+
+          if (referrerCode) {
+            countQuery = countQuery.or(`referral_code.eq.${referrerCode},referrer_email.eq.${referrerEmail || ""}`);
+          } else {
+            countQuery = countQuery.eq("referrer_email", referrerEmail);
+          }
+
+          const { count } = await countQuery;
+
+          if (count && count >= 3) {
+            // Check if active referral reward already issued
+            const { data: existingReward } = await serviceClient
+              .from("member_discounts")
+              .select("id")
+              .eq("approved_member_id", referrerMember.id)
+              .eq("source", "Referral Reward")
+              .eq("status", "active")
+              .maybeSingle();
+
+            if (!existingReward) {
+              // Automatically create 15% Referral Reward discount
+              await serviceClient.from("member_discounts").insert({
+                approved_member_id: referrerMember.id,
+                discount_type: "percentage",
+                discount_value: 15,
+                source: "Referral Reward",
+                reason: "Referral Reward (3 Successful Referrals)",
+                status: "active",
+                created_by: "System (Automatic Referral Engine)",
+              });
+
+              // Notify Member
+              await serviceClient.from("admin_notifications").insert({
+                type: "member_reward",
+                email: referrerMember.email,
+                message: "Congratulations! You have successfully referred 3 members. A 15% discount has been added to your account and will automatically be applied to your next eligible bill.",
+                is_read: false,
+              });
+
+              // Notify Admin
+              await serviceClient.from("admin_notifications").insert({
+                type: "referral_reward_earned",
+                email: "admin@corhaus.com",
+                message: `${referrerMember.full_name} has earned a 15% Referral Reward discount.`,
+                is_read: false,
+              });
+            }
+          }
+        }
+      }
+    } catch (refErr) {
+      console.error("Error evaluating automatic referral discount:", refErr);
+    }
+
     return NextResponse.json(
       {
         success: true,

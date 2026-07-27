@@ -236,21 +236,53 @@ export default function CreateBillPage() {
     setActiveCategory(cat); setActiveSubcat("All"); setItemSearch("");
   }
 
+  const [autoDiscountAlert, setAutoDiscountAlert] = useState<string | null>(null);
+  const [appliedDiscountId, setAppliedDiscountId] = useState<string | null>(null);
+
   // ── Customer helpers ────────────────────────────────────
-  function handleSelectMember(m: ApprovedMember) {
+  async function handleSelectMember(m: ApprovedMember) {
     setSelectedMember(m); setIsWalkin(false);
     setCustomerSearch(""); setShowDropdown(false);
     setWalkinName(""); setWalkinEmail(""); setWalkinPhone("");
+    setAutoDiscountAlert(null); setAppliedDiscountId(null);
+
+    // Automatically detect active discount for member
+    try {
+      const { data: disc } = await supabase
+        .from("member_discounts")
+        .select("*")
+        .eq("approved_member_id", m.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (disc) {
+        setShowDiscount(true);
+        setDiscountType(disc.discount_type as "percentage" | "fixed");
+        setDiscountValue(disc.discount_value.toString());
+        setAppliedDiscountId(disc.id);
+        const label = disc.discount_type === "percentage" ? `${disc.discount_value}%` : `₹${disc.discount_value.toLocaleString("en-IN")}`;
+        setAutoDiscountAlert(`Active Discount Auto-Applied: ${label} (${disc.source} - ${disc.reason})`);
+      } else {
+        setShowDiscount(false);
+        setDiscountValue("");
+      }
+    } catch (err) {
+      console.error("Error auto-checking member discount:", err);
+    }
   }
 
   function handleWalkin() {
     setIsWalkin(true); setSelectedMember(null);
     setCustomerSearch(""); setShowDropdown(false);
+    setAutoDiscountAlert(null); setAppliedDiscountId(null);
   }
 
   function clearCustomer() {
     setSelectedMember(null); setIsWalkin(false);
     setWalkinName(""); setWalkinEmail(""); setWalkinPhone(""); setCustomerSearch("");
+    setAutoDiscountAlert(null); setAppliedDiscountId(null);
   }
 
   // ── Cart helpers ─────────────────────────────────────────
@@ -351,9 +383,19 @@ export default function CreateBillPage() {
         notes: notes.trim() || null,
         created_by: user?.id || null,
       }).select("id").single();
-      if (invErr) throw new Error("Invoice creation failed: " + invErr.message);
-
       const invoiceId = invoice!.id;
+
+      // Mark applied member discount as used
+      if (appliedDiscountId && showDiscount && discountAmount > 0) {
+        await supabase
+          .from("member_discounts")
+          .update({
+            status: "used",
+            used_at: new Date().toISOString(),
+            invoice_id: invoiceId,
+          })
+          .eq("id", appliedDiscountId);
+      }
 
       // 4. Invoice items
       const { error: ie } = await supabase.from("invoice_items").insert(
@@ -788,6 +830,18 @@ export default function CreateBillPage() {
 
             {/* Discount + Totals + Payment */}
             <div className="border-t border-line pt-3 space-y-3">
+              {/* Auto Discount Banner */}
+              {autoDiscountAlert && (
+                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-600 font-bold flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{autoDiscountAlert}</span>
+                  </div>
+                </div>
+              )}
+
               {/* Discount accordion */}
               <div className="rounded-xl border border-line overflow-hidden bg-surface">
                 <button onClick={() => setShowDiscount(!showDiscount)}
