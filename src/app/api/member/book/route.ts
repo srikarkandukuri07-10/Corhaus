@@ -12,6 +12,7 @@ export async function POST(req: Request) {
     }
 
     const { classId } = await req.json();
+    console.log("[BOOK API] Received classId:", classId);
     if (!classId) {
       return NextResponse.json({ error: "Missing classId" }, { status: 400 });
     }
@@ -29,27 +30,37 @@ export async function POST(req: Request) {
       .eq("email", user.email || "")
       .maybeSingle();
 
+    if (amError) {
+      console.error("approved_members lookup error:", amError);
+      return NextResponse.json({ error: `Profile lookup failed: ${amError.message}` }, { status: 500 });
+    }
     if (!amData) {
       return NextResponse.json({ error: "No approved member profile found for your account. Please contact the studio." }, { status: 403 });
     }
     const memberId = amData.id;
 
-    // 4. Check class exists and is active
-    const { data: cls } = await supabase
+    // 4. Check class exists — select * to avoid issues with optional columns like is_active
+    const { data: cls, error: clsError } = await supabase
       .from("classes")
-      .select("id, max_capacity, is_active, class_date, class_time")
+      .select("*")
       .eq("id", classId)
       .maybeSingle();
+    console.log("[BOOK API] Class fetch result:", cls, clsError);
 
+    if (clsError) {
+      console.error("Class fetch error:", clsError);
+      return NextResponse.json({ error: `Class lookup failed: ${clsError.message}` }, { status: 500 });
+    }
     if (!cls) {
       return NextResponse.json({ error: "Class not found." }, { status: 404 });
     }
+    // Only block if explicitly set to false (null/undefined means active)
     if (cls.is_active === false) {
       return NextResponse.json({ error: "This class is currently inactive." }, { status: 400 });
     }
 
     // 5. Check not already booked
-    const { data: existingBooking } = await supabase
+    const { data: existingBooking, error: existingError } = await supabase
       .from("bookings")
       .select("id, booking_status")
       .eq("class_id", classId)
@@ -57,12 +68,16 @@ export async function POST(req: Request) {
       .not("booking_status", "eq", "cancelled")
       .maybeSingle();
 
+    if (existingError) {
+      console.error("Existing booking check error:", existingError);
+      return NextResponse.json({ error: `Booking check failed: ${existingError.message}` }, { status: 500 });
+    }
     if (existingBooking) {
       return NextResponse.json({ error: "You are already booked for this class.", bookingId: existingBooking.id }, { status: 409 });
     }
 
     // 6. Find active purchased plan
-    const { data: plan } = await supabase
+    const { data: plan, error: planError } = await supabase
       .from("member_purchased_plans")
       .select("id, sessions_total, sessions_remaining, status, valid_until, plan_name, invoice_id")
       .eq("approved_member_id", memberId)
@@ -71,8 +86,13 @@ export async function POST(req: Request) {
       .limit(1)
       .maybeSingle();
 
+    if (planError) {
+      console.error("Plan lookup error:", planError);
+      return NextResponse.json({ error: `Plan lookup failed: ${planError.message}` }, { status: 500 });
+    }
+
     if (!plan) {
-      // Check if they have any plan at all (even inactive)
+      // Check if they have any plan at all (even inactive/expired)
       const { data: anyPlan } = await supabase
         .from("member_purchased_plans")
         .select("id, status, valid_until")
@@ -107,13 +127,18 @@ export async function POST(req: Request) {
     }
 
     // 9. Check capacity — waitlist if full
-    const { count: currentCount } = await supabase
+    const { count: currentCount, error: countError } = await supabase
       .from("bookings")
       .select("id", { count: "exact", head: true })
       .eq("class_id", classId)
       .in("booking_status", ["booked", "confirmed", "checked_in", "completed"]);
 
-    const bookingStatus = (currentCount ?? 0) >= cls.max_capacity ? "waitlisted" : "booked";
+    if (countError) {
+      console.error("Capacity check error:", countError);
+    }
+
+    const maxCapacity = cls.max_capacity ?? 10;
+    const bookingStatus = (currentCount ?? 0) >= maxCapacity ? "waitlisted" : "booked";
 
     // 10. Insert booking
     const { data: newBooking, error: insertError } = await supabase
@@ -130,7 +155,7 @@ export async function POST(req: Request) {
 
     if (insertError || !newBooking) {
       console.error("Booking insert error:", insertError);
-      return NextResponse.json({ error: "Failed to create booking. Please try again." }, { status: 500 });
+      return NextResponse.json({ error: `Failed to create booking: ${insertError?.message || "unknown error"}` }, { status: 500 });
     }
 
     // 11. Deduct session credit for session-based plans
@@ -150,6 +175,6 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error("Book class error:", e);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: `Internal server error: ${e instanceof Error ? e.message : String(e)}` }, { status: 500 });
   }
 }
