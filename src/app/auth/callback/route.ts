@@ -40,6 +40,11 @@ export async function GET(request: Request) {
         debug("PROFILE FOUND:", !!profile);
         debug("ROLE:", profile?.role);
 
+        if (profile?.role === "developer" || user.email === "kandukurisrikar10@gmail.com") {
+          debug("DECISION: developer -> redirect to /developer/support");
+          return NextResponse.redirect(`${origin}/developer/support`);
+        }
+
         if (profile?.role === "admin") {
           debug("DECISION: admin -> redirect to /admin");
           return NextResponse.redirect(`${origin}/admin`);

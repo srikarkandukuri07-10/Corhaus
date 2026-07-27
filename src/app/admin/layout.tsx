@@ -39,6 +39,11 @@ export default function AdminLayout({
           .eq("id", user.id)
           .maybeSingle();
 
+        if (profile?.role === "developer" || user.email === "kandukurisrikar10@gmail.com") {
+          router.push("/developer/support");
+          return;
+        }
+
         if (profileError || !profile || profile.role !== "admin") {
           router.push("/member");
           return;
@@ -353,6 +358,20 @@ export default function AdminLayout({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
               <span className="hidden sm:inline">Staff</span>
+            </Link>
+            <Link
+              href="/admin/support"
+              title="Support"
+              className={`relative flex items-center gap-2 px-3 py-2 rounded-2xl text-xs font-semibold transition-all border ${
+                pathname.startsWith("/admin/support")
+                  ? "bg-accent text-white border-accent shadow-md shadow-accent/25"
+                  : "bg-surface-2 border-line-2 text-fg hover:bg-hover"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <span className="hidden sm:inline">Support</span>
             </Link>
             <NotificationsButton role="admin" />
             <div className="flex items-center gap-2 bg-surface-2 border border-line-2 px-3 py-1.5 rounded-full text-xs text-fg font-semibold">
