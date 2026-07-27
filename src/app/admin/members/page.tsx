@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useTransition, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -87,6 +88,7 @@ interface ApprovedMember {
   latestInvoice?: InvoiceRecord | null;
   sessionLogs?: SessionLog[];
   billingHistory?: FullInvoiceRecord[];
+  activeDiscount?: any;
 
   // Computed status for filter
   computedStatus?: "Active" | "Frozen" | "Expiring Soon" | "Expired" | "Exhausted" | "Cancelled";
@@ -672,10 +674,21 @@ function MembersPageContent() {
     }
   }
 
+    // 4. Fetch active discount for member
+    let activeDisc = null;
+    try {
+      const res = await fetch(`/api/admin/discounts?member_id=${member.id}`);
+      const data = await res.json();
+      activeDisc = data.activeDiscount || null;
+    } catch (e) {
+      console.error("Failed to load active discount in member details:", e);
+    }
+
     setSelectedMember((prev) => (prev ? {
       ...prev,
       sessionLogs: formattedLogs,
       billingHistory: fullBillingHistory,
+      activeDiscount: activeDisc,
     } : null));
   }
 
@@ -1139,6 +1152,41 @@ function MembersPageContent() {
               <StatusBadge status={selectedMember.activePlan ? (selectedMember.computedStatus || "Active") : "No Package"} />
             </div>
 
+            {/* Active Member Discount Card */}
+            {selectedMember.activeDiscount ? (
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M17 17h.01M7 7l10 10M7 7a4 4 0 115.657 5.657M17 17a4 4 0 11-5.657-5.657" />
+                    </svg>
+                    Active Member Discount
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-500 text-white shadow-xs">
+                    {selectedMember.activeDiscount.discount_type === "percentage"
+                      ? `${selectedMember.activeDiscount.discount_value}% OFF`
+                      : `₹${selectedMember.activeDiscount.discount_value.toLocaleString("en-IN")} OFF`}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="text-text-secondary/70 font-medium">
+                    Reason: <strong className="text-text-primary">{selectedMember.activeDiscount.reason}</strong> ({selectedMember.activeDiscount.source})
+                  </span>
+                  <span className="text-[10px] text-emerald-500 font-bold">Auto-Applies on Next Bill</span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 rounded-2xl bg-surface-2 border border-border-input flex items-center justify-between text-xs text-text-secondary/70">
+                <span>Active Discount: <span className="font-semibold text-text-secondary">No Active Discount</span></span>
+                <Link
+                  href="/admin/discounts"
+                  className="text-xs text-text-gold font-bold hover:underline"
+                >
+                  + Add Discount
+                </Link>
+              </div>
+            )}
+
             {/* ─── DEDICATED BILLING HISTORY SECTION ──────────────────────────── */}
             <div className="space-y-3 pt-2 border-t border-border-input">
               <div className="flex items-center justify-between">
@@ -1196,6 +1244,13 @@ function MembersPageContent() {
                             <span className="font-semibold text-text-secondary">{fmt(inv.grand_total)}</span>
                           </div>
                         )}
+
+                        {inv.discount_amount > 0 && (
+                          <div className="flex items-center justify-between text-xs text-emerald-500 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg mt-1">
+                            <span>Discount Applied ({inv.discount_type === "percentage" ? `${inv.discount_value}% OFF` : fmt(inv.discount_value)})</span>
+                            <span>− {fmt(inv.discount_amount)}</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Payment & Staff Info Footer */}
@@ -1205,9 +1260,16 @@ function MembersPageContent() {
                           <span>•</span>
                           <span>Staff: <strong className="text-text-primary">{inv.created_by_name}</strong></span>
                         </div>
-                        <span className="font-bold text-text-primary text-xs leading-none">
-                          {fmt(inv.grand_total)}
-                        </span>
+                        <div className="text-right">
+                          <span className="font-bold text-text-primary text-xs leading-none block">
+                            {fmt(inv.grand_total)}
+                          </span>
+                          {inv.payment_status === "due" && (
+                            <span className="text-[10px] text-amber-500 font-bold block mt-0.5">
+                              Paid: {fmt(inv.amount_paid || 0)} • Due: {fmt(inv.grand_total - (inv.amount_paid || 0))}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
