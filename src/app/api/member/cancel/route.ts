@@ -45,6 +45,58 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (bookingErr || !booking) {
+      // Check if this bookingId belongs to pt_sessions table
+      const { data: ptSess } = await supabase
+        .from("pt_sessions")
+        .select("*")
+        .eq("id", bookingId)
+        .maybeSingle();
+
+      if (ptSess) {
+        // Verify ownership (by approved_members ID or auth UID)
+        if (ptSess.member_id !== approvedMemberId && ptSess.member_id !== memberId) {
+          return NextResponse.json({ error: "Unauthorized: You can only cancel your own sessions." }, { status: 403 });
+        }
+
+        // Check 6-hour cancellation window
+        const sessDateTime = new Date(`${ptSess.session_date}T${ptSess.session_time}`);
+        const sixHoursMs = 6 * 60 * 60 * 1000;
+        const now = new Date();
+        if (sessDateTime.getTime() - now.getTime() < sixHoursMs) {
+          return NextResponse.json({ error: "Cancellation is not allowed within 6 hours of the session start time." }, { status: 400 });
+        }
+
+        if (ptSess.status === "cancelled") {
+          return NextResponse.json({ success: true, message: "PT Session is already cancelled." });
+        }
+
+        // Mark PT session as cancelled
+        await supabase
+          .from("pt_sessions")
+          .update({ status: "cancelled" })
+          .eq("id", bookingId);
+
+        // Restore session credit
+        if (ptSess.purchased_plan_id) {
+          const { data: plan } = await supabase
+            .from("member_purchased_plans")
+            .select("id, sessions_total, sessions_remaining")
+            .eq("id", ptSess.purchased_plan_id)
+            .maybeSingle();
+
+          if (plan && plan.sessions_total !== null) {
+            await supabase
+              .from("member_purchased_plans")
+              .update({
+                sessions_remaining: Math.min(plan.sessions_total, (plan.sessions_remaining ?? 0) + 1),
+              })
+              .eq("id", plan.id);
+          }
+        }
+
+        return NextResponse.json({ success: true, message: "PT Session cancelled successfully." });
+      }
+
       console.error("Booking lookup error:", bookingErr);
       return NextResponse.json({ error: `Booking not found: ${bookingErr?.message || ""}` }, { status: 404 });
     }

@@ -370,6 +370,13 @@ export default function PtSchedulerPage() {
       return;
     }
 
+    // Rule: Session can be booked ONLY if a trainer is assigned to that member
+    const isAssigned = assignments.some(a => a.member_id === bookMemberId);
+    if (!isAssigned) {
+      setActionError("Cannot book PT session: This member has not been assigned a trainer yet. Please assign a trainer to this member first.");
+      return;
+    }
+
     const member = members.find(m => m.id === bookMemberId);
     const activePlan = member?.ptPlans[0];
     if (!activePlan || activePlan.sessions_remaining <= 0) {

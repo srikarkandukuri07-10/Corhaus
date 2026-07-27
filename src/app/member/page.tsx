@@ -173,9 +173,12 @@ export default function MemberDashboard() {
       supabase.from("class_types").select("*"),
       supabase.from("membership_credit_tiers").select("*"),
       planQuery,
-      approvedMemberId
-        ? supabase.from("pt_sessions").select("*").eq("member_id", approvedMemberId).in("status", ["scheduled", "completed"]).order("session_date", { ascending: true }).order("session_time", { ascending: true })
-        : Promise.resolve({ data: [], error: null }),
+      supabase.from("pt_sessions")
+        .select("*")
+        .or(`member_id.eq.${approvedMemberId || user.id},member_id.eq.${user.id}`)
+        .in("status", ["scheduled", "completed"])
+        .order("session_date", { ascending: true })
+        .order("session_time", { ascending: true }),
     ]);
 
     // Map class types to descriptions
