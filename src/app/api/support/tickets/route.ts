@@ -55,6 +55,14 @@ export async function GET() {
 
     if (error) {
       console.error("GET /api/support/tickets error:", error);
+      if (error.message?.includes("schema cache") || error.message?.includes("does not exist")) {
+        return NextResponse.json({
+          tickets: [],
+          isDeveloper,
+          needsMigration: true,
+          error: "Database tables not found. Please execute migration 031_support_system.sql in Supabase SQL Editor.",
+        });
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -135,7 +143,12 @@ export async function POST(req: Request) {
 
     if (ticketError || !ticket) {
       console.error("POST /api/support/tickets create error:", ticketError);
-      return NextResponse.json({ error: ticketError?.message || "Failed to create ticket" }, { status: 500 });
+      const isMissingTable = ticketError?.message?.includes("schema cache") || ticketError?.message?.includes("does not exist");
+      return NextResponse.json({
+        error: isMissingTable
+          ? "Database tables missing. Please run migration 031_support_system.sql in Supabase SQL Editor."
+          : ticketError?.message || "Failed to create ticket"
+      }, { status: 500 });
     }
 
     // 2. Create initial message (ticket description)
