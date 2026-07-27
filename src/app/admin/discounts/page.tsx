@@ -598,7 +598,7 @@ export default function DiscountsPage() {
                   disabled={submitting}
                   className="px-6 py-2.5 bg-emerald-600 text-white font-extrabold rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-600/20 disabled:opacity-50"
                 >
-                  {submitting ? "Applying..." : editingPlan ? "Update Discount" : "Apply Discount"}
+                  {submitting ? "Applying..." : editingDiscount ? "Update Discount" : "Apply Discount"}
                 </button>
               </div>
             </form>
