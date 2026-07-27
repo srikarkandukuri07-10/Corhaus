@@ -35,14 +35,15 @@ export async function POST(req: Request) {
     const memberId = amData.id;
 
     // 4. Fetch the booking
-    const { data: booking } = await supabase
+    const { data: booking, error: bookingErr } = await supabase
       .from("bookings")
-      .select("id, class_id, member_id, booking_status, purchased_plan_id, classes(class_date, class_time)")
+      .select("*, classes(class_date, class_time)")
       .eq("id", bookingId)
       .maybeSingle();
 
-    if (!booking) {
-      return NextResponse.json({ error: "Booking not found." }, { status: 404 });
+    if (bookingErr || !booking) {
+      console.error("Booking lookup error:", bookingErr);
+      return NextResponse.json({ error: `Booking not found: ${bookingErr?.message || ""}` }, { status: 404 });
     }
 
     // 5. Verify ownership — booking must belong to this member
@@ -73,11 +74,27 @@ export async function POST(req: Request) {
       .eq("id", bookingId);
 
     // 9. Restore session credit for session-based plans
-    if (booking.purchased_plan_id && booking.booking_status !== "waitlisted") {
+    let planToRestoreId = (booking as any).purchased_plan_id;
+    if (!planToRestoreId) {
+      const { data: activePlan } = await supabase
+        .from("member_purchased_plans")
+        .select("id")
+        .eq("approved_member_id", memberId)
+        .eq("status", "active")
+        .not("sessions_total", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (activePlan) {
+        planToRestoreId = activePlan.id;
+      }
+    }
+
+    if (planToRestoreId && booking.booking_status !== "waitlisted") {
       const { data: plan } = await supabase
         .from("member_purchased_plans")
         .select("id, sessions_total, sessions_remaining")
-        .eq("id", booking.purchased_plan_id)
+        .eq("id", planToRestoreId)
         .maybeSingle();
 
       if (plan && plan.sessions_total !== null) {

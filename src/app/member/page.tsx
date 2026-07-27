@@ -145,7 +145,7 @@ export default function MemberDashboard() {
     const approvedMemberId = amData?.id;
     setApprovedMemberId(approvedMemberId || null);
 
-    let bookingsQuery = supabase.from("bookings").select("id, class_id, booking_status, notes, classes(class_date)");
+    let bookingsQuery = supabase.from("bookings").select("*, classes(class_date)");
     if (approvedMemberId) {
       bookingsQuery = bookingsQuery.or(`member_id.eq.${user.id},member_id.eq.${approvedMemberId}`);
     } else {

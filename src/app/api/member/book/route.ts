@@ -140,8 +140,11 @@ export async function POST(req: Request) {
     const maxCapacity = cls.max_capacity ?? 10;
     const bookingStatus = (currentCount ?? 0) >= maxCapacity ? "waitlisted" : "booked";
 
-    // 10. Insert booking
-    const { data: newBooking, error: insertError } = await supabase
+    // 10. Insert booking (try with purchased_plan_id first, fallback without it if column is missing in DB schema)
+    let newBooking: { id: string } | null = null;
+    let insertError: any = null;
+
+    const resWithPlan = await supabase
       .from("bookings")
       .insert({
         class_id: classId,
@@ -152,6 +155,26 @@ export async function POST(req: Request) {
       })
       .select("id")
       .single();
+
+    newBooking = resWithPlan.data;
+    insertError = resWithPlan.error;
+
+    if (insertError && (insertError.message?.includes("purchased_plan_id") || insertError.code === "PGRST204")) {
+      console.warn("[BOOK API] purchased_plan_id column not found in bookings table, falling back to insert without it.");
+      const resWithoutPlan = await supabase
+        .from("bookings")
+        .insert({
+          class_id: classId,
+          member_id: memberId,
+          booking_status: bookingStatus,
+          created_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+
+      newBooking = resWithoutPlan.data;
+      insertError = resWithoutPlan.error;
+    }
 
     if (insertError || !newBooking) {
       console.error("Booking insert error:", insertError);
