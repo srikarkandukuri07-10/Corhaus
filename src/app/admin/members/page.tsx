@@ -219,14 +219,14 @@ function computeMemberStatus(
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    Active: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    paid: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    Frozen: "bg-blue-100 text-blue-800 border-blue-200",
-    "Expiring Soon": "bg-amber-100 text-amber-800 border-amber-200",
-    due: "bg-amber-100 text-amber-800 border-amber-200",
-    Expired: "bg-gray-100 text-gray-700 border-gray-200",
-    Exhausted: "bg-orange-100 text-orange-800 border-orange-200",
-    Cancelled: "bg-red-100 text-red-800 border-red-200",
+    Active: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+    paid: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+    Frozen: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    "Expiring Soon": "bg-amber-500/10 text-amber-500 border-amber-500/20",
+    due: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+    Expired: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+    Exhausted: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+    Cancelled: "bg-red-500/10 text-red-500 border-red-500/20",
   };
 
   const label = status === "paid" ? "Paid" : status === "due" ? "Payment Due" : status;
@@ -234,7 +234,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={`inline-block whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-        styles[status] || "bg-gray-100 text-gray-700 border-gray-200"
+        styles[status] || "bg-gray-500/10 text-gray-400 border-gray-500/20"
       }`}
     >
       {label}
@@ -981,8 +981,8 @@ function MembersPageContent() {
                               <span
                                 className={`inline-block whitespace-nowrap px-3 py-1 rounded-lg font-semibold text-xs border ${
                                   sessInfo.isSessions
-                                    ? "bg-indigo-50 text-indigo-700 border-indigo-100"
-                                    : "bg-purple-50 text-purple-700 border-purple-100"
+                                    ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                                    : "bg-purple-500/10 text-purple-400 border-purple-500/20"
                                 }`}
                               >
                                 {sessInfo.text}
@@ -1009,8 +1009,8 @@ function MembersPageContent() {
                         {m.daysLeft !== null && m.daysLeft !== undefined ? (
                           <div className={`inline-flex flex-col items-center justify-center text-center px-3 py-1.5 rounded-xl font-semibold text-xs border ${
                             m.daysLeft <= 7
-                              ? "bg-amber-100 text-amber-800 border border-amber-200"
-                              : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                              ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                              : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                           }`}>
                             <div>{m.daysLeft} days left</div>
                             <div className="text-[10px] opacity-80 mt-0.5 font-bold border-t border-current/10 pt-0.5 w-full">
@@ -1123,12 +1123,12 @@ function MembersPageContent() {
             {/* Validity Status Highlight */}
             <div className={`p-3.5 rounded-2xl flex items-center justify-between border ${
               selectedMember.activePlan
-                ? "bg-emerald-50 border-emerald-200"
-                : "bg-gray-50 border-gray-200"
+                ? "bg-emerald-500/10 border-emerald-500/20"
+                : "bg-surface-2 border-border-input"
             }`}>
               <div>
-                <span className="text-[11px] font-semibold text-text-secondary block">Validity Status</span>
-                <span className="text-sm font-bold text-text-primary">
+                <span className="text-[11px] font-bold text-emerald-500 block uppercase tracking-wider">Validity Status</span>
+                <span className="text-sm font-extrabold text-text-primary mt-0.5 block">
                   {selectedMember.activePlan
                     ? (selectedMember.daysLeft !== null && selectedMember.daysLeft !== undefined
                         ? `${selectedMember.daysLeft} days remaining`
