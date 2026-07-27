@@ -36,11 +36,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ token });
     }
 
+    // Retrieve approved member ID for the current logged-in user
+    const { data: amData } = await supabaseServer
+      .from("approved_members")
+      .select("id")
+      .eq("email", user.email || "")
+      .maybeSingle();
+    const approvedMemberId = amData?.id;
+
     const { data: booking, error: bookingError } = await supabaseServer
       .from("bookings")
       .select("id")
       .eq("id", bookingId)
-      .eq("member_id", user.id)
+      .or(`member_id.eq.${user.id},member_id.eq.${approvedMemberId || user.id}`)
       .maybeSingle();
 
     if (bookingError || !booking) {

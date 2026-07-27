@@ -144,23 +144,25 @@ export default function BookingsPage() {
     setCancellingId(bookingId);
     setMessage(null);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const res = await fetch("/api/member/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId }),
+      });
+      const result = await res.json();
 
-    const { error } = await supabase
-      .from("bookings")
-      .update({ booking_status: "cancelled" })
-      .eq("id", bookingId)
-      .eq("member_id", user.id);
-
-    if (error) {
-      setMessage({ type: "error", text: error.message });
-    } else {
-      setMessage({ type: "success", text: "Booking cancelled successfully." });
-      fetchBookings();
+      if (!res.ok) {
+        setMessage({ type: "error", text: result.error || "Failed to cancel booking." });
+      } else {
+        setMessage({ type: "success", text: "Booking cancelled successfully." });
+        fetchBookings();
+      }
+    } catch {
+      setMessage({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setCancellingId(null);
     }
-
-    setCancellingId(null);
   }
 
   function formatTime(time: string) {

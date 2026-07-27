@@ -82,7 +82,7 @@ RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
-DECLARATION
+DECLARE
   v_booking RECORD;
   v_plan RECORD;
   v_waitlist RECORD;

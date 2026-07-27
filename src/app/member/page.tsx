@@ -62,10 +62,10 @@ function parseAsIst(dateStr: string, timeStr: string): number {
 
 
 
+// QR is shown immediately once a class is booked (as long as it hasn't started)
 function shouldShowQr(cls: ClassData, now: number): boolean {
   const classStart = parseAsIst(cls.class_date, cls.class_time);
-  const qrRelease = classStart - 30 * 60 * 1000;
-  return now >= qrRelease && now < classStart;
+  return now < classStart;
 }
 
 function isClassStarted(cls: ClassData, now: number): boolean {
@@ -99,6 +99,7 @@ export default function MemberDashboard() {
   const [currentTime, setCurrentTime] = useState(0);
   const [mounted, setMounted] = useState(false);
 
+  const [approvedMemberId, setApprovedMemberId] = useState<string | null>(null);
   const [membershipLevel, setMembershipLevel] = useState("Beginner");
   const [totalCredits, setTotalCredits] = useState(6);
   const [usedCredits, setUsedCredits] = useState(0);
@@ -142,6 +143,7 @@ export default function MemberDashboard() {
       .maybeSingle();
 
     const approvedMemberId = amData?.id;
+    setApprovedMemberId(approvedMemberId || null);
 
     let bookingsQuery = supabase.from("bookings").select("id, class_id, booking_status, notes, classes(class_date)");
     if (approvedMemberId) {
@@ -366,8 +368,7 @@ export default function MemberDashboard() {
       for (const cls of classesRef.current) {
         if (!bookingsRef.current.some(b => b.class_id === cls.id && b.booking_status === "booked") && !forceBookedIdsRef.current.has(cls.id)) continue;
         const classStart = parseAsIst(cls.class_date, cls.class_time);
-        const qrRelease = classStart - 30 * 60 * 1000;
-        if (now < qrRelease || now >= classStart) continue;
+        if (now >= classStart) continue;
         if (qrDataUrlsRef.current[cls.id]) continue;
         if (generatingRef.current.has(cls.id)) continue;
 
@@ -385,8 +386,7 @@ export default function MemberDashboard() {
     for (const cls of classes) {
       if (!bookings.some(b => b.class_id === cls.id && b.booking_status === "booked") && !forceBookedIds.has(cls.id)) continue;
       const classStart = parseAsIst(cls.class_date, cls.class_time);
-      const qrRelease = classStart - 30 * 60 * 1000;
-      if (now < qrRelease || now >= classStart) continue;
+      if (now >= classStart) continue;
       if (qrDataUrls[cls.id]) continue;
       if (generatingRef.current.has(cls.id)) continue;
       generateQrForClass(cls);
@@ -415,48 +415,55 @@ export default function MemberDashboard() {
   async function confirmBook() {
     const cls = bookConfirmClass;
     if (!cls) return;
-    const uid = userIdRef.current;
-    if (!uid) return;
 
     setShowBookConfirm(false);
     setBookingLoading(cls.id);
 
-    const { data: existing } = await supabase.from("bookings").select("id, booking_status")
-      .eq("class_id", cls.id).eq("member_id", uid).maybeSingle();
+    try {
+      const res = await fetch("/api/member/book", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ classId: cls.id }),
+      });
+      const result = await res.json();
 
-    if (existing) {
-      if (existing.booking_status === "booked") {
+      if (!res.ok) {
+        // Already booked = treat as success (idempotent)
+        if (res.status === 409) {
+          setForceBookedIds(prev => {
+            const next = new Set(prev);
+            next.add(cls.id);
+            saveForceBooked(next);
+            return next;
+          });
+          setMessage({ type: "success", text: "You are already booked for this class!" });
+        } else {
+          setMessage({ type: "error", text: result.error || "Failed to book class session." });
+        }
         setBookingLoading(null);
         setBookConfirmClass(null);
-        setMessage({ type: "error", text: "You already have a booking for this class." });
+        if (res.status === 409) await fetchData();
         return;
       }
-      if (existing.booking_status === "cancelled") {
-        await supabase.from("bookings").update({ booking_status: "booked" }).eq("id", existing.id);
-      }
-    } else {
-      await supabase.from("bookings").insert({ class_id: cls.id, member_id: uid, booking_status: "booked" });
+
+      // Success — immediately mark as booked in UI
+      setForceBookedIds(prev => {
+        const next = new Set(prev);
+        next.add(cls.id);
+        saveForceBooked(next);
+        return next;
+      });
+
+      const statusMsg = result.status === "waitlisted" ? "Added to waitlist!" : "Class booked successfully!";
+      setMessage({ type: "success", text: statusMsg });
+    } catch (err) {
+      console.error("Book class error:", err);
+      setMessage({ type: "error", text: "Network error. Please check your connection and try again." });
+    } finally {
+      setBookingLoading(null);
+      setBookConfirmClass(null);
+      await fetchData();
     }
-
-    const tmpId = crypto.randomUUID();
-    const newBooking: BookingData = { id: tmpId, class_id: cls.id, booking_status: "booked", notes: null, classes: { class_date: cls.class_date } };
-    
-    setBookings(prev => {
-      const updated = [...prev.filter(b => b.class_id !== cls.id), newBooking];
-      bookingsRef.current = updated;
-      return updated;
-    });
-
-    setForceBookedIds(prev => {
-      const next = new Set(prev);
-      next.add(cls.id);
-      saveForceBooked(next);
-      return next;
-    });
-
-    setMessage({ type: "success", text: "Class booked successfully!" });
-    setBookingLoading(null);
-    setBookConfirmClass(null);
   }
 
   function canCancel(cls: ClassData, now: number) {
@@ -464,31 +471,44 @@ export default function MemberDashboard() {
   }
 
   async function handleCancel(cls: ClassData) {
-    const uid = userIdRef.current;
-    if (!uid) return;
-    if (!canCancel(cls, Date.now())) { setMessage({ type: "error", text: "Cannot cancel \u2014 less than 6 hours before class starts." }); return; }
-    const booking = bookings.find(b => b.class_id === cls.id && b.booking_status === "booked") || (forceBookedIds.has(cls.id) ? {} as BookingData : undefined);
+    if (!canCancel(cls, Date.now())) {
+      setMessage({ type: "error", text: "Cannot cancel \u2014 less than 6 hours before class starts." });
+      return;
+    }
+    const booking = bookings.find(b => b.class_id === cls.id && b.booking_status === "booked");
     if (!booking) return;
+
     setBookingLoading(cls.id);
-    const { error } = await supabase.from("bookings").update({ booking_status: "cancelled" }).eq("class_id", cls.id).eq("member_id", uid).eq("booking_status", "booked");
-    if (error) { setBookingLoading(null); setMessage({ type: "error", text: error.message }); return; }
-    setMessage({ type: "success", text: "Booking cancelled successfully!" });
 
-    setBookings(prev => {
-      const updated = prev.filter(b => b.class_id !== cls.id || b.booking_status !== "booked");
-      bookingsRef.current = updated;
-      return updated;
-    });
+    try {
+      const res = await fetch("/api/member/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: booking.id }),
+      });
+      const result = await res.json();
 
-    setForceBookedIds(prev => {
-      const next = new Set(prev);
-      next.delete(cls.id);
-      saveForceBooked(next);
-      return next;
-    });
-    setQrDataUrls(prev => { const n = { ...prev }; delete n[cls.id]; return n; });
-    delete qrDataUrlsRef.current[cls.id];
-    setBookingLoading(null);
+      if (!res.ok) {
+        setMessage({ type: "error", text: result.error || "Failed to cancel booking." });
+        return;
+      }
+
+      setMessage({ type: "success", text: "Booking cancelled successfully!" });
+      setForceBookedIds(prev => {
+        const next = new Set(prev);
+        next.delete(cls.id);
+        saveForceBooked(next);
+        return next;
+      });
+      setQrDataUrls(prev => { const n = { ...prev }; delete n[cls.id]; return n; });
+      delete qrDataUrlsRef.current[cls.id];
+    } catch (err) {
+      console.error("Cancel booking error:", err);
+      setMessage({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setBookingLoading(null);
+      await fetchData();
+    }
   }
 
   function formatTime(time: string) {
@@ -616,29 +636,29 @@ export default function MemberDashboard() {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     {formatTime(cls.class_time)}
                   </div>
+                  
+                  {/* Attendance QR */}
+                  {booked && !started && attendance?.attendance_status !== "attended" && (
+                    <div className="mt-4">
+                      {qrUrl ? (
+                        <div className="flex flex-col items-center gap-2 p-4 bg-surface-2 rounded-xl border border-line">
+                          <p className="text-xs font-medium text-fg-3 uppercase tracking-wide">Corhaus Pilates</p>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={qrUrl} alt="Attendance QR" className="w-40 h-40 rounded-lg" />
+                          <p className="text-xs text-fg-5">Show this to the instructor at the studio</p>
+                        </div>
+                      ) : isGenerating[cls.id] ? (
+                        <div className="flex items-center justify-center py-4">
+                          <div className="w-5 h-5 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
+                        </div>
+                      ) : (
+                        <p className="text-xs text-fg-5 text-center py-3 bg-surface-2 rounded-xl border border-line">
+                          Generating QR...
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
-
-                {/* Attendance QR */}
-                {booked && !started && attendance?.attendance_status !== "attended" && (
-                  <div className="mt-4">
-                    {showQr && qrUrl ? (
-                      <div className="flex flex-col items-center gap-2 p-4 bg-surface-2 rounded-xl border border-line">
-                        <p className="text-xs font-medium text-fg-3 uppercase tracking-wide">Corhaus Pilates</p>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={qrUrl} alt="Attendance QR" className="w-40 h-40 rounded-lg" />
-                        <p className="text-xs text-fg-5">Show this to the instructor at the studio</p>
-                      </div>
-                    ) : showQr && isGenerating[cls.id] ? (
-                      <div className="flex items-center justify-center py-4">
-                        <div className="w-5 h-5 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
-                      </div>
-                    ) : (
-                      <p className="text-xs text-fg-5 text-center py-3 bg-surface-2 rounded-xl border border-line">
-                        {showQr ? "Generating QR..." : "Attendance QR will be available 30 minutes before your class starts."}
-                      </p>
-                    )}
-                  </div>
-                )}
 
                 {attendance?.attendance_status === "attended" && (
                   <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-center">
