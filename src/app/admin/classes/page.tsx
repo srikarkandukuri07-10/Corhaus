@@ -254,45 +254,22 @@ export default function AdminClassesModulePage() {
 
       const { data: ctData } = await supabase.from("class_types").select("*").order("name");
       const { data: sessData } = await supabase.from("classes").select("*").order("class_date", { ascending: true }).order("class_time", { ascending: true });
-      // Fix: fetch bookings with only classes join (approved_members join via member_id may not be a FK in schema)
-      const { data: bkData } = await supabase.from("bookings").select("*, classes(id, title, instructor, class_date, class_time, max_capacity, location_room, category)").order("created_at", { ascending: false });
-      
-      // Fetch approved members, purchased plans, and profiles separately for reliable JS mapping
       const { data: memData } = await supabase.from("approved_members").select("id, full_name, email, phone_number").order("full_name");
       const { data: plansData } = await supabase.from("member_purchased_plans").select("id, approved_member_id, plan_name, category, sessions_remaining, sessions_total, valid_until, status");
-      const { data: profilesList } = await supabase.from("profiles").select("id, email");
 
-      // Build member lookup maps
-      const memberById: Record<string, any> = {};
-      const memberByEmail: Record<string, any> = {};
-      (memData || []).forEach((m: any) => {
-        memberById[m.id] = m;
-        if (m.email) {
-          memberByEmail[m.email.toLowerCase()] = m;
+      // Fetch bookings via service-role API to bypass RLS — this guarantees admin sees ALL bookings
+      let enrichedBookings: any[] = [];
+      try {
+        const bkRes = await fetch("/api/admin/bookings", { cache: "no-store" });
+        if (bkRes.ok) {
+          const bkJson = await bkRes.json();
+          enrichedBookings = bkJson.bookings || [];
+        } else {
+          console.error("Admin bookings API error:", await bkRes.text());
         }
-      });
-
-      const profileEmailById: Record<string, string> = {};
-      (profilesList || []).forEach((p: any) => {
-        if (p.email) {
-          profileEmailById[p.id] = p.email.toLowerCase();
-        }
-      });
-
-      // Enrich bookings with member info
-      const enrichedBookings = (bkData || []).map((b: any) => {
-        let member = memberById[b.member_id] || null;
-        if (!member) {
-          const email = profileEmailById[b.member_id];
-          if (email) {
-            member = memberByEmail[email] || null;
-          }
-        }
-        return {
-          ...b,
-          approved_members: member,
-        };
-      });
+      } catch (bkErr) {
+        console.error("Failed to fetch admin bookings:", bkErr);
+      }
 
       const membersWithPlans = (memData || []).map((m: any) => {
         const userPlans = (plansData || []).filter((p: any) => p.approved_member_id === m.id);
