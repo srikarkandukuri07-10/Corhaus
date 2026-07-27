@@ -376,9 +376,9 @@ export default function CreateBillPage() {
         discount_value:  showDiscount && discountValue ? parseFloat(discountValue) : 0,
         discount_amount: discountAmount,
         grand_total:     grandTotal,
-        payment_status:  paymentStatus,
-        payment_method:  paymentStatus === "paid" ? paymentMethod : null,
-        amount_paid:     paymentStatus === "paid" ? grandTotal : 0,
+        payment_status:  paymentStatus === "paid" || ((parseFloat(amountPaid) || 0) >= grandTotal && grandTotal > 0) ? "paid" : "due",
+        payment_method:  paymentStatus === "paid" || (parseFloat(amountPaid) || 0) > 0 ? paymentMethod : null,
+        amount_paid:     paymentStatus === "paid" ? grandTotal : Math.min(grandTotal, parseFloat(amountPaid) || 0),
         transaction_reference: transactionRef.trim() || null,
         notes: notes.trim() || null,
         created_by: user?.id || null,
@@ -925,8 +925,83 @@ export default function CreateBillPage() {
                 )}
 
                 {paymentStatus === "due" && (
-                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700 font-medium">
-                    ⚠ Dashboard access activates only after full payment is received.
+                  <div className="space-y-2.5 p-3 rounded-2xl bg-amber-500/5 border border-amber-500/20">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-extrabold text-amber-600">Partial Payment Breakdown</span>
+                      <span className="text-[10px] text-fg-4 font-semibold">Enter paid vs due</span>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-fg-5 font-semibold">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max={grandTotal}
+                          value={amountPaid}
+                          onChange={(e) => setAmountPaid(e.target.value)}
+                          placeholder="Amount Paid (e.g. 2000)"
+                          className="w-full pl-7 pr-2 py-2 rounded-xl border border-line bg-surface font-extrabold text-xs text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        />
+                      </div>
+
+                      <select
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                        className="flex-1 px-2 py-2 rounded-xl border border-line bg-surface text-xs text-fg font-medium focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      >
+                        <option>Cash</option>
+                        <option>UPI</option>
+                        <option>Card</option>
+                        <option>Bank Transfer</option>
+                      </select>
+                    </div>
+
+                    {/* Quick presets for partial payment */}
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setAmountPaid("0")}
+                        className="flex-1 py-1 rounded-lg border border-line bg-surface text-[11px] text-fg-3 hover:bg-hover font-semibold"
+                      >
+                        ₹0 (Full Due)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAmountPaid(Math.round(grandTotal / 2).toString())}
+                        className="flex-1 py-1 rounded-lg border border-line bg-surface text-[11px] text-fg-3 hover:bg-hover font-semibold"
+                      >
+                        50% (₹{Math.round(grandTotal / 2).toLocaleString("en-IN")})
+                      </button>
+                    </div>
+
+                    {paymentMethod !== "Cash" && (parseFloat(amountPaid) || 0) > 0 && (
+                      <input
+                        type="text"
+                        value={transactionRef}
+                        onChange={(e) => setTransactionRef(e.target.value)}
+                        placeholder="Transaction ref / UTR (optional)"
+                        className="w-full px-3 py-2 rounded-xl border border-line bg-surface text-xs text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      />
+                    )}
+
+                    {/* Due Amount Breakdown Box */}
+                    <div className="p-2.5 rounded-xl bg-surface border border-line space-y-1 text-xs">
+                      <div className="flex items-center justify-between text-fg-4 font-medium">
+                        <span>Paid Today:</span>
+                        <span className="font-bold text-fg">₹{(parseFloat(amountPaid) || 0).toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1 border-t border-line font-black">
+                        <span className="text-amber-600">Remaining Balance Due:</span>
+                        <span className="text-amber-600 text-sm">
+                          ₹{Math.max(0, grandTotal - (parseFloat(amountPaid) || 0)).toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-amber-700 font-medium">
+                      ⚠ Dashboard access activates only after full payment is received.
+                    </div>
                   </div>
                 )}
 
