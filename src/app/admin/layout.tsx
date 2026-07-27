@@ -201,6 +201,16 @@ export default function AdminLayout({
                 </div>
               </Link>
 
+              <Link
+                href="/admin/packages"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${navLinkClass(pathname.startsWith("/admin/packages") || pathname.startsWith("/admin/billing/plan-items"))}`}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span>Packages &amp; Plans</span>
+              </Link>
+
               {/* Sub-items inside Billing section */}
               {isBillingActive && (
                 <div className="ml-4 pl-3 border-l border-white/20 space-y-1 mt-1">
@@ -309,6 +319,9 @@ export default function AdminLayout({
               </Link>
               <Link href="/admin/billing" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
                 Billing
+              </Link>
+              <Link href="/admin/packages" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                Packages &amp; Plans
               </Link>
             </nav>
           </aside>
