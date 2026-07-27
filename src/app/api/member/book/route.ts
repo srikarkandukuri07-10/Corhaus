@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 3. Look up approved_members ID from user email
+    // 3. Look up approved_members record for plan lookups
     const { data: amData, error: amError } = await supabase
       .from("approved_members")
       .select("id, membership_level")
@@ -37,7 +37,10 @@ export async function POST(req: Request) {
     if (!amData) {
       return NextResponse.json({ error: "No approved member profile found for your account. Please contact the studio." }, { status: 403 });
     }
-    const memberId = amData.id;
+    // The bookings table's member_id FK references profiles(id) = auth.uid().
+    // Use user.id for the bookings insert; use amData.id only for plan lookups.
+    const memberId = user.id;         // auth UUID → satisfies bookings_member_id_fkey
+    const approvedMemberId = amData.id; // approved_members UUID → used for plan queries
 
     // 4. Check class exists — select * to avoid issues with optional columns like is_active
     const { data: cls, error: clsError } = await supabase
@@ -59,12 +62,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "This class is currently inactive." }, { status: 400 });
     }
 
-    // 5. Check not already booked
+    // 5. Check not already booked (check both auth UUID and approved_member UUID for robustness)
     const { data: existingBooking, error: existingError } = await supabase
       .from("bookings")
       .select("id, booking_status")
       .eq("class_id", classId)
-      .eq("member_id", memberId)
+      .or(`member_id.eq.${memberId},member_id.eq.${approvedMemberId}`)
       .not("booking_status", "eq", "cancelled")
       .maybeSingle();
 
@@ -76,11 +79,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "You are already booked for this class.", bookingId: existingBooking.id }, { status: 409 });
     }
 
-    // 6. Find active purchased plan
+    // 6. Find active purchased plan — uses approvedMemberId (approved_members.id)
     const { data: plan, error: planError } = await supabase
       .from("member_purchased_plans")
       .select("id, sessions_total, sessions_remaining, status, valid_until, plan_name, invoice_id")
-      .eq("approved_member_id", memberId)
+      .eq("approved_member_id", approvedMemberId)
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(1)
@@ -96,7 +99,7 @@ export async function POST(req: Request) {
       const { data: anyPlan } = await supabase
         .from("member_purchased_plans")
         .select("id, status, valid_until")
-        .eq("approved_member_id", memberId)
+        .eq("approved_member_id", approvedMemberId)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();

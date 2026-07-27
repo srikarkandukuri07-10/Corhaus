@@ -32,7 +32,10 @@ export async function POST(req: Request) {
     if (!amData) {
       return NextResponse.json({ error: "No approved member profile found." }, { status: 403 });
     }
-    const memberId = amData.id;
+    // bookings.member_id FK references profiles(id) = auth.uid()
+    // Use user.id for ownership check; use amData.id for plan queries
+    const memberId = user.id;           // auth UUID → used for ownership check
+    const approvedMemberId = amData.id; // approved_members UUID → used for plan queries
 
     // 4. Fetch the booking
     const { data: booking, error: bookingErr } = await supabase
@@ -79,7 +82,7 @@ export async function POST(req: Request) {
       const { data: activePlan } = await supabase
         .from("member_purchased_plans")
         .select("id")
-        .eq("approved_member_id", memberId)
+        .eq("approved_member_id", approvedMemberId)
         .eq("status", "active")
         .not("sessions_total", "is", null)
         .order("created_at", { ascending: false })
