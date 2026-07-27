@@ -511,8 +511,11 @@ export default function SupportCenterPage() {
 
               {/* Read-only Banner for Closed Tickets */}
               {selectedTicket.status === "Closed" && (
-                <div className="p-3 bg-surface-2 border-b border-line text-center text-xs font-bold text-fg-4 flex-shrink-0">
-                  🔒 This ticket is closed and read-only.
+                <div className="p-3 bg-surface-2 border-b border-line text-center text-xs font-bold text-fg-4 flex-shrink-0 flex items-center justify-center gap-1.5">
+                  <svg className="w-4 h-4 text-fg-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <span>This ticket is closed and read-only.</span>
                 </div>
               )}
 
@@ -564,7 +567,10 @@ export default function SupportCenterPage() {
                                     isClient ? "bg-black/20 text-white" : "bg-surface border border-line text-accent"
                                   }`}
                                 >
-                                  📎 {m.attachment_name || "Download Attachment"}
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                  </svg>
+                                  <span>{m.attachment_name || "Download Attachment"}</span>
                                 </a>
                               )}
                             </div>
@@ -588,7 +594,12 @@ export default function SupportCenterPage() {
                   {/* Selected Attachment Preview */}
                   {chatAttachment && (
                     <div className="flex items-center justify-between p-2 bg-surface border border-line rounded-xl text-xs text-fg">
-                      <span className="font-semibold truncate">📎 {chatAttachment.name}</span>
+                      <span className="font-semibold truncate flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                        {chatAttachment.name}
+                      </span>
                       <button
                         type="button"
                         onClick={() => setChatAttachment(null)}
@@ -599,42 +610,17 @@ export default function SupportCenterPage() {
                     </div>
                   )}
 
-                  {/* Emoji Quick Picker */}
-                  {showEmojiPicker && (
-                    <div className="flex items-center gap-2 p-2 bg-surface border border-line rounded-xl overflow-x-auto">
-                      {EMOJIS.map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => {
-                            setInputMessage((prev) => prev + emoji);
-                            setShowEmojiPicker(false);
-                          }}
-                          className="text-base hover:scale-125 transition-transform"
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      className="p-2 rounded-xl text-fg-4 hover:text-fg hover:bg-surface-2 transition-all text-sm"
-                      title="Add Emoji"
-                    >
-                      😊
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-2 rounded-xl text-fg-4 hover:text-fg hover:bg-surface-2 transition-all"
+                      className="p-2 rounded-xl text-fg-4 hover:text-fg hover:bg-surface-2 transition-all flex items-center gap-1 text-xs font-semibold"
                       title="Attach File"
                     >
-                      📎
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                      </svg>
+                      <span>Attach</span>
                     </button>
                     <input
                       type="file"
@@ -668,8 +654,10 @@ export default function SupportCenterPage() {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-fg-4 space-y-3">
-              <div className="w-12 h-12 rounded-full bg-accent/10 text-accent flex items-center justify-center text-xl font-bold">
-                💬
+              <div className="w-12 h-12 rounded-full bg-accent/10 text-accent flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
               </div>
               <div>
                 <h3 className="font-extrabold text-fg text-sm">Select a ticket to start chatting</h3>
@@ -764,7 +752,12 @@ export default function SupportCenterPage() {
                   className="p-4 border-2 border-dashed border-line-2 hover:border-accent rounded-2xl bg-surface-2/50 text-center cursor-pointer transition-colors"
                 >
                   {newAttachment ? (
-                    <span className="font-bold text-accent">📎 {newAttachment.name}</span>
+                    <span className="font-bold text-accent flex items-center justify-center gap-1.5">
+                      <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                      </svg>
+                      {newAttachment.name}
+                    </span>
                   ) : (
                     <span className="text-fg-4 font-medium">Click to select screenshot or document</span>
                   )}

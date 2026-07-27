@@ -22,13 +22,48 @@ interface PlanItem {
 
 type TabCategory = "Membership" | "Class Packages" | "PT" | "Combo" | "Other Charges";
 
-const TABS: { key: TabCategory; label: string; icon: string; dbCategories: string[] }[] = [
-  { key: "Membership", label: "Membership", icon: "💎", dbCategories: ["Membership Plans", "Membership"] },
-  { key: "Class Packages", label: "Class Packages", icon: "📖", dbCategories: ["Class Packages"] },
-  { key: "PT", label: "PT", icon: "🏷️", dbCategories: ["PT Packages", "PT"] },
-  { key: "Combo", label: "Combo", icon: "📦", dbCategories: ["Combo Packages", "Combo"] },
-  { key: "Other Charges", label: "Other Charges", icon: "💵", dbCategories: ["Other Charges", "Products", "Services"] },
+const TABS: { key: TabCategory; label: string; iconType: string; dbCategories: string[] }[] = [
+  { key: "Membership", label: "Membership", iconType: "membership", dbCategories: ["Membership Plans", "Membership"] },
+  { key: "Class Packages", label: "Class Packages", iconType: "class", dbCategories: ["Class Packages"] },
+  { key: "PT", label: "PT", iconType: "pt", dbCategories: ["PT Packages", "PT"] },
+  { key: "Combo", label: "Combo", iconType: "combo", dbCategories: ["Combo Packages", "Combo"] },
+  { key: "Other Charges", label: "Other Charges", iconType: "other", dbCategories: ["Other Charges", "Products", "Services"] },
 ];
+
+function TabIcon({ type }: { type: string }) {
+  switch (type) {
+    case "membership":
+      return (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      );
+    case "class":
+      return (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      );
+    case "pt":
+      return (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+        </svg>
+      );
+    case "combo":
+      return (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+      );
+    default:
+      return (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+  }
+}
 
 export default function PackagesAndPlansPage() {
   const supabase = createClient();
@@ -198,23 +233,15 @@ export default function PackagesAndPlansPage() {
     const allowedCategories = currentTabObj?.dbCategories || [];
 
     return plans.filter((p) => {
-      // Category match
       if (!allowedCategories.includes(p.category)) return false;
-
-      // Inactive filter
       if (!showInactive && !p.is_active) return false;
-
-      // Subcategory / Type filter
       if (selectedType !== "All Types" && p.subcategory !== selectedType) return false;
-
       return true;
     });
   }, [plans, activeTab, showInactive, selectedType]);
 
-  // Format currency helper
   const fmtCurrency = (n: number) => "₹" + n.toLocaleString("en-IN");
 
-  // Calculate per session cost string
   const getPerSessionCost = (plan: PlanItem) => {
     if (!plan.sessions || plan.sessions === 0) return null;
     const cost = plan.price / plan.sessions;
@@ -233,7 +260,7 @@ export default function PackagesAndPlansPage() {
         </div>
 
         <button className="px-4 py-2 bg-indigo-600 text-white rounded-2xl text-xs font-bold shadow-md hover:bg-indigo-700 transition-all flex items-center gap-1.5">
-          <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[10px]">?</span>
+          <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-black">?</span>
           Help
         </button>
       </div>
@@ -255,7 +282,7 @@ export default function PackagesAndPlansPage() {
                   : "text-fg-3 hover:text-fg hover:bg-surface"
               }`}
             >
-              <span>{t.icon}</span>
+              <TabIcon type={t.iconType} />
               <span>{t.label}</span>
             </button>
           );
@@ -300,7 +327,7 @@ export default function PackagesAndPlansPage() {
           onClick={handleOpenCreateModal}
           className="px-5 py-2.5 rounded-2xl bg-emerald-600 text-white text-xs font-extrabold hover:bg-emerald-700 shadow-md shadow-emerald-600/20 flex items-center gap-2 transition-all"
         >
-          <span className="text-base">+</span>
+          <span className="text-base font-black">+</span>
           Create {activeTab === "PT" ? "PT Plan" : activeTab === "Class Packages" ? "Class Package" : "Plan"}
         </button>
       </div>
@@ -327,7 +354,17 @@ export default function PackagesAndPlansPage() {
                 {/* Card Header: Title & Options Menu */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-base">{activeTab === "PT" ? "🏷️" : "📖"}</span>
+                    <span className="text-accent">
+                      {activeTab === "PT" ? (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                      )}
+                    </span>
                     <h3 className="font-extrabold text-sm text-fg line-clamp-1">{plan.name}</h3>
                   </div>
 
@@ -346,19 +383,29 @@ export default function PackagesAndPlansPage() {
                           onClick={() => handleOpenEditModal(plan)}
                           className="w-full text-left px-4 py-2 hover:bg-surface-2 text-fg flex items-center gap-2"
                         >
-                          ✏️ Edit Plan
+                          <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                          <span>Edit Plan</span>
                         </button>
                         <button
                           onClick={() => handleToggleActive(plan)}
                           className="w-full text-left px-4 py-2 hover:bg-surface-2 text-fg flex items-center gap-2"
                         >
-                          {plan.is_active ? "⏸️ Deactivate" : "▶️ Activate"}
+                          <svg className="w-3.5 h-3.5 text-fg-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>{plan.is_active ? "Deactivate" : "Activate"}</span>
                         </button>
                         <button
                           onClick={() => handleDeletePlan(plan.id)}
                           className="w-full text-left px-4 py-2 hover:bg-red-500/10 text-red-500 flex items-center gap-2 font-bold"
                         >
-                          🗑️ Delete
+                          <svg className="w-3.5 h-3.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          <span>Delete</span>
                         </button>
                       </div>
                     )}
@@ -384,7 +431,10 @@ export default function PackagesAndPlansPage() {
 
                   {plan.subcategory === "Couple" && (
                     <span className="px-2.5 py-1 bg-purple-500/10 text-purple-500 border border-purple-500/20 text-[11px] font-extrabold rounded-full flex items-center gap-1">
-                      👥 Couple
+                      <svg className="w-3 h-3 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                      Couple
                     </span>
                   )}
                 </div>
@@ -403,8 +453,10 @@ export default function PackagesAndPlansPage() {
 
                 {/* Footer: Subscribers Count & Active Status */}
                 <div className="flex items-center justify-between pt-3 border-t border-line text-[11px] font-semibold text-fg-4">
-                  <div className="flex items-center gap-1">
-                    <span>👥</span>
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-fg-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
                     <span>
                       {plan.active_subscribers_count && plan.active_subscribers_count > 0
                         ? `${plan.active_subscribers_count} active`
