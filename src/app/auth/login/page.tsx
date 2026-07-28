@@ -88,6 +88,10 @@ function LoginForm() {
               return;
             }
           }
+          if (directData.requiresGoogle) {
+            await handleGoogleLogin();
+            return;
+          }
         }
       }
 

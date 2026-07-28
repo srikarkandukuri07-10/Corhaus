@@ -47,50 +47,6 @@ export async function POST(request: Request) {
         { onConflict: "id" }
       );
 
-      // Try magiclink first
-      const { data: linkData } = await serviceClient.auth.admin.generateLink({
-        type: "magiclink",
-        email: normalizedEmail,
-        options: {
-          redirectTo: `${origin}/auth/callback`,
-        },
-      });
-
-      if (linkData?.properties?.action_link) {
-        return NextResponse.json({
-          isDirect: true,
-          redirectUrl: linkData.properties.action_link,
-        });
-      }
-
-      // Password fallback
-      return NextResponse.json({
-        isDirect: true,
-        usePassword: true,
-        email: normalizedEmail,
-        password: defaultAdminPassword,
-      });
-    }
-
-    // 3. If user doesn't exist yet, create user with admin password
-    const { data: created, error: createErr } =
-      await serviceClient.auth.admin.createUser({
-        email: normalizedEmail,
-        password: defaultAdminPassword,
-        email_confirm: true,
-        user_metadata: { full_name: normalizedEmail.split("@")[0] },
-      });
-
-    if (created?.user) {
-      await serviceClient.from("profiles").upsert(
-        {
-          id: created.user.id,
-          email: normalizedEmail,
-          role: "admin",
-        },
-        { onConflict: "id" }
-      );
-
       const { data: linkData } = await serviceClient.auth.admin.generateLink({
         type: "magiclink",
         email: normalizedEmail,
@@ -114,8 +70,11 @@ export async function POST(request: Request) {
       });
     }
 
-    console.error("Direct login user creation error:", createErr);
-    return NextResponse.json({ isDirect: false });
+    // 3. For new admin email not yet registered in auth.users, return requiresGoogle flag for instant OAuth trigger
+    return NextResponse.json({
+      isDirect: true,
+      requiresGoogle: true,
+    });
   } catch (err) {
     console.error("Direct login API error:", err);
     return NextResponse.json({ isDirect: false });
