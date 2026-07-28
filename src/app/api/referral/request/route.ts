@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { isAdminEmail } from "@/lib/constants";
 
 const serviceClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     // 3. applicant_email must NOT be admin email
-    if (trimmedEmail === "srikarkandukuri07@gmail.com") {
+    if (isAdminEmail(trimmedEmail)) {
       return NextResponse.json(
         { error: "This email cannot be used for referral requests." },
         { status: 400 }

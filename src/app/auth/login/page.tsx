@@ -56,6 +56,20 @@ function LoginForm() {
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
+      // 1. Try direct admin login first
+      const directRes = await fetch("/api/auth/direct-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+      const directData = await directRes.json();
+
+      if (directData.isDirect && directData.redirectUrl) {
+        window.location.href = directData.redirectUrl;
+        return;
+      }
+
+      // 2. Standard member check
       const res = await fetch("/api/auth/check-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

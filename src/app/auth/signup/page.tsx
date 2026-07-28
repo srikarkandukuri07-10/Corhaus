@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { isAdminEmail } from "@/lib/constants";
 
 function SignupForm() {
   const [fullName, setFullName] = useState("");
@@ -70,7 +71,7 @@ function SignupForm() {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    if (normalizedEmail === "srikarkandukuri07@gmail.com") {
+    if (isAdminEmail(normalizedEmail)) {
       setError("This email belongs to an administrator and cannot be registered as a member.");
       setLoading(false);
       return;

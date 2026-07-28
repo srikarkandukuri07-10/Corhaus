@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { isAdminEmail } from "@/lib/constants";
 
 export async function POST(request: Request) {
   try {
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (normalizedEmail === "kandukurisrikar10@gmail.com" || normalizedEmail === "admin@corhaus.com") {
+    if (isAdminEmail(normalizedEmail) || normalizedEmail === "kandukurisrikar10@gmail.com" || normalizedEmail === "admin@corhaus.com") {
       return NextResponse.json({ approved: true });
     }
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;

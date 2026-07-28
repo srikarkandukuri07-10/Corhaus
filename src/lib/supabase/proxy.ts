@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { isAdminEmail } from "@/lib/constants";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -73,7 +74,7 @@ export async function updateSession(request: NextRequest) {
     const normalizedEmail = googleEmail.trim().toLowerCase();
 
     // Check if they are admin first
-    if (googleEmail === process.env.ADMIN_EMAIL || userRole === "admin") {
+    if (isAdminEmail(googleEmail) || userRole === "admin") {
       isApproved = true;
       userRole = "admin";
     } else {
