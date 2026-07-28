@@ -48,13 +48,6 @@ function LoginForm() {
   const urlError = searchParams.get("error");
   const notApprovedError = urlError === "not_approved" ? "You do not currently have access to the Corhaus Member Portal. Please contact Corhaus staff to activate your membership." : null;
 
-  function formatError(err: any): string {
-    if (!err) return "An unexpected error occurred. Please try again.";
-    if (typeof err === "string" && err.trim() !== "" && err !== "{}") return err;
-    if (err?.message && typeof err.message === "string" && err.message !== "{}" && err.message.trim() !== "") return err.message;
-    return "Could not send sign-in link. Please click 'Continue with Google' to sign in with your email.";
-  }
-
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -63,39 +56,6 @@ function LoginForm() {
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
-      // 1. Try direct admin login first
-      const directRes = await fetch("/api/auth/direct-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalizedEmail }),
-      });
-
-      if (directRes.ok) {
-        const directData = await directRes.json();
-        if (directData.isDirect) {
-          if (directData.redirectUrl) {
-            window.location.href = directData.redirectUrl;
-            return;
-          }
-          if (directData.usePassword && directData.password) {
-            const { error: passErr } = await supabase.auth.signInWithPassword({
-              email: directData.email || normalizedEmail,
-              password: directData.password,
-            });
-
-            if (!passErr) {
-              window.location.href = "/admin";
-              return;
-            }
-          }
-          if (directData.requiresGoogle) {
-            await handleGoogleLogin();
-            return;
-          }
-        }
-      }
-
-      // 2. Standard member check
       const res = await fetch("/api/auth/check-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -117,7 +77,7 @@ function LoginForm() {
       });
 
       if (otpError) {
-        setError(formatError(otpError));
+        setError(otpError.message);
         setLoading(false);
         return;
       }
@@ -125,7 +85,7 @@ function LoginForm() {
       setSent(true);
       setLoading(false);
     } catch (err) {
-      setError(formatError(err));
+      setError(err instanceof Error ? err.message : "An unexpected error occurred");
       setLoading(false);
     }
   }

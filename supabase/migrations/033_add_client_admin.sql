@@ -1,6 +1,6 @@
 -- CORHAUS PILATES PLATFORM - Add Client Admin Access
 -- ====================================================
--- Grants admin access to srikarkandukuri07@gmail.com and vivekalladi@hotmail.com
+-- Grants admin access to srikarkandukuri07@gmail.com and vkalladi@gmail.com
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
@@ -16,7 +16,7 @@ BEGIN
     COALESCE(NEW.raw_user_meta_data->>'phone_number', ''),
     NEW.email,
     CASE 
-      WHEN LOWER(NEW.email) IN ('srikarkandukuri07@gmail.com', 'vivekalladi@hotmail.com') THEN 'admin' 
+      WHEN LOWER(NEW.email) IN ('srikarkandukuri07@gmail.com', 'vkalladi@gmail.com') THEN 'admin' 
       ELSE 'member' 
     END
   );
@@ -26,4 +26,4 @@ $$;
 
 UPDATE public.profiles
 SET role = 'admin'
-WHERE LOWER(email) IN ('srikarkandukuri07@gmail.com', 'vivekalladi@hotmail.com');
+WHERE LOWER(email) IN ('srikarkandukuri07@gmail.com', 'vkalladi@gmail.com');
