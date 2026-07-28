@@ -55,7 +55,7 @@ export async function GET() {
     // 5. Fetch members and profiles for enrichment
     const [membersRes, profilesRes] = await Promise.all([
       supabase.from("approved_members").select("id, full_name, email, phone_number").order("full_name"),
-      supabase.from("profiles").select("id, email"),
+      supabase.from("profiles").select("id, email, full_name, phone_number"),
     ]);
 
     const members = membersRes.data || [];
@@ -69,8 +69,10 @@ export async function GET() {
       if (m.email) memberByEmail[m.email.toLowerCase()] = m;
     });
 
+    const profileById: Record<string, any> = {};
     const profileEmailById: Record<string, string> = {};
     profiles.forEach((p: any) => {
+      profileById[p.id] = p;
       if (p.email) profileEmailById[p.id] = p.email.toLowerCase();
     });
 
@@ -78,12 +80,35 @@ export async function GET() {
     const enrichedBookings = (bookings || []).map((b: any) => {
       // Path 1: booking.member_id == approved_members.id (admin-assigned old bookings)
       let member = memberById[b.member_id] || null;
+      let prof = profileById[b.member_id] || null;
+
       // Path 2: booking.member_id == profiles.id (auth.uid - member self-bookings)
       if (!member) {
         const email = profileEmailById[b.member_id];
         if (email) member = memberByEmail[email] || null;
       }
-      return { ...b, approved_members: member };
+
+      const email = prof?.email || member?.email || "";
+      const fullName = (member?.full_name && member.full_name.trim() !== "" && member.full_name !== "N/A")
+        ? member.full_name
+        : ((prof?.full_name && prof.full_name.trim() !== "" && prof.full_name !== "N/A")
+          ? prof.full_name
+          : (email ? email.split("@")[0] : "Member"));
+
+      const phoneNumber = (member?.phone_number && member.phone_number.trim() !== "" && member.phone_number !== "N/A")
+        ? member.phone_number
+        : ((prof?.phone_number && prof.phone_number.trim() !== "" && prof.phone_number !== "N/A")
+          ? prof.phone_number
+          : "N/A");
+
+      const finalMember = {
+        id: member?.id || prof?.id || b.member_id,
+        full_name: fullName,
+        email: email,
+        phone_number: phoneNumber,
+      };
+
+      return { ...b, approved_members: finalMember };
     });
 
     return NextResponse.json({ bookings: enrichedBookings, total: enrichedBookings.length });

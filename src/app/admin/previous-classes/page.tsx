@@ -92,18 +92,74 @@ export default function PreviousClasses() {
   const loadBookings = useCallback(
     async (classId: string) => {
       setBookingsLoading(true);
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("*, profiles(full_name, email, phone_number, avatar_url)")
-        .eq("class_id", classId)
-        .order("created_at", { ascending: true });
+      try {
+        const [bookingsRes, approvedRes, profilesRes] = await Promise.all([
+          supabase
+            .from("bookings")
+            .select("*, profiles(full_name, email, phone_number, avatar_url)")
+            .eq("class_id", classId)
+            .order("created_at", { ascending: true }),
+          supabase.from("approved_members").select("id, full_name, email, phone_number"),
+          supabase.from("profiles").select("id, full_name, email, phone_number, avatar_url"),
+        ]);
 
-      if (!error && data) {
-        startTransition(() => {
-          setBookings(data as BookingWithProfile[]);
-          setBookingsLoading(false);
+        const approvedList = approvedRes.data || [];
+        const profilesList = profilesRes.data || [];
+
+        const appmById: Record<string, any> = {};
+        const appmByEmail: Record<string, any> = {};
+        approvedList.forEach((m) => {
+          appmById[m.id] = m;
+          if (m.email) appmByEmail[m.email.toLowerCase()] = m;
         });
-      } else {
+
+        const profById: Record<string, any> = {};
+        profilesList.forEach((p) => {
+          profById[p.id] = p;
+        });
+
+        if (!bookingsRes.error && bookingsRes.data) {
+          const enriched = bookingsRes.data.map((b: any) => {
+            let prof = b.profiles || profById[b.member_id];
+            const matchedAppm = appmById[b.member_id] || (prof?.email ? appmByEmail[prof.email.toLowerCase()] : null);
+            const email = prof?.email || matchedAppm?.email || "";
+
+            let fullName = prof?.full_name?.trim();
+            if (!fullName || fullName === "N/A") {
+              fullName = matchedAppm?.full_name?.trim();
+            }
+            if (!fullName || fullName === "N/A") {
+              fullName = email ? email.split("@")[0] : "Member";
+            }
+
+            let phoneNumber = prof?.phone_number?.trim();
+            if (!phoneNumber || phoneNumber === "N/A") {
+              phoneNumber = matchedAppm?.phone_number?.trim();
+            }
+            if (!phoneNumber) {
+              phoneNumber = "N/A";
+            }
+
+            return {
+              ...b,
+              profiles: {
+                full_name: fullName,
+                email: email,
+                phone_number: phoneNumber,
+                avatar_url: prof?.avatar_url || null,
+              },
+            };
+          });
+
+          startTransition(() => {
+            setBookings(enriched as BookingWithProfile[]);
+            setBookingsLoading(false);
+          });
+        } else {
+          setBookingsLoading(false);
+        }
+      } catch (err) {
+        console.error("loadBookings exception:", err);
         setBookingsLoading(false);
       }
     },
@@ -113,19 +169,66 @@ export default function PreviousClasses() {
   const loadAttendance = useCallback(
     async (classId: string) => {
       setAttendanceLoading(true);
-      const { data, error } = await supabase
-        .from("attendance")
-        .select("*, profiles!inner(full_name, email, avatar_url)")
-        .eq("class_id", classId)
-        .eq("attendance_status", "attended")
-        .order("scanned_at", { ascending: true });
+      try {
+        const [attendanceRes, approvedRes, profilesRes] = await Promise.all([
+          supabase
+            .from("attendance")
+            .select("*, profiles(full_name, email, avatar_url)")
+            .eq("class_id", classId)
+            .eq("attendance_status", "attended")
+            .order("scanned_at", { ascending: true }),
+          supabase.from("approved_members").select("id, full_name, email"),
+          supabase.from("profiles").select("id, full_name, email, avatar_url"),
+        ]);
 
-      if (!error && data) {
-        startTransition(() => {
-          setAttended(data as AttendanceWithProfile[]);
-          setAttendanceLoading(false);
+        const approvedList = approvedRes.data || [];
+        const profilesList = profilesRes.data || [];
+
+        const appmById: Record<string, any> = {};
+        const appmByEmail: Record<string, any> = {};
+        approvedList.forEach((m) => {
+          appmById[m.id] = m;
+          if (m.email) appmByEmail[m.email.toLowerCase()] = m;
         });
-      } else {
+
+        const profById: Record<string, any> = {};
+        profilesList.forEach((p) => {
+          profById[p.id] = p;
+        });
+
+        if (!attendanceRes.error && attendanceRes.data) {
+          const enriched = attendanceRes.data.map((a: any) => {
+            let prof = a.profiles || profById[a.member_id];
+            const matchedAppm = appmById[a.member_id] || (prof?.email ? appmByEmail[prof.email.toLowerCase()] : null);
+            const email = prof?.email || matchedAppm?.email || "";
+
+            let fullName = prof?.full_name?.trim();
+            if (!fullName || fullName === "N/A") {
+              fullName = matchedAppm?.full_name?.trim();
+            }
+            if (!fullName || fullName === "N/A") {
+              fullName = email ? email.split("@")[0] : "Member";
+            }
+
+            return {
+              ...a,
+              profiles: {
+                full_name: fullName,
+                email: email,
+                avatar_url: prof?.avatar_url || null,
+              },
+            };
+          });
+
+          startTransition(() => {
+            setAttended(enriched as AttendanceWithProfile[]);
+            setAttendanceLoading(false);
+          });
+        } else {
+          setAttendanceLoading(false);
+        }
+      } catch (err) {
+        console.error("loadAttendance exception:", err);
         setAttendanceLoading(false);
       }
     },
