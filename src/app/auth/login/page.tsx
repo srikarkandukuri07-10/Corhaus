@@ -48,6 +48,13 @@ function LoginForm() {
   const urlError = searchParams.get("error");
   const notApprovedError = urlError === "not_approved" ? "You do not currently have access to the Corhaus Member Portal. Please contact Corhaus staff to activate your membership." : null;
 
+  function formatError(err: any): string {
+    if (!err) return "An unexpected error occurred. Please try again.";
+    if (typeof err === "string" && err.trim() !== "" && err !== "{}") return err;
+    if (err?.message && typeof err.message === "string" && err.message !== "{}" && err.message.trim() !== "") return err.message;
+    return "Could not send sign-in link. Please click 'Continue with Google' to sign in with your email.";
+  }
+
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -62,11 +69,13 @@ function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: normalizedEmail }),
       });
-      const directData = await directRes.json();
 
-      if (directData.isDirect && directData.redirectUrl) {
-        window.location.href = directData.redirectUrl;
-        return;
+      if (directRes.ok) {
+        const directData = await directRes.json();
+        if (directData.isDirect && directData.redirectUrl) {
+          window.location.href = directData.redirectUrl;
+          return;
+        }
       }
 
       // 2. Standard member check
@@ -91,7 +100,7 @@ function LoginForm() {
       });
 
       if (otpError) {
-        setError(otpError.message);
+        setError(formatError(otpError));
         setLoading(false);
         return;
       }
@@ -99,7 +108,7 @@ function LoginForm() {
       setSent(true);
       setLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      setError(formatError(err));
       setLoading(false);
     }
   }

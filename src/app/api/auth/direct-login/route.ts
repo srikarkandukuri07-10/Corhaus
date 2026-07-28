@@ -24,43 +24,25 @@ export async function POST(request: Request) {
     const origin = new URL(request.url).origin;
 
     // 1. Check if user already exists in auth.users
-    const { data: { users } } = await serviceClient.auth.admin.listUsers();
-    let existingUser = users?.find(
+    const { data: listData } = await serviceClient.auth.admin.listUsers();
+    const users = listData?.users || [];
+    let existingUser = users.find(
       (u) => u.email?.toLowerCase() === normalizedEmail
     );
 
-    // 2. If user doesn't exist, create user in auth.users directly
-    if (!existingUser) {
-      const { data: created, error: createError } =
-        await serviceClient.auth.admin.createUser({
+    // 2. Try to generate a direct magic link if user exists or can be linked
+    if (existingUser) {
+      // Ensure profile has role = 'admin'
+      await serviceClient.from("profiles").upsert(
+        {
+          id: existingUser.id,
           email: normalizedEmail,
-          email_confirm: true,
-          user_metadata: { full_name: normalizedEmail.split("@")[0] },
-        });
+          role: "admin",
+        },
+        { onConflict: "id" }
+      );
 
-      if (createError || !created.user) {
-        console.error("Failed to create direct admin user:", createError);
-        return NextResponse.json(
-          { error: "Failed to initialize admin session." },
-          { status: 500 }
-        );
-      }
-      existingUser = created.user;
-    }
-
-    // 3. Ensure profile has role = 'admin'
-    await serviceClient.from("profiles").upsert(
-      {
-        id: existingUser.id,
-        email: normalizedEmail,
-        role: "admin",
-      },
-      { onConflict: "id" }
-    );
-
-    // 4. Generate magic link URL to log in instantly without sending email
-    const { data: linkData, error: linkError } =
-      await serviceClient.auth.admin.generateLink({
+      const { data: linkData } = await serviceClient.auth.admin.generateLink({
         type: "magiclink",
         email: normalizedEmail,
         options: {
@@ -68,23 +50,51 @@ export async function POST(request: Request) {
         },
       });
 
-    if (linkError || !linkData?.properties?.action_link) {
-      console.error("Failed to generate direct action link:", linkError);
-      return NextResponse.json(
-        { error: "Failed to generate direct login link." },
-        { status: 500 }
-      );
+      if (linkData?.properties?.action_link) {
+        return NextResponse.json({
+          isDirect: true,
+          redirectUrl: linkData.properties.action_link,
+        });
+      }
     }
 
-    return NextResponse.json({
-      isDirect: true,
-      redirectUrl: linkData.properties.action_link,
+    // 3. If user doesn't exist yet, try creating them silently
+    const { data: created } = await serviceClient.auth.admin.createUser({
+      email: normalizedEmail,
+      email_confirm: true,
+      user_metadata: { full_name: normalizedEmail.split("@")[0] },
     });
-  } catch (err: any) {
+
+    if (created?.user) {
+      await serviceClient.from("profiles").upsert(
+        {
+          id: created.user.id,
+          email: normalizedEmail,
+          role: "admin",
+        },
+        { onConflict: "id" }
+      );
+
+      const { data: linkData } = await serviceClient.auth.admin.generateLink({
+        type: "magiclink",
+        email: normalizedEmail,
+        options: {
+          redirectTo: `${origin}/auth/callback`,
+        },
+      });
+
+      if (linkData?.properties?.action_link) {
+        return NextResponse.json({
+          isDirect: true,
+          redirectUrl: linkData.properties.action_link,
+        });
+      }
+    }
+
+    // Fall back to standard auth flow gracefully without throwing 500
+    return NextResponse.json({ isDirect: false });
+  } catch (err) {
     console.error("Direct login API error:", err);
-    return NextResponse.json(
-      { error: err.message || "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ isDirect: false });
   }
 }
