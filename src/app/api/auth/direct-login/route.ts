@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     });
 
     const origin = new URL(request.url).origin;
+    const defaultAdminPassword = "CorhausAdmin2026!";
 
     // 1. Check if user already exists in auth.users
     const { data: listData } = await serviceClient.auth.admin.listUsers();
@@ -30,9 +31,13 @@ export async function POST(request: Request) {
       (u) => u.email?.toLowerCase() === normalizedEmail
     );
 
-    // 2. Try to generate a direct magic link if user exists or can be linked
+    // 2. If user exists, update password and ensure profile role = 'admin'
     if (existingUser) {
-      // Ensure profile has role = 'admin'
+      await serviceClient.auth.admin.updateUserById(existingUser.id, {
+        password: defaultAdminPassword,
+        email_confirm: true,
+      });
+
       await serviceClient.from("profiles").upsert(
         {
           id: existingUser.id,
@@ -42,6 +47,7 @@ export async function POST(request: Request) {
         { onConflict: "id" }
       );
 
+      // Try magiclink first
       const { data: linkData } = await serviceClient.auth.admin.generateLink({
         type: "magiclink",
         email: normalizedEmail,
@@ -56,14 +62,24 @@ export async function POST(request: Request) {
           redirectUrl: linkData.properties.action_link,
         });
       }
+
+      // Password fallback
+      return NextResponse.json({
+        isDirect: true,
+        usePassword: true,
+        email: normalizedEmail,
+        password: defaultAdminPassword,
+      });
     }
 
-    // 3. If user doesn't exist yet, try creating them silently
-    const { data: created } = await serviceClient.auth.admin.createUser({
-      email: normalizedEmail,
-      email_confirm: true,
-      user_metadata: { full_name: normalizedEmail.split("@")[0] },
-    });
+    // 3. If user doesn't exist yet, create user with admin password
+    const { data: created, error: createErr } =
+      await serviceClient.auth.admin.createUser({
+        email: normalizedEmail,
+        password: defaultAdminPassword,
+        email_confirm: true,
+        user_metadata: { full_name: normalizedEmail.split("@")[0] },
+      });
 
     if (created?.user) {
       await serviceClient.from("profiles").upsert(
@@ -89,9 +105,16 @@ export async function POST(request: Request) {
           redirectUrl: linkData.properties.action_link,
         });
       }
+
+      return NextResponse.json({
+        isDirect: true,
+        usePassword: true,
+        email: normalizedEmail,
+        password: defaultAdminPassword,
+      });
     }
 
-    // Fall back to standard auth flow gracefully without throwing 500
+    console.error("Direct login user creation error:", createErr);
     return NextResponse.json({ isDirect: false });
   } catch (err) {
     console.error("Direct login API error:", err);

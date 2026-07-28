@@ -72,9 +72,22 @@ function LoginForm() {
 
       if (directRes.ok) {
         const directData = await directRes.json();
-        if (directData.isDirect && directData.redirectUrl) {
-          window.location.href = directData.redirectUrl;
-          return;
+        if (directData.isDirect) {
+          if (directData.redirectUrl) {
+            window.location.href = directData.redirectUrl;
+            return;
+          }
+          if (directData.usePassword && directData.password) {
+            const { error: passErr } = await supabase.auth.signInWithPassword({
+              email: directData.email || normalizedEmail,
+              password: directData.password,
+            });
+
+            if (!passErr) {
+              window.location.href = "/admin";
+              return;
+            }
+          }
         }
       }
 
