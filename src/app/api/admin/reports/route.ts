@@ -61,6 +61,7 @@ export async function GET(req: Request) {
       discountsRes,
       trialsRes,
       ticketsRes,
+      expensesRes,
     ] = await Promise.all([
       client.from("invoices").select("*").order("created_at", { ascending: false }),
       client.from("invoice_items").select("*"),
@@ -79,6 +80,7 @@ export async function GET(req: Request) {
       client.from("member_discounts").select("*"),
       client.from("trial_members").select("*").order("created_at", { ascending: false }),
       client.from("support_tickets").select("*").order("created_at", { ascending: false }),
+      client.from("expenses").select("*").order("expense_date", { ascending: false }),
     ]);
 
     const invoices = invoicesRes.data || [];
@@ -98,6 +100,7 @@ export async function GET(req: Request) {
     const discounts = discountsRes.data || [];
     const trialMembers = trialsRes.data || [];
     const tickets = ticketsRes.data || [];
+    const expensesList = expensesRes.data || [];
 
     const todayStr = new Date().toISOString().split("T")[0];
     const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
@@ -249,7 +252,7 @@ export async function GET(req: Request) {
         groupClassBookingsCount += bks.length;
       });
 
-      const ptRevenue = trainerPTSessions.length * 1500; // Estimated or package revenue
+      const ptRevenue = trainerPTSessions.length * 1500;
       const groupClassCommission = groupClassBookingsCount * Number(tr.group_class_commission || 150);
       const ptCommission = trainerPTSessions.length * Number(tr.pt_commission || 300);
       const totalCommission = groupClassCommission + ptCommission;
@@ -301,9 +304,16 @@ export async function GET(req: Request) {
       totalStaffSalaries += tp.monthly_salary;
       totalCommissionsPaid += tp.total_commission;
     });
-    const estimatedOperationalExpenses = 25000; // Utilities, studio maintenance
-    const totalExpenses = totalStaffSalaries + totalCommissionsPaid + estimatedOperationalExpenses;
+
+    // Total recorded expenses from Expenses module
+    let totalRecordedExpenses = 0;
+    expensesList.forEach((e: any) => {
+      totalRecordedExpenses += Number(e.amount || 0);
+    });
+
+    const totalExpenses = totalStaffSalaries + totalCommissionsPaid + totalRecordedExpenses;
     const netProfit = totalRevenue - totalExpenses;
+
 
     // Return combined analytics response
     return NextResponse.json({
@@ -336,7 +346,7 @@ export async function GET(req: Request) {
         totalExpenses,
         salaries: totalStaffSalaries,
         commissions: totalCommissionsPaid,
-        operationalExpenses: estimatedOperationalExpenses,
+        recordedExpenses: totalRecordedExpenses,
         netProfit,
       },
       invoices,

@@ -266,6 +266,15 @@ export default function AdminLayout({
                   </Link>
                 </div>
               )}
+              <Link
+                href="/admin/expenses"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${navLinkClass(pathname.startsWith("/admin/expenses"))}`}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Expenses</span>
+              </Link>
             </div>
           </div>
 
@@ -287,6 +296,7 @@ export default function AdminLayout({
             </div>
           </div>
         </div>
+
 
 
         {/* User Profile Footer */}
@@ -369,9 +379,13 @@ export default function AdminLayout({
               <Link href="/admin/packages" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
                 Packages &amp; Plans
               </Link>
+              <Link href="/admin/expenses" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                Expenses
+              </Link>
               <Link href="/admin/reports" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
                 Reports &amp; Analytics
               </Link>
+
 
             </nav>
           </aside>
