@@ -91,21 +91,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Assigned Instructor is required" }, { status: 400 });
     }
 
+    const isValidUUID = (val: any) =>
+      typeof val === "string" &&
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
+
     const newRecord = {
       full_name: full_name.trim(),
       phone_number: phone_number.trim(),
       email: email ? email.trim() : null,
       trial_date,
       trial_time,
-      class_id: class_id || null,
+      class_id: isValidUUID(class_id) ? class_id : null,
       class_name: class_name.trim(),
-      instructor_id: instructor_id || null,
+      instructor_id: isValidUUID(instructor_id) ? instructor_id : null,
       instructor_name: instructor_name.trim(),
       notes: notes ? notes.trim() : null,
       status: "Scheduled",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
+
 
     const { data, error } = await client
       .from("trial_members")

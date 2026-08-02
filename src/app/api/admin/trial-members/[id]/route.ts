@@ -50,15 +50,20 @@ export async function PUT(
       updated_at: new Date().toISOString(),
     };
 
+    const isValidUUID = (val: any) =>
+      typeof val === "string" &&
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
+
     if (body.full_name !== undefined) updatePayload.full_name = body.full_name;
     if (body.phone_number !== undefined) updatePayload.phone_number = body.phone_number;
     if (body.email !== undefined) updatePayload.email = body.email;
     if (body.trial_date !== undefined) updatePayload.trial_date = body.trial_date;
     if (body.trial_time !== undefined) updatePayload.trial_time = body.trial_time;
-    if (body.class_id !== undefined) updatePayload.class_id = body.class_id;
+    if (body.class_id !== undefined) updatePayload.class_id = isValidUUID(body.class_id) ? body.class_id : null;
     if (body.class_name !== undefined) updatePayload.class_name = body.class_name;
-    if (body.instructor_id !== undefined) updatePayload.instructor_id = body.instructor_id;
+    if (body.instructor_id !== undefined) updatePayload.instructor_id = isValidUUID(body.instructor_id) ? body.instructor_id : null;
     if (body.instructor_name !== undefined) updatePayload.instructor_name = body.instructor_name;
+
     if (body.status !== undefined) {
       const allowedStatuses = ["Scheduled", "Attended", "No Show", "Converted"];
       if (!allowedStatuses.includes(body.status)) {

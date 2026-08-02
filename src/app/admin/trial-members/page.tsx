@@ -113,9 +113,9 @@ export default function TrialMembersPage() {
       } else {
         // Fallback default classes
         setAvailableClasses([
-          { id: "1", title: "Reformer Pilates Basic", instructor: "Srikar" },
-          { id: "2", title: "Core Strength & Flow", instructor: "Priya" },
-          { id: "3", title: "Mat Pilates Flow", instructor: "Ananya" },
+          { id: "", title: "Reformer Pilates Basic", instructor: "Srikar" },
+          { id: "", title: "Core Strength & Flow", instructor: "Priya" },
+          { id: "", title: "Mat Pilates Flow", instructor: "Ananya" },
         ]);
       }
 
@@ -129,12 +129,13 @@ export default function TrialMembersPage() {
         setAvailableStaff(staffData as StaffOption[]);
       } else {
         setAvailableStaff([
-          { id: "1", full_name: "Srikar" },
-          { id: "2", full_name: "Priya" },
-          { id: "3", full_name: "Rahul" },
-          { id: "4", full_name: "Ananya" },
+          { id: "", full_name: "Srikar" },
+          { id: "", full_name: "Priya" },
+          { id: "", full_name: "Rahul" },
+          { id: "", full_name: "Ananya" },
         ]);
       }
+
     } catch (err) {
       console.error("Error loading master data:", err);
     }
