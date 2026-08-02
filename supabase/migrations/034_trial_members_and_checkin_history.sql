@@ -45,3 +45,7 @@ BEGIN
 EXCEPTION
   WHEN OTHERS THEN NULL;
 END $$;
+
+-- Force reload PostgREST Schema Cache
+NOTIFY pgrst, 'reload schema';
+
