@@ -988,53 +988,53 @@ function MembersPageContent() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
+          <div className="w-full overflow-x-hidden">
+            <table className="w-full text-[11px] text-left">
               <thead>
-                <tr className="bg-surface-2 border-b border-border-input text-text-secondary/60 font-semibold uppercase tracking-wider whitespace-nowrap">
-                  <th className="py-3.5 px-4">Member</th>
-                  <th className="py-3.5 px-4">Package / Plan</th>
-                  <th className="py-3.5 px-4">Category</th>
-                  <th className="py-3.5 px-4">Classes / Sessions</th>
-                  <th className="py-3.5 px-4">Start Date</th>
-                  <th className="py-3.5 px-4">End Date</th>
-                  <th className="py-3.5 px-4">Days Left</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
+                <tr className="bg-surface-2 border-b border-border-input text-text-secondary/60 font-semibold uppercase tracking-wider">
+                  <th className="py-2.5 px-2.5">Member</th>
+                  <th className="py-2.5 px-2">Package / Plan</th>
+                  <th className="py-2.5 px-2">Category</th>
+                  <th className="py-2.5 px-2">Sessions</th>
+                  <th className="py-2.5 px-2">Start Date</th>
+                  <th className="py-2.5 px-2">End Date</th>
+                  <th className="py-2.5 px-2">Days Left</th>
+                  <th className="py-2.5 px-2">Status</th>
+                  <th className="py-2.5 px-2 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border-input/50 whitespace-nowrap">
+              <tbody className="divide-y divide-border-input/50">
                 {filteredMembers.map((m) => {
                   const plan = m.activePlan;
 
                   return (
                     <tr key={m.id} className="hover:bg-surface-2/50 transition-colors">
                       {/* Member column */}
-                      <td className="py-3.5 px-4 font-medium text-text-primary">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full overflow-hidden border border-border-input bg-surface-2 flex-shrink-0 flex items-center justify-center font-bold text-text-secondary">
+                      <td className="py-2.5 px-2.5 font-medium text-text-primary">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full overflow-hidden border border-border-input bg-surface-2 flex-shrink-0 flex items-center justify-center font-bold text-text-secondary text-xs">
                             {m.avatar_url ? (
                               <img src={m.avatar_url} alt={m.full_name} className="w-full h-full object-cover" />
                             ) : (
                               m.full_name.charAt(0).toUpperCase()
                             )}
                           </div>
-                          <div>
-                            <p className="font-semibold text-sm leading-tight text-text-primary">{m.full_name}</p>
-                            <p className="text-[11px] text-text-secondary/50 mt-0.5">{m.phone_number}</p>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-xs leading-tight text-text-primary truncate">{m.full_name}</p>
+                            <p className="text-[10px] text-text-secondary/50 mt-0.5">{m.phone_number}</p>
                           </div>
                         </div>
                       </td>
 
                       {/* Package / Plan */}
-                      <td className="py-3.5 px-4 font-semibold text-text-primary max-w-[200px] truncate">
-                        {plan ? plan.plan_name : <span className="text-text-secondary/40 font-normal italic">No package selected</span>}
+                      <td className="py-2.5 px-2 font-semibold text-text-primary max-w-[140px] truncate">
+                        {plan ? plan.plan_name : <span className="text-text-secondary/40 font-normal italic">No plan</span>}
                       </td>
 
                       {/* Category */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-2">
                         {plan ? (
-                          <span className="inline-block whitespace-nowrap px-3 py-1 rounded-full bg-surface-2 text-text-gold font-semibold text-xs border border-border-input">
+                          <span className="inline-block whitespace-nowrap px-2 py-0.5 rounded-full bg-surface-2 text-text-gold font-semibold text-[10px] border border-border-input">
                             {plan.category}
                           </span>
                         ) : (
@@ -1043,13 +1043,13 @@ function MembersPageContent() {
                       </td>
 
                       {/* Classes / Sessions */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-2">
                         {plan ? (
                           (() => {
                             const sessInfo = formatSessionsDisplay(plan);
                             return (
                               <span
-                                className={`inline-block whitespace-nowrap px-3 py-1 rounded-lg font-semibold text-xs border ${
+                                className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-lg font-semibold text-[10px] border ${
                                   sessInfo.isSessions
                                     ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
                                     : "bg-purple-500/10 text-purple-400 border-purple-500/20"
@@ -1065,30 +1065,30 @@ function MembersPageContent() {
                       </td>
 
                       {/* Start Date */}
-                      <td className="py-3.5 px-4 text-text-secondary/80 font-sans font-medium text-xs">
+                      <td className="py-2.5 px-2 text-text-secondary/80 font-sans font-medium text-[11px] whitespace-nowrap">
                         {plan?.valid_from ? formatDate(plan.valid_from) : "—"}
                       </td>
 
                       {/* End Date */}
-                      <td className="py-3.5 px-4 text-text-secondary/80 font-sans font-medium text-xs">
+                      <td className="py-2.5 px-2 text-text-secondary/80 font-sans font-medium text-[11px] whitespace-nowrap">
                         {plan?.valid_until ? formatDate(plan.valid_until) : "—"}
                       </td>
 
                       {/* Days Left & Classes Left */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-2">
                         {m.daysLeft !== null && m.daysLeft !== undefined ? (
-                          <div className={`inline-flex flex-col items-center justify-center text-center px-3 py-1.5 rounded-xl font-semibold text-xs border ${
+                          <div className={`inline-flex flex-col items-center justify-center text-center px-2 py-1 rounded-xl font-semibold text-[10px] border ${
                             m.daysLeft <= 7
                               ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
                               : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                           }`}>
-                            <div>{m.daysLeft} days left</div>
-                            <div className="text-[10px] opacity-80 mt-0.5 font-bold border-t border-current/10 pt-0.5 w-full">
+                            <div>{m.daysLeft}d left</div>
+                            <div className="text-[9px] opacity-80 mt-0.5 font-bold border-t border-current/10 pt-0.5 w-full">
                               {plan ? (
                                 plan.sessions_total !== null && plan.sessions_total !== undefined
-                                  ? `${plan.sessions_remaining ?? 0} classes left`
-                                  : "Unlimited classes"
-                              ) : "0 classes left"}
+                                  ? `${plan.sessions_remaining ?? 0} left`
+                                  : "Unlimited"
+                              ) : "0 left"}
                             </div>
                           </div>
                         ) : (
@@ -1097,28 +1097,27 @@ function MembersPageContent() {
                       </td>
 
                       {/* Status */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-2.5 px-2">
                         <StatusBadge status={m.computedStatus || "Active"} />
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="py-2.5 px-2 text-right">
+                        <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => handleOpenDetails(m)}
-                            className="px-3 py-1.5 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-2 transition-colors shadow-xs"
+                            className="px-2.5 py-1 rounded-xl bg-accent text-white font-bold text-[11px] hover:bg-accent-2 transition-colors shadow-xs"
                           >
                             Details
                           </button>
                           <button
                             onClick={() => handleOpenHistory(m)}
-                            className="px-3 py-1.5 rounded-xl bg-surface-2 border border-line-2 text-fg font-bold text-xs hover:bg-hover transition-colors shadow-xs"
+                            className="px-2.5 py-1 rounded-xl bg-surface-2 border border-line-2 text-fg font-bold text-[11px] hover:bg-hover transition-colors shadow-xs"
                           >
                             History
                           </button>
                         </div>
                       </td>
-
                     </tr>
                   );
                 })}
@@ -1126,6 +1125,7 @@ function MembersPageContent() {
             </table>
           </div>
         )}
+
       </div>
 
       {/* Member Details Drawer Modal */}
