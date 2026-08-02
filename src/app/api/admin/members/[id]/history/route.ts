@@ -77,40 +77,46 @@ export async function GET(
       .eq("member_id", memberId)
       .order("created_at", { ascending: false });
 
-    if (bookingsErr) {
-      return NextResponse.json({ error: bookingsErr.message }, { status: 400 });
-    }
+    // Query attendance records for QR scan verification
+    const { data: attendanceData } = await client
+      .from("attendance")
+      .select("booking_id, attendance_status, scanned_at")
+      .eq("member_id", memberId);
+
+    const attendanceMap = new Map<string, any>();
+    (attendanceData || []).forEach((a: any) => {
+      if (a.booking_id) attendanceMap.set(a.booking_id, a);
+    });
 
     // Format history records strictly according to specification:
     // Columns: Date, Check-in Time, Class Name, Instructor, Attendance Status ('Attended' | 'No Show')
     const history = (bookingsData || []).map((b: any) => {
       const cls = b.classes || {};
+      const attRecord = attendanceMap.get(b.id);
       
-      // Determine Attendance Status: Attended vs No Show
-      let status: "Attended" | "No Show" = "Attended";
+      // Determine Attendance Status:
+      // - If QR code was scanned OR status is checked_in / present / completed -> Attended
+      // - If newly booked or not yet checked in / no show -> No Show
+      let status: "Attended" | "No Show" = "No Show";
       if (
-        b.booking_status === "no_show" ||
-        b.attendance_status === "no_show"
-      ) {
-        status = "No Show";
-      } else if (
         b.booking_status === "checked_in" ||
         b.booking_status === "completed" ||
         b.attendance_status === "present" ||
         b.attendance_status === "attended" ||
-        b.checked_in_at
+        Boolean(b.checked_in_at) ||
+        (attRecord && attRecord.attendance_status === "attended")
       ) {
         status = "Attended";
       } else {
-        // Fallback for past bookings or unassigned status
-        status = b.booking_status === "cancelled" ? "No Show" : "Attended";
+        status = "No Show";
       }
 
-      // Format time
+      // Format time (shows scanned time if attended, otherwise class time)
+      const scannedTimestamp = b.checked_in_at || (attRecord && attRecord.scanned_at);
       let checkInTime = cls.class_time || "N/A";
-      if (b.checked_in_at) {
+      if (scannedTimestamp) {
         try {
-          const dt = new Date(b.checked_in_at);
+          const dt = new Date(scannedTimestamp);
           checkInTime = dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
         } catch (_) {}
       } else if (cls.class_time) {
@@ -125,6 +131,7 @@ export async function GET(
           }
         } catch (_) {}
       }
+
 
       return {
         id: b.id,

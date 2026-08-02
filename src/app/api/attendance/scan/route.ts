@@ -77,6 +77,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to record attendance" }, { status: 500 });
     }
 
+    // Also update bookings record for immediate reflection across history and admin dashboards
+    try {
+      await supabase
+        .from("bookings")
+        .update({
+          booking_status: "checked_in",
+          attendance_status: "present",
+          checked_in_at: new Date().toISOString(),
+        })
+        .eq("id", record.booking_id);
+    } catch (_) {}
+
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("full_name, email")
