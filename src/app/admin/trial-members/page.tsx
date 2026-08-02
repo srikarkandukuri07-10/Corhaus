@@ -636,27 +636,26 @@ export default function TrialMembersPage() {
                               Convert to Member
                             </button>
 
-                            {/* Mark Attended */}
-                            {item.status !== "Attended" && (
-                              <button
-                                onClick={() => handleUpdateStatus(item.id, "Attended")}
-                                title="Mark Attended"
-                                className="px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 font-bold text-[11px] hover:bg-emerald-500/20 transition-colors"
-                              >
-                                Attended
-                              </button>
+                            {/* Mark Attended & No Show (Only shown when Scheduled) */}
+                            {item.status === "Scheduled" && (
+                              <>
+                                <button
+                                  onClick={() => handleUpdateStatus(item.id, "Attended")}
+                                  title="Mark Attended"
+                                  className="px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 font-bold text-[11px] hover:bg-emerald-500/20 transition-colors"
+                                >
+                                  Attended
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateStatus(item.id, "No Show")}
+                                  title="Mark No Show"
+                                  className="px-2.5 py-1 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-[11px] hover:bg-red-500/20 transition-colors"
+                                >
+                                  No Show
+                                </button>
+                              </>
                             )}
 
-                            {/* Mark No Show */}
-                            {item.status !== "No Show" && (
-                              <button
-                                onClick={() => handleUpdateStatus(item.id, "No Show")}
-                                title="Mark No Show"
-                                className="px-2.5 py-1 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-[11px] hover:bg-red-500/20 transition-colors"
-                              >
-                                No Show
-                              </button>
-                            )}
 
                             {/* Reschedule */}
                             <button
