@@ -294,6 +294,43 @@ function MembersPageContent() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
+  // Member History Modal states
+  const [historyMember, setHistoryMember] = useState<ApprovedMember | null>(null);
+  const [historyLogs, setHistoryLogs] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyStartDate, setHistoryStartDate] = useState("");
+  const [historyEndDate, setHistoryEndDate] = useState("");
+  const [historyClassFilter, setHistoryClassFilter] = useState("All");
+  const [historyInstructorFilter, setHistoryInstructorFilter] = useState("All");
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<"All" | "Attended" | "No Show">("All");
+
+  // Trial member conversion state
+  const [convertTrialId, setConvertTrialId] = useState<string | null>(null);
+
+  const handleOpenHistory = async (member: ApprovedMember) => {
+    setHistoryMember(member);
+    setHistoryLoading(true);
+    setHistoryStartDate("");
+    setHistoryEndDate("");
+    setHistoryClassFilter("All");
+    setHistoryInstructorFilter("All");
+    setHistoryStatusFilter("All");
+    try {
+      const res = await fetch(`/api/admin/members/${member.id}/history`);
+      if (res.ok) {
+        const data = await res.json();
+        setHistoryLogs(data.history || []);
+      } else {
+        setHistoryLogs([]);
+      }
+    } catch (_) {
+      setHistoryLogs([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+
   // Fetch all members with purchased plans and profile info
   const fetchMembers = useCallback(async () => {
     setLoading(true);
@@ -445,14 +482,16 @@ function MembersPageContent() {
     const prefillName = searchParams.get("prefill_name");
     const prefillEmail = searchParams.get("prefill_email");
     const prefillPhone = searchParams.get("prefill_phone");
+    const trialId = searchParams.get("convert_trial_id") || searchParams.get("trial_id");
     const refCode = searchParams.get("referral_code");
     const refName = searchParams.get("referrer_name");
     const refEmail = searchParams.get("referrer_email");
 
-    if (prefillName || prefillEmail || prefillPhone) {
+    if (prefillName || prefillEmail || prefillPhone || trialId) {
       setFormName(prefillName || "");
       setFormEmail(prefillEmail || "");
       setFormPhone(prefillPhone || "");
+      if (trialId) setConvertTrialId(trialId);
       setPrefilledReferralCode(refCode || "");
       setPrefilledReferrerName(refName || "");
       setPrefilledReferrerEmail(refEmail || "");
@@ -467,6 +506,7 @@ function MembersPageContent() {
     setFormStatus("active");
     setFormLevel("Beginner");
     setFormError(null);
+    setConvertTrialId(null);
     setPrefilledReferralCode("");
     setPrefilledReferrerName("");
     setPrefilledReferrerEmail("");
@@ -523,13 +563,17 @@ function MembersPageContent() {
       return;
     }
 
-    const { error: insertError } = await supabase.from("approved_members").insert({
-      full_name: formName.trim(),
-      email: formEmail.trim().toLowerCase(),
-      phone_number: formPhone.replace(/\D/g, ""),
-      membership_status: formStatus,
-      membership_level: formLevel,
-    });
+    const { data: insertedMember, error: insertError } = await supabase
+      .from("approved_members")
+      .insert({
+        full_name: formName.trim(),
+        email: formEmail.trim().toLowerCase(),
+        phone_number: formPhone.replace(/\D/g, ""),
+        membership_status: formStatus,
+        membership_level: formLevel,
+      })
+      .select("id")
+      .single();
 
     if (insertError) {
       setFormError(insertError.message);
@@ -537,7 +581,20 @@ function MembersPageContent() {
       return;
     }
 
+    if (convertTrialId && insertedMember?.id) {
+      try {
+        await fetch("/api/admin/trial-members/convert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ trial_id: convertTrialId, member_id: insertedMember.id }),
+        });
+      } catch (err) {
+        console.error("Failed to mark trial as converted:", err);
+      }
+    }
+
     resetForm();
+
     setShowForm(false);
     fetchMembers();
     setFormLoading(false);
@@ -1046,13 +1103,22 @@ function MembersPageContent() {
 
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={() => handleOpenDetails(m)}
-                          className="px-3.5 py-1.5 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-2 transition-colors shadow-xs"
-                        >
-                          Details
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenDetails(m)}
+                            className="px-3 py-1.5 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-2 transition-colors shadow-xs"
+                          >
+                            Details
+                          </button>
+                          <button
+                            onClick={() => handleOpenHistory(m)}
+                            className="px-3 py-1.5 rounded-xl bg-surface-2 border border-line-2 text-fg font-bold text-xs hover:bg-hover transition-colors shadow-xs"
+                          >
+                            History
+                          </button>
+                        </div>
                       </td>
+
                     </tr>
                   );
                 })}
@@ -1593,6 +1659,187 @@ function MembersPageContent() {
           </div>
         </div>
       )}
+
+      {/* Member Check-in History Modal */}
+      {historyMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-surface border border-line-2 rounded-2xl max-w-4xl w-full p-6 space-y-5 max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-line-2 pb-4">
+              <div>
+                <h3 className="text-lg font-serif font-bold text-fg">
+                  Check-in History: {historyMember.full_name}
+                </h3>
+                <p className="text-xs text-fg-3 mt-0.5">
+                  Phone: <span className="font-semibold text-fg-2">{historyMember.phone_number}</span> | Email:{" "}
+                  <span className="font-semibold text-fg-2">{historyMember.email}</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/admin/members/${historyMember.id}/history`}
+                  className="px-3 py-1.5 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-colors shadow-xs"
+                >
+                  Full Page View
+                </Link>
+                <button
+                  onClick={() => setHistoryMember(null)}
+                  className="p-1.5 rounded-xl text-fg-3 hover:text-fg hover:bg-hover text-sm font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Filters bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 p-3 rounded-xl bg-surface-2 border border-line-2 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-fg-3 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={historyStartDate}
+                  onChange={(e) => setHistoryStartDate(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-line-2 bg-surface text-fg focus:ring-1 focus:ring-accent outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-fg-3 mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={historyEndDate}
+                  onChange={(e) => setHistoryEndDate(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-line-2 bg-surface text-fg focus:ring-1 focus:ring-accent outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-fg-3 mb-1">Class</label>
+                <select
+                  value={historyClassFilter}
+                  onChange={(e) => setHistoryClassFilter(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-line-2 bg-surface text-fg focus:ring-1 focus:ring-accent outline-none"
+                >
+                  <option value="All">All Classes</option>
+                  {Array.from(new Set(historyLogs.map((h) => h.className).filter(Boolean)))
+                    .sort()
+                    .map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-fg-3 mb-1">Instructor</label>
+                <select
+                  value={historyInstructorFilter}
+                  onChange={(e) => setHistoryInstructorFilter(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-line-2 bg-surface text-fg focus:ring-1 focus:ring-accent outline-none"
+                >
+                  <option value="All">All Instructors</option>
+                  {Array.from(new Set(historyLogs.map((h) => h.instructor).filter(Boolean)))
+                    .sort()
+                    .map((ins) => (
+                      <option key={ins} value={ins}>
+                        {ins}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-fg-3 mb-1">Attendance Status</label>
+                <select
+                  value={historyStatusFilter}
+                  onChange={(e) => setHistoryStatusFilter(e.target.value as any)}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-line-2 bg-surface text-fg focus:ring-1 focus:ring-accent outline-none"
+                >
+                  <option value="All">All</option>
+                  <option value="Attended">Attended</option>
+                  <option value="No Show">No Show</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Table Content */}
+            <div className="flex-1 overflow-y-auto min-h-[250px] border border-line-2 rounded-xl bg-surface">
+              {historyLoading ? (
+                <div className="p-8 flex flex-col items-center justify-center text-fg-3">
+                  <div className="w-6 h-6 border-2 border-accent/30 border-t-accent rounded-full animate-spin mb-2" />
+                  <p className="text-xs font-semibold">Loading attendance records...</p>
+                </div>
+              ) : (
+                (() => {
+                  const filtered = historyLogs.filter((item) => {
+                    if (historyStartDate && (!item.date || item.date < historyStartDate)) return false;
+                    if (historyEndDate && (!item.date || item.date > historyEndDate)) return false;
+                    if (historyClassFilter !== "All" && item.className !== historyClassFilter) return false;
+                    if (historyInstructorFilter !== "All" && item.instructor !== historyInstructorFilter) return false;
+                    if (historyStatusFilter !== "All" && item.status !== historyStatusFilter) return false;
+                    return true;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="p-8 text-center text-fg-3 text-xs">
+                        No check-in history records found matching filters.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-line-2 bg-surface-2/60 text-fg-3 uppercase font-bold text-[10px] tracking-wider sticky top-0 bg-surface-2">
+                          <th className="py-2.5 px-3">Date</th>
+                          <th className="py-2.5 px-3">Check-in Time</th>
+                          <th className="py-2.5 px-3">Class Name</th>
+                          <th className="py-2.5 px-3">Instructor</th>
+                          <th className="py-2.5 px-3 text-right">Attendance Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-line-2 text-fg">
+                        {filtered.map((row) => (
+                          <tr key={row.id} className="hover:bg-hover/50 transition-colors">
+                            <td className="py-2.5 px-3 font-semibold text-fg">{row.date}</td>
+                            <td className="py-2.5 px-3 text-fg-2">{row.time}</td>
+                            <td className="py-2.5 px-3 font-bold text-fg">{row.className}</td>
+                            <td className="py-2.5 px-3 text-fg-2">{row.instructor}</td>
+                            <td className="py-2.5 px-3 text-right">
+                              <span
+                                className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  row.status === "Attended"
+                                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                    : "bg-red-500/10 text-red-500 border-red-500/20"
+                                }`}
+                              >
+                                {row.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  );
+                })()
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setHistoryMember(null)}
+                className="px-4 py-2 rounded-xl bg-surface-2 border border-line-2 text-fg text-xs font-bold hover:bg-hover transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

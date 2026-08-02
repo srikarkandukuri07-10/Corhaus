@@ -123,12 +123,22 @@ export default function AdminLayout({
             <div className="space-y-1">
               <Link
                 href="/admin/members"
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${navLinkClass(pathname.startsWith("/admin/members"))}`}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${navLinkClass(pathname === "/admin/members" || (pathname.startsWith("/admin/members") && !pathname.startsWith("/admin/members/history")))}`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
                 <span>Members</span>
+              </Link>
+
+              <Link
+                href="/admin/trial-members"
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${navLinkClass(pathname.startsWith("/admin/trial-members"))}`}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+                <span>Trial Members</span>
               </Link>
 
               <Link
@@ -312,6 +322,10 @@ export default function AdminLayout({
               <Link href="/admin/members" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
                 Members
               </Link>
+              <Link href="/admin/trial-members" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                Trial Members
+              </Link>
+
               <Link href="/admin/freeze" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
                 Freeze Management
               </Link>
