@@ -310,6 +310,15 @@ export default function RolesPermissionsPage() {
             )}
           </div>
 
+          {selectedRole.name === "Owner" && (
+            <div className="p-4 rounded-xl bg-accent/10 border border-accent/20 text-accent text-xs font-bold flex items-center gap-2">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Owner role has full 100% system access and permissions are locked enabled. To customize permissions, view Manager, Receptionist, or Trainer.</span>
+            </div>
+          )}
+
           {editorLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
@@ -363,23 +372,27 @@ export default function RolesPermissionsPage() {
                       <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {modPerms.map((perm) => {
                           const isChecked = selectedPermIds.has(perm.id);
+                          const isOwnerRole = selectedRole.name === "Owner";
                           return (
-                            <label
+                            <div
                               key={perm.id}
-                              className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
-                                isChecked
-                                  ? "bg-accent/5 border-accent/30"
-                                  : "bg-surface border-line/60 hover:border-line"
-                              } ${selectedRole.name === "Owner" ? "cursor-not-allowed opacity-80" : ""}`}
+                              onClick={() => !isOwnerRole && togglePermission(perm.id)}
+                              className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all ${
+                                isOwnerRole
+                                  ? "bg-accent/5 border-accent/20 cursor-not-allowed opacity-90"
+                                  : isChecked
+                                  ? "bg-accent/10 border-accent/40 cursor-pointer shadow-xs"
+                                  : "bg-surface border-line/70 hover:border-accent/30 hover:bg-surface-2/40 cursor-pointer"
+                              }`}
                             >
                               <input
                                 type="checkbox"
-                                disabled={selectedRole.name === "Owner"}
+                                readOnly
+                                disabled={isOwnerRole}
                                 checked={isChecked}
-                                onChange={() => togglePermission(perm.id)}
-                                className="w-4 h-4 accent-accent rounded mt-0.5 flex-shrink-0"
+                                className="w-4 h-4 accent-accent rounded mt-0.5 flex-shrink-0 cursor-pointer pointer-events-none"
                               />
-                              <div className="space-y-0.5 min-w-0">
+                              <div className="space-y-0.5 min-w-0 select-none">
                                 <p className="text-xs font-bold text-fg leading-tight">
                                   {perm.name}
                                 </p>
@@ -387,11 +400,12 @@ export default function RolesPermissionsPage() {
                                   {perm.description}
                                 </p>
                               </div>
-                            </label>
+                            </div>
                           );
                         })}
                       </div>
                     )}
+
                   </div>
                 );
               })}
