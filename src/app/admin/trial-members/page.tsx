@@ -802,55 +802,31 @@ export default function TrialMembersPage() {
                   <label className="block font-bold text-fg-3 uppercase tracking-wider text-[10px] mb-1">
                     Assigned Class <span className="text-red-500">*</span>
                   </label>
-                  <select
+                  <input
+                    type="text"
                     required
+                    placeholder="e.g. Reformer Pilates Basic"
                     value={formClassName}
-                    onChange={(e) => {
-                      const selectedTitle = e.target.value;
-                      setFormClassName(selectedTitle);
-                      const cls = availableClasses.find((c) => c.title === selectedTitle);
-                      if (cls) {
-                        setFormClassId(cls.id);
-                        if (cls.instructor && !formInstructorName) {
-                          setFormInstructorName(cls.instructor);
-                        }
-                      }
-                    }}
+                    onChange={(e) => setFormClassName(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-line-2 bg-surface-2 text-fg focus:ring-1 focus:ring-accent outline-none font-semibold"
-                  >
-                    <option value="">-- Select Class --</option>
-                    {availableClasses.map((c) => (
-                      <option key={c.id} value={c.title}>
-                        {c.title}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div>
                   <label className="block font-bold text-fg-3 uppercase tracking-wider text-[10px] mb-1">
                     Assigned Instructor <span className="text-red-500">*</span>
                   </label>
-                  <select
+                  <input
+                    type="text"
                     required
+                    placeholder="e.g. Trainer Name"
                     value={formInstructorName}
-                    onChange={(e) => {
-                      const selectedName = e.target.value;
-                      setFormInstructorName(selectedName);
-                      const stf = availableStaff.find((s) => s.full_name === selectedName);
-                      if (stf) setFormInstructorId(stf.id);
-                    }}
+                    onChange={(e) => setFormInstructorName(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-line-2 bg-surface-2 text-fg focus:ring-1 focus:ring-accent outline-none font-semibold"
-                  >
-                    <option value="">-- Select Instructor --</option>
-                    {availableStaff.map((s) => (
-                      <option key={s.id} value={s.full_name}>
-                        {s.full_name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
+
 
               {/* Notes */}
               <div>

@@ -156,9 +156,13 @@ export default function MembershipFreezeSection() {
 
   if (!data) return null;
 
-  const isFrozen = data.freeze_status === "frozen" || !!data.active_freeze;
+  const todayStr = new Date().toISOString().split("T")[0];
+  const activeFreezeEnd = data.active_freeze?.freeze_end || (data.active_freeze as any)?.end_date;
+  const isFreezeEnded = Boolean(activeFreezeEnd && activeFreezeEnd < todayStr);
+  const isFrozen = !isFreezeEnded && (data.freeze_status === "frozen" || !!data.active_freeze);
   const isPending = !!data.pending_request;
   const noFreezesLeft = data.freeze_remaining <= 0;
+
 
   return (
     <div className="bg-surface rounded-2xl border border-line p-6 shadow-xs space-y-5">

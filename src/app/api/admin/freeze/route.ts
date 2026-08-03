@@ -99,6 +99,42 @@ export async function GET() {
       freezes = freezeData;
     }
 
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    // Auto-off expired freezes whose end date has passed
+    const expiredFreezes = (freezes || []).filter((f) => {
+      if (f.status !== "active") return false;
+      const endDateVal = f.freeze_end || f.end_date;
+      return endDateVal && endDateVal < todayStr;
+    });
+
+    if (expiredFreezes.length > 0) {
+      for (const ef of expiredFreezes) {
+        ef.status = "completed";
+        try {
+          await serviceClient
+            .from("membership_freezes")
+            .update({ status: "completed" })
+            .eq("id", ef.id);
+        } catch (_) {}
+
+        try {
+          await serviceClient
+            .from("approved_members")
+            .update({ membership_status: "active", freeze_status: "active" })
+            .eq("id", ef.member_id);
+        } catch (_) {}
+
+        try {
+          await serviceClient
+            .from("member_purchased_plans")
+            .update({ status: "active" })
+            .eq("approved_member_id", ef.member_id)
+            .eq("status", "frozen");
+        } catch (_) {}
+      }
+    }
+
     // Combine data per member using exact purchased plans or paid invoices
     const result = (members || []).map((m) => {
       const memberPlans = (plans || []).filter((p) => p.approved_member_id === m.id);
@@ -143,7 +179,12 @@ export async function GET() {
       const validUntil = activePlan ? activePlan.valid_until : null;
 
       const memberFreezes = freezes.filter((f) => f.member_id === m.id);
-      const activeFreeze = memberFreezes.find((f) => f.status === "active") || null;
+      const activeFreeze = memberFreezes.find((f) => {
+        if (f.status !== "active") return false;
+        const end = f.freeze_end || f.end_date;
+        if (end && end < todayStr) return false;
+        return true;
+      }) || null;
 
       const memberRequests = requests.filter((r) => r.member_id === m.id);
       const pendingRequest = memberRequests.find((r) => r.status === "pending") || null;
@@ -152,11 +193,12 @@ export async function GET() {
       const freezeRemaining = Math.max(0, 2 - freezesUsed);
 
       let currentStatus: "Active" | "Frozen" | "Freeze Requested" = "Active";
-      if (activeFreeze || m.membership_status === "frozen" || activePlan?.status === "frozen" || m.freeze_status === "frozen") {
+      if (activeFreeze) {
         currentStatus = "Frozen";
       } else if (pendingRequest || m.freeze_status === "freeze_requested") {
         currentStatus = "Freeze Requested";
       }
+
 
       return {
         id: m.id,

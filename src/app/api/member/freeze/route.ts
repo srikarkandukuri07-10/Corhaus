@@ -62,7 +62,47 @@ export async function GET() {
       .order("requested_at", { ascending: false });
     if (rData) requests = rData;
 
-    const activeFreeze = freezes.find((f) => f.status === "active") || null;
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    // Check for expired freeze
+    let activeFreeze = freezes.find((f) => {
+      if (f.status !== "active") return false;
+      const endDateVal = f.freeze_end || f.end_date;
+      if (endDateVal && endDateVal < todayStr) return false;
+      return true;
+    }) || null;
+
+    const expiredActive = freezes.find((f) => {
+      if (f.status !== "active") return false;
+      const endDateVal = f.freeze_end || f.end_date;
+      return endDateVal && endDateVal < todayStr;
+    });
+
+    if (expiredActive) {
+      try {
+        await serviceClient
+          .from("membership_freezes")
+          .update({ status: "completed" })
+          .eq("id", expiredActive.id);
+      } catch (_) {}
+      try {
+        await serviceClient
+          .from("approved_members")
+          .update({ membership_status: "active", freeze_status: "active" })
+          .eq("id", member.id);
+      } catch (_) {}
+      if (activePlan) {
+        try {
+          await serviceClient
+            .from("member_purchased_plans")
+            .update({ status: "active" })
+            .eq("id", activePlan.id);
+        } catch (_) {}
+      }
+      expiredActive.status = "completed";
+      activeFreeze = null;
+    }
+
     const pendingRequest = requests.find((r) => r.status === "pending") || null;
     const latestRejectedRequest = requests.find((r) => r.status === "rejected") || null;
 
@@ -70,11 +110,12 @@ export async function GET() {
     const freezeRemaining = Math.max(0, 2 - freezesUsed);
 
     let freezeStatus: "active" | "frozen" | "freeze_requested" = "active";
-    if (activeFreeze || member.membership_status === "frozen" || member.freeze_status === "frozen" || activePlan?.status === "frozen") {
+    if (activeFreeze) {
       freezeStatus = "frozen";
     } else if (pendingRequest || member.freeze_status === "freeze_requested") {
       freezeStatus = "freeze_requested";
     }
+
 
     return NextResponse.json({
       member_name: member.full_name,
