@@ -847,11 +847,59 @@ export default function CreateBillPage() {
 
             {/* Totals Breakdown & Payment */}
             <div className="border-t border-line pt-3 space-y-3">
+              {/* Apply Discount Box */}
+              <div className="p-2.5 rounded-xl bg-surface-2/60 border border-line space-y-2">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (showDiscount) {
+                        setShowDiscount(false);
+                        setDiscountValue("");
+                      } else {
+                        setShowDiscount(true);
+                      }
+                    }}
+                    className="text-xs font-bold text-accent hover:underline flex items-center gap-1.5"
+                  >
+                    <span>🏷️</span>
+                    <span>{showDiscount ? "Remove Discount" : "+ Apply Manual Discount"}</span>
+                  </button>
+                  {showDiscount && discountValue && (
+                    <span className="text-[10px] text-emerald-500 font-bold">
+                      {discountType === "percentage" ? `${discountValue}% OFF` : `₹${discountValue} OFF`}
+                    </span>
+                  )}
+                </div>
+
+                {showDiscount && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <select
+                      value={discountType}
+                      onChange={(e) => setDiscountType(e.target.value as any)}
+                      className="px-2 py-1.5 rounded-lg border border-line bg-surface text-xs font-semibold text-fg outline-none"
+                    >
+                      <option value="percentage">% OFF</option>
+                      <option value="flat">₹ OFF</option>
+                    </select>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder={discountType === "percentage" ? "e.g. 10" : "e.g. 500"}
+                      value={discountValue}
+                      onChange={(e) => setDiscountValue(e.target.value)}
+                      className="flex-1 px-3 py-1.5 rounded-lg border border-line bg-surface text-xs font-bold text-fg outline-none"
+                    />
+                  </div>
+                )}
+              </div>
+
               {/* Totals */}
               <div className="space-y-1.5 px-1">
                 <div className="flex items-center justify-between text-xs text-fg-4">
                   <span>Subtotal</span><span>{fmt(subtotal)}</span>
                 </div>
+
                 {discountAmount > 0 && (
                   <div className="flex items-center justify-between text-xs text-emerald-600 font-bold">
                     <span>Member Discount ({discountType === "percentage" ? discountValue + "% OFF" : fmt(parseFloat(discountValue))})</span>

@@ -211,15 +211,7 @@ export default function AdminLayout({
                 </div>
               </Link>
 
-              <Link
-                href="/admin/discounts"
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[15px] font-semibold transition-all ${navLinkClass(pathname.startsWith("/admin/discounts"))}`}
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M17 17h.01M7 7l10 10M7 7a4 4 0 115.657 5.657M17 17a4 4 0 11-5.657-5.657" />
-                </svg>
-                <span>Discounts</span>
-              </Link>
+
 
               <Link
                 href="/admin/packages"
@@ -373,9 +365,7 @@ export default function AdminLayout({
               <Link href="/admin/billing" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
                 Billing
               </Link>
-              <Link href="/admin/discounts" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                Discounts
-              </Link>
+
               <Link href="/admin/packages" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
                 Packages &amp; Plans
               </Link>
