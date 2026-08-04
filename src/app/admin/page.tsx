@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -310,27 +310,27 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans pb-12">
+    <div className="space-y-6 animate-fade-in font-sans pb-12">
       {/* Top Header & Quick Action Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface/80 backdrop-blur-md p-6 rounded-[22px] border border-line shadow-xs">
-        <div>
+      <div className="admin-card flex flex-col md:flex-row md:items-center justify-between gap-5 p-5 sm:p-6">
+        <div className="max-w-2xl">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl md:text-3xl font-extrabold text-fg tracking-tight">
+            <h1 className="text-2xl md:text-[32px] font-semibold text-fg tracking-tight leading-tight">
               Studio Overview
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-accent/15 text-accent border border-accent/25">
+            <span className="admin-badge bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
               LIVE
             </span>
           </div>
-          <p className="text-xs md:text-sm text-fg-3 mt-1 font-medium">
-            {todayFormatted} &bull; Here&apos;s today&apos;s activity at Corhaus.
+          <p className="text-sm text-fg-3 mt-1.5 font-medium leading-6">
+            {todayFormatted} Â· Today&apos;s classes, bookings, check-ins, and paid revenue at Corhaus.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap md:justify-end">
           <Link
             href="/admin/scanner"
-            className="px-4 py-2.5 rounded-xl bg-surface-2 hover:bg-hover text-fg text-xs font-semibold border border-line transition-all flex items-center gap-2 shadow-2xs"
+            className="admin-button admin-button-secondary"
           >
             <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
@@ -340,7 +340,7 @@ export default function AdminDashboard() {
 
           <Link
             href="/admin/members"
-            className="px-4 py-2.5 rounded-xl bg-surface-2 hover:bg-hover text-fg text-xs font-semibold border border-line transition-all flex items-center gap-2 shadow-2xs"
+            className="admin-button admin-button-secondary"
           >
             <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -350,7 +350,7 @@ export default function AdminDashboard() {
 
           <Link
             href="/admin/classes"
-            className="px-5 py-2.5 rounded-xl bg-accent text-white hover:bg-accent-2 text-xs font-bold transition-all shadow-md flex items-center gap-2"
+            className="admin-button admin-button-primary"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -361,14 +361,14 @@ export default function AdminDashboard() {
       </div>
 
       {/* 4 Premium Metric KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Today's Classes */}
-        <div className="bg-surface rounded-[20px] p-6 border border-line shadow-xs flex flex-col justify-between hover:border-accent/40 transition-all group">
+        <div className="admin-card admin-card-hover p-5 flex flex-col justify-between group">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-fg-3 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-fg-3 uppercase tracking-[0.08em]">
               Today&apos;s Classes
             </span>
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center group-hover:scale-105 transition-transform">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -378,26 +378,26 @@ export default function AdminDashboard() {
             {loading ? (
               <div className="h-8 w-16 bg-line/40 animate-pulse rounded-md" />
             ) : (
-              <div className="text-3xl font-extrabold text-fg tracking-tight">
+              <div className="text-[32px] font-semibold text-fg tracking-tight leading-none">
                 {todaysClassesCount}
               </div>
             )}
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-line/60">
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-line/70">
               <span className="text-[11px] text-fg-4 font-medium">Scheduled Sessions</span>
               <Link href="/admin/classes" className="text-xs font-bold text-accent hover:underline flex items-center gap-1">
-                View &rarr;
+                View ?
               </Link>
             </div>
           </div>
         </div>
 
         {/* Total Members */}
-        <div className="bg-surface rounded-[20px] p-6 border border-line shadow-xs flex flex-col justify-between hover:border-accent/40 transition-all group">
+        <div className="admin-card admin-card-hover p-5 flex flex-col justify-between group">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-fg-3 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-fg-3 uppercase tracking-[0.08em]">
               Approved Members
             </span>
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center group-hover:scale-105 transition-transform">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
@@ -407,53 +407,53 @@ export default function AdminDashboard() {
             {loading ? (
               <div className="h-8 w-16 bg-line/40 animate-pulse rounded-md" />
             ) : (
-              <div className="text-3xl font-extrabold text-fg tracking-tight">
+              <div className="text-[32px] font-semibold text-fg tracking-tight leading-none">
                 {totalMembersCount}
               </div>
             )}
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-line/60">
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-line/70">
               <span className="text-[11px] text-fg-4 font-medium">Active Studio Roster</span>
               <Link href="/admin/members" className="text-xs font-bold text-blue-500 hover:underline flex items-center gap-1">
-                Directory &rarr;
+                Directory ?
               </Link>
             </div>
           </div>
         </div>
 
         {/* This Month's Revenue */}
-        <div className="bg-surface rounded-[20px] p-6 border border-line shadow-xs flex flex-col justify-between hover:border-accent/40 transition-all group">
+        <div className="admin-card admin-card-hover p-5 flex flex-col justify-between group">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-fg-3 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-fg-3 uppercase tracking-[0.08em]">
               Monthly Revenue
             </span>
-            <div className="w-10 h-10 rounded-xl bg-gold/10 text-gold font-bold text-lg flex items-center justify-center group-hover:scale-105 transition-transform">
-              ₹
+            <div className="w-9 h-9 rounded-xl bg-gold/10 text-gold font-bold text-base flex items-center justify-center group-hover:scale-105 transition-transform">
+              ?
             </div>
           </div>
           <div className="mt-4">
             {loading ? (
               <div className="h-8 w-24 bg-line/40 animate-pulse rounded-md" />
             ) : (
-              <div className="text-3xl font-extrabold text-fg tracking-tight">
-                ₹{todaysRevenue.toLocaleString("en-IN")}
+              <div className="text-[32px] font-semibold text-fg tracking-tight leading-none">
+                ?{todaysRevenue.toLocaleString("en-IN")}
               </div>
             )}
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-line/60">
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-line/70">
               <span className="text-[11px] text-fg-4 font-medium">Paid Invoices</span>
               <Link href="/admin/billing/invoices" className="text-xs font-bold text-gold hover:underline flex items-center gap-1">
-                Invoices &rarr;
+                Invoices ?
               </Link>
             </div>
           </div>
         </div>
 
         {/* Check-ins Today */}
-        <div className="bg-surface rounded-[20px] p-6 border border-line shadow-xs flex flex-col justify-between hover:border-accent/40 transition-all group">
+        <div className="admin-card admin-card-hover p-5 flex flex-col justify-between group">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-fg-3 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-fg-3 uppercase tracking-[0.08em]">
               Check-ins Today
             </span>
-            <div className="w-10 h-10 rounded-xl bg-green-500/10 text-green-500 flex items-center justify-center group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -463,14 +463,14 @@ export default function AdminDashboard() {
             {loading ? (
               <div className="h-8 w-16 bg-line/40 animate-pulse rounded-md" />
             ) : (
-              <div className="text-3xl font-extrabold text-fg tracking-tight">
+              <div className="text-[32px] font-semibold text-fg tracking-tight leading-none">
                 {checkInsTodayCount}
               </div>
             )}
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-line/60">
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-line/70">
               <span className="text-[11px] text-fg-4 font-medium">Scanned Attendances</span>
               <Link href="/admin/scanner" className="text-xs font-bold text-green-500 hover:underline flex items-center gap-1">
-                Scanner &rarr;
+                Scanner ?
               </Link>
             </div>
           </div>
@@ -480,10 +480,10 @@ export default function AdminDashboard() {
       {/* Main Schedule & Roster Control Grid */}
       <div className="space-y-4">
         {/* Header & Filter Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
-            <h2 className="text-xl font-bold text-fg tracking-tight">Today&apos;s Schedule</h2>
-            <p className="text-xs text-fg-3">Select a session card to view enrolled roster and check-ins.</p>
+            <h2 className="text-xl font-semibold text-fg tracking-tight">Today&apos;s Schedule</h2>
+            <p className="text-sm text-fg-3 mt-0.5">Select a session to inspect bookings and check-ins.</p>
           </div>
 
           {classes.length > 0 && (
@@ -496,7 +496,7 @@ export default function AdminDashboard() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filter by class or instructor..."
-                className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-surface border border-line text-fg placeholder:text-fg-4 focus:border-accent transition-all"
+                className="admin-input w-full pl-9 pr-3 py-2 text-xs placeholder:text-fg-4 focus:border-accent"
               />
             </div>
           )}
@@ -506,7 +506,7 @@ export default function AdminDashboard() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-surface rounded-[20px] border border-line p-5 space-y-4 animate-pulse">
+              <div key={i} className="admin-card p-5 space-y-4 animate-pulse">
                 <div className="flex justify-between">
                   <div className="h-5 w-32 bg-line/40 rounded-md" />
                   <div className="h-5 w-16 bg-line/40 rounded-md" />
@@ -517,25 +517,25 @@ export default function AdminDashboard() {
             ))}
           </div>
         ) : classes.length === 0 ? (
-          <div className="bg-surface rounded-[22px] border border-line p-12 text-center shadow-xs space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center mx-auto">
+          <div className="admin-card p-10 sm:p-12 text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-accent/10 text-accent flex items-center justify-center mx-auto">
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-base font-bold text-fg">No classes scheduled for today</h3>
-              <p className="text-xs text-fg-3 mt-1">Add a new session to open booking slots for studio members.</p>
+              <h3 className="text-base font-semibold text-fg">No classes scheduled for today</h3>
+              <p className="text-sm text-fg-3 mt-1">Add a session to open booking slots for studio members.</p>
             </div>
             <Link
               href="/admin/classes"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-all shadow-md"
+              className="admin-button admin-button-primary"
             >
               <span>+</span> Create Today&apos;s First Class
             </Link>
           </div>
         ) : filteredClasses.length === 0 ? (
-          <div className="bg-surface rounded-[20px] border border-line p-8 text-center text-xs text-fg-3">
+          <div className="admin-card p-8 text-center text-sm text-fg-3">
             No classes match &quot;{searchQuery}&quot;. Clear search to view all today&apos;s sessions.
           </div>
         ) : (
@@ -550,19 +550,19 @@ export default function AdminDashboard() {
                 <div
                   key={c.id}
                   onClick={() => handleClassClick(c.id)}
-                  className={`bg-surface rounded-[20px] border p-5 cursor-pointer transition-all ${
+                  className={`admin-card p-5 cursor-pointer transition-all ${
                     isSelected
-                      ? "border-accent ring-2 ring-accent/30 shadow-md scale-[1.01]"
-                      : "border-line hover:border-accent/50 hover:shadow-xs"
+                      ? "border-accent ring-2 ring-accent/20 shadow-sm scale-[1.005]"
+                      : "hover:border-accent/35 hover:shadow-xs"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h3 className="font-bold text-base text-fg tracking-tight">{c.title}</h3>
+                      <h3 className="font-semibold text-base text-fg tracking-tight leading-snug">{c.title}</h3>
                       <p className="text-xs text-fg-3 mt-0.5 font-medium">{c.instructor}</p>
                     </div>
                     <span
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                      className={`admin-badge ${
                         isFull
                           ? "bg-red-500/10 text-red-500 border border-red-500/20"
                           : fillPct >= 80
@@ -590,12 +590,12 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-xs text-fg">
+                  <div className="mt-4 pt-3 border-t border-line/70 flex items-center justify-between text-xs text-fg">
                     <span className="text-fg-3 font-medium">
                       {formatDate(c.class_date)} @ {formatTime(c.class_time)}
                     </span>
                     <span className={`font-bold text-[11px] ${isSelected ? "text-accent" : "text-fg-4"}`}>
-                      {isSelected ? "Selected ✓" : "Tap to inspect"}
+                      {isSelected ? "Selected ?" : "Tap to inspect"}
                     </span>
                   </div>
                 </div>
@@ -607,27 +607,27 @@ export default function AdminDashboard() {
 
       {/* Selected Class Member Bookings & Attendance Roster Drawer/Panel */}
       {selectedClass && selectedClassData && (
-        <div className="bg-surface rounded-[24px] border border-accent/40 p-6 shadow-xl space-y-6 animate-slide-up">
+        <div className="admin-card p-5 sm:p-6 space-y-5 animate-slide-up ring-1 ring-accent/15">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full bg-accent/15 text-accent font-bold text-[10px]">
+                <span className="admin-badge bg-accent/10 text-accent border border-accent/20">
                   SESSION ROSTER
                 </span>
-                <h3 className="text-xl font-bold text-fg">
+                <h3 className="text-xl font-semibold text-fg tracking-tight">
                   {selectedClassData.title}
                 </h3>
               </div>
-              <p className="text-xs text-fg-3 mt-1">
-                Instructor: <strong className="text-fg">{selectedClassData.instructor}</strong> &bull; {formatDate(selectedClassData.class_date)} at {formatTime(selectedClassData.class_time)}
+              <p className="text-sm text-fg-3 mt-1">
+                Instructor: <strong className="text-fg">{selectedClassData.instructor}</strong> · {formatDate(selectedClassData.class_date)} at {formatTime(selectedClassData.class_time)}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
               <Link
                 href="/admin/scanner"
-                className="px-3 py-1.5 rounded-xl bg-green-500/10 text-green-500 border border-green-500/20 text-xs font-bold hover:bg-green-500/20 transition-colors flex items-center gap-1.5"
+                className="admin-button bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 hover:bg-emerald-500/15"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
@@ -636,19 +636,19 @@ export default function AdminDashboard() {
               </Link>
               <button
                 onClick={() => setSelectedClass(null)}
-                className="w-8 h-8 rounded-xl bg-surface-2 hover:bg-hover text-fg-3 hover:text-fg border border-line flex items-center justify-center transition-colors text-sm font-bold"
+                className="w-8 h-8 rounded-xl bg-surface hover:bg-hover text-fg-3 hover:text-fg border border-line flex items-center justify-center transition-colors text-sm font-bold"
               >
-                ✕
+                ×
               </button>
             </div>
           </div>
 
           {/* Roster Controls: Tabs + Search */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2 p-1 bg-surface-2 rounded-xl border border-line self-start">
+            <div className="flex items-center gap-1 p-1 bg-surface-2 rounded-xl border border-line self-start overflow-x-auto">
               <button
                 onClick={() => setRosterTab("bookings")}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                   rosterTab === "bookings"
                     ? "bg-accent text-white shadow-xs"
                     : "text-fg-3 hover:text-fg"
@@ -658,7 +658,7 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => setRosterTab("attended")}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                   rosterTab === "attended"
                     ? "bg-green-600 text-white shadow-xs"
                     : "text-fg-3 hover:text-fg"
@@ -673,8 +673,8 @@ export default function AdminDashboard() {
                 type="text"
                 value={rosterSearch}
                 onChange={(e) => setRosterSearch(e.target.value)}
-                placeholder="Search roster member..."
-                className="w-full px-3 py-1.5 text-xs rounded-xl bg-surface-2 border border-line text-fg placeholder:text-fg-4 focus:border-accent transition-all"
+                placeholder="Search roster..."
+                className="admin-input w-full px-3 py-1.5 text-xs placeholder:text-fg-4 focus:border-accent"
               />
             </div>
           </div>
@@ -683,11 +683,11 @@ export default function AdminDashboard() {
           {rosterTab === "bookings" ? (
             <div className="space-y-3">
               {bookingsLoading ? (
-                <div className="py-8 text-center text-xs text-fg-4 animate-pulse">
+                <div className="py-8 text-center text-sm text-fg-4 animate-pulse">
                   Loading booked member roster...
                 </div>
               ) : filteredBookings.length === 0 ? (
-                <div className="py-10 text-center text-xs text-fg-4 bg-surface-2 rounded-2xl border border-line/60 space-y-1">
+                <div className="py-10 text-center text-sm text-fg-4 bg-surface-2 rounded-2xl border border-line/60 space-y-1">
                   <p className="font-bold text-fg-3">No members match your roster search</p>
                   <p className="text-[11px] text-fg-4">Members who book this class will appear here automatically in real time.</p>
                 </div>
@@ -696,7 +696,7 @@ export default function AdminDashboard() {
                   {filteredBookings.map((b) => (
                     <div
                       key={b.id}
-                      className="p-3.5 rounded-xl bg-surface-2 border border-line flex items-center justify-between text-xs hover:border-line-2 transition-all"
+                      className="p-3.5 rounded-xl bg-surface-2 border border-line flex items-center justify-between text-xs hover:border-line-2 hover:bg-hover/35 transition-all"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-accent/20 text-accent font-bold flex items-center justify-center text-xs border border-accent/30">
@@ -707,7 +707,7 @@ export default function AdminDashboard() {
                           <p className="text-[11px] text-fg-3">{b.profiles?.email || b.profiles?.phone_number || "No contact info"}</p>
                         </div>
                       </div>
-                      <span className="px-2.5 py-1 rounded-full bg-accent/10 text-accent font-bold text-[10px] border border-accent/20">
+                      <span className="admin-badge bg-accent/10 text-accent border border-accent/20">
                         BOOKED
                       </span>
                     </div>
@@ -718,11 +718,11 @@ export default function AdminDashboard() {
           ) : (
             <div className="space-y-3">
               {attendanceLoading ? (
-                <div className="py-8 text-center text-xs text-fg-4 animate-pulse">
+                <div className="py-8 text-center text-sm text-fg-4 animate-pulse">
                   Loading attendance check-ins...
                 </div>
               ) : filteredAttended.length === 0 ? (
-                <div className="py-10 text-center text-xs text-fg-4 bg-surface-2 rounded-2xl border border-line/60 space-y-1">
+                <div className="py-10 text-center text-sm text-fg-4 bg-surface-2 rounded-2xl border border-line/60 space-y-1">
                   <p className="font-bold text-fg-3">No check-ins recorded yet</p>
                   <p className="text-[11px] text-fg-4">Members who scan their attendance QR code will show up here instantly.</p>
                 </div>
@@ -731,18 +731,18 @@ export default function AdminDashboard() {
                   {filteredAttended.map((a) => (
                     <div
                       key={a.id}
-                      className="p-3.5 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-between text-xs"
+                      className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-green-500/20 text-green-500 font-bold flex items-center justify-center text-xs border border-green-500/30">
-                          ✓
+                        <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-600 font-bold flex items-center justify-center text-xs border border-emerald-500/30">
+                          ?
                         </div>
                         <div>
                           <p className="font-bold text-fg">{a.profiles?.full_name || "Member"}</p>
                           <p className="text-[11px] text-fg-3">{a.profiles?.email}</p>
                         </div>
                       </div>
-                      <span className="px-2.5 py-1 rounded-full bg-green-500/20 text-green-500 font-bold text-[10px] border border-green-500/30">
+                      <span className="admin-badge bg-emerald-500/20 text-emerald-700 border border-emerald-500/30">
                         ATTENDED
                       </span>
                     </div>
