@@ -28,35 +28,6 @@ export default function RolesPermissionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function verifyManager() {
-      try {
-        const res = await fetch("/api/admin/my-permissions");
-        const data = await res.json();
-        if (!res.ok || data.role !== "Manager") {
-          router.push("/admin/access-denied");
-          return;
-        }
-        setCheckingRole(false);
-      } catch {
-        router.push("/admin/access-denied");
-      }
-    }
-    verifyManager();
-  }, [router]);
-
-  if (checkingRole) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-canvas">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
-          <p className="text-sm text-fg-3 font-medium">Verifying authorization permissions...</p>
-        </div>
-      </div>
-    );
-  }
-
-
   // Editor State
   const [selectedRole, setSelectedRole] = useState<RoleItem | null>(null);
   const [permissions, setPermissions] = useState<PermissionItem[]>([]);
@@ -86,8 +57,27 @@ export default function RolesPermissionsPage() {
   }, []);
 
   useEffect(() => {
-    fetchRoles();
-  }, [fetchRoles]);
+    async function verifyManager() {
+      try {
+        const res = await fetch("/api/admin/my-permissions");
+        const data = await res.json();
+        if (!res.ok || data.role !== "Manager") {
+          router.push("/admin/access-denied");
+          return;
+        }
+        setCheckingRole(false);
+      } catch {
+        router.push("/admin/access-denied");
+      }
+    }
+    verifyManager();
+  }, [router]);
+
+  useEffect(() => {
+    if (!checkingRole) {
+      fetchRoles();
+    }
+  }, [fetchRoles, checkingRole]);
 
   // 2. Open Role Permissions Editor
   const handleOpenPermissions = async (role: RoleItem) => {
@@ -122,6 +112,17 @@ export default function RolesPermissionsPage() {
     });
     return map;
   }, [permissions]);
+
+  if (checkingRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-canvas">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+          <p className="text-sm text-fg-3 font-medium">Verifying authorization permissions...</p>
+        </div>
+      </div>
+    );
+  }
 
   const moduleNames = useMemo(() => Object.keys(groupedPermissions), [groupedPermissions]);
 
