@@ -113,6 +113,8 @@ export default function RolesPermissionsPage() {
     return map;
   }, [permissions]);
 
+  const moduleNames = useMemo(() => Object.keys(groupedPermissions), [groupedPermissions]);
+
   if (checkingRole) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-canvas">
@@ -123,8 +125,6 @@ export default function RolesPermissionsPage() {
       </div>
     );
   }
-
-  const moduleNames = useMemo(() => Object.keys(groupedPermissions), [groupedPermissions]);
 
   // Toggle individual permission
   const togglePermission = (permId: string) => {
