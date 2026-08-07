@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 
 interface RoleItem {
   id: string;
@@ -21,9 +22,40 @@ interface PermissionItem {
 }
 
 export default function RolesPermissionsPage() {
+  const [checkingRole, setCheckingRole] = useState(true);
+  const router = useRouter();
   const [roles, setRoles] = useState<RoleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function verifyManager() {
+      try {
+        const res = await fetch("/api/admin/my-permissions");
+        const data = await res.json();
+        if (!res.ok || data.role !== "Manager") {
+          router.push("/admin/access-denied");
+          return;
+        }
+        setCheckingRole(false);
+      } catch {
+        router.push("/admin/access-denied");
+      }
+    }
+    verifyManager();
+  }, [router]);
+
+  if (checkingRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-canvas">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+          <p className="text-sm text-fg-3 font-medium">Verifying authorization permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
 
   // Editor State
   const [selectedRole, setSelectedRole] = useState<RoleItem | null>(null);

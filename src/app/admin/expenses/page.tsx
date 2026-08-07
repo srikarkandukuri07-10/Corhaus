@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { usePermissions } from "@/lib/usePermissions";
 
 function fmt(n: number) {
   return "₹" + Number(n || 0).toLocaleString("en-IN");
@@ -107,6 +108,7 @@ const CATEGORY_COLORS = [
 
 export default function ExpensesPage() {
   const supabase = createClient();
+  const { hasPerm } = usePermissions();
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<{ id: string; category_name: string }[]>([]);
@@ -376,7 +378,13 @@ export default function ExpensesPage() {
           </button>
           <button
             onClick={handleOpenAddModal}
-            className="px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-colors shadow-xs flex items-center gap-1.5"
+            disabled={!hasPerm("expenses.create")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5 ${
+              hasPerm("expenses.create")
+                ? "bg-accent text-white hover:bg-accent-2 cursor-pointer"
+                : "bg-accent/45 text-white/65 cursor-not-allowed opacity-60"
+            }`}
+            title={hasPerm("expenses.create") ? "" : "Requires expenses.create permission"}
           >
             <span>➕</span> Add Expense
           </button>
@@ -637,18 +645,22 @@ export default function ExpensesPage() {
                         >
                           View
                         </button>
-                        <button
-                          onClick={() => handleOpenEditModal(exp)}
-                          className="px-2 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-semibold hover:bg-indigo-500/20 transition-colors"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => setDeletingExpense(exp)}
-                          className="px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 font-semibold hover:bg-red-500/20 transition-colors"
-                        >
-                          Delete
-                        </button>
+                        {hasPerm("expenses.edit") && (
+                          <button
+                            onClick={() => handleOpenEditModal(exp)}
+                            className="px-2 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-semibold hover:bg-indigo-500/20 transition-colors"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        {hasPerm("expenses.delete") && (
+                          <button
+                            onClick={() => setDeletingExpense(exp)}
+                            className="px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 font-semibold hover:bg-red-500/20 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

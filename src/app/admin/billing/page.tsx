@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { usePermissions } from "@/lib/usePermissions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -97,6 +98,7 @@ function fmt(n: number) {
 
 export default function CreateBillPage() {
   const supabase = createClient();
+  const { hasPerm } = usePermissions();
 
   // Customer
   const [customerSearch, setCustomerSearch]   = useState("");
@@ -1059,11 +1061,20 @@ export default function CreateBillPage() {
 
           {/* Sticky Bottom Action Bar (Complete Bill Button - ALWAYS VISIBLE!) */}
           <div className="p-3 border-t border-line bg-surface flex-shrink-0 shadow-lg">
-            <button onClick={handleCompleteBill} disabled={completing || !!completedInvoice}
-              className="w-full py-3.5 rounded-xl bg-accent text-white font-bold text-sm hover:bg-accent-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-accent/20"
+            <button
+              onClick={handleCompleteBill}
+              disabled={completing || !!completedInvoice || !hasPerm("billing.create")}
+              className={`w-full py-3.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-md ${
+                hasPerm("billing.create")
+                  ? "bg-accent text-white hover:bg-accent-2 shadow-accent/20"
+                  : "bg-accent/40 text-white/60 cursor-not-allowed opacity-50"
+              }`}
+              title={hasPerm("billing.create") ? "" : "Requires billing.create permission"}
             >
               {completing ? (
                 <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Processing…</>
+              ) : !hasPerm("billing.create") ? (
+                <>🔒 Complete Bill (Permission Required)</>
               ) : (
                 <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />

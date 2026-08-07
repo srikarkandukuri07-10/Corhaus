@@ -19,6 +19,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("staff.manage_rbac");
+    if (!check.authorized) return check.response!;
+
     const { id: roleId } = await params;
     const auth = await getAdminClient();
     if ("error" in auth) {
@@ -72,6 +76,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("staff.manage_rbac");
+    if (!check.authorized) return check.response!;
+
     const { id: roleId } = await params;
     const auth = await getAdminClient();
     if ("error" in auth) {

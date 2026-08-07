@@ -73,12 +73,28 @@ export async function updateSession(request: NextRequest) {
     const googleEmail = user.email ?? "";
     const normalizedEmail = googleEmail.trim().toLowerCase();
 
-    // Check if they are admin first
-    if (isAdminEmail(googleEmail) || userRole === "admin") {
+    // Determine if they are active staff member
+    let isStaff = isAdminEmail(googleEmail);
+    if (!isStaff) {
+      try {
+        const { data: staff } = await serviceClient
+          .from("staff_members")
+          .select("id, employment_status")
+          .eq("email", normalizedEmail)
+          .maybeSingle();
+        if (staff && staff.employment_status !== "Inactive") {
+          isStaff = true;
+        }
+      } catch (e) {
+        devLog("STAFF MEMBER CHECK ERROR:", e);
+      }
+    }
+
+    if (isStaff || userRole === "admin") {
       isApproved = true;
       userRole = "admin";
     } else {
-      // Check approved_members for everyone else!
+      // Check approved_members by email
       try {
         const { data: results } = await serviceClient
           .from("approved_members")
@@ -86,7 +102,7 @@ export async function updateSession(request: NextRequest) {
           .eq("membership_status", "active");
 
         const match = results?.find(
-          (r) => r.email.trim().toLowerCase() === normalizedEmail
+          (r) => r.email && r.email.trim().toLowerCase() === normalizedEmail
         );
         isApproved = !!match;
         if (match) {
@@ -159,6 +175,83 @@ export async function updateSession(request: NextRequest) {
         redirectRes.cookies.set(c.name, c.value);
       });
       return redirectRes;
+    }
+
+    // Roles & Permissions route protection (only Manager/ADMIN_EMAILS allowed)
+    if (pathname.startsWith("/admin/settings/roles") && !isAdminEmail(googleEmail)) {
+      devLog("DECISION: non-manager on settings/roles -> redirect to access-denied");
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/access-denied";
+      const redirectRes = NextResponse.redirect(url);
+      supabaseResponse.cookies.getAll().forEach((c) => {
+        redirectRes.cookies.set(c.name, c.value);
+      });
+      return redirectRes;
+    }
+
+    // Granular admin route permission checks
+    const routePermissionMap: Record<string, string> = {
+      "/admin/members": "members.view",
+      "/admin/trial-members": "members.trial",
+      "/admin/freeze": "members.edit",
+      "/admin/classes": "classes.view",
+      "/admin/pt": "pt.view",
+      "/admin/previous-classes": "classes.view",
+      "/admin/scanner": "attendance.scan",
+      "/admin/billing": "billing.view",
+      "/admin/packages": "packages.view",
+      "/admin/expenses": "expenses.view",
+      "/admin/reports": "reports.view",
+      "/admin/staff": "staff.view",
+      "/admin/support": "support.view",
+    };
+
+    const matchingRoute = Object.keys(routePermissionMap).find((route) => pathname.startsWith(route));
+    if (matchingRoute && !isAdminEmail(googleEmail) && userRole === "admin") {
+      const requiredPermission = routePermissionMap[matchingRoute];
+      let hasPerm = false;
+      try {
+        const { data: staff } = await serviceClient
+          .from("staff_members")
+          .select("id, role")
+          .eq("email", normalizedEmail)
+          .maybeSingle();
+
+        if (staff) {
+          const { data: roleObj } = await serviceClient
+            .from("roles")
+            .select("id")
+            .eq("name", staff.role)
+            .maybeSingle();
+
+          if (roleObj) {
+            const { data: permMatch } = await serviceClient
+              .from("role_permissions")
+              .select("id, permissions(action_key)")
+              .eq("role_id", roleObj.id);
+
+            const hasMatch = (permMatch || []).some(
+              (rp: any) => rp.permissions?.action_key === requiredPermission
+            );
+            if (hasMatch) {
+              hasPerm = true;
+            }
+          }
+        }
+      } catch (e) {
+        devLog("MIDDLEWARE PERMISSION CHECK ERROR:", e);
+      }
+
+      if (!hasPerm) {
+        devLog(`DECISION: missing permission ${requiredPermission} for route -> redirect to access-denied`);
+        const url = request.nextUrl.clone();
+        url.pathname = "/admin/access-denied";
+        const redirectRes = NextResponse.redirect(url);
+        supabaseResponse.cookies.getAll().forEach((c) => {
+          redirectRes.cookies.set(c.name, c.value);
+        });
+        return redirectRes;
+      }
     }
 
     // Member trying to access admin routes

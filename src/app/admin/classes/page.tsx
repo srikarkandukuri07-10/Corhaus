@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo, useTransition, useRef } from
 import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { usePermissions } from "@/lib/usePermissions";
 
 function Modal({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -119,6 +120,7 @@ function formatSlotHour(time24: string): string {
 }
 
 export default function AdminClassesModulePage() {
+  const { hasPerm } = usePermissions();
   const [activeTab, setActiveTab] = useState<"class_types" | "schedule" | "sessions" | "bookings">("schedule");
   const [calendarView, setCalendarView] = useState<"day" | "week" | "month">("week");
   const [weekOffset, setWeekOffset] = useState(0);
@@ -804,18 +806,20 @@ export default function AdminClassesModulePage() {
             Manage class types, calendar schedule board, session bookings, and studio check-ins
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              setSessClassTypeId("");
-              setSessTitle("");
-              setShowScheduleModal(true);
-            }}
-            className="px-6 py-3 rounded-2xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-all shadow-md shadow-accent/25 flex items-center gap-2"
-          >
-            <span className="text-base font-extrabold">+</span> Schedule Session
-          </button>
-        </div>
+        {hasPerm("classes.create") && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setSessClassTypeId("");
+                setSessTitle("");
+                setShowScheduleModal(true);
+              }}
+              className="px-6 py-3 rounded-2xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-all shadow-md shadow-accent/25 flex items-center gap-2"
+            >
+              <span className="text-base font-extrabold">+</span> Schedule Session
+            </button>
+          </div>
+        )}
       </div>
 
       {actionError && (
@@ -979,20 +983,22 @@ export default function AdminClassesModulePage() {
                   >
                     Edit
                   </button>
-                  <button
-                    onClick={() => {
-                      setSessClassTypeId(ct.id);
-                      setSessTitle(ct.name);
-                      setSessTrainer(ct.trainer);
-                      setSessDuration(ct.duration_minutes);
-                      setSessCapacity(ct.max_capacity);
-                      setSessRoom(ct.location_room);
-                      setShowScheduleModal(true);
-                    }}
-                    className="flex-1 py-2.5 bg-accent text-white rounded-xl text-xs font-bold hover:bg-accent-2 transition-colors shadow-xs"
-                  >
-                    Schedule
-                  </button>
+                  {hasPerm("classes.create") && (
+                    <button
+                      onClick={() => {
+                        setSessClassTypeId(ct.id);
+                        setSessTitle(ct.name);
+                        setSessTrainer(ct.trainer);
+                        setSessDuration(ct.duration_minutes);
+                        setSessCapacity(ct.max_capacity);
+                        setSessRoom(ct.location_room);
+                        setShowScheduleModal(true);
+                      }}
+                      className="flex-1 py-2.5 bg-accent text-white rounded-xl text-xs font-bold hover:bg-accent-2 transition-colors shadow-xs"
+                    >
+                      Schedule
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -1044,12 +1050,14 @@ export default function AdminClassesModulePage() {
                 ))}
               </div>
 
-              <button
-                onClick={() => setShowScheduleModal(true)}
-                className="px-5 py-2.5 bg-accent text-white rounded-xl text-xs font-bold hover:bg-accent-2 shadow-xs"
-              >
-                + Add Session
-              </button>
+              {hasPerm("classes.create") && (
+                <button
+                  onClick={() => setShowScheduleModal(true)}
+                  className="px-5 py-2.5 bg-accent text-white rounded-xl text-xs font-bold hover:bg-accent-2 shadow-xs"
+                >
+                  + Add Session
+                </button>
+              )}
             </div>
           </div>
 

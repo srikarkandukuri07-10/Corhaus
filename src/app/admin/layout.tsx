@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -16,6 +16,8 @@ export default function AdminLayout({
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [role, setRole] = useState<string>("");
+  const [permissions, setPermissions] = useState<string[]>([]);
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
@@ -33,26 +35,39 @@ export default function AdminLayout({
           return;
         }
 
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .maybeSingle();
+        // Fetch permissions from API
+        const permRes = await fetch("/api/admin/my-permissions");
+        const permData = await permRes.json();
 
-        if (profile?.role === "developer" || user.email === "kandukurisrikar10@gmail.com") {
-          router.push("/developer/support");
+        if (permRes.ok && permData.role) {
+          setRole(permData.role);
+          setPermissions(permData.permissions);
+
+          if (permData.role === "developer" || user.email === "kandukurisrikar10@gmail.com") {
+            router.push("/developer/support");
+            return;
+          }
+
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          if (profileError || !profile || profile.role !== "admin") {
+            router.push("/member");
+            return;
+          }
+
+          setIsAdmin(true);
+        } else {
+          router.push("/auth/login");
           return;
         }
-
-        if (profileError || !profile || profile.role !== "admin") {
-          router.push("/member");
-          return;
-        }
-
-        setIsAdmin(true);
-        setLoading(false);
       } catch (err) {
         router.push("/auth/login");
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -74,8 +89,35 @@ export default function AdminLayout({
 
   const isBillingActive = pathname.startsWith("/admin/billing");
 
+  const hasPerm = (actionKey: string) => {
+    if (role === "Manager") return true;
+    return permissions.includes(actionKey);
+  };
+
   const navLinkClass = (isActive: boolean) =>
     isActive ? "sidebar-active" : "text-on-rail-2 hover:bg-rail-hover hover:text-white";
+
+  const navLinkClassWithPerm = (isActive: boolean, actionKey: string) => {
+    const isAllowed = hasPerm(actionKey);
+    if (!isAllowed) {
+      return "opacity-50 cursor-not-allowed pointer-events-none text-on-rail-3";
+    }
+    return navLinkClass(isActive);
+  };
+
+  const renderLinkText = (text: string, actionKey: string) => {
+    const isAllowed = hasPerm(actionKey);
+    return (
+      <div className="flex items-center justify-between w-full">
+        <span>{text}</span>
+        {!isAllowed && (
+          <span className="text-[10px] text-on-rail-3" title="Locked">
+            🔒
+          </span>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen admin-shell flex font-sans">
@@ -125,72 +167,72 @@ export default function AdminLayout({
             <div className="space-y-1">
               <Link
                 href="/admin/members"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClass(pathname === "/admin/members" || (pathname.startsWith("/admin/members") && !pathname.startsWith("/admin/members/history")))}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname === "/admin/members" || (pathname.startsWith("/admin/members") && !pathname.startsWith("/admin/members/history")), "members.view")}`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
-                <span>Members</span>
+                {renderLinkText("Members", "members.view")}
               </Link>
 
               <Link
                 href="/admin/trial-members"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClass(pathname.startsWith("/admin/trial-members"))}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname.startsWith("/admin/trial-members"), "members.trial")}`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                 </svg>
-                <span>Trial Members</span>
+                {renderLinkText("Trial Members", "members.trial")}
               </Link>
 
               <Link
                 href="/admin/freeze"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClass(pathname.startsWith("/admin/freeze"))}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname.startsWith("/admin/freeze"), "members.edit")}`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
-                <span>Freeze Management</span>
+                {renderLinkText("Freeze Management", "members.edit")}
               </Link>
 
               <Link
                 href="/admin/classes"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClass(pathname === "/admin/classes" || pathname.startsWith("/admin/classes"))}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname === "/admin/classes" || pathname.startsWith("/admin/classes"), "classes.view")}`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <span>Classes &amp; Schedule</span>
+                {renderLinkText("Classes & Schedule", "classes.view")}
               </Link>
 
               <Link
                 href="/admin/pt"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClass(pathname === "/admin/pt" || pathname.startsWith("/admin/pt"))}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname === "/admin/pt" || pathname.startsWith("/admin/pt"), "pt.view")}`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <span>PT Scheduler</span>
+                {renderLinkText("PT Scheduler", "pt.view")}
               </Link>
 
               <Link
                 href="/admin/previous-classes"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClass(pathname.startsWith("/admin/previous-classes"))}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname.startsWith("/admin/previous-classes"), "classes.view")}`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Previous Classes</span>
+                {renderLinkText("Previous Classes", "classes.view")}
               </Link>
 
               <Link
                 href="/admin/scanner"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClass(pathname === "/admin/scanner")}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname === "/admin/scanner", "attendance.scan")}`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                 </svg>
-                <span>Attendance Scanner</span>
+                {renderLinkText("Attendance Scanner", "attendance.scan")}
               </Link>
             </div>
           </div>
@@ -203,30 +245,28 @@ export default function AdminLayout({
             <div className="space-y-1">
               <Link
                 href="/admin/billing"
-                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClass(isBillingActive)}`}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(isBillingActive, "billing.view")}`}
               >
                 <div className="flex items-center gap-3">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
-                  <span>Billing</span>
+                  {renderLinkText("Billing", "billing.view")}
                 </div>
               </Link>
 
-
-
               <Link
                 href="/admin/packages"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClass(pathname.startsWith("/admin/packages") || pathname.startsWith("/admin/billing/plan-items"))}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname.startsWith("/admin/packages") || pathname.startsWith("/admin/billing/plan-items"), "packages.view")}`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                 </svg>
-                <span>Packages &amp; Plans</span>
+                {renderLinkText("Packages & Plans", "packages.view")}
               </Link>
 
               {/* Sub-items inside Billing section */}
-              {isBillingActive && (
+              {isBillingActive && hasPerm("billing.view") && (
                 <div className="ml-4 pl-3 border-l border-white/15 space-y-1 mt-1">
                   <Link
                     href="/admin/billing"
@@ -262,12 +302,12 @@ export default function AdminLayout({
               )}
               <Link
                 href="/admin/expenses"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClass(pathname.startsWith("/admin/expenses"))}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname.startsWith("/admin/expenses"), "expenses.view")}`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Expenses</span>
+                {renderLinkText("Expenses", "expenses.view")}
               </Link>
             </div>
           </div>
@@ -280,50 +320,49 @@ export default function AdminLayout({
             <div className="space-y-1">
               <Link
                 href="/admin/reports"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClass(pathname.startsWith("/admin/reports"))}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname.startsWith("/admin/reports"), "reports.view")}`}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
-                <span>Reports</span>
+                {renderLinkText("Reports", "reports.view")}
               </Link>
             </div>
           </div>
 
           {/* Section: SETTINGS */}
-          <div>
-            <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 mb-2">
-              SETTINGS
-            </p>
-            <div className="space-y-1">
-              <Link
-                href="/admin/settings/roles"
-                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClass(pathname.startsWith("/admin/settings/roles"))}`}
-              >
-                <div className="flex items-center gap-3">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span>Role &amp; Permissions</span>
-                </div>
-              </Link>
+          {role === "Manager" && (
+            <div>
+              <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 mb-2">
+                SETTINGS
+              </p>
+              <div className="space-y-1">
+                <Link
+                  href="/admin/settings/roles"
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClass(pathname.startsWith("/admin/settings/roles"))}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>Role &amp; Permissions</span>
+                  </div>
+                </Link>
+              </div>
             </div>
-          </div>
-
+          )}
         </div>
-
-
 
         {/* User Profile Footer */}
         <div className="p-4 border-t border-white/10 flex items-center justify-between bg-black/20">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-white/10 text-white font-bold flex items-center justify-center text-sm ring-1 ring-white/10">
-              A
+            <div className="w-9 h-9 rounded-full bg-accent text-white font-bold flex items-center justify-center text-sm ring-1 ring-accent/30">
+              {role ? role.charAt(0).toUpperCase() : "A"}
             </div>
             <div className="text-left">
               <p className="text-xs font-bold text-white leading-tight">Admin</p>
-              <p className="text-[10px] text-on-rail-2">Super Admin</p>
+              <p className="text-[10px] text-on-rail-2">{role || "Super Admin"}</p>
             </div>
           </div>
           <LogoutButton />
@@ -364,53 +403,72 @@ export default function AdminLayout({
               <Link href="/admin" className="block px-4 py-2.5 rounded-xl font-bold text-white sidebar-active">
                 Dashboard
               </Link>
-              <Link href="/admin/members" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                Members
-              </Link>
-              <Link href="/admin/trial-members" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                Trial Members
-              </Link>
-
-              <Link href="/admin/freeze" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                Freeze Management
-              </Link>
-              <Link href="/admin/classes" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                Classes &amp; Schedule
-              </Link>
-              <Link href="/admin/pt" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                PT Scheduler
-              </Link>
-              <Link href="/admin/previous-classes" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                Previous Classes
-              </Link>
-              <Link href="/admin/scanner" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                Attendance Scanner
-              </Link>
-              <Link href="/admin/billing" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                Billing
-              </Link>
-
-              <Link href="/admin/packages" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                Packages &amp; Plans
-              </Link>
-              <Link href="/admin/expenses" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                Expenses
-              </Link>
-              <Link href="/admin/reports" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                Reports &amp; Analytics
-              </Link>
-              <Link href="/admin/settings/roles" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                Role &amp; Permissions
-              </Link>
-
-
-
+              {hasPerm("members.view") && (
+                <Link href="/admin/members" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                  Members
+                </Link>
+              )}
+              {hasPerm("members.trial") && (
+                <Link href="/admin/trial-members" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                  Trial Members
+                </Link>
+              )}
+              {hasPerm("members.edit") && (
+                <Link href="/admin/freeze" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                  Freeze Management
+                </Link>
+              )}
+              {hasPerm("classes.view") && (
+                <>
+                  <Link href="/admin/classes" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                    Classes &amp; Schedule
+                  </Link>
+                  <Link href="/admin/previous-classes" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                    Previous Classes
+                  </Link>
+                </>
+              )}
+              {hasPerm("pt.view") && (
+                <Link href="/admin/pt" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                  PT Scheduler
+                </Link>
+              )}
+              {hasPerm("attendance.scan") && (
+                <Link href="/admin/scanner" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                  Attendance Scanner
+                </Link>
+              )}
+              {hasPerm("billing.view") && (
+                <Link href="/admin/billing" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                  Billing
+                </Link>
+              )}
+              {hasPerm("packages.view") && (
+                <Link href="/admin/packages" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                  Packages &amp; Plans
+                </Link>
+              )}
+              {hasPerm("expenses.view") && (
+                <Link href="/admin/expenses" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                  Expenses
+                </Link>
+              )}
+              {hasPerm("reports.view") && (
+                <Link href="/admin/reports" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                  Reports &amp; Analytics
+                </Link>
+              )}
+              {role === "Manager" && (
+                <Link href="/admin/settings/roles" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                  Role &amp; Permissions
+                </Link>
+              )}
             </nav>
           </aside>
         </div>
       )}
 
-      {/* â”€â”€â”€ MAIN CONTENT CONTAINER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ──────────────────────────────────────────────────────────── */}
       <main className="flex-1 lg:pl-[272px] flex flex-col min-h-screen pt-16 lg:pt-0">
         {/* Top Header Bar */}
         <header className="bg-bar/90 backdrop-blur-md border-b border-line-bar px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-30">
@@ -427,40 +485,44 @@ export default function AdminLayout({
 
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
-            <Link
-              href="/admin/staff"
-              title="Staff & Trainers"
-              className={`relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
-                pathname.startsWith("/admin/staff")
-                  ? "bg-accent text-white border-accent shadow-sm"
-                  : "bg-surface border-line-2 text-fg hover:bg-hover"
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <span className="hidden sm:inline">Staff</span>
-            </Link>
-            <Link
-              href="/admin/support"
-              title="Support"
-              className={`relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
-                pathname.startsWith("/admin/support")
-                  ? "bg-accent text-white border-accent shadow-sm"
-                  : "bg-surface border-line-2 text-fg hover:bg-hover"
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              <span className="hidden sm:inline">Support</span>
-            </Link>
+            {hasPerm("staff.view") && (
+              <Link
+                href="/admin/staff"
+                title="Staff & Trainers"
+                className={`relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                  pathname.startsWith("/admin/staff")
+                    ? "bg-accent text-white border-accent shadow-sm"
+                    : "bg-surface border-line-2 text-fg hover:bg-hover"
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span className="hidden sm:inline">Staff</span>
+              </Link>
+            )}
+            {hasPerm("support.view") && (
+              <Link
+                href="/admin/support"
+                title="Support"
+                className={`relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                  pathname.startsWith("/admin/support")
+                    ? "bg-accent text-white border-accent shadow-sm"
+                    : "bg-surface border-line-2 text-fg hover:bg-hover"
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span className="hidden sm:inline">Support</span>
+              </Link>
+            )}
             <NotificationsButton role="admin" />
             <div className="hidden sm:flex items-center gap-2 bg-surface border border-line-2 px-3 py-1.5 rounded-full text-xs text-fg font-semibold">
               <div className="w-6 h-6 rounded-full bg-accent text-white flex items-center justify-center font-bold text-[11px]">
-                A
+                {role ? role.charAt(0).toUpperCase() : "A"}
               </div>
-              <span>Admin</span>
+              <span>{role || "Admin"}</span>
             </div>
           </div>
         </header>
