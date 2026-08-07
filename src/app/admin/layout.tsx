@@ -40,22 +40,21 @@ export default function AdminLayout({
         const permData = await permRes.json();
 
         if (permRes.ok && permData.role) {
+          // Guest and Member roles should not be on admin dashboard
+          if (permData.role === "Guest") {
+            router.push("/auth/login");
+            return;
+          }
+          if (permData.role === "Member") {
+            router.push("/member");
+            return;
+          }
+
           setRole(permData.role);
           setPermissions(permData.permissions);
 
           if (permData.role === "developer" || user.email === "kandukurisrikar10@gmail.com") {
             router.push("/developer/support");
-            return;
-          }
-
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .maybeSingle();
-
-          if (profileError || !profile || profile.role !== "admin") {
-            router.push("/member");
             return;
           }
 

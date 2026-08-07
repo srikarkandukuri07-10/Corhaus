@@ -77,15 +77,16 @@ function LoginForm() {
       });
 
       if (otpError) {
-        setError(otpError.message);
+        setError(otpError.message || "Failed to send sign-in link. Please try again.");
         setLoading(false);
         return;
       }
 
       setSent(true);
       setLoading(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+    } catch (err: any) {
+      const msg = typeof err === "string" ? err : (err?.message || "An unexpected error occurred");
+      setError(msg);
       setLoading(false);
     }
   }
