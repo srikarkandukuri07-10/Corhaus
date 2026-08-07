@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/auth/login?error=auth_failed`);
   }
 
-  // Collect cookies with their full options as Supabase sets them
-  const pendingCookies: { name: string; value: string; options: any }[] = [];
+  // Use a Map keyed by cookie name to ensure duplicate setAll calls don't overwrite valid session cookies
+  const cookieMap = new Map<string, { name: string; value: string; options: any }>();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            pendingCookies.push({ name, value, options });
+            cookieMap.set(name, { name, value, options });
           });
         },
       },
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   // Helper: create a redirect response with all session cookies properly attached
   function redirectWithCookies(url: string) {
     const res = NextResponse.redirect(url);
-    pendingCookies.forEach(({ name, value, options }) => {
+    cookieMap.forEach(({ name, value, options }) => {
       res.cookies.set(name, value, options);
     });
     return res;

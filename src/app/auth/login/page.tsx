@@ -37,6 +37,18 @@ class LoginErrorBoundary extends Component<{ children: React.ReactNode }, { hasE
   }
 }
 
+function safeErrorMessage(err: any): string {
+  if (!err) return "An unexpected error occurred";
+  if (typeof err === "string") return err;
+  if (typeof err?.message === "string") return err.message;
+  if (typeof err?.error_description === "string") return err.error_description;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return "An error occurred";
+  }
+}
+
 function LoginForm() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +89,7 @@ function LoginForm() {
       });
 
       if (otpError) {
-        setError(otpError.message || "Failed to send sign-in link. Please try again.");
+        setError(safeErrorMessage(otpError));
         setLoading(false);
         return;
       }
@@ -85,8 +97,7 @@ function LoginForm() {
       setSent(true);
       setLoading(false);
     } catch (err: any) {
-      const msg = typeof err === "string" ? err : (err?.message || "An unexpected error occurred");
-      setError(msg);
+      setError(safeErrorMessage(err));
       setLoading(false);
     }
   }
@@ -103,7 +114,7 @@ function LoginForm() {
         },
       });
       if (error) {
-        setError(error.message);
+        setError(safeErrorMessage(error));
         setLoading(false);
         return;
       }
@@ -114,7 +125,7 @@ function LoginForm() {
         setLoading(false);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      setError(safeErrorMessage(err));
       setLoading(false);
     }
   }
