@@ -3,26 +3,16 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAdminEmail } from "@/lib/constants";
 
-const debug = process.env.NODE_ENV === "development" ? console.log : () => {};
-
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
 
-  debug("=== AUTH CALLBACK (SERVER) ===");
-  debug("CODE PRESENT:", !!code);
-
   if (!code) {
-    debug("DECISION: no code -> redirect to login with error");
     return NextResponse.redirect(`${origin}/auth/login?error=auth_failed`);
   }
 
-  // We must use NextRequest/NextResponse pattern to ensure session cookies
-  // are properly attached to the redirect response.
-  let redirectTo = `${origin}/auth/login?error=auth_failed`;
-
-  // Build a temporary response that we'll attach cookies to
-  const response = NextResponse.redirect(redirectTo);
+  // Collect cookies with their full options as Supabase sets them
+  const pendingCookies: { name: string; value: string; options: any }[] = [];
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,23 +24,20 @@ export async function GET(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
+            pendingCookies.push({ name, value, options });
           });
         },
       },
     }
   );
 
+  // Exchange the code for a session — this triggers setAll with session cookies
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-  debug("EXCHANGE CODE ERROR:", exchangeError);
-
   if (exchangeError) {
     return NextResponse.redirect(`${origin}/auth/login?error=auth_failed`);
   }
 
   const { data: { user } } = await supabase.auth.getUser();
-  debug("USER:", user?.email);
-
   if (!user) {
     return NextResponse.redirect(`${origin}/auth/login?error=auth_failed`);
   }
@@ -62,11 +49,18 @@ export async function GET(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  // Helper: create a redirect response with all session cookies properly attached
+  function redirectWithCookies(url: string) {
+    const res = NextResponse.redirect(url);
+    pendingCookies.forEach(({ name, value, options }) => {
+      res.cookies.set(name, value, options);
+    });
+    return res;
+  }
+
   // Developer bypass
   if (normalizedEmail === "kandukurisrikar10@gmail.com") {
-    const devRedirect = NextResponse.redirect(`${origin}/developer/support`);
-    response.cookies.getAll().forEach((c) => devRedirect.cookies.set(c.name, c.value));
-    return devRedirect;
+    return redirectWithCookies(`${origin}/developer/support`);
   }
 
   // Check if staff member
@@ -90,8 +84,7 @@ export async function GET(request: NextRequest) {
     .maybeSingle();
 
   if (isStaff) {
-    debug("USER IS STAFF - ensuring admin profile...");
-
+    // Ensure staff have admin profile role
     if (!profile) {
       await serviceClient.from("profiles").insert({
         id: user.id,
@@ -104,19 +97,15 @@ export async function GET(request: NextRequest) {
       await serviceClient.from("profiles").update({ role: "admin" }).eq("id", user.id);
     }
 
-    // Self-heal staff_roles linkage
+    // Self-heal staff_roles linkage (non-blocking)
     try {
       const { getUserRolePermissions } = await import("@/lib/rbac");
       await getUserRolePermissions(user);
-    } catch (rbacErr) {
-      debug("RBAC LINKAGE ERROR:", rbacErr);
-    }
+    } catch (_) {}
 
-    const adminRedirect = NextResponse.redirect(`${origin}/admin`);
-    response.cookies.getAll().forEach((c) => adminRedirect.cookies.set(c.name, c.value));
-    debug("DECISION: staff -> redirect to /admin");
-    return adminRedirect;
+    return redirectWithCookies(`${origin}/admin`);
   } else {
+    // Regular member
     if (!profile) {
       await serviceClient.from("profiles").insert({
         id: user.id,
@@ -127,9 +116,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const memberRedirect = NextResponse.redirect(`${origin}/member`);
-    response.cookies.getAll().forEach((c) => memberRedirect.cookies.set(c.name, c.value));
-    debug("DECISION: member -> redirect to /member");
-    return memberRedirect;
+    return redirectWithCookies(`${origin}/member`);
   }
 }
