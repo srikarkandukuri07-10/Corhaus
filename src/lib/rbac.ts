@@ -8,9 +8,13 @@ export interface UserRolePermissions {
   permissions: string[]; // array of action_keys e.g. ['members.view', 'members.add']
 }
 
-export async function getUserRolePermissions(): Promise<UserRolePermissions> {
-  const supabase = await createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export async function getUserRolePermissions(userBypass?: any): Promise<UserRolePermissions> {
+  let user = userBypass;
+  if (!user) {
+    const supabase = await createServerClient();
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  }
 
   if (!user) {
     return {
