@@ -42,19 +42,11 @@ export async function getUserRolePermissions(userBypass?: any): Promise<UserRole
   // 2. Retrieve the user's staff record matching email
   const { data: staff } = await serviceClient
     .from("staff_members")
-    .select("id, role, employment_status, user_id")
+    .select("id, role, employment_status")
     .eq("email", normalizedEmail)
     .maybeSingle();
 
   if (staff && staff.employment_status !== "Inactive") {
-    // Dynamically auto-link user_id to staff record if not already linked
-    if (staff.user_id !== user.id) {
-      await serviceClient
-        .from("staff_members")
-        .update({ user_id: user.id })
-        .eq("id", staff.id);
-    }
-
     // Get the corresponding role from DB
     const { data: roleObj } = await serviceClient
       .from("roles")
