@@ -7,6 +7,6 @@ export async function GET() {
     return NextResponse.json(userPerms);
   } catch (err: any) {
     console.error("GET /api/admin/my-permissions error:", err);
-    return NextResponse.json({ error: "Failed to load permissions" }, { status: 500 });
+    return NextResponse.json({ role: "Guest", roleId: "guest-default", permissions: [] });
   }
 }

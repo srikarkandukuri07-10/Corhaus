@@ -9,96 +9,107 @@ export interface UserRolePermissions {
 }
 
 export async function getUserRolePermissions(userBypass?: any): Promise<UserRolePermissions> {
-  let user = userBypass;
-  if (!user) {
-    const supabase = await createServerClient();
-    const { data } = await supabase.auth.getUser();
-    user = data.user;
-  }
+  try {
+    let user = userBypass;
+    if (!user) {
+      const supabase = await createServerClient();
+      const { data } = await supabase.auth.getUser();
+      user = data.user;
+    }
 
-  if (!user) {
+    if (!user) {
+      return {
+        role: "Guest",
+        roleId: "guest-default",
+        permissions: [],
+      };
+    }
+
+    // 1. Super Administrator (Manager) check via admin email bypass
+    if (isAdminEmail(user.email)) {
+      return {
+        role: "Manager",
+        roleId: "manager-default",
+        permissions: ["*"], // '*' wildcard denotes all permissions enabled
+      };
+    }
+
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const serviceClient = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+
+    const normalizedEmail = user.email?.trim().toLowerCase();
+
+    if (normalizedEmail) {
+      // 2. Retrieve the user's staff record matching email
+      const { data: staff } = await serviceClient
+        .from("staff_members")
+        .select("id, role, employment_status")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      if (staff && staff.employment_status !== "Inactive") {
+        // Get the corresponding role from DB
+        const { data: roleObj } = await serviceClient
+          .from("roles")
+          .select("id, name")
+          .eq("name", staff.role)
+          .maybeSingle();
+
+        if (roleObj) {
+          // Auto-link/upsert staff_roles entry for self-healing permissions mapping
+          const { data: existingSR } = await serviceClient
+            .from("staff_roles")
+            .select("id, user_id, role_id")
+            .eq("staff_id", staff.id)
+            .maybeSingle();
+
+          if (existingSR) {
+            if (existingSR.user_id !== user.id || existingSR.role_id !== roleObj.id) {
+              await serviceClient
+                .from("staff_roles")
+                .update({ user_id: user.id, role_id: roleObj.id })
+                .eq("id", existingSR.id);
+            }
+          } else {
+            await serviceClient
+              .from("staff_roles")
+              .insert({ staff_id: staff.id, user_id: user.id, role_id: roleObj.id });
+          }
+
+          // Fetch permissions assigned to this role
+          const { data: rolePerms } = await serviceClient
+            .from("role_permissions")
+            .select("permissions(action_key)")
+            .eq("role_id", roleObj.id);
+
+          const permKeys = (rolePerms || [])
+            .map((rp: any) => rp.permissions?.action_key)
+            .filter(Boolean);
+
+          return {
+            role: roleObj.name,
+            roleId: roleObj.id,
+            permissions: permKeys,
+          };
+        }
+      }
+    }
+
+    // 3. Fallback default for regular members/non-staff users
+    return {
+      role: "Member",
+      roleId: "member-default",
+      permissions: [],
+    };
+  } catch (err) {
+    console.error("getUserRolePermissions error:", err);
     return {
       role: "Guest",
       roleId: "guest-default",
       permissions: [],
     };
   }
-
-  // 1. Super Administrator (Manager) check via admin email bypass
-  if (isAdminEmail(user.email)) {
-    return {
-      role: "Manager",
-      roleId: "manager-default",
-      permissions: ["*"], // '*' wildcard denotes all permissions enabled
-    };
-  }
-
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  const serviceClient = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
-
-  const normalizedEmail = user.email?.trim().toLowerCase();
-
-  // 2. Retrieve the user's staff record matching email
-  const { data: staff } = await serviceClient
-    .from("staff_members")
-    .select("id, role, employment_status")
-    .eq("email", normalizedEmail)
-    .maybeSingle();
-
-  if (staff && staff.employment_status !== "Inactive") {
-    // Get the corresponding role from DB
-    const { data: roleObj } = await serviceClient
-      .from("roles")
-      .select("id, name")
-      .eq("name", staff.role)
-      .maybeSingle();
-
-    if (roleObj) {
-      // Auto-link/upsert staff_roles entry for self-healing permissions mapping
-      const { data: existingSR } = await serviceClient
-        .from("staff_roles")
-        .select("id, user_id, role_id")
-        .eq("staff_id", staff.id)
-        .maybeSingle();
-
-      if (existingSR) {
-        if (existingSR.user_id !== user.id || existingSR.role_id !== roleObj.id) {
-          await serviceClient
-            .from("staff_roles")
-            .update({ user_id: user.id, role_id: roleObj.id })
-            .eq("id", existingSR.id);
-        }
-      } else {
-        await serviceClient
-          .from("staff_roles")
-          .insert({ staff_id: staff.id, user_id: user.id, role_id: roleObj.id });
-      }
-
-      // Fetch permissions assigned to this role
-      const { data: rolePerms } = await serviceClient
-        .from("role_permissions")
-        .select("permissions(action_key)")
-        .eq("role_id", roleObj.id);
-
-      const permKeys = (rolePerms || [])
-        .map((rp: any) => rp.permissions?.action_key)
-        .filter(Boolean);
-
-      return {
-        role: roleObj.name,
-        roleId: roleObj.id,
-        permissions: permKeys,
-      };
-    }
-  }
-
-  // 3. Fallback default for regular members/non-staff users
-  return {
-    role: "Member",
-    roleId: "member-default",
-    permissions: [],
-  };
 }
 
 export function hasPermission(permissions: string[], actionKey: string): boolean {

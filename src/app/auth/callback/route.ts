@@ -14,108 +14,139 @@ export async function GET(request: NextRequest) {
   // Use a Map keyed by cookie name to ensure duplicate setAll calls don't overwrite valid session cookies
   const cookieMap = new Map<string, { name: string; value: string; options: any }>();
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieMap.set(name, { name, value, options });
-          });
-        },
-      },
-    }
-  );
-
-  // Exchange the code for a session — this triggers setAll with session cookies
-  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-  if (exchangeError) {
-    return NextResponse.redirect(`${origin}/auth/login?error=auth_failed`);
-  }
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.redirect(`${origin}/auth/login?error=auth_failed`);
-  }
-
-  const normalizedEmail = user.email?.trim().toLowerCase() || "";
-
-  const serviceClient = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  // Helper: create a redirect response with all session cookies properly attached
   function redirectWithCookies(url: string) {
     const res = NextResponse.redirect(url);
     cookieMap.forEach(({ name, value, options }) => {
-      res.cookies.set(name, value, options);
+      try {
+        res.cookies.set(name, value, options);
+      } catch (_) {}
     });
     return res;
   }
 
-  // Developer bypass
-  if (normalizedEmail === "kandukurisrikar10@gmail.com") {
-    return redirectWithCookies(`${origin}/developer/support`);
-  }
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieMap.set(name, { name, value, options });
+            });
+          },
+        },
+      }
+    );
 
-  // Check if staff member
-  let isStaff = isAdminEmail(normalizedEmail);
-  if (!isStaff) {
-    const { data: staff } = await serviceClient
-      .from("staff_members")
-      .select("employment_status")
-      .eq("email", normalizedEmail)
-      .maybeSingle();
-    if (staff && staff.employment_status !== "Inactive") {
-      isStaff = true;
-    }
-  }
-
-  // Read existing profile
-  const { data: profile } = await serviceClient
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (isStaff) {
-    // Ensure staff have admin profile role
-    if (!profile) {
-      await serviceClient.from("profiles").insert({
-        id: user.id,
-        full_name: user.user_metadata?.full_name || "",
-        phone_number: user.user_metadata?.phone_number || "",
-        email: normalizedEmail,
-        role: "admin",
-      });
-    } else if (profile.role !== "admin") {
-      await serviceClient.from("profiles").update({ role: "admin" }).eq("id", user.id);
+    // Exchange code for session
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    if (exchangeError) {
+      console.error("Exchange code error:", exchangeError);
+      return redirectWithCookies(`${origin}/auth/login?error=auth_failed`);
     }
 
-    // Self-heal staff_roles linkage (non-blocking)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return redirectWithCookies(`${origin}/auth/login?error=auth_failed`);
+    }
+
+    const normalizedEmail = user.email?.trim().toLowerCase() || "";
+
+    const serviceClient = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Developer bypass
+    if (normalizedEmail === "kandukurisrikar10@gmail.com") {
+      return redirectWithCookies(`${origin}/developer/support`);
+    }
+
+    // Check if staff member
+    let isStaff = isAdminEmail(normalizedEmail);
+    if (!isStaff && normalizedEmail) {
+      try {
+        const { data: staff } = await serviceClient
+          .from("staff_members")
+          .select("employment_status")
+          .eq("email", normalizedEmail)
+          .maybeSingle();
+        if (staff && staff.employment_status !== "Inactive") {
+          isStaff = true;
+        }
+      } catch (staffErr) {
+        console.error("Staff lookup error:", staffErr);
+      }
+    }
+
+    // Read existing profile
+    let profile: any = null;
     try {
-      const { getUserRolePermissions } = await import("@/lib/rbac");
-      await getUserRolePermissions(user);
-    } catch (_) {}
-
-    return redirectWithCookies(`${origin}/admin`);
-  } else {
-    // Regular member
-    if (!profile) {
-      await serviceClient.from("profiles").insert({
-        id: user.id,
-        full_name: user.user_metadata?.full_name || "",
-        phone_number: user.user_metadata?.phone_number || "",
-        email: normalizedEmail,
-        role: "member",
-      });
+      const { data } = await serviceClient
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      profile = data;
+    } catch (profErr) {
+      console.error("Profile lookup error:", profErr);
     }
 
-    return redirectWithCookies(`${origin}/member`);
+    if (isStaff) {
+      // Ensure staff members have admin profile role for middleware authorization
+      if (!profile) {
+        try {
+          await serviceClient.from("profiles").insert({
+            id: user.id,
+            full_name: user.user_metadata?.full_name || "",
+            phone_number: user.user_metadata?.phone_number || "",
+            email: normalizedEmail,
+            role: "admin",
+          });
+        } catch (insErr) {
+          console.error("Profile insert error:", insErr);
+        }
+      } else if (profile.role !== "admin") {
+        try {
+          await serviceClient.from("profiles").update({ role: "admin" }).eq("id", user.id);
+        } catch (updErr) {
+          console.error("Profile update error:", updErr);
+        }
+      }
+
+      // Self-heal staff_roles linkage
+      try {
+        const { getUserRolePermissions } = await import("@/lib/rbac");
+        await getUserRolePermissions(user);
+      } catch (rbacErr) {
+        console.error("RBAC linkage error:", rbacErr);
+      }
+
+      return redirectWithCookies(`${origin}/admin`);
+    } else {
+      // Regular gym member
+      if (!profile) {
+        try {
+          await serviceClient.from("profiles").insert({
+            id: user.id,
+            full_name: user.user_metadata?.full_name || "",
+            phone_number: user.user_metadata?.phone_number || "",
+            email: normalizedEmail,
+            role: "member",
+          });
+        } catch (memInsErr) {
+          console.error("Member profile insert error:", memInsErr);
+        }
+      }
+
+      return redirectWithCookies(`${origin}/member`);
+    }
+  } catch (globalCallbackError) {
+    console.error("Global Callback Error:", globalCallbackError);
+    return redirectWithCookies(`${origin}/auth/login?error=auth_failed`);
   }
 }
