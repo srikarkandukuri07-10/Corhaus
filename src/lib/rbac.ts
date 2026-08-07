@@ -56,12 +56,24 @@ export async function getUserRolePermissions(userBypass?: any): Promise<UserRole
 
     if (roleObj) {
       // Auto-link/upsert staff_roles entry for self-healing permissions mapping
-      await serviceClient
+      const { data: existingSR } = await serviceClient
         .from("staff_roles")
-        .upsert(
-          { staff_id: staff.id, user_id: user.id, role_id: roleObj.id },
-          { onConflict: "staff_id" }
-        );
+        .select("id, user_id, role_id")
+        .eq("staff_id", staff.id)
+        .maybeSingle();
+
+      if (existingSR) {
+        if (existingSR.user_id !== user.id || existingSR.role_id !== roleObj.id) {
+          await serviceClient
+            .from("staff_roles")
+            .update({ user_id: user.id, role_id: roleObj.id })
+            .eq("id", existingSR.id);
+        }
+      } else {
+        await serviceClient
+          .from("staff_roles")
+          .insert({ staff_id: staff.id, user_id: user.id, role_id: roleObj.id });
+      }
 
       // Fetch permissions assigned to this role
       const { data: rolePerms } = await serviceClient
