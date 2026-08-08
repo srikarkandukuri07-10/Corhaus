@@ -80,7 +80,8 @@ export async function updateSession(request: NextRequest) {
         const { data: staff } = await serviceClient
           .from("staff_members")
           .select("id, employment_status")
-          .eq("email", normalizedEmail)
+          .ilike("email", normalizedEmail)
+          .limit(1)
           .maybeSingle();
         if (staff && staff.employment_status !== "Inactive") {
           isStaff = true;
@@ -177,16 +178,31 @@ export async function updateSession(request: NextRequest) {
       return redirectRes;
     }
 
-    // Roles & Permissions route protection (only Manager/ADMIN_EMAILS allowed)
-    if (pathname.startsWith("/admin/settings/roles") && !isAdminEmail(googleEmail)) {
-      devLog("DECISION: non-manager on settings/roles -> redirect to access-denied");
-      const url = request.nextUrl.clone();
-      url.pathname = "/admin/access-denied";
-      const redirectRes = NextResponse.redirect(url);
-      supabaseResponse.cookies.getAll().forEach((c) => {
-        redirectRes.cookies.set(c.name, c.value);
-      });
-      return redirectRes;
+    // Roles & Permissions route protection (only Manager role or ADMIN_EMAILS allowed)
+    if (pathname.startsWith("/admin/settings/roles")) {
+      const isManagerEmail = isAdminEmail(googleEmail);
+      let isManagerRole = false;
+      if (!isManagerEmail) {
+        try {
+          const { data: staff } = await serviceClient
+            .from("staff_members")
+            .select("role")
+            .ilike("email", normalizedEmail)
+            .limit(1)
+            .maybeSingle();
+          isManagerRole = staff?.role === "Manager";
+        } catch (_) {}
+      }
+      if (!isManagerEmail && !isManagerRole) {
+        devLog("DECISION: non-manager on settings/roles -> redirect to access-denied");
+        const url = request.nextUrl.clone();
+        url.pathname = "/admin/access-denied";
+        const redirectRes = NextResponse.redirect(url);
+        supabaseResponse.cookies.getAll().forEach((c) => {
+          redirectRes.cookies.set(c.name, c.value);
+        });
+        return redirectRes;
+      }
     }
 
     // Granular admin route permission checks
@@ -199,6 +215,8 @@ export async function updateSession(request: NextRequest) {
       "/admin/previous-classes": "classes.view",
       "/admin/scanner": "attendance.scan",
       "/admin/billing": "billing.view",
+      "/admin/cancelled": "classes.bookings",
+      "/admin/discounts": "billing.apply_discounts",
       "/admin/packages": "packages.view",
       "/admin/expenses": "expenses.view",
       "/admin/reports": "reports.view",
@@ -214,7 +232,8 @@ export async function updateSession(request: NextRequest) {
         const { data: staff } = await serviceClient
           .from("staff_members")
           .select("id, role")
-          .eq("email", normalizedEmail)
+          .ilike("email", normalizedEmail)
+          .limit(1)
           .maybeSingle();
 
         if (staff) {

@@ -30,6 +30,10 @@ export async function GET() {
       return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
     }
 
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("dashboard.view");
+    if (!check.authorized) return check.response!;
+
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -64,6 +68,10 @@ export async function PATCH(request: Request) {
     if ("error" in authCheck) {
       return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
     }
+
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("dashboard.view");
+    if (!check.authorized) return check.response!;
 
     const { ids } = await request.json();
     if (!Array.isArray(ids) || ids.length === 0) {

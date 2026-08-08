@@ -73,7 +73,8 @@ export async function GET(request: NextRequest) {
         const { data: staff } = await serviceClient
           .from("staff_members")
           .select("employment_status")
-          .eq("email", normalizedEmail)
+          .ilike("email", normalizedEmail)
+          .limit(1)
           .maybeSingle();
         if (staff && staff.employment_status !== "Inactive") {
           isStaff = true;

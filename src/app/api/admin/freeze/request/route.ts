@@ -27,6 +27,10 @@ async function getAdminClient() {
 
 export async function POST(request: Request) {
   try {
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("members.edit");
+    if (!check.authorized) return check.response!;
+
     const auth = await getAdminClient();
     if ("error" in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });

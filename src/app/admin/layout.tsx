@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import LogoutButton from "@/components/logout-button";
 import NotificationsButton from "@/components/notifications-button";
 import ThemeToggle from "@/components/theme-toggle";
+import { PERMISSIONS_REFRESH_EVENT } from "@/lib/usePermissions";
 
 export default function AdminLayout({
   children,
@@ -36,7 +37,9 @@ export default function AdminLayout({
         }
 
         // Fetch permissions from API
-        const permRes = await fetch("/api/admin/my-permissions");
+        const permRes = await fetch("/api/admin/my-permissions", {
+          cache: "no-store",
+        });
         const permData = await permRes.json();
 
         if (permRes.ok && permData.role) {
@@ -71,7 +74,27 @@ export default function AdminLayout({
     }
 
     checkAuth();
-  }, [router, supabase]);
+  }, [router, supabase, pathname]);
+
+  // Re-fetch permissions whenever a role permission edit is saved elsewhere.
+  useEffect(() => {
+    const handler = async () => {
+      try {
+        const permRes = await fetch("/api/admin/my-permissions", {
+          cache: "no-store",
+        });
+        const permData = await permRes.json();
+        if (permRes.ok && permData.role) {
+          setRole(permData.role);
+          setPermissions(permData.permissions);
+        }
+      } catch (err) {
+        console.error("Permission refresh failed:", err);
+      }
+    };
+    window.addEventListener(PERMISSIONS_REFRESH_EVENT, handler);
+    return () => window.removeEventListener(PERMISSIONS_REFRESH_EVENT, handler);
+  }, []);
 
   if (loading) {
     return (
@@ -115,6 +138,23 @@ export default function AdminLayout({
           </span>
         )}
       </div>
+    );
+  };
+
+  const mobileLink = (actionKey: string, href: string, label: string) => {
+    const isAllowed = hasPerm(actionKey);
+    if (isAllowed) {
+      return (
+        <Link href={href} className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+          {label}
+        </Link>
+      );
+    }
+    return (
+      <span className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail-3 opacity-60 cursor-not-allowed flex items-center justify-between">
+        {label}
+        <span className="text-[10px] text-on-rail-3" title="Locked">🔒</span>
+      </span>
     );
   };
 
@@ -402,66 +442,29 @@ export default function AdminLayout({
               <Link href="/admin" className="block px-4 py-2.5 rounded-xl font-bold text-white sidebar-active">
                 Dashboard
               </Link>
-              {hasPerm("members.view") && (
-                <Link href="/admin/members" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                  Members
-                </Link>
-              )}
-              {hasPerm("members.trial") && (
-                <Link href="/admin/trial-members" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                  Trial Members
-                </Link>
-              )}
-              {hasPerm("members.edit") && (
-                <Link href="/admin/freeze" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                  Freeze Management
-                </Link>
-              )}
-              {hasPerm("classes.view") && (
-                <>
-                  <Link href="/admin/classes" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                    Classes &amp; Schedule
+              {mobileLink("members.view", "/admin/members", "Members")}
+              {mobileLink("members.trial", "/admin/trial-members", "Trial Members")}
+              {mobileLink("members.edit", "/admin/freeze", "Freeze Management")}
+              {mobileLink("classes.view", "/admin/classes", "Classes &amp; Schedule")}
+              {mobileLink("classes.view", "/admin/previous-classes", "Previous Classes")}
+              {mobileLink("pt.view", "/admin/pt", "PT Scheduler")}
+              {mobileLink("attendance.scan", "/admin/scanner", "Attendance Scanner")}
+              {mobileLink("billing.view", "/admin/billing", "Billing")}
+              {mobileLink("packages.view", "/admin/packages", "Packages &amp; Plans")}
+              {mobileLink("expenses.view", "/admin/expenses", "Expenses")}
+              {mobileLink("reports.view", "/admin/reports", "Reports &amp; Analytics")}
+              {role === "Manager"
+                ? (
+                  <Link href="/admin/settings/roles" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+                    Role &amp; Permissions
                   </Link>
-                  <Link href="/admin/previous-classes" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                    Previous Classes
-                  </Link>
-                </>
-              )}
-              {hasPerm("pt.view") && (
-                <Link href="/admin/pt" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                  PT Scheduler
-                </Link>
-              )}
-              {hasPerm("attendance.scan") && (
-                <Link href="/admin/scanner" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                  Attendance Scanner
-                </Link>
-              )}
-              {hasPerm("billing.view") && (
-                <Link href="/admin/billing" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                  Billing
-                </Link>
-              )}
-              {hasPerm("packages.view") && (
-                <Link href="/admin/packages" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                  Packages &amp; Plans
-                </Link>
-              )}
-              {hasPerm("expenses.view") && (
-                <Link href="/admin/expenses" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                  Expenses
-                </Link>
-              )}
-              {hasPerm("reports.view") && (
-                <Link href="/admin/reports" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                  Reports &amp; Analytics
-                </Link>
-              )}
-              {role === "Manager" && (
-                <Link href="/admin/settings/roles" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                  Role &amp; Permissions
-                </Link>
-              )}
+                )
+                : (
+                  <span className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail-3 opacity-60 flex items-center justify-between">
+                    Role &amp; Permissions
+                    <span className="text-[10px] text-on-rail-3" title="Locked">🔒</span>
+                  </span>
+                )}
             </nav>
           </aside>
         </div>
@@ -484,7 +487,7 @@ export default function AdminLayout({
 
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
-            {hasPerm("staff.view") && (
+            {hasPerm("staff.view") ? (
               <Link
                 href="/admin/staff"
                 title="Staff & Trainers"
@@ -499,8 +502,19 @@ export default function AdminLayout({
                 </svg>
                 <span className="hidden sm:inline">Staff</span>
               </Link>
+            ) : (
+              <span
+                title="Locked: Requires staff.view permission"
+                className="relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border border-line-2 bg-surface opacity-50 cursor-not-allowed"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span className="hidden sm:inline">Staff</span>
+                <span className="text-[10px] text-fg-4">🔒</span>
+              </span>
             )}
-            {hasPerm("support.view") && (
+            {hasPerm("support.view") ? (
               <Link
                 href="/admin/support"
                 title="Support"
@@ -515,6 +529,17 @@ export default function AdminLayout({
                 </svg>
                 <span className="hidden sm:inline">Support</span>
               </Link>
+            ) : (
+              <span
+                title="Locked: Requires support.view permission"
+                className="relative flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border border-line-2 bg-surface opacity-50 cursor-not-allowed"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span className="hidden sm:inline">Support</span>
+                <span className="text-[10px] text-fg-4">🔒</span>
+              </span>
             )}
             <NotificationsButton role="admin" />
             <div className="hidden sm:flex items-center gap-2 bg-surface border border-line-2 px-3 py-1.5 rounded-full text-xs text-fg font-semibold">

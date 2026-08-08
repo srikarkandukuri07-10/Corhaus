@@ -24,7 +24,8 @@ export async function POST(request: Request) {
     const { data: staff } = await supabase
       .from("staff_members")
       .select("employment_status")
-      .eq("email", normalizedEmail)
+      .ilike("email", normalizedEmail)
+      .limit(1)
       .maybeSingle();
 
     if (staff && staff.employment_status !== "Inactive") {

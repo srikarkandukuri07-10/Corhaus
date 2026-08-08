@@ -13,6 +13,11 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // 1b. Verify granular permission
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("classes.bookings");
+    if (!check.authorized) return check.response!;
+
     // 2. Create service role client (bypasses all RLS)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

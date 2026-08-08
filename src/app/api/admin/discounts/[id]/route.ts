@@ -23,6 +23,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("billing.apply_discounts");
+    if (!check.authorized) return check.response!;
+
     const { id } = await params;
     if (!id) {
       return NextResponse.json({ error: "Missing discount id" }, { status: 400 });
@@ -92,6 +96,10 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("billing.delete");
+    if (!check.authorized) return check.response!;
 
     const { id } = await params;
     if (!id) {

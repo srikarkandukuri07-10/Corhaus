@@ -31,6 +31,10 @@ async function getAdminClient() {
 
 export async function GET() {
   try {
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("members.trial");
+    if (!check.authorized) return check.response!;
+
     const auth = await getAdminClient();
     if ("error" in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -54,6 +58,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("members.trial");
+    if (!check.authorized) return check.response!;
+
     const auth = await getAdminClient();
     if ("error" in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });

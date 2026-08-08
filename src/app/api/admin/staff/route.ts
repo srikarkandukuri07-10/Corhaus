@@ -27,6 +27,10 @@ async function getAdminClient() {
 
 export async function GET(req: Request) {
   try {
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("staff.view");
+    if (!check.authorized) return check.response!;
+
     const auth = await getAdminClient();
     if ("error" in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -107,6 +111,10 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("staff.add");
+    if (!check.authorized) return check.response!;
+
     const auth = await getAdminClient();
     if ("error" in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -209,6 +217,10 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("staff.edit");
+    if (!check.authorized) return check.response!;
+
     const auth = await getAdminClient();
     if ("error" in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -315,6 +327,10 @@ export async function PUT(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("staff.edit");
+    if (!check.authorized) return check.response!;
+
     const auth = await getAdminClient();
     if ("error" in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });

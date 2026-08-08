@@ -27,6 +27,10 @@ async function getAdminClient() {
 
 export async function POST(req: Request) {
   try {
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("classes.create");
+    if (!check.authorized) return check.response!;
+
     const auth = await getAdminClient();
     if ("error" in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -87,6 +91,10 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("classes.edit");
+    if (!check.authorized) return check.response!;
+
     const auth = await getAdminClient();
     if ("error" in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -138,6 +146,10 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("classes.delete");
+    if (!check.authorized) return check.response!;
+
     const auth = await getAdminClient();
     if ("error" in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });

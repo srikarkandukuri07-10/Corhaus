@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { refreshPermissions } from "@/lib/usePermissions";
 
 interface RoleItem {
   id: string;
@@ -189,6 +190,7 @@ export default function RolesPermissionsPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setSaveSuccess(`Permissions for ${selectedRole.name} saved successfully!`);
+        refreshPermissions();
         fetchRoles(); // Refresh role counts
         setTimeout(() => setSaveSuccess(null), 4000);
       } else {

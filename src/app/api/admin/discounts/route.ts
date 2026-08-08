@@ -20,6 +20,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("billing.view");
+    if (!check.authorized) return check.response!;
+
     const { searchParams } = new URL(req.url);
     const memberId = searchParams.get("member_id");
 
@@ -89,6 +93,10 @@ export async function POST(req: Request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("billing.apply_discounts");
+    if (!check.authorized) return check.response!;
 
     const body = await req.json();
     const {
