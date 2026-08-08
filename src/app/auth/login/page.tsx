@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, Component } from "react";
+import { useState, useEffect, Suspense, Component } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -93,6 +93,26 @@ function LoginForm() {
     urlError === "not_approved"
       ? "You do not currently have access to the Corhaus Member Portal. Please contact Corhaus staff to activate your membership."
       : null;
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION")) {
+        window.location.href = `${window.location.origin}/auth/callback`;
+      }
+    });
+
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      const search = window.location.search;
+      if (hash.includes("access_token") || search.includes("code=")) {
+        setLoading(true);
+      }
+    }
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();

@@ -101,6 +101,16 @@ export async function POST(request: Request) {
     const origin = new URL(request.url).origin;
     const redirectTo = `${origin}/auth/callback`;
 
+    function enforceCallbackUrl(rawActionLink: string): string {
+      try {
+        const u = new URL(rawActionLink);
+        u.searchParams.set("redirect_to", redirectTo);
+        return u.toString();
+      } catch {
+        return rawActionLink;
+      }
+    }
+
     // Attempt 1: Direct generateLink
     let { data: linkData, error: linkError } =
       await serviceClient.auth.admin.generateLink({
@@ -114,7 +124,7 @@ export async function POST(request: Request) {
     if (linkData?.properties?.action_link) {
       return NextResponse.json({
         success: true,
-        redirectUrl: linkData.properties.action_link,
+        redirectUrl: enforceCallbackUrl(linkData.properties.action_link),
       });
     }
 
@@ -171,7 +181,7 @@ export async function POST(request: Request) {
       if (retryRes.data?.properties?.action_link) {
         return NextResponse.json({
           success: true,
-          redirectUrl: retryRes.data.properties.action_link,
+          redirectUrl: enforceCallbackUrl(retryRes.data.properties.action_link),
         });
       }
     } catch (selfHealError) {
