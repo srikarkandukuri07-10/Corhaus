@@ -88,7 +88,7 @@ export function SettingsSidebar() {
     {
       title: "OPERATIONS",
       items: [
-        { label: "Freeze Policies", href: "/admin/freeze", icon: "❄" },
+        { label: "Freeze Policies", href: "/admin/settings/freeze-policies", active: pathname.includes("freeze-policies"), icon: "❄" },
         { label: "Class Attendance", href: "/admin/classes", icon: "📋" },
         { label: "PT Settings", href: "/admin/pt", icon: "🏋" },
         { label: "Forms & Waivers", href: "/admin/settings/forms", disabled: true },
