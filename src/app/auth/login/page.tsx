@@ -96,18 +96,10 @@ function LoginForm() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION")) {
+      if (session?.user && event === "SIGNED_IN") {
         window.location.href = `${window.location.origin}/auth/callback`;
       }
     });
-
-    if (typeof window !== "undefined") {
-      const hash = window.location.hash;
-      const search = window.location.search;
-      if (hash.includes("access_token") || search.includes("code=")) {
-        setLoading(true);
-      }
-    }
 
     return () => {
       subscription.unsubscribe();
