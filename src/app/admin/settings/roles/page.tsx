@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { refreshPermissions } from "@/lib/usePermissions";
+import { SettingsSidebar } from "../invoice-settings/page";
 
 interface RoleItem {
   id: string;
@@ -204,23 +205,25 @@ export default function RolesPermissionsPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8 text-fg">
-      {/* HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 bg-accent/10 text-accent rounded-xl">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </span>
-            <h1 className="font-serif text-2xl font-bold text-fg">Role &amp; Permissions</h1>
+    <div className="animate-fade-in flex flex-col md:flex-row gap-6">
+      <SettingsSidebar />
+      <main className="flex-1 space-y-6">
+        {/* HEADER */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-2 bg-accent/10 text-accent rounded-xl">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </span>
+              <h1 className="font-serif text-2xl font-bold text-fg">Role &amp; Permissions</h1>
+            </div>
+            <p className="text-xs text-fg-3 mt-1">
+              Central management for system roles and action-based module permissions across Corhaus Admin Dashboard.
+            </p>
           </div>
-          <p className="text-xs text-fg-3 mt-1">
-            Central management for system roles and action-based module permissions across Corhaus Admin Dashboard.
-          </p>
         </div>
-      </div>
 
       {error && (
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-semibold flex items-center justify-between">
@@ -481,6 +484,7 @@ export default function RolesPermissionsPage() {
           )}
         </div>
       )}
+      </main>
     </div>
   );
 }

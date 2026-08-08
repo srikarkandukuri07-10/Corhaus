@@ -704,32 +704,6 @@ export default function InvoiceSettingsPage() {
                     Staff will not be able to apply more than this percentage. Owners are not subject to this limit.
                   </p>
                 </div>
-
-                {/* Allow OTP-Authorized Elevated Discount Toggle */}
-                <div className="flex items-center justify-between p-4 rounded-xl bg-surface-2/40 border border-line">
-                  <div>
-                    <p className="text-sm font-semibold text-fg">
-                      Allow OTP-Authorized Elevated Discount
-                    </p>
-                    <p className="text-xs text-fg-4 mt-0.5">
-                      Staff can exceed the limit above — up to an elevated ceiling — only after a one-time OTP is approved by a designated recipient.
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.allow_otp_elevated_discount}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          allow_otp_elevated_discount: e.target.checked,
-                        }))
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-brand-sand/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-                  </label>
-                </div>
               </div>
             </div>
 

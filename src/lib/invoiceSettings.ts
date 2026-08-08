@@ -14,7 +14,6 @@ export interface InvoiceSettingsData {
   terms_and_conditions: string;
   allow_flat_discount: boolean;
   max_staff_discount_pct: number;
-  allow_otp_elevated_discount: boolean;
 }
 
 export const DEFAULT_SETTINGS: InvoiceSettingsData = {
@@ -32,7 +31,6 @@ export const DEFAULT_SETTINGS: InvoiceSettingsData = {
     "1. Membership fees are non-refundable.\n2. This invoice is valid for the period mentioned.\n3. For queries, please contact the business.",
   allow_flat_discount: true,
   max_staff_discount_pct: 20,
-  allow_otp_elevated_discount: false,
 };
 
 function getServiceClient() {
