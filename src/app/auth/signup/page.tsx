@@ -78,55 +78,45 @@ function SignupForm() {
     }
 
     try {
-      const res = await fetch("/api/auth/check-email", {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: normalizedEmail }),
       });
-      const { approved } = await res.json();
 
-      if (!approved) {
-        setError("This email is not approved for access. Please contact Corhaus staff to activate your membership.");
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success || !data?.redirectUrl) {
+        const safeErrorMessage = (await import("@/app/auth/login/page")).safeErrorMessage;
+        setError(safeErrorMessage(data?.error || data || "Sign-up failed"));
         setLoading(false);
         return;
       }
-    } catch {
-      setError("Failed to verify email. Please try again.");
+
+      window.location.href = data.redirectUrl;
+    } catch (err: any) {
+      const safeErrorMessage = (await import("@/app/auth/login/page")).safeErrorMessage;
+      setError(safeErrorMessage(err));
       setLoading(false);
-      return;
     }
-
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: normalizedEmail,
-      options: {
-        data: {
-          full_name: fullName,
-          phone_number: phoneNumber,
-        },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    if (otpError) {
-      setError(otpError.message);
-      setLoading(false);
-      return;
-    }
-
-    setSent(true);
-    setLoading(false);
   }
 
   async function handleGoogleSignup() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
 
-    if (error) {
-      setError(error.message);
+      if (error) {
+        const safeErrorMessage = (await import("@/app/auth/login/page")).safeErrorMessage;
+        setError(safeErrorMessage(error));
+      }
+    } catch (err: any) {
+      const safeErrorMessage = (await import("@/app/auth/login/page")).safeErrorMessage;
+      setError(safeErrorMessage(err));
     }
   }
 

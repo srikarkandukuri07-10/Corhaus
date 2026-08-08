@@ -128,7 +128,7 @@ export async function POST(req: Request) {
     const phoneNumber = (body.phone_number || "").trim();
     const role = (body.role || "").trim();
     const designation = (body.designation || "").trim();
-    const email = (body.email || "").trim();
+    const email = (body.email || "").trim().toLowerCase();
 
     if (!fullName) {
       return NextResponse.json({ error: "Full Name is required." }, { status: 400 });
@@ -237,7 +237,7 @@ export async function PUT(req: Request) {
     const phoneNumber = (body.phone_number || "").trim();
     const role = (body.role || "").trim();
     const designation = (body.designation || "").trim();
-    const email = (body.email || "").trim();
+    const email = (body.email || "").trim().toLowerCase();
 
     if (!fullName) {
       return NextResponse.json({ error: "Full Name is required." }, { status: 400 });

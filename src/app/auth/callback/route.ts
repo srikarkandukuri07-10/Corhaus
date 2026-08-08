@@ -99,27 +99,23 @@ export async function GET(request: NextRequest) {
 
     if (isStaff) {
       // Ensure staff members have admin profile role for middleware authorization
-      if (!profile) {
-        try {
-          await serviceClient.from("profiles").insert({
+      try {
+        await serviceClient.from("profiles").upsert(
+          {
             id: user.id,
-            full_name: user.user_metadata?.full_name || "",
-            phone_number: user.user_metadata?.phone_number || "",
+            full_name: user.user_metadata?.full_name || profile?.full_name || "",
+            phone_number: user.user_metadata?.phone_number || profile?.phone_number || "",
             email: normalizedEmail,
             role: "admin",
-          });
-        } catch (insErr) {
-          console.error("Profile insert error:", insErr);
-        }
-      } else if (profile.role !== "admin") {
-        try {
-          await serviceClient.from("profiles").update({ role: "admin" }).eq("id", user.id);
-        } catch (updErr) {
-          console.error("Profile update error:", updErr);
-        }
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        );
+      } catch (insErr) {
+        console.error("Profile upsert error:", insErr);
       }
 
-      // Self-heal staff_roles linkage
+      // Self-heal staff_roles linkage & RBAC permissions
       try {
         const { getUserRolePermissions } = await import("@/lib/rbac");
         await getUserRolePermissions(user);

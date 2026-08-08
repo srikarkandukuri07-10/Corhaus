@@ -37,28 +37,62 @@ class LoginErrorBoundary extends Component<{ children: React.ReactNode }, { hasE
   }
 }
 
-function safeErrorMessage(err: any): string {
-  if (!err) return "An unexpected error occurred";
-  if (typeof err === "string") return err;
-  if (typeof err?.message === "string") return err.message;
-  if (typeof err?.error_description === "string") return err.error_description;
-  try {
-    return JSON.stringify(err);
-  } catch {
-    return "An error occurred";
+export function safeErrorMessage(err: any): string {
+  if (!err) return "An unexpected error occurred. Please try again.";
+  if (typeof err === "string" && err.trim() !== "") return err;
+
+  // 1. Error instance message or object message
+  if (typeof err?.message === "string" && err.message.trim() !== "") {
+    return err.message;
   }
+
+  // 2. OAuth / Supabase error_description
+  if (typeof err?.error_description === "string" && err.error_description.trim() !== "") {
+    return err.error_description;
+  }
+
+  // 3. Nested error properties
+  if (typeof err?.error === "string" && err.error.trim() !== "") {
+    return err.error;
+  }
+  if (typeof err?.error?.message === "string" && err.error.message.trim() !== "") {
+    return err.error.message;
+  }
+  if (typeof err?.error?.error_description === "string" && err.error.error_description.trim() !== "") {
+    return err.error.error_description;
+  }
+
+  // 4. Details or msg
+  if (typeof err?.details === "string" && err.details.trim() !== "") {
+    return err.details;
+  }
+  if (typeof err?.msg === "string" && err.msg.trim() !== "") {
+    return err.msg;
+  }
+
+  // 5. JSON stringify fallback, filtering out empty objects/arrays
+  try {
+    const str = JSON.stringify(err);
+    if (str && str !== "{}" && str !== "[]" && str !== "null" && str !== "undefined") {
+      return str;
+    }
+  } catch {}
+
+  return "An unexpected error occurred while signing in. Please check your credentials and try again.";
 }
 
 function LoginForm() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
   const supabase = createClient();
   const searchParams = useSearchParams();
 
   const urlError = searchParams.get("error");
-  const notApprovedError = urlError === "not_approved" ? "You do not currently have access to the Corhaus Member Portal. Please contact Corhaus staff to activate your membership." : null;
+  const notApprovedError =
+    urlError === "not_approved"
+      ? "You do not currently have access to the Corhaus Member Portal. Please contact Corhaus staff to activate your membership."
+      : null;
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -66,36 +100,30 @@ function LoginForm() {
     setError(null);
 
     const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setError("Please enter your email address.");
+      setLoading(false);
+      return;
+    }
 
     try {
-      const res = await fetch("/api/auth/check-email", {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: normalizedEmail }),
       });
-      const { approved } = await res.json();
 
-      if (!approved) {
-        setError("This email is not approved for access. Please contact Corhaus staff to activate your membership.");
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success || !data?.redirectUrl) {
+        const errorMsg = safeErrorMessage(data?.error || data || "Sign-in failed");
+        setError(errorMsg);
         setLoading(false);
         return;
       }
 
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: normalizedEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (otpError) {
-        setError(safeErrorMessage(otpError));
-        setLoading(false);
-        return;
-      }
-
-      setSent(true);
-      setLoading(false);
+      // Instant sign in: navigate directly to authentication callback URL
+      window.location.href = data.redirectUrl;
     } catch (err: any) {
       setError(safeErrorMessage(err));
       setLoading(false);
@@ -121,51 +149,13 @@ function LoginForm() {
       if (data?.url) {
         window.location.href = data.url;
       } else {
-        setError("Failed to get OAuth URL. Please try again.");
+        setError("Failed to get Google sign-in URL. Please try again.");
         setLoading(false);
       }
     } catch (err) {
       setError(safeErrorMessage(err));
       setLoading(false);
     }
-  }
-
-  if (sent) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4">
-        <div className="w-full max-w-md animate-fade-in">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-light tracking-tight text-fg">
-              Cor<span className="text-accent font-medium">haus</span>
-            </h1>
-            <p className="text-fg-3 mt-2 text-sm tracking-widest uppercase">
-              Pilates for everyone
-            </p>
-          </div>
-          <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line text-center">
-            <div className="w-16 h-16 mx-auto rounded-full bg-accent/10 flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-medium text-fg mb-2">Check your email</h2>
-            <p className="text-sm text-fg-4 mb-6">
-              We sent a sign-in link to<br />
-              <span className="font-medium text-fg">{email.trim().toLowerCase()}</span>
-            </p>
-            <p className="text-xs text-fg-5 mb-6">
-              Click the link in the email to sign in. You can close this tab.
-            </p>
-            <button
-              onClick={() => { setSent(false); setEmail(""); setError(null); }}
-              className="text-sm text-accent font-medium hover:text-accent-dark transition-colors"
-            >
-              Use a different email
-            </button>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -189,7 +179,7 @@ function LoginForm() {
             </div>
           )}
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-400/20 text-red-500 text-sm">
+            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-400/20 text-red-500 text-sm leading-relaxed break-words">
               {error}
             </div>
           )}
@@ -202,8 +192,8 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                autoComplete="off"
-                className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all"
+                autoComplete="email"
+                className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
                 placeholder="you@example.com"
               />
             </div>
@@ -213,7 +203,14 @@ function LoginForm() {
               disabled={loading}
               className="w-full py-3 rounded-xl bg-rail text-white font-medium hover:bg-rail/90 transition-colors disabled:opacity-50 [touch-action:manipulation]"
             >
-              {loading ? "Sending link..." : "Send Sign-In Link"}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Signing in...
+                </span>
+              ) : (
+                "Sign in"
+              )}
             </button>
           </form>
 
