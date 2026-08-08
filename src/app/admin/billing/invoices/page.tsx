@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import InvoicePrintModal from "@/components/InvoicePrintModal";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -114,6 +115,7 @@ export default function InvoicesPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [itemsMap, setItemsMap] = useState<Record<string, InvoiceItem[]>>({});
   const [itemsLoading, setItemsLoading] = useState<string | null>(null);
+  const [printInvoice, setPrintInvoice] = useState<Invoice | null>(null);
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
@@ -452,6 +454,21 @@ export default function InvoicesPage() {
                             <DetailRow label="Notes" value={inv.notes} />
                           )}
                         </div>
+
+                        <div className="pt-4 border-t border-line mt-4 flex justify-end">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPrintInvoice({ ...inv, invoice_items: itemsMap[inv.id] || [] });
+                            }}
+                            className="px-4 py-2 rounded-xl bg-accent text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-accent/20 hover:opacity-90 transition-all"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            <span>Print / Download Tax Invoice</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -460,6 +477,13 @@ export default function InvoicesPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {printInvoice && (
+        <InvoicePrintModal
+          invoice={printInvoice}
+          onClose={() => setPrintInvoice(null)}
+        />
       )}
     </div>
   );

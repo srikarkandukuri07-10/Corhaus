@@ -358,9 +358,37 @@ export default function CreateBillPage() {
         customerId = nc!.id;
       }
 
-      // 2. Invoice number
-      const { data: invNum, error: seqErr } = await supabase.rpc("generate_invoice_number");
-      if (seqErr) throw new Error("Invoice number failed: " + seqErr.message);
+      // 2. Invoice number generation via saved Invoice Settings
+      let invNum = "";
+      try {
+        const setRes = await fetch("/api/admin/settings/invoice");
+        const setData = await setRes.json();
+        if (setData && setData.settings) {
+          const s = setData.settings;
+          const yearStr = new Date().getFullYear().toString();
+          const prefix = (s.invoice_prefix || "INV").toUpperCase();
+          const rawNum = Math.max(1, s.next_invoice_number || 1);
+          const paddedNum = String(rawNum).padStart(5, "0");
+          invNum = `${prefix}-${yearStr}-${paddedNum}`;
+
+          // Increment next_invoice_number for future invoices
+          await fetch("/api/admin/settings/invoice", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...s,
+              next_invoice_number: rawNum + 1,
+            }),
+          });
+        }
+      } catch (err) {
+        console.error("Failed to generate invoice number from settings:", err);
+      }
+
+      if (!invNum) {
+        const { data: rpcNum } = await supabase.rpc("generate_invoice_number");
+        invNum = rpcNum || `INV-${Date.now()}`;
+      }
 
       // 3. Create invoice
       const { data: invoice, error: invErr } = await supabase.from("invoices").insert({
