@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { isAdminEmail } from "@/lib/constants";
 
+import Logo from "@/components/logo";
+
 function SignupForm() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -124,13 +126,8 @@ function SignupForm() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4 py-8">
         <div className="w-full max-w-md animate-fade-in">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-light tracking-tight text-fg">
-              Cor<span className="text-accent font-medium">haus</span>
-            </h1>
-            <p className="text-fg-3 mt-2 text-sm tracking-widest uppercase">
-              Pilates for everyone
-            </p>
+          <div className="text-center mb-8 flex flex-col items-center justify-center">
+            <Logo href="/" variant="auto" size="lg" className="items-center text-center" />
           </div>
           <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line text-center">
             <div className="w-16 h-16 mx-auto rounded-full bg-accent/10 flex items-center justify-center mb-4">
@@ -161,13 +158,8 @@ function SignupForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4 py-8">
       <div className="w-full max-w-md animate-fade-in">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-light tracking-tight text-fg">
-            Cor<span className="text-accent font-medium">haus</span>
-          </h1>
-          <p className="text-fg-3 mt-2 text-sm tracking-widest uppercase">
-            Pilates for everyone
-          </p>
+        <div className="text-center mb-8 flex flex-col items-center justify-center">
+          <Logo href="/" variant="auto" size="lg" className="items-center text-center" />
         </div>
 
         <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line">

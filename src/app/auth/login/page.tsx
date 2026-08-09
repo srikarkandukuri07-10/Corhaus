@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
+import Logo from "@/components/logo";
+
 class LoginErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean; error: string | null }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
@@ -173,13 +175,8 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4">
       <div className="w-full max-w-md animate-fade-in">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-light tracking-tight text-fg">
-            Cor<span className="text-accent font-medium">haus</span>
-          </h1>
-          <p className="text-fg-3 mt-2 text-sm tracking-widest uppercase">
-            Pilates for everyone
-          </p>
+        <div className="text-center mb-10 flex flex-col items-center justify-center">
+          <Logo href="/" variant="auto" size="lg" className="items-center text-center" />
         </div>
 
         <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line">

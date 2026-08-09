@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import Logo from "@/components/logo";
 import LogoutButton from "@/components/logout-button";
 import NotificationsButton from "@/components/notifications-button";
 import ThemeToggle from "@/components/theme-toggle";
@@ -36,64 +37,60 @@ export default function AdminLayout({
           return;
         }
 
-        // Fetch permissions from API
-        const permRes = await fetch("/api/admin/my-permissions", {
-          cache: "no-store",
-        });
-        const permData = await permRes.json();
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
 
-        if (permRes.ok && permData.role) {
-          // Guest and Member roles should not be on admin dashboard
-          if (permData.role === "Guest") {
-            router.push("/auth/login");
-            return;
-          }
-          if (permData.role === "Member") {
-            router.push("/member");
-            return;
-          }
-
-          setRole(permData.role);
-          setPermissions(permData.permissions);
-
-          if (permData.role === "developer" || user.email === "kandukurisrikar10@gmail.com") {
-            router.push("/developer/support");
-            return;
-          }
-
-          setIsAdmin(true);
-        } else {
+        if (profileError) {
+          await supabase.auth.signOut();
           router.push("/auth/login");
           return;
         }
-      } catch (err) {
-        router.push("/auth/login");
-      } finally {
+
+        if (profile?.role === "member") {
+          router.push("/member");
+          return;
+        }
+
+        setIsAdmin(true);
+        setRole(profile?.role || "");
+
+        // Load permissions
+        try {
+          const permRes = await fetch("/api/admin/my-permissions");
+          const permData = await permRes.json();
+          if (permRes.ok && Array.isArray(permData.permissions)) {
+            setPermissions(permData.permissions);
+          }
+        } catch (_) {}
+
         setLoading(false);
+      } catch {
+        router.push("/auth/login");
       }
     }
 
     checkAuth();
-  }, [router, supabase, pathname]);
+  }, [router, supabase]);
 
-  // Re-fetch permissions whenever a role permission edit is saved elsewhere.
+  // Listen for permission updates
   useEffect(() => {
-    const handler = async () => {
+    async function refreshPermissions() {
       try {
-        const permRes = await fetch("/api/admin/my-permissions", {
-          cache: "no-store",
-        });
+        const permRes = await fetch("/api/admin/my-permissions");
         const permData = await permRes.json();
-        if (permRes.ok && permData.role) {
-          setRole(permData.role);
+        if (permRes.ok && Array.isArray(permData.permissions)) {
           setPermissions(permData.permissions);
         }
-      } catch (err) {
-        console.error("Permission refresh failed:", err);
-      }
+      } catch (_) {}
+    }
+
+    window.addEventListener(PERMISSIONS_REFRESH_EVENT, refreshPermissions);
+    return () => {
+      window.removeEventListener(PERMISSIONS_REFRESH_EVENT, refreshPermissions);
     };
-    window.addEventListener(PERMISSIONS_REFRESH_EVENT, handler);
-    return () => window.removeEventListener(PERMISSIONS_REFRESH_EVENT, handler);
   }, []);
 
   if (loading) {
@@ -109,43 +106,45 @@ export default function AdminLayout({
 
   if (!isAdmin) return null;
 
-  const isBillingActive = pathname.startsWith("/admin/billing");
-
-  const hasPerm = (actionKey: string) => {
+  const hasPerm = (p: string) => {
     if (role === "Manager") return true;
-    return permissions.includes(actionKey);
+    return permissions.includes(p);
   };
 
-  const navLinkClass = (isActive: boolean) =>
-    isActive ? "sidebar-active" : "text-on-rail-2 hover:bg-rail-hover hover:text-white";
+  const isBillingActive =
+    pathname.startsWith("/admin/billing") && !pathname.startsWith("/admin/billing/plan-items");
 
-  const navLinkClassWithPerm = (isActive: boolean, actionKey: string) => {
-    const isAllowed = hasPerm(actionKey);
-    if (!isAllowed) {
-      return "opacity-50 cursor-not-allowed pointer-events-none text-on-rail-3";
+  const navLinkClass = (isActive: boolean) =>
+    isActive ? "sidebar-active text-white font-bold" : "text-on-rail hover:text-white hover:bg-rail-hover font-semibold";
+
+  const navLinkClassWithPerm = (isActive: boolean, perm: string) => {
+    if (!hasPerm(perm)) {
+      return "text-on-rail-3 opacity-60 cursor-not-allowed font-semibold";
     }
     return navLinkClass(isActive);
   };
 
-  const renderLinkText = (text: string, actionKey: string) => {
-    const isAllowed = hasPerm(actionKey);
+  const renderLinkText = (label: string, perm: string) => {
+    if (hasPerm(perm)) return label;
     return (
-      <div className="flex items-center justify-between w-full">
-        <span>{text}</span>
-        {!isAllowed && (
-          <span className="text-[10px] text-on-rail-3" title="Locked">
-            🔒
-          </span>
-        )}
-      </div>
+      <span className="flex items-center justify-between w-full">
+        <span>{label}</span>
+        <span className="text-[10px] text-on-rail-3 ml-auto" title="Locked">🔒</span>
+      </span>
     );
   };
 
-  const mobileLink = (actionKey: string, href: string, label: string) => {
-    const isAllowed = hasPerm(actionKey);
-    if (isAllowed) {
+  const mobileLink = (perm: string, href: string, label: string) => {
+    if (hasPerm(perm)) {
       return (
-        <Link href={href} className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
+        <Link
+          href={href}
+          className={`block px-4 py-2.5 rounded-xl font-semibold transition-all ${
+            pathname.startsWith(href)
+              ? "bg-surface/20 text-white font-bold"
+              : "text-on-rail hover:text-white"
+          }`}
+        >
           {label}
         </Link>
       );
@@ -160,27 +159,11 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen admin-shell flex font-sans">
-      {/* â”€â”€â”€ SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── SIDEBAR ────────────────────────────────────────────────────────── */}
       <aside className="hidden lg:flex w-[272px] bg-rail text-white flex-col fixed inset-y-0 left-0 z-50 border-r border-line-rail">
         {/* Logo Header */}
-        <div className="px-5 py-5 border-b border-white/10">
-          <Link href="/admin" className="flex items-center gap-3 rounded-xl px-2 py-1.5 hover:bg-rail-hover">
-            <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-gold-fg ring-1 ring-white/10">
-              <svg className="w-7 h-7" viewBox="0 0 40 40" fill="none" stroke="currentColor">
-                <path d="M20 5C20 5 12 15 12 25C12 29.4183 15.5817 33 20 33C24.4183 33 28 29.4183 28 25C28 15 20 5 20 5Z" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M15 20C15 20 20 12 20 28" strokeWidth="1.5" strokeLinecap="round"/>
-                <circle cx="20" cy="11" r="2.5" fill="currentColor"/>
-              </svg>
-            </div>
-            <div className="text-left">
-              <span className="block text-sm tracking-[0.18em] text-white uppercase font-bold">
-                CORHAUS
-              </span>
-              <span className="block text-[10px] text-on-rail-3 font-semibold mt-0.5">
-                Studio operations
-              </span>
-            </div>
-          </Link>
+        <div className="px-6 py-5 border-b border-white/10 flex items-center justify-start">
+          <Logo href="/admin" variant="white" size="lg" />
         </div>
 
         {/* Sidebar Navigation */}
@@ -434,7 +417,7 @@ export default function AdminLayout({
           <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <aside className="w-[272px] bg-rail text-white flex-col relative z-10 p-4 space-y-5 h-full overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-center pb-4 border-b border-white/10">
-              <span className="font-bold text-sm tracking-[0.18em] text-white">CORHAUS</span>
+              <Logo href="/admin" variant="white" size="sm" />
               <button onClick={() => setMobileOpen(false)} className="text-white font-bold text-lg" aria-label="Close navigation">×</button>
             </div>
 

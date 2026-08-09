@@ -1,23 +1,69 @@
 import Link from "next/link";
 
-export default function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  const textSize =
-    size === "lg" ? "text-3xl" : size === "md" ? "text-2xl" : "text-xl";
-  const subtextSize =
-    size === "lg" ? "text-xs" : size === "md" ? "text-[11px]" : "text-[10px]";
+interface LogoProps {
+  href?: string;
+  variant?: "white" | "dark" | "auto";
+  size?: "sm" | "md" | "lg";
+  className?: string;
+}
 
-  return (
-    <Link href="/" className="inline-block">
-      <span
-        className={`${textSize} font-light tracking-tight text-fg`}
-      >
-        Cor<span className="text-accent font-medium">haus</span>
-      </span>
+export default function Logo({
+  href,
+  variant = "white",
+  size = "md",
+  className = "",
+}: LogoProps) {
+  const titleSizeClass =
+    size === "lg" ? "text-3xl" : size === "sm" ? "text-xl" : "text-2xl";
+  const taglineSizeClass =
+    size === "lg" ? "text-[11px]" : size === "sm" ? "text-[9px]" : "text-[10px]";
+
+  const mainTextColor =
+    variant === "white"
+      ? "text-white"
+      : variant === "dark"
+      ? "text-fg"
+      : "text-fg dark:text-white";
+
+  const tagtextColor =
+    variant === "white"
+      ? "text-white/85"
+      : variant === "dark"
+      ? "text-fg-3"
+      : "text-fg-3 dark:text-white/85";
+
+  const content = (
+    <div className={`inline-flex flex-col text-left leading-none select-none ${className}`}>
+      <div className={`flex items-baseline ${mainTextColor}`}>
+        <span
+          className={`${titleSizeClass} font-normal tracking-tight`}
+          style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }}
+        >
+          Cor
+        </span>
+        <span
+          className={`${titleSizeClass} font-extralight tracking-tight`}
+          style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif", fontWeight: 300 }}
+        >
+          haus
+        </span>
+      </div>
       <p
-        className={`${subtextSize} text-fg-3 tracking-[0.2em] uppercase -mt-1`}
+        className={`${taglineSizeClass} tracking-[0.14em] font-serif lowercase mt-0.5 ${tagtextColor}`}
+        style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }}
       >
         Pilates for everyone
       </p>
-    </Link>
+    </div>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="inline-block hover:opacity-90 transition-opacity">
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }
