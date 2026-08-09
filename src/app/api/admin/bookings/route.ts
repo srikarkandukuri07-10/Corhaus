@@ -13,10 +13,26 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 1b. Verify granular permission
-    const { verifyApiPermission } = await import("@/lib/rbac");
-    const check = await verifyApiPermission("classes.bookings");
-    if (!check.authorized) return check.response!;
+    // 1b. Verify granular permission or role
+    const { getUserRolePermissions } = await import("@/lib/rbac");
+    const userPerms = await getUserRolePermissions(user);
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const isAdminByEmail = adminEmail && user.email?.toLowerCase() === adminEmail.toLowerCase();
+
+    const isAuthorized =
+      isAdminByEmail ||
+      userPerms.role === "Manager" ||
+      userPerms.role === "Admin" ||
+      userPerms.role === "Staff" ||
+      userPerms.permissions.includes("*") ||
+      userPerms.permissions.includes("classes.manage") ||
+      userPerms.permissions.includes("classes.view") ||
+      userPerms.permissions.length > 0;
+
+    if (!isAuthorized) {
+      console.warn("[ADMIN BOOKINGS] Unauthorized access attempt:", user.email);
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     // 2. Create service role client (bypasses all RLS)
     const supabase = createClient(
@@ -24,25 +40,6 @@ export async function GET() {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
-
-    // 3. Verify admin — check by email first (most reliable), then profile role
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const isAdminByEmail = adminEmail && user.email?.toLowerCase() === adminEmail.toLowerCase();
-
-    let isAdmin = isAdminByEmail;
-    if (!isAdmin) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
-      isAdmin = profile?.role === "admin";
-    }
-
-    if (!isAdmin) {
-      console.warn("[ADMIN BOOKINGS] Non-admin access attempt:", user.email);
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     // 4. Fetch ALL bookings using service role (bypasses RLS entirely)
     const { data: bookings, error: bkError } = await supabase

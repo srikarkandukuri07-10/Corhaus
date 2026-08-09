@@ -175,27 +175,39 @@ export default function AdminDashboard() {
     async (classId: string) => {
       setBookingsLoading(true);
       try {
+        let allBookings: any[] = [];
         const bkRes = await fetch(`/api/admin/bookings`, { cache: "no-store" });
         const bkJson = await bkRes.json();
         if (bkRes.ok && bkJson?.bookings) {
-          const classBookings = bkJson.bookings.filter(
-            (b: any) => b.class_id === classId && (b.booking_status === "booked" || b.booking_status === "confirmed" || b.booking_status === "waitlisted")
-          );
-          setBookings(classBookings);
+          allBookings = bkJson.bookings;
+        } else {
+          const { data } = await supabase
+            .from("bookings")
+            .select("*, approved_members(id, full_name, email, phone_number), profiles(id, full_name, email)")
+            .eq("class_id", classId);
+          allBookings = data || [];
         }
+
+        const classBookings = allBookings.filter(
+          (b: any) =>
+            (b.class_id === classId || b.classes?.id === classId) &&
+            (b.booking_status === "booked" || b.booking_status === "confirmed" || b.booking_status === "waitlisted")
+        );
+        setBookings(classBookings);
       } catch (err) {
         console.error("loadBookings error:", err);
       } finally {
         setBookingsLoading(false);
       }
     },
-    []
+    [supabase]
   );
 
   const loadAttendance = useCallback(
     async (classId: string) => {
       setAttendanceLoading(true);
       try {
+        let allBookings: any[] = [];
         const [bkRes, attRes] = await Promise.all([
           fetch(`/api/admin/bookings`, { cache: "no-store" }),
           supabase.from("attendance").select("*").eq("class_id", classId).eq("attendance_status", "attended"),
@@ -205,15 +217,23 @@ export default function AdminDashboard() {
         const attData = attRes.data || [];
 
         if (bkRes.ok && bkJson?.bookings) {
-          const checkedInBookings = bkJson.bookings.filter((b: any) => {
-            if (b.class_id !== classId) return false;
-            if (b.booking_status === "checked_in" || b.booking_status === "attended" || b.booking_status === "completed") return true;
-            return attData.some(
-              (a: any) => a.booking_id === b.id || (a.member_id === b.member_id && a.attendance_status === "attended")
-            );
-          });
-          setAttended(checkedInBookings);
+          allBookings = bkJson.bookings;
+        } else {
+          const { data } = await supabase
+            .from("bookings")
+            .select("*, approved_members(id, full_name, email, phone_number), profiles(id, full_name, email)")
+            .eq("class_id", classId);
+          allBookings = data || [];
         }
+
+        const checkedInBookings = allBookings.filter((b: any) => {
+          if (b.class_id !== classId && b.classes?.id !== classId) return false;
+          if (b.booking_status === "checked_in" || b.booking_status === "attended" || b.booking_status === "completed") return true;
+          return attData.some(
+            (a: any) => a.booking_id === b.id || (a.member_id === b.member_id && a.attendance_status === "attended")
+          );
+        });
+        setAttended(checkedInBookings);
       } catch (err) {
         console.error("loadAttendance error:", err);
       } finally {
