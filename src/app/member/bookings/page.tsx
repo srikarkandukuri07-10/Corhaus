@@ -457,14 +457,24 @@ export default function BookingsPage() {
                           </span>
                         </div>
                       </div>
-                       <span className="text-xs text-fg-5 bg-hover px-2.5 py-1 rounded-full">
-                        {booking.isPT
-                          ? booking.booking_status === "completed"
-                            ? "Completed"
+                      <span
+                        className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                          booking.booking_status === "checked_in" || booking.booking_status === "attended" || booking.booking_status === "completed"
+                            ? "text-green-600 bg-green-500/10 border-green-500/20"
                             : booking.booking_status === "no_show"
-                            ? "No-show"
-                            : "Scheduled"
-                          : "Attended"}
+                            ? "text-red-600 bg-red-500/10 border-red-500/20"
+                            : booking.booking_status === "cancelled"
+                            ? "text-amber-600 bg-amber-500/10 border-amber-500/20"
+                            : "text-fg-5 bg-hover border-line"
+                        }`}
+                      >
+                        {booking.booking_status === "checked_in" || booking.booking_status === "attended" || booking.booking_status === "completed"
+                          ? "✓ Attended"
+                          : booking.booking_status === "no_show"
+                          ? "✕ No Show"
+                          : booking.booking_status === "cancelled"
+                          ? "↩ Cancelled"
+                          : "Past Class"}
                       </span>
                     </div>
                   </div>

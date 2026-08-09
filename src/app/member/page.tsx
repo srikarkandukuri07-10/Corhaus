@@ -609,148 +609,179 @@ export default function MemberDashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {classes.filter(cls => !isClassOver(cls, currentTime)).map((cls) => {
-            const isPt = cls.id.startsWith("pt_");
-            const matchingBooking = bookings.find(
-              b => b.class_id === cls.id && b.booking_status !== "cancelled"
-            );
-            const booked = Boolean(matchingBooking) || forceBookedIds.has(cls.id);
-            const attendance = attendanceRecords.find(a => a.class_id === cls.id);
-            const isCheckedInOrAttended =
-              attendance?.attendance_status === "attended" ||
-              matchingBooking?.booking_status === "checked_in" ||
-              matchingBooking?.booking_status === "attended" ||
-              matchingBooking?.booking_status === "completed";
+          {classes
+            .filter((cls) => {
+              const hasBooking = bookings.some((b) => b.class_id === cls.id);
+              if (hasBooking) return true;
+              return !isClassOver(cls, currentTime);
+            })
+            .map((cls) => {
+              const isPt = cls.id.startsWith("pt_");
+              const matchingBooking = bookings.find((b) => b.class_id === cls.id);
+              const isCancelled = matchingBooking?.booking_status === "cancelled";
+              const booked = Boolean(matchingBooking) && !isCancelled || forceBookedIds.has(cls.id);
+              const attendance = attendanceRecords.find((a) => a.class_id === cls.id);
+              const isCheckedInOrAttended =
+                attendance?.attendance_status === "attended" ||
+                matchingBooking?.booking_status === "checked_in" ||
+                matchingBooking?.booking_status === "attended" ||
+                matchingBooking?.booking_status === "completed";
 
-            const showQr = booked && !isCheckedInOrAttended && shouldShowQr(cls, currentTime);
-            const qrUrl = qrDataUrls[cls.id];
-            const started = isClassStarted(cls, currentTime);
-            const ongoing = isClassOngoing(cls, currentTime);
+              const isExpired = !shouldShowQr(cls, currentTime);
+              const isNoShow = (booked || matchingBooking?.booking_status === "no_show") && !isCheckedInOrAttended && !isCancelled && isExpired;
 
-            return (
-              <div key={cls.id} className="bg-surface rounded-2xl border border-line p-5 hover:shadow-md transition-all flex flex-col justify-between">
-                <div>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-fg text-lg">{cls.title}</h3>
-                        {isPt && <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full uppercase tracking-wider">PT</span>}
-                      </div>
-                      <p className="text-sm text-fg-4 mt-1">{cls.instructor}</p>
-                      {classTypes[cls.title] && (
-                        <p className="text-xs text-fg-3 mt-2 italic leading-relaxed">
-                          "{classTypes[cls.title]}"
-                        </p>
-                      )}
-                      {(() => {
-                        const matchedBk = bookings.find(b => b.class_id === cls.id && b.booking_status !== "cancelled");
-                        if (matchedBk) {
-                          const noteText = matchedBk.notes || "Corhaus invite u to this session";
-                          return (
-                            <div className="mt-2 text-[11px] font-semibold text-accent bg-accent/10 px-2.5 py-1 rounded-lg flex items-center gap-1.5 inline-flex">
-                              <span>✨</span> {noteText}
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
-                    <div className="flex-shrink-0 ml-2">
-                      {isCheckedInOrAttended && <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2 py-1 rounded-full border border-green-500/20">Checked In</span>}
-                      {!isCheckedInOrAttended && ongoing && booked && <span className="text-xs font-medium text-text-gold bg-text-gold/10 px-2 py-1 rounded-full">Ongoing</span>}
-                      {!isCheckedInOrAttended && !ongoing && booked && <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2 py-1 rounded-full">Booked</span>}
-                    </div>
-                  </div>
+              const qrUrl = qrDataUrls[cls.id];
+              const started = isClassStarted(cls, currentTime);
+              const ongoing = isClassOngoing(cls, currentTime);
 
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-fg-3">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    {formatDate(cls.class_date)}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-fg-3">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    {formatTime(cls.class_time)}
-                  </div>
-                  
-                  {/* Attendance QR */}
-                  {booked && !isCheckedInOrAttended && (
-                    <div className="mt-4">
-                      {shouldShowQr(cls, currentTime) ? (
-                        qrUrl ? (
-                          <div className="flex flex-col items-center gap-2 p-4 bg-surface-2 rounded-xl border border-line">
-                            <div className="flex items-center justify-between w-full text-[10px] font-medium text-fg-3">
-                              <span className="uppercase tracking-wide font-semibold">Corhaus Pilates</span>
-                              <span className="text-accent font-semibold bg-accent/10 px-2 py-0.5 rounded-full">
-                                Valid 1h after class
-                              </span>
-                            </div>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={qrUrl} alt="Attendance QR" className="w-40 h-40 rounded-lg" />
-                            <p className="text-xs text-fg-5 text-center">Show this to the instructor at the studio</p>
-                          </div>
-                        ) : isGenerating[cls.id] ? (
-                          <div className="flex items-center justify-center py-4">
-                            <div className="w-5 h-5 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
-                          </div>
-                        ) : (
-                          <p className="text-xs text-fg-5 text-center py-3 bg-surface-2 rounded-xl border border-line">
-                            Generating QR...
+              return (
+                <div key={cls.id} className="bg-surface rounded-2xl border border-line p-5 hover:shadow-md transition-all flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-fg text-lg">{cls.title}</h3>
+                          {isPt && <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full uppercase tracking-wider">PT</span>}
+                        </div>
+                        <p className="text-sm text-fg-4 mt-1">{cls.instructor}</p>
+                        {classTypes[cls.title] && (
+                          <p className="text-xs text-fg-3 mt-2 italic leading-relaxed">
+                            "{classTypes[cls.title]}"
                           </p>
-                        )
-                      ) : (
-                        <div className="p-3 bg-red-500/10 border border-red-400/20 rounded-xl text-center">
-                          <p className="text-xs font-semibold text-red-500">⏰ QR Code Expired</p>
-                          <p className="text-[11px] text-fg-5 mt-0.5">Expired 1 hour after class timing</p>
+                        )}
+                        {(() => {
+                          if (matchingBooking && !isCancelled) {
+                            const noteText = matchingBooking.notes || "Corhaus invite u to this session";
+                            return (
+                              <div className="mt-2 text-[11px] font-semibold text-accent bg-accent/10 px-2.5 py-1 rounded-lg flex items-center gap-1.5 inline-flex">
+                                <span>✨</span> {noteText}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+
+                      <div className="flex-shrink-0 ml-2">
+                        {isCheckedInOrAttended && (
+                          <span className="text-xs font-semibold text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/20">
+                            ✓ Attended
+                          </span>
+                        )}
+                        {isNoShow && (
+                          <span className="text-xs font-semibold text-red-600 bg-red-500/10 px-2.5 py-1 rounded-full border border-red-500/20">
+                            ✕ No Show
+                          </span>
+                        )}
+                        {isCancelled && (
+                          <span className="text-xs font-semibold text-amber-600 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                            ↩ Cancelled
+                          </span>
+                        )}
+                        {!isCheckedInOrAttended && !isNoShow && !isCancelled && ongoing && booked && (
+                          <span className="text-xs font-medium text-text-gold bg-text-gold/10 px-2.5 py-1 rounded-full">
+                            Ongoing
+                          </span>
+                        )}
+                        {!isCheckedInOrAttended && !isNoShow && !isCancelled && !ongoing && booked && (
+                          <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/20">
+                            Booked
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-fg-3">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        {formatDate(cls.class_date)}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-fg-3">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        {formatTime(cls.class_time)}
+                      </div>
+
+                      {/* Attendance QR logic for active upcoming booked classes */}
+                      {booked && !isCheckedInOrAttended && !isNoShow && !isCancelled && (
+                        <div className="mt-4">
+                          {shouldShowQr(cls, currentTime) ? (
+                            qrUrl ? (
+                              <div className="flex flex-col items-center gap-2 p-4 bg-surface-2 rounded-xl border border-line">
+                                <div className="flex items-center justify-between w-full text-[10px] font-medium text-fg-3">
+                                  <span className="uppercase tracking-wide font-semibold">Corhaus Pilates</span>
+                                  <span className="text-accent font-semibold bg-accent/10 px-2 py-0.5 rounded-full">
+                                    Valid 1h after class
+                                  </span>
+                                </div>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={qrUrl} alt="Attendance QR" className="w-40 h-40 rounded-lg" />
+                                <p className="text-xs text-fg-5 text-center">Show this to the instructor at the studio</p>
+                              </div>
+                            ) : isGenerating[cls.id] ? (
+                              <div className="flex items-center justify-center py-4">
+                                <div className="w-5 h-5 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
+                              </div>
+                            ) : (
+                              <p className="text-xs text-fg-5 text-center py-3 bg-surface-2 rounded-xl border border-line">
+                                Generating QR...
+                              </p>
+                            )
+                          ) : (
+                            <div className="p-3 bg-red-500/10 border border-red-400/20 rounded-xl text-center">
+                              <p className="text-xs font-semibold text-red-500">⏰ QR Code Expired</p>
+                              <p className="text-[11px] text-fg-5 mt-0.5">Expired 1 hour after class timing</p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
-
-                {isCheckedInOrAttended && (
-                  <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-center">
-                    <p className="text-xs font-medium text-green-600">✓ Attendance recorded &amp; checked in</p>
                   </div>
-                )}
-                </div>
 
-                <div className="mt-4 space-y-2">
-                  {isCheckedInOrAttended ? (
-                    <div className="w-full py-2.5 rounded-xl text-sm font-semibold text-center bg-green-500/10 text-green-600 border border-green-500/20">
-                      ✓ Class Attended / Checked In
-                    </div>
-                  ) : isPt && booked && !started ? (
-                    <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-accent/10 text-accent border border-accent/20">
-                      Personal Training Session
-                    </div>
-                  ) : ongoing && booked ? (
-                    <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-text-gold/10 text-text-gold border border-text-gold/20">
-                      Ongoing Class
-                    </div>
-                  ) : booked ? (
-                    <>
-                      <button disabled className="w-full py-2.5 rounded-xl text-sm font-medium bg-hover text-fg-5 cursor-not-allowed border border-line">
-                        Already Booked
-                      </button>
-                      {canCancel(cls, currentTime) ? (
-                        <button onClick={() => handleCancel(cls)} disabled={bookingLoading === cls.id}
-                          className="w-full py-2.5 rounded-xl text-sm font-medium border border-red-400/30 text-red-500 hover:bg-red-500/5 transition-all disabled:opacity-50">
-                          {bookingLoading === cls.id ? "Cancelling..." : "Cancel Booking"}
+                  <div className="mt-4 space-y-2">
+                    {isCheckedInOrAttended ? (
+                      <div className="w-full py-2.5 rounded-xl text-sm font-semibold text-center bg-green-500/10 text-green-600 border border-green-500/20">
+                        ✓ Attended (QR Scanned)
+                      </div>
+                    ) : isNoShow ? (
+                      <div className="w-full py-2.5 rounded-xl text-sm font-semibold text-center bg-red-500/10 text-red-600 border border-red-500/20">
+                        ✕ No Show (Credit Deducted)
+                      </div>
+                    ) : isCancelled ? (
+                      <div className="w-full py-2.5 rounded-xl text-sm font-semibold text-center bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                        ↩ Cancelled (Credit Restored)
+                      </div>
+                    ) : isPt && booked && !started ? (
+                      <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-accent/10 text-accent border border-accent/20">
+                        Personal Training Session
+                      </div>
+                    ) : ongoing && booked ? (
+                      <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-text-gold/10 text-text-gold border border-text-gold/20">
+                        Ongoing Class
+                      </div>
+                    ) : booked ? (
+                      <>
+                        <button disabled className="w-full py-2.5 rounded-xl text-sm font-medium bg-hover text-fg-5 cursor-not-allowed border border-line">
+                          Already Booked
                         </button>
-                      ) : (
-                        <p className="text-xs text-fg-5 text-center">Cancellation closed (&lt; {policyLabel} before class)</p>
-                      )}
-                    </>
-                  ) : !started ? (
-                    <button onClick={() => handleBook(cls)} disabled={bookingLoading === cls.id}
-                      className="w-full py-2.5 rounded-xl text-sm font-medium transition-all bg-rail text-white hover:bg-rail/90 disabled:opacity-50">
-                      {bookingLoading === cls.id ? "Booking..." : "Book Class"}
-                    </button>
-                  ) : null}
+                        {canCancel(cls, currentTime) ? (
+                          <button onClick={() => handleCancel(cls)} disabled={bookingLoading === cls.id}
+                            className="w-full py-2.5 rounded-xl text-sm font-medium border border-red-400/30 text-red-500 hover:bg-red-500/5 transition-all disabled:opacity-50">
+                            {bookingLoading === cls.id ? "Cancelling..." : "Cancel Booking"}
+                          </button>
+                        ) : (
+                          <p className="text-xs text-fg-5 text-center">Cancellation closed (&lt; {policyLabel} before class)</p>
+                        )}
+                      </>
+                    ) : !started ? (
+                      <button onClick={() => handleBook(cls)} disabled={bookingLoading === cls.id}
+                        className="w-full py-2.5 rounded-xl text-sm font-medium transition-all bg-rail text-white hover:bg-rail/90 disabled:opacity-50">
+                        {bookingLoading === cls.id ? "Booking..." : "Book Class"}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       )}
       </div>
