@@ -26,7 +26,8 @@ export default function DeveloperLayout({ children }: { children: React.ReactNod
           .eq("id", user.id)
           .maybeSingle();
 
-        const isDeveloper = profile?.role === "developer" || user.email === "kandukurisrikar10@gmail.com";
+        const { isDeveloperEmail } = await import("@/lib/constants");
+        const isDeveloper = profile?.role === "developer" || isDeveloperEmail(user.email);
 
         if (!isDeveloper) {
           router.push("/admin");

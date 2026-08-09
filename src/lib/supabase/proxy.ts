@@ -73,9 +73,12 @@ export async function updateSession(request: NextRequest) {
     const googleEmail = user.email ?? "";
     const normalizedEmail = googleEmail.trim().toLowerCase();
 
+    const { isDeveloperEmail } = await import("@/lib/constants");
+    const isDevUser = isDeveloperEmail(googleEmail) || userRole === "developer";
+
     // Determine if they are active staff member
     let isStaff = isAdminEmail(googleEmail);
-    if (!isStaff) {
+    if (!isStaff && !isDevUser) {
       try {
         const { data: staff } = await serviceClient
           .from("staff_members")
@@ -91,7 +94,10 @@ export async function updateSession(request: NextRequest) {
       }
     }
 
-    if (isStaff || userRole === "admin") {
+    if (isDevUser) {
+      isApproved = true;
+      userRole = "developer";
+    } else if (isStaff || userRole === "admin") {
       isApproved = true;
       userRole = "admin";
     } else {
@@ -140,10 +146,9 @@ export async function updateSession(request: NextRequest) {
     devLog("ACCESS_GRANTED: true");
 
     // Now if they don't have a profile, create it (since they are approved)
-    // Only create profile if they are approved (don't create for referral visitors)
     if (!profile && isApproved) {
       devLog("PROFILE_CREATED: true");
-      userRole = userRole || "member";
+      userRole = userRole || (isDevUser ? "developer" : "member");
       await supabase.from("profiles").insert({
         id: user.id,
         full_name: user.user_metadata?.full_name ?? "",
@@ -155,19 +160,12 @@ export async function updateSession(request: NextRequest) {
       devLog("PROFILE_CREATED: false");
     }
 
-    // Protected routes that require authentication
-    const protectedRoutes = ["/admin", "/member"];
-    const isProtectedRoute = protectedRoutes.some((route) =>
-      pathname.startsWith(route)
-    );
-
     // Auth routes (login/signup) - redirect to dashboard if already logged in
     const authRoutes = ["/auth/login", "/auth/signup"];
     const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
-    // If logged in and trying to access auth routes, redirect to appropriate dashboard
     if (isAuthRoute) {
-      const target = userRole === "admin" ? "/admin" : "/member";
+      const target = userRole === "developer" ? "/developer/support" : userRole === "admin" ? "/admin" : "/member";
       devLog("DECISION: on auth route, role is", userRole, "-> redirect to", target);
       const url = request.nextUrl.clone();
       url.pathname = target;
@@ -273,16 +271,32 @@ export async function updateSession(request: NextRequest) {
       }
     }
 
-    // Member trying to access admin routes
-    if (pathname.startsWith("/admin") && userRole !== "admin") {
-      devLog("DECISION: non-admin on /admin -> redirect to /member");
-      const url = request.nextUrl.clone();
-      url.pathname = "/member";
-      const redirectRes = NextResponse.redirect(url);
-      supabaseResponse.cookies.getAll().forEach((c) => {
-        redirectRes.cookies.set(c.name, c.value);
-      });
-      return redirectRes;
+    // Developer identity route enforcement
+    if (userRole === "developer") {
+      if (pathname.startsWith("/member") || pathname.startsWith("/admin")) {
+        devLog("DECISION: developer on member/admin route -> redirect to /developer/support");
+        const url = request.nextUrl.clone();
+        url.pathname = "/developer/support";
+        const redirectRes = NextResponse.redirect(url);
+        supabaseResponse.cookies.getAll().forEach((c) => {
+          redirectRes.cookies.set(c.name, c.value);
+        });
+        return redirectRes;
+      }
+    }
+
+    // Member trying to access admin or developer routes
+    if (userRole !== "admin" && userRole !== "developer") {
+      if (pathname.startsWith("/admin") || pathname.startsWith("/developer")) {
+        devLog("DECISION: non-admin/non-dev on protected route -> redirect to /member");
+        const url = request.nextUrl.clone();
+        url.pathname = "/member";
+        const redirectRes = NextResponse.redirect(url);
+        supabaseResponse.cookies.getAll().forEach((c) => {
+          redirectRes.cookies.set(c.name, c.value);
+        });
+        return redirectRes;
+      }
     }
 
     // Admin trying to access member routes (redirect to admin)
@@ -299,7 +313,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Protected routes that require authentication (when not logged in)
-  const protectedRoutes = ["/admin", "/member"];
+  const protectedRoutes = ["/admin", "/member", "/developer"];
   const isProtectedRoute = protectedRoutes.some((route) =>
     pathname.startsWith(route)
   );
@@ -331,7 +345,10 @@ export async function updateSession(request: NextRequest) {
         .select("role")
         .eq("id", user.id)
         .maybeSingle();
-      const target = profile?.role === "admin" || user.email === process.env.ADMIN_EMAIL ? "/admin" : "/member";
+      const { isDeveloperEmail } = await import("@/lib/constants");
+      const target = isDeveloperEmail(user.email) || profile?.role === "developer"
+        ? "/developer/support"
+        : (profile?.role === "admin" || user.email === process.env.ADMIN_EMAIL ? "/admin" : "/member");
       const url = request.nextUrl.clone();
       url.pathname = target;
       const redirectRes = NextResponse.redirect(url);

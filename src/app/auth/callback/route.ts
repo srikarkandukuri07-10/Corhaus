@@ -61,8 +61,22 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Developer bypass
-    if (normalizedEmail === "kandukurisrikar10@gmail.com") {
+    const { isDeveloperEmail } = await import("@/lib/constants");
+    if (isDeveloperEmail(normalizedEmail)) {
+      try {
+        await serviceClient.from("profiles").upsert(
+          {
+            id: user.id,
+            email: normalizedEmail,
+            role: "developer",
+            full_name: user.user_metadata?.full_name || "Developer",
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        );
+      } catch (err) {
+        console.error("Developer profile sync error:", err);
+      }
       return redirectWithCookies(`${origin}/developer/support`);
     }
 

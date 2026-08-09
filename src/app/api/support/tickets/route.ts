@@ -12,7 +12,8 @@ function getServiceSupabase() {
 
 async function ensureProfile(supabase: any, user: any) {
   try {
-    const role = user.email === "kandukurisrikar10@gmail.com" ? "developer" : (user.email === "admin@corhaus.com" ? "admin" : "member");
+    const { isDeveloperEmail } = await import("@/lib/constants");
+    const role = isDeveloperEmail(user.email) ? "developer" : (user.email === "admin@corhaus.com" ? "admin" : "member");
     const { error } = await supabase.from("profiles").upsert(
       {
         id: user.id,
@@ -56,7 +57,8 @@ export async function GET() {
       .eq("id", user.id)
       .maybeSingle();
 
-    const isDeveloper = profile?.role === "developer" || user.email === "kandukurisrikar10@gmail.com";
+    const { isDeveloperEmail } = await import("@/lib/constants");
+    const isDeveloper = profile?.role === "developer" || isDeveloperEmail(user.email);
 
     let query = supabase.from("support_tickets").select("*");
     if (!isDeveloper) {

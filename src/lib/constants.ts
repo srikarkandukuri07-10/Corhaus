@@ -3,7 +3,17 @@ export const ADMIN_EMAILS = [
   "vkalladi@gmail.com",
 ];
 
+export const DEVELOPER_EMAILS = [
+  "kandukurisrikar10@gmail.com",
+];
+
 export function isAdminEmail(email: string | null | undefined): boolean {
   if (!email) return false;
   return ADMIN_EMAILS.includes(email.trim().toLowerCase());
 }
+
+export function isDeveloperEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return DEVELOPER_EMAILS.includes(email.trim().toLowerCase());
+}
+

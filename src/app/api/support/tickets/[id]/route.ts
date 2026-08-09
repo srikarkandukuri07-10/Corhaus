@@ -12,7 +12,8 @@ function getServiceSupabase() {
 
 async function ensureProfile(supabase: any, user: any) {
   try {
-    const role = user.email === "kandukurisrikar10@gmail.com" ? "developer" : (user.email === "admin@corhaus.com" ? "admin" : "member");
+    const { isDeveloperEmail } = await import("@/lib/constants");
+    const role = isDeveloperEmail(user.email) ? "developer" : (user.email === "admin@corhaus.com" ? "admin" : "member");
     const { error } = await supabase.from("profiles").upsert(
       {
         id: user.id,
@@ -57,7 +58,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       .eq("id", user.id)
       .maybeSingle();
 
-    const isDeveloper = profile?.role === "developer" || user.email === "kandukurisrikar10@gmail.com";
+    const { isDeveloperEmail } = await import("@/lib/constants");
+    const isDeveloper = profile?.role === "developer" || isDeveloperEmail(user.email);
 
     // 1. Fetch ticket
     const { data: ticket, error: ticketError } = await supabase

@@ -39,14 +39,14 @@ export async function POST(request: Request) {
     });
 
     // 1. Check approval eligibility
+    const { isDeveloperEmail } = await import("@/lib/constants");
     let isApproved = false;
     let isStaff = false;
+    let isDev = isDeveloperEmail(normalizedEmail);
 
-    if (
-      isAdminEmail(normalizedEmail) ||
-      normalizedEmail === "kandukurisrikar10@gmail.com" ||
-      normalizedEmail === "admin@corhaus.com"
-    ) {
+    if (isDev) {
+      isApproved = true;
+    } else if (isAdminEmail(normalizedEmail) || normalizedEmail === "admin@corhaus.com") {
       isApproved = true;
       isStaff = true;
     }
@@ -87,6 +87,7 @@ export async function POST(request: Request) {
       if (profile) {
         isApproved = true;
         if (profile.role === "admin") isStaff = true;
+        if (profile.role === "developer") isDev = true;
       }
     }
 
@@ -147,26 +148,20 @@ export async function POST(request: Request) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieHeaderMap.set(name, { name, value, options });
-            try {
-              cookieStore.set(name, value, options);
-            } catch (_) {}
           });
         },
       },
     });
 
-    const { data: authSession, error: signInError } =
-      await ssrClient.auth.signInWithPassword({
-        email: normalizedEmail,
-        password: tempPassword,
-      });
+    const { data: authSession, error: authErr } = await ssrClient.auth.signInWithPassword({
+      email: normalizedEmail,
+      password: tempPassword,
+    });
 
-    if (signInError || !authSession?.user) {
-      console.error("Direct signInWithPassword error:", signInError);
+    if (authErr || !authSession.user) {
       return NextResponse.json(
         {
           error:
-            signInError?.message ||
             "Failed to establish authenticated session. Please try again.",
         },
         { status: 500 }
@@ -174,40 +169,28 @@ export async function POST(request: Request) {
     }
 
     // 4. Ensure Profile Role & RBAC Sync
-    if (isStaff) {
-      try {
-        await serviceClient.from("profiles").upsert(
-          {
-            id: authSession.user.id,
-            email: normalizedEmail,
-            role: "admin",
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "id" }
-        );
+    let assignedRole = isDev ? "developer" : isStaff ? "admin" : "member";
 
+    try {
+      await serviceClient.from("profiles").upsert(
+        {
+          id: authSession.user.id,
+          email: normalizedEmail,
+          role: assignedRole,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      );
+
+      if (isStaff) {
         const { getUserRolePermissions } = await import("@/lib/rbac");
         await getUserRolePermissions(authSession.user);
-      } catch (e) {
-        console.error("Profile/RBAC sync error:", e);
       }
-    } else {
-      try {
-        await serviceClient.from("profiles").upsert(
-          {
-            id: authSession.user.id,
-            email: normalizedEmail,
-            role: "member",
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "id" }
-        );
-      } catch (e) {
-        console.error("Member profile sync error:", e);
-      }
+    } catch (e) {
+      console.error("Profile/RBAC sync error:", e);
     }
 
-    const redirectTarget = isStaff ? "/admin" : "/member";
+    const redirectTarget = isDev ? "/developer/support" : isStaff ? "/admin" : "/member";
 
     const response = NextResponse.json({
       success: true,
