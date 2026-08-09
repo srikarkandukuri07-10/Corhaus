@@ -61,8 +61,11 @@ export default function AdminLayout({
         try {
           const permRes = await fetch("/api/admin/my-permissions");
           const permData = await permRes.json();
-          if (permRes.ok && Array.isArray(permData.permissions)) {
-            setPermissions(permData.permissions);
+          if (permRes.ok) {
+            if (permData.role) setRole(permData.role);
+            if (Array.isArray(permData.permissions)) {
+              setPermissions(permData.permissions);
+            }
           }
         } catch (_) {}
 
@@ -81,8 +84,11 @@ export default function AdminLayout({
       try {
         const permRes = await fetch("/api/admin/my-permissions");
         const permData = await permRes.json();
-        if (permRes.ok && Array.isArray(permData.permissions)) {
-          setPermissions(permData.permissions);
+        if (permRes.ok) {
+          if (permData.role) setRole(permData.role);
+          if (Array.isArray(permData.permissions)) {
+            setPermissions(permData.permissions);
+          }
         }
       } catch (_) {}
     }
@@ -107,7 +113,18 @@ export default function AdminLayout({
   if (!isAdmin) return null;
 
   const hasPerm = (p: string) => {
-    if (role === "Manager") return true;
+    if (loading) return true;
+    const normRole = (role || "").toLowerCase();
+    if (
+      !normRole ||
+      normRole === "manager" ||
+      normRole === "admin" ||
+      normRole === "owner" ||
+      normRole === "developer" ||
+      permissions.includes("*")
+    ) {
+      return true;
+    }
     return permissions.includes(p);
   };
 
@@ -124,15 +141,7 @@ export default function AdminLayout({
     return navLinkClass(isActive);
   };
 
-  const renderLinkText = (label: string, perm: string) => {
-    if (hasPerm(perm)) return label;
-    return (
-      <span className="flex items-center justify-between w-full">
-        <span>{label}</span>
-        <span className="text-[10px] text-on-rail-3 ml-auto" title="Locked">🔒</span>
-      </span>
-    );
-  };
+  const renderLinkText = (label: string, perm?: string) => label;
 
   const mobileLink = (perm: string, href: string, label: string) => {
     if (hasPerm(perm)) {
@@ -494,7 +503,6 @@ export default function AdminLayout({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
                 <span className="hidden sm:inline">Staff</span>
-                <span className="text-[10px] text-fg-4">🔒</span>
               </span>
             )}
             {hasPerm("support.view") ? (
@@ -521,7 +529,6 @@ export default function AdminLayout({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
                 <span className="hidden sm:inline">Support</span>
-                <span className="text-[10px] text-fg-4">🔒</span>
               </span>
             )}
             <NotificationsButton role="admin" />
