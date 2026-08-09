@@ -78,16 +78,18 @@ export async function updateSession(request: NextRequest) {
 
     // Determine if they are active staff member
     let isStaff = isAdminEmail(googleEmail);
-    if (!isStaff && !isDevUser) {
+    let staffRole = "";
+    if (!isDevUser) {
       try {
         const { data: staff } = await serviceClient
           .from("staff_members")
-          .select("id, employment_status")
+          .select("id, role, employment_status")
           .ilike("email", normalizedEmail)
           .limit(1)
           .maybeSingle();
         if (staff && staff.employment_status !== "Inactive") {
           isStaff = true;
+          staffRole = staff.role || "Staff";
         }
       } catch (e) {
         devLog("STAFF MEMBER CHECK ERROR:", e);
@@ -99,7 +101,7 @@ export async function updateSession(request: NextRequest) {
       userRole = "developer";
     } else if (isStaff || userRole === "admin") {
       isApproved = true;
-      userRole = "admin";
+      userRole = staffRole || userRole || "admin";
     } else {
       // Check approved_members by email
       try {

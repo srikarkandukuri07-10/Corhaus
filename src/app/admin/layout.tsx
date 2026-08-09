@@ -37,39 +37,44 @@ export default function AdminLayout({
           return;
         }
 
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .maybeSingle();
+        // Determine permissions and staff role directly from RBAC API
+        const permRes = await fetch("/api/admin/my-permissions");
+        const permData = await permRes.json();
 
-        if (profileError) {
-          await supabase.auth.signOut();
-          router.push("/auth/login");
-          return;
-        }
-
-        if (profile?.role === "member") {
-          router.push("/member");
-          return;
-        }
-
-        setIsAdmin(true);
-        setRole(profile?.role || "");
-
-        // Load permissions
-        try {
-          const permRes = await fetch("/api/admin/my-permissions");
-          const permData = await permRes.json();
-          if (permRes.ok) {
-            if (permData.role) setRole(permData.role);
-            if (Array.isArray(permData.permissions)) {
-              setPermissions(permData.permissions);
-            }
+        if (permRes.ok && permData.role) {
+          const resolvedRole = permData.role;
+          if (resolvedRole === "Guest") {
+            router.push("/auth/login");
+            return;
           }
-        } catch (_) {}
+          if (resolvedRole === "Member") {
+            router.push("/member");
+            return;
+          }
 
-        setLoading(false);
+          setIsAdmin(true);
+          setRole(resolvedRole);
+          if (Array.isArray(permData.permissions)) {
+            setPermissions(permData.permissions);
+          }
+          setLoading(false);
+        } else {
+          // If my-permissions check failed, check profiles table
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          if (profile?.role === "member") {
+            router.push("/member");
+            return;
+          }
+
+          setIsAdmin(true);
+          setRole(profile?.role || "Staff");
+          setLoading(false);
+        }
       } catch {
         router.push("/auth/login");
       }
