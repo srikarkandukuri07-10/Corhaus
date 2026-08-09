@@ -97,7 +97,7 @@ function LoginForm() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user && event === "SIGNED_IN") {
-        window.location.href = `${window.location.origin}/auth/callback`;
+        window.location.href = `${window.location.origin}/`;
       }
     });
 

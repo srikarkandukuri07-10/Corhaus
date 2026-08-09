@@ -7,10 +7,6 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
 
-  if (!code) {
-    return NextResponse.redirect(`${origin}/auth/login?error=auth_failed`);
-  }
-
   // Use a Map keyed by cookie name to ensure duplicate setAll calls don't overwrite valid session cookies
   const cookieMap = new Map<string, { name: string; value: string; options: any }>();
 
@@ -42,11 +38,12 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    // Exchange code for session
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-    if (exchangeError) {
-      console.error("Exchange code error:", exchangeError);
-      return redirectWithCookies(`${origin}/auth/login?error=auth_failed`);
+    if (code) {
+      // Exchange code for session
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      if (exchangeError) {
+        console.error("Exchange code error:", exchangeError);
+      }
     }
 
     const { data: { user } } = await supabase.auth.getUser();
