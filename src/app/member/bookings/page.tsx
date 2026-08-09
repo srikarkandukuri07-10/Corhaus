@@ -128,6 +128,26 @@ export default function BookingsPage() {
     };
   }, [supabase, fetchBookings]);
 
+  const [cancelPolicyMs, setCancelPolicyMs] = useState(6 * 60 * 60 * 1000);
+  const [policyLabel, setPolicyLabel] = useState("6hr");
+
+  useEffect(() => {
+    async function fetchPolicy() {
+      try {
+        const res = await fetch("/api/admin/settings/cancellation-policy");
+        const data = await res.json();
+        if (data?.policy) {
+          const totalMin = data.policy.total_minutes || 360;
+          setCancelPolicyMs(totalMin * 60 * 1000);
+          const h = data.policy.hours;
+          const m = data.policy.minutes;
+          setPolicyLabel(h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ""}` : `${m}m`);
+        }
+      } catch (_) {}
+    }
+    fetchPolicy();
+  }, []);
+
   function canCancel(booking: BookingWithClass): boolean {
     if (booking.isPT) return false;
     if (!booking.classes) return false;
@@ -136,7 +156,7 @@ export default function BookingsPage() {
     const classDateTime = new Date(
       `${booking.classes.class_date}T${booking.classes.class_time}`
     );
-    const cutoffTime = new Date(classDateTime.getTime() - 6 * 60 * 60 * 1000);
+    const cutoffTime = new Date(classDateTime.getTime() - cancelPolicyMs);
     return new Date() <= cutoffTime;
   }
 

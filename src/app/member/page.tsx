@@ -471,13 +471,33 @@ export default function MemberDashboard() {
     }
   }
 
+  const [cancelPolicyMs, setCancelPolicyMs] = useState(6 * 60 * 60 * 1000);
+  const [policyLabel, setPolicyLabel] = useState("6hr");
+
+  useEffect(() => {
+    async function fetchPolicy() {
+      try {
+        const res = await fetch("/api/admin/settings/cancellation-policy");
+        const data = await res.json();
+        if (data?.policy) {
+          const totalMin = data.policy.total_minutes || 360;
+          setCancelPolicyMs(totalMin * 60 * 1000);
+          const h = data.policy.hours;
+          const m = data.policy.minutes;
+          setPolicyLabel(h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ""}` : `${m}m`);
+        }
+      } catch (_) {}
+    }
+    fetchPolicy();
+  }, []);
+
   function canCancel(cls: ClassData, now: number) {
-    return parseAsIst(cls.class_date, cls.class_time) - now > 6 * 60 * 60 * 1000;
+    return parseAsIst(cls.class_date, cls.class_time) - now > cancelPolicyMs;
   }
 
   async function handleCancel(cls: ClassData) {
     if (!canCancel(cls, Date.now())) {
-      setMessage({ type: "error", text: "Cannot cancel \u2014 less than 6 hours before class starts." });
+      setMessage({ type: "error", text: `Cannot cancel — less than ${policyLabel} before class starts.` });
       return;
     }
     const booking = bookings.find(b => b.class_id === cls.id && b.booking_status === "booked");
@@ -706,7 +726,7 @@ export default function MemberDashboard() {
                         </button>
                       )}
                       {booked && !canCancel(cls, currentTime) && (
-                        <p className="text-xs text-fg-5 text-center">Cancellation closed (&lt; 6hr before class)</p>
+                        <p className="text-xs text-fg-5 text-center">Cancellation closed (&lt; {policyLabel} before class)</p>
                       )}
                     </>
                   ) : null}

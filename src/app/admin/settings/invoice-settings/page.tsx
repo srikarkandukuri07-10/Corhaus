@@ -85,6 +85,7 @@ export function SettingsSidebar() {
     {
       title: "OPERATIONS",
       items: [
+        { label: "Cancellation Policy", href: "/admin/settings/cancellation-policy", active: pathname.includes("cancellation-policy"), icon: "⏰" },
         { label: "Freeze Policies", href: "/admin/settings/freeze-policies", active: pathname.includes("freeze-policies"), icon: "❄" },
         { label: "Class Attendance", href: "/admin/classes", icon: "📋" },
         { label: "PT Settings", href: "/admin/pt", icon: "🏋" },

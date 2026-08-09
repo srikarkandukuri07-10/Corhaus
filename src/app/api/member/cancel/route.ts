@@ -58,12 +58,16 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "Unauthorized: You can only cancel your own sessions." }, { status: 403 });
         }
 
-        // Check 6-hour cancellation window
+        // Check cancellation window dynamically
+        const { getCancellationPolicy } = await import("@/lib/cancellationPolicy");
+        const policy = await getCancellationPolicy();
+        const cancelWindowMs = (policy.total_minutes || 360) * 60 * 1000;
+
         const sessDateTime = new Date(`${ptSess.session_date}T${ptSess.session_time}`);
-        const sixHoursMs = 6 * 60 * 60 * 1000;
         const now = new Date();
-        if (sessDateTime.getTime() - now.getTime() < sixHoursMs) {
-          return NextResponse.json({ error: "Cancellation is not allowed within 6 hours of the session start time." }, { status: 400 });
+        if (policy.is_active && sessDateTime.getTime() - now.getTime() < cancelWindowMs) {
+          const timeLabel = policy.hours > 0 ? `${policy.hours}h${policy.minutes > 0 ? ` ${policy.minutes}m` : ""}` : `${policy.minutes}m`;
+          return NextResponse.json({ error: `Cancellation is not allowed within ${timeLabel} of the session start time.` }, { status: 400 });
         }
 
         if (ptSess.status === "cancelled") {
@@ -106,14 +110,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized: You can only cancel your own bookings." }, { status: 403 });
     }
 
-    // 6. Check 6-hour cancellation policy server-side
+    // 6. Check dynamic cancellation policy server-side
     const classData = (booking.classes as unknown) as { class_date: string; class_time: string } | null;
     if (classData) {
+      const { getCancellationPolicy } = await import("@/lib/cancellationPolicy");
+      const policy = await getCancellationPolicy();
+      const cancelWindowMs = (policy.total_minutes || 360) * 60 * 1000;
+
       const classDateTime = new Date(`${classData.class_date}T${classData.class_time}`);
-      const sixHoursMs = 6 * 60 * 60 * 1000;
       const now = new Date();
-      if (classDateTime.getTime() - now.getTime() < sixHoursMs) {
-        return NextResponse.json({ error: "Cancellation is not allowed within 6 hours of the class start time." }, { status: 400 });
+      if (policy.is_active && classDateTime.getTime() - now.getTime() < cancelWindowMs) {
+        const timeLabel = policy.hours > 0 ? `${policy.hours}h${policy.minutes > 0 ? ` ${policy.minutes}m` : ""}` : `${policy.minutes}m`;
+        return NextResponse.json({ error: `Cancellation is not allowed within ${timeLabel} of the class start time.` }, { status: 400 });
       }
     }
 
