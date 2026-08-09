@@ -81,12 +81,13 @@ export async function GET(request: NextRequest) {
     let isStaff = isAdminEmail(normalizedEmail);
     let isInactiveStaff = false;
     let staffRole = "";
+    let staffDbRecord: { full_name?: string; phone_number?: string } | null = null;
 
     if (normalizedEmail) {
       try {
         const { data: staff } = await serviceClient
           .from("staff_members")
-          .select("id, role, employment_status")
+          .select("id, role, full_name, phone_number, employment_status")
           .ilike("email", normalizedEmail)
           .limit(1)
           .maybeSingle();
@@ -97,6 +98,7 @@ export async function GET(request: NextRequest) {
           } else {
             isStaff = true;
             staffRole = staff.role || "Staff";
+            staffDbRecord = { full_name: staff.full_name, phone_number: staff.phone_number };
           }
         }
       } catch (staffErr) {
@@ -125,16 +127,28 @@ export async function GET(request: NextRequest) {
     }
 
     if (isStaff) {
-      // Ensure staff members have admin profile role for middleware authorization
+      // Ensure staff members have admin profile role for middleware authorization.
+      // NOTE: profiles.role only accepts "admin" or "member" (check constraint).
+      // The actual staff role (Owner/Manager/Trainer etc.) is resolved from staff_members via RBAC.
+      const staffFullName =
+        staffDbRecord?.full_name ||
+        user.user_metadata?.full_name ||
+        profile?.full_name ||
+        "Staff Member";
+      const staffPhone =
+        staffDbRecord?.phone_number ||
+        user.user_metadata?.phone_number ||
+        profile?.phone_number ||
+        "9876543210";
+
       try {
         await serviceClient.from("profiles").upsert(
           {
             id: user.id,
-            full_name: user.user_metadata?.full_name || profile?.full_name || "",
-            phone_number: user.user_metadata?.phone_number || profile?.phone_number || "",
+            full_name: staffFullName,
+            phone_number: staffPhone,
             email: normalizedEmail,
-            role: staffRole || "admin",
-            updated_at: new Date().toISOString(),
+            role: "admin",  // always "admin" for all staff — profiles table only allows admin/member
           },
           { onConflict: "id" }
         );
