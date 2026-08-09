@@ -367,7 +367,7 @@ export default function AdminLayout({
           </div>
 
           {/* Section: SETTINGS */}
-          {role === "Manager" && (
+          {(role === "Manager" || role === "Owner") && (
             <div>
               <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 mb-2">
                 SETTINGS
