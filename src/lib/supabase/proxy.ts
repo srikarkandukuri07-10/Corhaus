@@ -116,12 +116,16 @@ export async function updateSession(request: NextRequest) {
       return redirectRes;
     }
 
+    const isStaffRole = isStaff || ["admin", "manager", "owner", "receptionist", "trainer", "staff"].includes(
+      (userRole || "").toLowerCase()
+    );
+
     if (isDevUser) {
       isApproved = true;
       userRole = "developer";
-    } else if (isStaff || userRole === "admin") {
+    } else if (isStaffRole) {
       isApproved = true;
-      userRole = staffRole || userRole || "admin";
+      userRole = "admin";
     } else {
       // Check approved_members by email
       try {

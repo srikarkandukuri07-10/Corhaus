@@ -79,20 +79,36 @@ export async function GET(request: NextRequest) {
 
     // Check if staff member
     let isStaff = isAdminEmail(normalizedEmail);
-    if (!isStaff && normalizedEmail) {
+    let isInactiveStaff = false;
+    let staffRole = "";
+
+    if (normalizedEmail) {
       try {
         const { data: staff } = await serviceClient
           .from("staff_members")
-          .select("employment_status")
+          .select("id, role, employment_status")
           .ilike("email", normalizedEmail)
           .limit(1)
           .maybeSingle();
-        if (staff && staff.employment_status !== "Inactive") {
-          isStaff = true;
+
+        if (staff) {
+          if (staff.employment_status === "Inactive") {
+            isInactiveStaff = true;
+          } else {
+            isStaff = true;
+            staffRole = staff.role || "Staff";
+          }
         }
       } catch (staffErr) {
         console.error("Staff lookup error:", staffErr);
       }
+    }
+
+    if (isInactiveStaff) {
+      try {
+        await supabase.auth.signOut();
+      } catch {}
+      return redirectWithCookies(`${origin}/auth/login?error=staff_inactive`);
     }
 
     // Read existing profile
@@ -100,7 +116,7 @@ export async function GET(request: NextRequest) {
     try {
       const { data } = await serviceClient
         .from("profiles")
-        .select("role")
+        .select("role, full_name, phone_number")
         .eq("id", user.id)
         .maybeSingle();
       profile = data;
@@ -117,7 +133,7 @@ export async function GET(request: NextRequest) {
             full_name: user.user_metadata?.full_name || profile?.full_name || "",
             phone_number: user.user_metadata?.phone_number || profile?.phone_number || "",
             email: normalizedEmail,
-            role: "admin",
+            role: staffRole || "admin",
             updated_at: new Date().toISOString(),
           },
           { onConflict: "id" }
@@ -135,24 +151,50 @@ export async function GET(request: NextRequest) {
       }
 
       return redirectWithCookies(`${origin}/admin`);
-    } else {
-      // Regular gym member
-      if (!profile) {
-        try {
-          await serviceClient.from("profiles").insert({
-            id: user.id,
-            full_name: user.user_metadata?.full_name || "",
-            phone_number: user.user_metadata?.phone_number || "",
-            email: normalizedEmail,
-            role: "member",
-          });
-        } catch (memInsErr) {
-          console.error("Member profile insert error:", memInsErr);
-        }
-      }
-
-      return redirectWithCookies(`${origin}/member`);
     }
+
+    // Member Authorization Check
+    let isApprovedMember = false;
+    try {
+      const { data: member } = await serviceClient
+        .from("approved_members")
+        .select("membership_status")
+        .ilike("email", normalizedEmail)
+        .limit(1)
+        .maybeSingle();
+
+      if (member && member.membership_status === "active") {
+        isApprovedMember = true;
+      }
+    } catch (_) {}
+
+    if (profile && profile.role === "member") {
+      isApprovedMember = true;
+    }
+
+    if (!isApprovedMember) {
+      try {
+        await supabase.auth.signOut();
+      } catch {}
+      return redirectWithCookies(`${origin}/auth/login?error=not_approved`);
+    }
+
+    // Approved gym member
+    if (!profile) {
+      try {
+        await serviceClient.from("profiles").insert({
+          id: user.id,
+          full_name: user.user_metadata?.full_name || "",
+          phone_number: user.user_metadata?.phone_number || "",
+          email: normalizedEmail,
+          role: "member",
+        });
+      } catch (memInsErr) {
+        console.error("Member profile insert error:", memInsErr);
+      }
+    }
+
+    return redirectWithCookies(`${origin}/member`);
   } catch (globalCallbackError) {
     console.error("Global Callback Error:", globalCallbackError);
     return redirectWithCookies(`${origin}/auth/login?error=auth_failed`);
