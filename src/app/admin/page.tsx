@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useCallback, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -122,27 +122,39 @@ export default function AdminDashboard() {
 
       const { data: monthlyInvoices } = await supabase
         .from("invoices")
-        .select("amount_paid, grand_total")
-        .eq("payment_status", "paid")
+        .select("amount_paid, grand_total, payment_status, created_at")
         .gte("created_at", firstOfMonthIso);
 
       let revTotal = 0;
       if (monthlyInvoices) {
         revTotal = monthlyInvoices.reduce((sum, inv) => {
-          const paid = inv.amount_paid !== null && inv.amount_paid !== undefined && Number(inv.amount_paid) > 0
-            ? Number(inv.amount_paid)
-            : Number(inv.grand_total || 0);
-          return sum + paid;
+          const status = (inv.payment_status || "").toLowerCase();
+          if (status === "paid" || status === "completed") {
+            const paid = inv.amount_paid !== null && inv.amount_paid !== undefined && Number(inv.amount_paid) > 0
+              ? Number(inv.amount_paid)
+              : Number(inv.grand_total || 0);
+            return sum + paid;
+          }
+          return sum;
         }, 0);
       }
 
       // 5. Fetch Check-ins Today
-      const startOfDayIso = `${todayStr}T00:00:00.000+05:30`;
-      const { count: checkInsCount } = await supabase
+      const { data: checkInsData } = await supabase
         .from("attendance")
-        .select("*", { count: "exact", head: true })
-        .eq("attendance_status", "attended")
-        .gte("scanned_at", startOfDayIso);
+        .select("id, attendance_status, scanned_at, created_at");
+
+      let checkInsCount = 0;
+      if (checkInsData) {
+        checkInsCount = checkInsData.filter((a: any) => {
+          const status = (a.attendance_status || "").toLowerCase();
+          const isAttended = status === "attended" || status === "present";
+          if (!isAttended) return false;
+          const dt = a.scanned_at || a.created_at;
+          if (!dt) return false;
+          return dt.startsWith(todayStr);
+        }).length;
+      }
 
       startTransition(() => {
         setClasses(upcomingClasses);

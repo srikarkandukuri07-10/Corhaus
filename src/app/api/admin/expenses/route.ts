@@ -92,9 +92,10 @@ export async function GET(req: Request) {
 
     all.forEach((e: any) => {
       const amt = Number(e.amount || 0);
-      const d = new Date(e.expense_date);
-      const y = d.getFullYear();
-      const m = d.getMonth();
+      const dateStr = (e.expense_date || "").split("T")[0];
+      const parts = dateStr.split("-");
+      const y = parts.length >= 1 ? Number(parts[0]) : new Date().getFullYear();
+      const m = parts.length >= 2 ? Number(parts[1]) - 1 : new Date().getMonth();
 
       // Year-to-Date
       if (y === currentYear) {
