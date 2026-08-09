@@ -148,11 +148,10 @@ export default function AdminFreezeManagementPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          member_id: freezeModalMember.id,
-          plan_id: freezeModalMember.plan_id,
-          package_type: freezeModalMember.package_type,
-          start_date: startDate,
-          freeze_days: freezeDays,
+          memberId: freezeModalMember.id,
+          planId: freezeModalMember.plan_id,
+          freezeStart: startDate,
+          freezeDays: freezeDays,
           reason: finalReason,
         }),
       });
@@ -173,15 +172,17 @@ export default function AdminFreezeManagementPage() {
   };
 
   const handleConfirmResume = async () => {
-    if (!resumeModalMember || !resumeModalMember.active_freeze) return;
+    if (!resumeModalMember) return;
 
     setSubmittingResume(true);
     try {
-      const res = await fetch("/api/admin/freeze", {
-        method: "PUT",
+      const res = await fetch("/api/admin/freeze/resume", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          freeze_id: resumeModalMember.active_freeze.id,
+          memberId: resumeModalMember.id,
+          planId: resumeModalMember.plan_id,
+          freezeId: resumeModalMember.active_freeze?.id,
         }),
       });
 
@@ -196,6 +197,52 @@ export default function AdminFreezeManagementPage() {
       alert("Failed to resume: " + e.message);
     } finally {
       setSubmittingResume(false);
+    }
+  };
+
+  const handleApproveRequest = async (requestId: string) => {
+    if (!confirm("Approve this freeze request?")) return;
+    try {
+      const res = await fetch("/api/admin/freeze/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestId,
+          action: "approve",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        fetchFreezeData();
+      } else {
+        alert("Failed to approve request: " + (data.error || "Unknown error"));
+      }
+    } catch (e: any) {
+      alert("Failed to approve request: " + e.message);
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    const reason = prompt("Enter rejection reason:", "Not approved by administration");
+    if (reason === null) return;
+    try {
+      const res = await fetch("/api/admin/freeze/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestId,
+          action: "reject",
+          rejectionReason: reason,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        fetchFreezeData();
+      } else {
+        alert("Failed to reject request: " + (data.error || "Unknown error"));
+      }
+    } catch (e: any) {
+      alert("Failed to reject request: " + e.message);
     }
   };
 
@@ -389,7 +436,22 @@ export default function AdminFreezeManagementPage() {
 
                     {/* Action buttons */}
                     <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
-                      {m.current_status === "Frozen" ? (
+                      {m.pending_request ? (
+                        <>
+                          <button
+                            onClick={() => handleApproveRequest(m.pending_request!.id)}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleRejectRequest(m.pending_request!.id)}
+                            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                          >
+                            Reject
+                          </button>
+                        </>
+                      ) : m.current_status === "Frozen" ? (
                         <button
                           onClick={() => setResumeModalMember(m)}
                           className="px-3.5 py-1.5 bg-accent hover:bg-accent-2 text-white rounded-xl text-xs font-bold transition-all shadow-xs"

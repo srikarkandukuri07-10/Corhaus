@@ -386,7 +386,7 @@ function MembersPageContent() {
 
       const { data: invoicesData } = await supabase
         .from("invoices")
-        .select("*")
+        .select("*, invoice_items(*)")
         .order("created_at", { ascending: false });
 
       const invoiceByMemberMap = new Map<string, InvoiceRecord>();
@@ -416,7 +416,7 @@ function MembersPageContent() {
           );
 
           if (isPaid) {
-            const invItems = (inv as any).items || [];
+            const invItems = (inv as any).invoice_items || (inv as any).items || [];
             const item = invItems[0] || null;
             const planName = item?.name || (inv as any).plan_name || null;
             
@@ -1578,6 +1578,11 @@ function MembersPageContent() {
               </button>
               <button
                 onClick={async () => {
+                  if (deleteConfirmEmail.trim().toLowerCase() !== deletingMember.email.trim().toLowerCase()) {
+                    setActionError("Entered email does not match member email.");
+                    return;
+                  }
+
                   setDeleteLoading(true);
                   setActionError(null);
                   try {

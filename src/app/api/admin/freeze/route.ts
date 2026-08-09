@@ -243,7 +243,11 @@ export async function POST(request: Request) {
     const { serviceClient, user } = auth;
 
     const body = await request.json();
-    const { memberId, planId, freezeStart, freezeDays, reason } = body;
+    const memberId = body.memberId || body.member_id;
+    const planId = body.planId || body.plan_id;
+    const freezeStart = body.freezeStart || body.start_date || body.freeze_start;
+    const freezeDays = body.freezeDays || body.freeze_days;
+    const reason = body.reason;
 
     if (!memberId || !freezeStart || !freezeDays) {
       return NextResponse.json({ error: "Missing required fields: memberId, freezeStart, freezeDays" }, { status: 400 });
