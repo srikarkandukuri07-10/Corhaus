@@ -511,14 +511,22 @@ function MembersPageContent() {
   };
 
   function computeBookingHistoryStatus(bk: any, attendanceList: any[]) {
+    const memberEmail = (bk.approved_members?.email || bk.member_email || "").toLowerCase();
+    const approvedId = bk.approved_members?.id;
+
     const isAttended =
       bk.booking_status === "checked_in" ||
+      bk.booking_status === "attended" ||
       bk.attendance_status === "present" ||
-      attendanceList.some(
-        (a) =>
-          (a.booking_id === bk.id || (a.class_id === bk.class_id && a.member_id === bk.member_id)) &&
-          a.attendance_status === "attended"
-      );
+      attendanceList.some((a) => {
+        if (a.attendance_status !== "attended") return false;
+        if (a.booking_id === bk.id) return true;
+        if (a.class_id === bk.class_id || a.class_id === bk.classes?.id) {
+          if (a.member_id === bk.member_id || a.member_id === approvedId) return true;
+          if (memberEmail && (a.email || "").toLowerCase() === memberEmail) return true;
+        }
+        return false;
+      });
 
     if (isAttended) {
       return {

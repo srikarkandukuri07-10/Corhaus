@@ -704,9 +704,22 @@ export default function AdminClassesModulePage() {
       if (error) setActionError("Failed to cancel booking: " + error.message);
     } else {
       const updateData: any = { booking_status: status };
-      if (status === "checked_in") {
+      if (status === "checked_in" || status === "attended") {
         updateData.checked_in_at = new Date().toISOString();
         updateData.attendance_status = "present";
+
+        // Sync with attendance table
+        const { data: bkRecord } = await supabase.from("bookings").select("class_id, member_id").eq("id", bookingId).maybeSingle();
+        if (bkRecord) {
+          await supabase.from("attendance").insert({
+            booking_id: bookingId,
+            class_id: bkRecord.class_id,
+            member_id: bkRecord.member_id,
+            attendance_token: crypto.randomUUID(),
+            attendance_status: "attended",
+            scanned_at: new Date().toISOString(),
+          });
+        }
       }
       const { error } = await supabase.from("bookings").update(updateData).eq("id", bookingId);
       if (error) setActionError("Failed to update status: " + error.message);
@@ -718,9 +731,21 @@ export default function AdminClassesModulePage() {
   const handleUpdateAttendance = async (bookingId: string, attendanceStatus: string) => {
     setActionLoading(true);
     const updateObj: any = { attendance_status: attendanceStatus };
-    if (attendanceStatus === "present") {
+    if (attendanceStatus === "present" || attendanceStatus === "attended") {
       updateObj.booking_status = "checked_in";
       updateObj.checked_in_at = new Date().toISOString();
+
+      const { data: bkRecord } = await supabase.from("bookings").select("class_id, member_id").eq("id", bookingId).maybeSingle();
+      if (bkRecord) {
+        await supabase.from("attendance").insert({
+          booking_id: bookingId,
+          class_id: bkRecord.class_id,
+          member_id: bkRecord.member_id,
+          attendance_token: crypto.randomUUID(),
+          attendance_status: "attended",
+          scanned_at: new Date().toISOString(),
+        });
+      }
     } else if (attendanceStatus === "no_show") {
       updateObj.booking_status = "no_show";
     }

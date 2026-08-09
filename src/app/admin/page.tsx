@@ -174,41 +174,50 @@ export default function AdminDashboard() {
   const loadBookings = useCallback(
     async (classId: string) => {
       setBookingsLoading(true);
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("*, profiles(full_name, email, phone_number, avatar_url)")
-        .eq("class_id", classId)
-        .eq("booking_status", "booked")
-        .order("created_at", { ascending: true });
-
-      if (!error && data) {
-        startTransition(() => {
-          setBookings(data as BookingWithProfile[]);
-          setBookingsLoading(false);
-        });
-      } else {
+      try {
+        const bkRes = await fetch(`/api/admin/bookings`, { cache: "no-store" });
+        const bkJson = await bkRes.json();
+        if (bkRes.ok && bkJson?.bookings) {
+          const classBookings = bkJson.bookings.filter(
+            (b: any) => b.class_id === classId && b.booking_status === "booked"
+          );
+          setBookings(classBookings);
+        }
+      } catch (err) {
+        console.error("loadBookings error:", err);
+      } finally {
         setBookingsLoading(false);
       }
     },
-    [supabase]
+    []
   );
 
   const loadAttendance = useCallback(
     async (classId: string) => {
       setAttendanceLoading(true);
-      const { data, error } = await supabase
-        .from("attendance")
-        .select("*, profiles!inner(full_name, email, avatar_url)")
-        .eq("class_id", classId)
-        .eq("attendance_status", "attended")
-        .order("scanned_at", { ascending: true });
+      try {
+        const [bkRes, attRes] = await Promise.all([
+          fetch(`/api/admin/bookings`, { cache: "no-store" }),
+          supabase.from("attendance").select("*").eq("class_id", classId).eq("attendance_status", "attended"),
+        ]);
 
-      if (!error && data) {
-        startTransition(() => {
-          setAttended(data as AttendanceWithProfile[]);
-          setAttendanceLoading(false);
-        });
-      } else {
+        const bkJson = await bkRes.json();
+        const attData = attRes.data || [];
+
+        if (bkRes.ok && bkJson?.bookings) {
+          const checkedInBookings = bkJson.bookings.filter((b: any) => {
+            if (b.class_id !== classId) return false;
+            const isCheckedIn = b.booking_status === "checked_in" || b.booking_status === "attended";
+            const inAttTable = attData.some(
+              (a: any) => a.booking_id === b.id || (a.member_id === b.member_id && a.attendance_status === "attended")
+            );
+            return isCheckedIn || inAttTable;
+          });
+          setAttended(checkedInBookings);
+        }
+      } catch (err) {
+        console.error("loadAttendance error:", err);
+      } finally {
         setAttendanceLoading(false);
       }
     },
@@ -705,25 +714,58 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
-                  {filteredBookings.map((b) => (
-                    <div
-                      key={b.id}
-                      className="p-3.5 rounded-xl bg-surface-2 border border-line flex items-center justify-between text-xs hover:border-line-2 hover:bg-hover/35 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-accent/20 text-accent font-bold flex items-center justify-center text-xs border border-accent/30">
-                          {b.profiles?.full_name ? b.profiles.full_name.charAt(0).toUpperCase() : "M"}
+                  {filteredBookings.map((b: any) => {
+                    const memberName = b.approved_members?.full_name || b.profiles?.full_name || "Member";
+                    const memberEmail = b.approved_members?.email || b.profiles?.email || "";
+                    const initial = memberName ? memberName.charAt(0).toUpperCase() : "M";
+
+                    return (
+                      <div
+                        key={b.id}
+                        className="p-3.5 rounded-xl bg-surface-2 border border-line flex items-center justify-between text-xs hover:border-line-2 hover:bg-hover/35 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-accent/20 text-accent font-bold flex items-center justify-center text-xs border border-accent/30">
+                            {initial}
+                          </div>
+                          <div>
+                            <p className="font-bold text-fg">{memberName}</p>
+                            <p className="text-[11px] text-fg-3">{memberEmail || "No email"}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-fg">{b.profiles?.full_name || "Member"}</p>
-                          <p className="text-[11px] text-fg-3">{b.profiles?.email || b.profiles?.phone_number || "No contact info"}</p>
+
+                        <div className="flex items-center gap-2">
+                          <span className="admin-badge bg-accent/10 text-accent border border-accent/20">
+                            BOOKED
+                          </span>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await supabase.from("bookings").update({ booking_status: "checked_in" }).eq("id", b.id);
+                                await supabase.from("attendance").insert({
+                                  booking_id: b.id,
+                                  class_id: b.class_id,
+                                  member_id: b.member_id,
+                                  attendance_token: crypto.randomUUID(),
+                                  attendance_status: "attended",
+                                  scanned_at: new Date().toISOString(),
+                                });
+                                if (selectedClass) {
+                                  loadBookings(selectedClass);
+                                  loadAttendance(selectedClass);
+                                }
+                              } catch (err) {
+                                console.error("Manual check-in error:", err);
+                              }
+                            }}
+                            className="px-2.5 py-1 bg-green-500/10 hover:bg-green-500/20 text-green-600 border border-green-500/20 rounded-lg text-[10px] font-bold transition-all"
+                          >
+                            Mark Checked In
+                          </button>
                         </div>
                       </div>
-                      <span className="admin-badge bg-accent/10 text-accent border border-accent/20">
-                        BOOKED
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
