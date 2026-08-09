@@ -59,14 +59,32 @@ export async function POST(request: Request) {
       await serviceClient.auth.admin.updateUserById(staffUser.id, {
         password: password,
         email_confirm: true,
+        user_metadata: {
+          ...staffUser.user_metadata,
+          has_password: true,
+          password_set_at: new Date().toISOString(),
+        },
       });
     } else {
       const { data: created } = await serviceClient.auth.admin.createUser({
         email: normalizedEmail,
         password: password,
         email_confirm: true,
+        user_metadata: {
+          has_password: true,
+          password_set_at: new Date().toISOString(),
+        },
       });
       staffUser = created?.user || undefined;
+    }
+
+    if (staff) {
+      try {
+        await serviceClient
+          .from("staff_members")
+          .update({ has_password: true })
+          .eq("id", staff.id);
+      } catch (_) {}
     }
 
     if (staffUser) {

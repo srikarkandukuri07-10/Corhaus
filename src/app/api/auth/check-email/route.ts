@@ -51,7 +51,11 @@ export async function POST(request: Request) {
         const existingUser = (usersData?.users || []).find(
           (u) => u.email?.trim().toLowerCase() === normalizedEmail
         );
-        if (existingUser && (existingUser as any).encrypted_password) {
+        if (
+          (staff as any)?.has_password ||
+          existingUser?.user_metadata?.has_password ||
+          existingUser?.user_metadata?.password_set_at
+        ) {
           hasPassword = true;
         }
       } catch (_) {}

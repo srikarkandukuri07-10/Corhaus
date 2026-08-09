@@ -114,7 +114,11 @@ export async function POST(request: Request) {
         (u) => u.email?.trim().toLowerCase() === normalizedEmail
       );
 
-      const hasPassword = !!(staffUser && (staffUser as any).encrypted_password);
+      const hasPassword = !!(
+        (staff as any)?.has_password ||
+        staffUser?.user_metadata?.has_password ||
+        staffUser?.user_metadata?.password_set_at
+      );
 
       // If staff member has provided a password to log in:
       if (password) {
