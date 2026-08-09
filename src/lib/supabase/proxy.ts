@@ -78,6 +78,7 @@ export async function updateSession(request: NextRequest) {
 
     // Determine if they are active staff member
     let isStaff = isAdminEmail(googleEmail);
+    let isInactiveStaff = false;
     let staffRole = "";
     if (!isDevUser) {
       try {
@@ -87,13 +88,32 @@ export async function updateSession(request: NextRequest) {
           .ilike("email", normalizedEmail)
           .limit(1)
           .maybeSingle();
-        if (staff && staff.employment_status !== "Inactive") {
-          isStaff = true;
-          staffRole = staff.role || "Staff";
+        if (staff) {
+          if (staff.employment_status === "Inactive") {
+            isInactiveStaff = true;
+          } else {
+            isStaff = true;
+            staffRole = staff.role || "Staff";
+          }
         }
       } catch (e) {
         devLog("STAFF MEMBER CHECK ERROR:", e);
       }
+    }
+
+    if (isInactiveStaff) {
+      devLog("DECISION: inactive staff -> redirect to /auth/login?error=staff_inactive");
+      try {
+        await supabase.auth.signOut();
+      } catch {}
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/login";
+      url.searchParams.set("error", "staff_inactive");
+      const redirectRes = NextResponse.redirect(url);
+      supabaseResponse.cookies.getAll().forEach((c) => {
+        redirectRes.cookies.set(c.name, c.value);
+      });
+      return redirectRes;
     }
 
     if (isDevUser) {

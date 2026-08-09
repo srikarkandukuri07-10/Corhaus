@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
-import { isAdminEmail } from "@/lib/constants";
+import { isAdminEmail, isDeveloperEmail } from "@/lib/constants";
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
+    const { email, password } = await request.json();
     if (!email || typeof email !== "string") {
       return NextResponse.json(
         { error: "Please enter a valid email address." },
@@ -27,7 +27,6 @@ export async function POST(request: Request) {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
     if (!url || !serviceKey) {
-      console.error("Missing Supabase configuration in environment variables.");
       return NextResponse.json(
         { error: "Server configuration error. Please contact administrator." },
         { status: 500 }
@@ -38,113 +37,204 @@ export async function POST(request: Request) {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // 1. Check approval eligibility
-    const { isDeveloperEmail } = await import("@/lib/constants");
-    let isApproved = false;
-    let isStaff = false;
-    let isDev = isDeveloperEmail(normalizedEmail);
+    // ─── 1. DEVELOPER / SUPPORT IDENTITY ──────────────────────────────────────
+    if (isDeveloperEmail(normalizedEmail)) {
+      const { data: usersData } = await serviceClient.auth.admin.listUsers();
+      let devUser = (usersData?.users || []).find(
+        (u) => u.email?.trim().toLowerCase() === normalizedEmail
+      );
+      if (!devUser) {
+        const { data: created } = await serviceClient.auth.admin.createUser({
+          email: normalizedEmail,
+          email_confirm: true,
+          user_metadata: { full_name: "Developer" },
+        });
+        devUser = created?.user || undefined;
+      }
 
-    if (isDev) {
-      isApproved = true;
-    } else if (isAdminEmail(normalizedEmail) || normalizedEmail === "admin@corhaus.com") {
-      isApproved = true;
-      isStaff = true;
+      const tempPassword = `Corhaus_Dev_Auth_${devUser?.id || "2026"}`;
+      if (devUser) {
+        await serviceClient.auth.admin.updateUserById(devUser.id, {
+          password: tempPassword,
+          email_confirm: true,
+        });
+      }
+
+      if (devUser) {
+        await serviceClient.from("profiles").upsert(
+          { id: devUser.id, email: normalizedEmail, role: "developer", full_name: "Developer" },
+          { onConflict: "id" }
+        );
+      }
+
+      const cookieStore = await cookies();
+      const cookieHeaderMap = new Map<string, { name: string; value: string; options: any }>();
+      const ssrClient = createServerClient(url, anonKey, {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieHeaderMap.set(name, { name, value, options });
+            });
+          },
+        },
+      });
+
+      await ssrClient.auth.signInWithPassword({ email: normalizedEmail, password: tempPassword });
+      const response = NextResponse.json({ success: true, redirectUrl: "/developer/support", accountType: "developer" });
+      cookieHeaderMap.forEach(({ name, value, options }) => {
+        response.cookies.set(name, value, options);
+      });
+      return response;
     }
 
-    if (!isApproved) {
-      const { data: staff } = await serviceClient
-        .from("staff_members")
-        .select("employment_status")
+    // ─── 2. STAFF IDENTITY (Manager, Owner, Receptionist, Trainer, Staff) ────
+    const { data: staff } = await serviceClient
+      .from("staff_members")
+      .select("id, role, employment_status")
+      .ilike("email", normalizedEmail)
+      .limit(1)
+      .maybeSingle();
+
+    const isStaffEmail = !!staff || isAdminEmail(normalizedEmail) || normalizedEmail === "admin@corhaus.com";
+
+    if (isStaffEmail) {
+      if (staff && staff.employment_status === "Inactive") {
+        return NextResponse.json(
+          { error: "Your staff account is currently inactive. Please contact your manager." },
+          { status: 403 }
+        );
+      }
+
+      const staffRole = staff?.role || (isAdminEmail(normalizedEmail) ? "Manager" : "Staff");
+
+      // Find staff user in Supabase Auth
+      const { data: usersData } = await serviceClient.auth.admin.listUsers();
+      let staffUser = (usersData?.users || []).find(
+        (u) => u.email?.trim().toLowerCase() === normalizedEmail
+      );
+
+      const hasPassword = !!(staffUser && (staffUser as any).encrypted_password);
+
+      // If staff member has provided a password to log in:
+      if (password) {
+        const cookieStore = await cookies();
+        const cookieHeaderMap = new Map<string, { name: string; value: string; options: any }>();
+        const ssrClient = createServerClient(url, anonKey, {
+          cookies: {
+            getAll() { return cookieStore.getAll(); },
+            setAll(cookiesToSet) {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieHeaderMap.set(name, { name, value, options });
+              });
+            },
+          },
+        });
+
+        const { error: pwdErr } = await ssrClient.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
+
+        if (pwdErr) {
+          return NextResponse.json(
+            { error: "Invalid password. Please check your credentials and try again." },
+            { status: 400 }
+          );
+        }
+
+        // Sync profiles role
+        if (staffUser) {
+          await serviceClient.from("profiles").upsert(
+            { id: staffUser.id, email: normalizedEmail, role: staffRole },
+            { onConflict: "id" }
+          );
+        }
+
+        const response = NextResponse.json({ success: true, redirectUrl: "/admin", accountType: "staff" });
+        cookieHeaderMap.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options);
+        });
+        return response;
+      }
+
+      // If password not provided: check if staff password is set or needs setup
+      if (!hasPassword) {
+        return NextResponse.json({
+          success: false,
+          needsStaffPasswordSetup: true,
+          accountType: "staff",
+          staffRole,
+          error: `Your staff account (${staffRole}) does not have a password set yet. Please set your password to secure your account.`,
+        }, { status: 200 });
+      } else {
+        return NextResponse.json({
+          success: false,
+          requiresPassword: true,
+          accountType: "staff",
+          staffRole,
+          error: "Please enter your staff account password.",
+        }, { status: 200 });
+      }
+    }
+
+    // ─── 3. APPROVED MEMBER IDENTITY ──────────────────────────────────────────
+    const { data: member } = await serviceClient
+      .from("approved_members")
+      .select("id, membership_status")
+      .ilike("email", normalizedEmail)
+      .limit(1)
+      .maybeSingle();
+
+    if (!member || member.membership_status !== "active") {
+      const { data: profile } = await serviceClient
+        .from("profiles")
+        .select("id, role")
         .ilike("email", normalizedEmail)
         .limit(1)
         .maybeSingle();
 
-      if (staff && staff.employment_status !== "Inactive") {
-        isApproved = true;
-        isStaff = true;
+      if (!profile) {
+        return NextResponse.json(
+          { error: "This email is not approved for access. Please contact Corhaus staff to activate your membership." },
+          { status: 403 }
+        );
       }
     }
 
-    if (!isApproved) {
-      const { data: member } = await serviceClient
-        .from("approved_members")
-        .select("membership_status")
-        .eq("email", normalizedEmail)
-        .maybeSingle();
-
-      if (member && member.membership_status === "active") {
-        isApproved = true;
-      }
-    }
-
-    if (!isApproved) {
-      const { data: profile } = await serviceClient
-        .from("profiles")
-        .select("role")
-        .eq("email", normalizedEmail)
-        .maybeSingle();
-
-      if (profile) {
-        isApproved = true;
-        if (profile.role === "admin") isStaff = true;
-        if (profile.role === "developer") isDev = true;
-      }
-    }
-
-    if (!isApproved) {
-      return NextResponse.json(
-        {
-          error:
-            "This email is not approved for access. Please contact Corhaus staff to activate your membership.",
-        },
-        { status: 403 }
-      );
-    }
-
-    // 2. Direct Auth User Provisioning
-    const tempPassword = `Corhaus_Auth_2026!_${normalizedEmail}`;
-
+    // Member Session Provisioning
+    const tempPassword = `Corhaus_Member_Auth_${normalizedEmail}`;
     const { data: usersData } = await serviceClient.auth.admin.listUsers();
-    const users = usersData?.users || [];
-    let user = users.find((u) => u.email?.trim().toLowerCase() === normalizedEmail);
+    let memberUser = (usersData?.users || []).find(
+      (u) => u.email?.trim().toLowerCase() === normalizedEmail
+    );
 
-    if (user) {
-      await serviceClient.auth.admin.updateUserById(user.id, {
+    if (memberUser) {
+      await serviceClient.auth.admin.updateUserById(memberUser.id, {
         password: tempPassword,
         email_confirm: true,
       });
     } else {
-      const candidateUser = users.find(
-        (u) =>
-          u.email?.endsWith("@example.com") ||
-          (u.email?.endsWith("@corhaus.com") &&
-            !["srikarkandukuri07@gmail.com", "kandukurisrikar10@gmail.com"].includes(
-              u.email
-            ))
-      );
-
-      if (candidateUser) {
-        const { data: updated } = await serviceClient.auth.admin.updateUserById(
-          candidateUser.id,
-          {
-            email: normalizedEmail,
-            password: tempPassword,
-            email_confirm: true,
-          }
-        );
-        user = updated?.user || undefined;
-      }
+      const { data: created } = await serviceClient.auth.admin.createUser({
+        email: normalizedEmail,
+        password: tempPassword,
+        email_confirm: true,
+      });
+      memberUser = created?.user || undefined;
     }
 
-    // 3. Authenticate & set SSR session cookies directly
+    if (memberUser) {
+      await serviceClient.from("profiles").upsert(
+        { id: memberUser.id, email: normalizedEmail, role: "member" },
+        { onConflict: "id" }
+      );
+    }
+
     const cookieStore = await cookies();
     const cookieHeaderMap = new Map<string, { name: string; value: string; options: any }>();
-
     const ssrClient = createServerClient(url, anonKey, {
       cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
+        getAll() { return cookieStore.getAll(); },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieHeaderMap.set(name, { name, value, options });
@@ -153,65 +243,17 @@ export async function POST(request: Request) {
       },
     });
 
-    const { data: authSession, error: authErr } = await ssrClient.auth.signInWithPassword({
-      email: normalizedEmail,
-      password: tempPassword,
-    });
-
-    if (authErr || !authSession.user) {
-      return NextResponse.json(
-        {
-          error:
-            "Failed to establish authenticated session. Please try again.",
-        },
-        { status: 500 }
-      );
-    }
-
-    // 4. Ensure Profile Role & RBAC Sync
-    let assignedRole = isDev ? "developer" : isStaff ? "admin" : "member";
-
-    try {
-      await serviceClient.from("profiles").upsert(
-        {
-          id: authSession.user.id,
-          email: normalizedEmail,
-          role: assignedRole,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "id" }
-      );
-
-      if (isStaff) {
-        const { getUserRolePermissions } = await import("@/lib/rbac");
-        await getUserRolePermissions(authSession.user);
-      }
-    } catch (e) {
-      console.error("Profile/RBAC sync error:", e);
-    }
-
-    const redirectTarget = isDev ? "/developer/support" : isStaff ? "/admin" : "/member";
-
-    const response = NextResponse.json({
-      success: true,
-      redirectUrl: redirectTarget,
-    });
-
+    await ssrClient.auth.signInWithPassword({ email: normalizedEmail, password: tempPassword });
+    const response = NextResponse.json({ success: true, redirectUrl: "/member", accountType: "member" });
     cookieHeaderMap.forEach(({ name, value, options }) => {
-      try {
-        response.cookies.set(name, value, options);
-      } catch (_) {}
+      response.cookies.set(name, value, options);
     });
-
     return response;
+
   } catch (err: any) {
     console.error("POST /api/auth/login error:", err);
     return NextResponse.json(
-      {
-        error:
-          err.message ||
-          "An unexpected error occurred while signing in. Please try again.",
-      },
+      { error: err.message || "An unexpected authentication error occurred." },
       { status: 500 }
     );
   }
