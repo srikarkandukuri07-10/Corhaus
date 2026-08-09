@@ -181,11 +181,31 @@ export default function AdminDashboard() {
         if (bkRes.ok && bkJson?.bookings) {
           allBookings = bkJson.bookings;
         } else {
-          const { data } = await supabase
-            .from("bookings")
-            .select("*, approved_members(id, full_name, email, phone_number), profiles(id, full_name, email)")
-            .eq("class_id", classId);
-          allBookings = data || [];
+          const [bkDataRes, amDataRes] = await Promise.all([
+            supabase.from("bookings").select("*, profiles(id, full_name, email, phone_number)").eq("class_id", classId),
+            supabase.from("approved_members").select("id, full_name, email, phone_number"),
+          ]);
+          const rawBks = bkDataRes.data || [];
+          const amList = amDataRes.data || [];
+          const amByEmail: Record<string, any> = {};
+          amList.forEach((m: any) => {
+            if (m.email) amByEmail[m.email.toLowerCase()] = m;
+          });
+
+          allBookings = rawBks.map((b: any) => {
+            const p = b.profiles || {};
+            const email = p.email || "";
+            const am = email ? amByEmail[email.toLowerCase()] : null;
+            return {
+              ...b,
+              approved_members: {
+                id: am?.id || p.id || b.member_id,
+                full_name: am?.full_name || p.full_name || (email ? email.split("@")[0] : "Member"),
+                email: email,
+                phone_number: am?.phone_number || p.phone_number || "N/A",
+              },
+            };
+          });
         }
 
         const classBookings = allBookings.filter(
@@ -219,11 +239,31 @@ export default function AdminDashboard() {
         if (bkRes.ok && bkJson?.bookings) {
           allBookings = bkJson.bookings;
         } else {
-          const { data } = await supabase
-            .from("bookings")
-            .select("*, approved_members(id, full_name, email, phone_number), profiles(id, full_name, email)")
-            .eq("class_id", classId);
-          allBookings = data || [];
+          const [bkDataRes, amDataRes] = await Promise.all([
+            supabase.from("bookings").select("*, profiles(id, full_name, email, phone_number)").eq("class_id", classId),
+            supabase.from("approved_members").select("id, full_name, email, phone_number"),
+          ]);
+          const rawBks = bkDataRes.data || [];
+          const amList = amDataRes.data || [];
+          const amByEmail: Record<string, any> = {};
+          amList.forEach((m: any) => {
+            if (m.email) amByEmail[m.email.toLowerCase()] = m;
+          });
+
+          allBookings = rawBks.map((b: any) => {
+            const p = b.profiles || {};
+            const email = p.email || "";
+            const am = email ? amByEmail[email.toLowerCase()] : null;
+            return {
+              ...b,
+              approved_members: {
+                id: am?.id || p.id || b.member_id,
+                full_name: am?.full_name || p.full_name || (email ? email.split("@")[0] : "Member"),
+                email: email,
+                phone_number: am?.phone_number || p.phone_number || "N/A",
+              },
+            };
+          });
         }
 
         const checkedInBookings = allBookings.filter((b: any) => {
