@@ -563,11 +563,25 @@ function MembersPageContent() {
       return;
     }
 
+    const cleanEmail = formEmail.trim().toLowerCase();
+
+    // Clean out any stale profiles or historical records if re-adding a previously deleted member
+    try {
+      await supabase.from("profiles").delete().ilike("email", cleanEmail);
+      await supabase.from("approved_members").delete().ilike("email", cleanEmail);
+      await supabase.from("member_purchased_plans").delete().ilike("email", cleanEmail);
+      await supabase.from("membership_freezes").delete().ilike("member_email", cleanEmail);
+      await supabase.from("freeze_requests").delete().ilike("member_email", cleanEmail);
+      await supabase.from("bookings").delete().ilike("member_email", cleanEmail);
+      await supabase.from("attendance").delete().ilike("email", cleanEmail);
+      await supabase.from("referral_codes").delete().ilike("member_email", cleanEmail);
+    } catch (_) {}
+
     const { data: insertedMember, error: insertError } = await supabase
       .from("approved_members")
       .insert({
         full_name: formName.trim(),
-        email: formEmail.trim().toLowerCase(),
+        email: cleanEmail,
         phone_number: formPhone.replace(/\D/g, ""),
         membership_status: formStatus,
         membership_level: formLevel,
@@ -1632,12 +1646,17 @@ function MembersPageContent() {
                       await supabase.from("customers").delete().ilike("email", memEmail);
                     }
 
-                    // 6. Delete member plans, freezes, freeze requests, attendance, referrals, notifications
-                    await supabase.from("member_purchased_plans").delete().eq("approved_member_id", memId);
-                    try { await supabase.from("membership_freezes").delete().eq("member_id", memId); } catch (e) {}
-                    try { await supabase.from("freeze_requests").delete().eq("member_id", memId); } catch (e) {}
-                    try { await supabase.from("attendance").delete().eq("member_id", memId); } catch (e) {}
+                    // 6. Delete member profiles, plans, freezes, freeze requests, bookings, attendance, PT, referrals, notifications
+                    try { await supabase.from("profiles").delete().ilike("email", memEmail); } catch (e) {}
+                    try { await supabase.from("member_purchased_plans").delete().or(`approved_member_id.eq.${memId},email.ilike.${memEmail}`); } catch (e) {}
+                    try { await supabase.from("membership_freezes").delete().or(`member_id.eq.${memId},member_email.ilike.${memEmail}`); } catch (e) {}
+                    try { await supabase.from("freeze_requests").delete().or(`member_id.eq.${memId},member_email.ilike.${memEmail}`); } catch (e) {}
+                    try { await supabase.from("bookings").delete().or(`member_id.eq.${memId},member_email.ilike.${memEmail}`); } catch (e) {}
+                    try { await supabase.from("attendance").delete().or(`member_id.eq.${memId},email.ilike.${memEmail}`); } catch (e) {}
+                    try { await supabase.from("pt_sessions").delete().eq("member_id", memId); } catch (e) {}
+                    try { await supabase.from("pt_assignments").delete().eq("member_id", memId); } catch (e) {}
                     try { await supabase.from("referral_codes").delete().ilike("member_email", memEmail); } catch (e) {}
+                    try { await supabase.from("referral_requests").delete().or(`referrer_email.ilike.${memEmail},referee_email.ilike.${memEmail}`); } catch (e) {}
                     try { await supabase.from("admin_notifications").delete().ilike("email", memEmail); } catch (e) {}
 
                     // 7. Delete approved_members record
