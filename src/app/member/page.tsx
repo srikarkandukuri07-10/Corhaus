@@ -62,10 +62,10 @@ function parseAsIst(dateStr: string, timeStr: string): number {
 
 
 
-// QR is shown immediately once a class is booked (as long as it hasn't started)
+// QR is shown immediately once a class is booked (valid until 1 hour after class start time)
 function shouldShowQr(cls: ClassData, now: number): boolean {
   const classStart = parseAsIst(cls.class_date, cls.class_time);
-  return now < classStart;
+  return now < classStart + 60 * 60 * 1000;
 }
 
 function isClassStarted(cls: ClassData, now: number): boolean {
@@ -371,7 +371,8 @@ export default function MemberDashboard() {
       for (const cls of classesRef.current) {
         if (!bookingsRef.current.some(b => b.class_id === cls.id && b.booking_status === "booked") && !forceBookedIdsRef.current.has(cls.id)) continue;
         const classStart = parseAsIst(cls.class_date, cls.class_time);
-        if (now >= classStart) continue;
+        const classExpiry = classStart + 60 * 60 * 1000;
+        if (now >= classExpiry) continue;
         if (qrDataUrlsRef.current[cls.id]) continue;
         if (generatingRef.current.has(cls.id)) continue;
 
@@ -389,7 +390,8 @@ export default function MemberDashboard() {
     for (const cls of classes) {
       if (!bookings.some(b => b.class_id === cls.id && b.booking_status === "booked") && !forceBookedIds.has(cls.id)) continue;
       const classStart = parseAsIst(cls.class_date, cls.class_time);
-      if (now >= classStart) continue;
+      const classExpiry = classStart + 60 * 60 * 1000;
+      if (now >= classExpiry) continue;
       if (qrDataUrls[cls.id]) continue;
       if (generatingRef.current.has(cls.id)) continue;
       generateQrForClass(cls);
@@ -641,23 +643,35 @@ export default function MemberDashboard() {
                   </div>
                   
                   {/* Attendance QR */}
-                  {booked && !started && attendance?.attendance_status !== "attended" && (
+                  {booked && attendance?.attendance_status !== "attended" && (
                     <div className="mt-4">
-                      {qrUrl ? (
-                        <div className="flex flex-col items-center gap-2 p-4 bg-surface-2 rounded-xl border border-line">
-                          <p className="text-xs font-medium text-fg-3 uppercase tracking-wide">Corhaus Pilates</p>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={qrUrl} alt="Attendance QR" className="w-40 h-40 rounded-lg" />
-                          <p className="text-xs text-fg-5">Show this to the instructor at the studio</p>
-                        </div>
-                      ) : isGenerating[cls.id] ? (
-                        <div className="flex items-center justify-center py-4">
-                          <div className="w-5 h-5 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
-                        </div>
+                      {shouldShowQr(cls, currentTime) ? (
+                        qrUrl ? (
+                          <div className="flex flex-col items-center gap-2 p-4 bg-surface-2 rounded-xl border border-line">
+                            <div className="flex items-center justify-between w-full text-[10px] font-medium text-fg-3">
+                              <span className="uppercase tracking-wide font-semibold">Corhaus Pilates</span>
+                              <span className="text-accent font-semibold bg-accent/10 px-2 py-0.5 rounded-full">
+                                Valid 1h after class
+                              </span>
+                            </div>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={qrUrl} alt="Attendance QR" className="w-40 h-40 rounded-lg" />
+                            <p className="text-xs text-fg-5 text-center">Show this to the instructor at the studio</p>
+                          </div>
+                        ) : isGenerating[cls.id] ? (
+                          <div className="flex items-center justify-center py-4">
+                            <div className="w-5 h-5 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
+                          </div>
+                        ) : (
+                          <p className="text-xs text-fg-5 text-center py-3 bg-surface-2 rounded-xl border border-line">
+                            Generating QR...
+                          </p>
+                        )
                       ) : (
-                        <p className="text-xs text-fg-5 text-center py-3 bg-surface-2 rounded-xl border border-line">
-                          Generating QR...
-                        </p>
+                        <div className="p-3 bg-red-500/10 border border-red-400/20 rounded-xl text-center">
+                          <p className="text-xs font-semibold text-red-500">⏰ QR Code Expired</p>
+                          <p className="text-[11px] text-fg-5 mt-0.5">Expired 1 hour after class timing</p>
+                        </div>
                       )}
                     </div>
                   )}

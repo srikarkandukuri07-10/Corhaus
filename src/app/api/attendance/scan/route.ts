@@ -41,6 +41,26 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+function parseClassTimeAsIst(dateStr: string, timeStr: string): number {
+  if (!dateStr || !timeStr) return 0;
+  let hours = 0;
+  let minutes = 0;
+  const timeUpper = timeStr.trim().toUpperCase();
+  const isPm = timeUpper.includes("PM");
+  const isAm = timeUpper.includes("AM");
+  const cleanTime = timeUpper.replace(/(AM|PM)/g, "").trim();
+  const parts = cleanTime.split(":");
+  if (parts.length >= 1) hours = parseInt(parts[0], 10) || 0;
+  if (parts.length >= 2) minutes = parseInt(parts[1], 10) || 0;
+  if (isPm && hours < 12) hours += 12;
+  if (isAm && hours === 12) hours = 0;
+
+  const hh = String(hours).padStart(2, "0");
+  const mm = String(minutes).padStart(2, "0");
+  const isoStr = `${dateStr}T${hh}:${mm}:00+05:30`;
+  return new Date(isoStr).getTime();
+}
+
     const { data: record, error: findError } = await supabase
       .from("attendance")
       .select("*")
@@ -50,6 +70,26 @@ export async function POST(req: Request) {
 
     if (findError || !record) {
       return NextResponse.json({ error: "Invalid or expired QR code" }, { status: 404 });
+    }
+
+    // Verify class timing (QR expires 1 hour after class start time)
+    if (record.class_id) {
+      const { data: clsData } = await supabase
+        .from("classes")
+        .select("class_date, class_time")
+        .eq("id", record.class_id)
+        .maybeSingle();
+
+      if (clsData?.class_date && clsData?.class_time) {
+        const classStart = parseClassTimeAsIst(clsData.class_date, clsData.class_time);
+        const classExpiry = classStart + 60 * 60 * 1000; // 1 hour after class start time
+        if (Date.now() >= classExpiry) {
+          return NextResponse.json(
+            { error: "QR code expired. Attendance QR is only valid up to 1 hour after class start time." },
+            { status: 410 }
+          );
+        }
+      }
     }
 
     if (record.attendance_status === "attended") {
