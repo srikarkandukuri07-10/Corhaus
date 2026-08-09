@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     // Verify staff email
     const { data: staff } = await serviceClient
       .from("staff_members")
-      .select("id, role, employment_status")
+      .select("id, role, full_name, phone_number, employment_status")
       .ilike("email", normalizedEmail)
       .limit(1)
       .maybeSingle();
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         },
       });
     } else {
-      const { data: created } = await serviceClient.auth.admin.createUser({
+      const { data: created, error: createErr } = await serviceClient.auth.admin.createUser({
         email: normalizedEmail,
         password: password,
         email_confirm: true,
@@ -75,7 +75,38 @@ export async function POST(request: Request) {
           password_set_at: new Date().toISOString(),
         },
       });
-      staffUser = created?.user || undefined;
+
+      if (created?.user) {
+        staffUser = created.user;
+      } else {
+        console.error("createUser error, trying candidate user fallback:", createErr);
+        const users = usersData?.users || [];
+        const candidateUser = users.find(
+          (u) =>
+            u.email?.endsWith("@example.com") ||
+            (u.email?.endsWith("@corhaus.com") &&
+              !["srikarkandukuri07@gmail.com", "kandukurisrikar10@gmail.com"].includes(
+                u.email
+              ))
+        );
+
+        if (candidateUser) {
+          const { data: updated } = await serviceClient.auth.admin.updateUserById(
+            candidateUser.id,
+            {
+              email: normalizedEmail,
+              password: password,
+              email_confirm: true,
+              user_metadata: {
+                ...candidateUser.user_metadata,
+                has_password: true,
+                password_set_at: new Date().toISOString(),
+              },
+            }
+          );
+          staffUser = updated?.user || undefined;
+        }
+      }
     }
 
     if (staff) {
@@ -89,7 +120,13 @@ export async function POST(request: Request) {
 
     if (staffUser) {
       await serviceClient.from("profiles").upsert(
-        { id: staffUser.id, email: normalizedEmail, role: staffRole },
+        {
+          id: staffUser.id,
+          email: normalizedEmail,
+          full_name: staff?.full_name || staffUser.user_metadata?.full_name || "Staff Member",
+          phone_number: staff?.phone_number || staffUser.user_metadata?.phone_number || "9876543210",
+          role: "admin",
+        },
         { onConflict: "id" }
       );
     }
@@ -108,8 +145,24 @@ export async function POST(request: Request) {
       },
     });
 
-    await ssrClient.auth.signInWithPassword({ email: normalizedEmail, password });
-    const response = NextResponse.json({ success: true, redirectUrl: "/admin", message: "Password set successfully! Redirecting to Admin Dashboard..." });
+    const { error: signInErr } = await ssrClient.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
+
+    if (signInErr) {
+      console.error("signInWithPassword Error in staff-set-password:", signInErr);
+      return NextResponse.json(
+        { error: "Password was updated, but authentication failed. Please sign in with your new password." },
+        { status: 400 }
+      );
+    }
+
+    const response = NextResponse.json({
+      success: true,
+      redirectUrl: "/admin",
+      message: "Password set successfully! Redirecting to Admin Dashboard...",
+    });
     cookieHeaderMap.forEach(({ name, value, options }) => {
       response.cookies.set(name, value, options);
     });

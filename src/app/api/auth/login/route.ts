@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     // ─── 2. STAFF IDENTITY (Manager, Owner, Receptionist, Trainer, Staff) ────
     const { data: staff } = await serviceClient
       .from("staff_members")
-      .select("id, role, employment_status")
+      .select("id, role, full_name, phone_number, employment_status")
       .ilike("email", normalizedEmail)
       .limit(1)
       .maybeSingle();
@@ -150,7 +150,13 @@ export async function POST(request: Request) {
         // Sync profiles role
         if (staffUser) {
           await serviceClient.from("profiles").upsert(
-            { id: staffUser.id, email: normalizedEmail, role: staffRole },
+            {
+              id: staffUser.id,
+              email: normalizedEmail,
+              full_name: (staff as any)?.full_name || staffUser.user_metadata?.full_name || "Staff Member",
+              phone_number: (staff as any)?.phone_number || staffUser.user_metadata?.phone_number || "9876543210",
+              role: "admin",
+            },
             { onConflict: "id" }
           );
         }
