@@ -611,9 +611,18 @@ export default function MemberDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {classes.filter(cls => !isClassOver(cls, currentTime)).map((cls) => {
             const isPt = cls.id.startsWith("pt_");
-            const booked = bookings.some(b => b.class_id === cls.id && b.booking_status === "booked") || forceBookedIds.has(cls.id);
+            const matchingBooking = bookings.find(
+              b => b.class_id === cls.id && b.booking_status !== "cancelled"
+            );
+            const booked = Boolean(matchingBooking) || forceBookedIds.has(cls.id);
             const attendance = attendanceRecords.find(a => a.class_id === cls.id);
-            const showQr = booked && shouldShowQr(cls, currentTime) && !isClassStarted(cls, currentTime);
+            const isCheckedInOrAttended =
+              attendance?.attendance_status === "attended" ||
+              matchingBooking?.booking_status === "checked_in" ||
+              matchingBooking?.booking_status === "attended" ||
+              matchingBooking?.booking_status === "completed";
+
+            const showQr = booked && !isCheckedInOrAttended && shouldShowQr(cls, currentTime);
             const qrUrl = qrDataUrls[cls.id];
             const started = isClassStarted(cls, currentTime);
             const ongoing = isClassOngoing(cls, currentTime);
@@ -634,7 +643,7 @@ export default function MemberDashboard() {
                         </p>
                       )}
                       {(() => {
-                        const matchedBk = bookings.find(b => b.class_id === cls.id && b.booking_status === "booked");
+                        const matchedBk = bookings.find(b => b.class_id === cls.id && b.booking_status !== "cancelled");
                         if (matchedBk) {
                           const noteText = matchedBk.notes || "Corhaus invite u to this session";
                           return (
@@ -647,8 +656,9 @@ export default function MemberDashboard() {
                       })()}
                     </div>
                     <div className="flex-shrink-0 ml-2">
-                      {ongoing && booked && <span className="text-xs font-medium text-text-gold bg-text-gold/10 px-2 py-1 rounded-full">Ongoing</span>}
-                      {!ongoing && booked && <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2 py-1 rounded-full">Booked</span>}
+                      {isCheckedInOrAttended && <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2 py-1 rounded-full border border-green-500/20">Checked In</span>}
+                      {!isCheckedInOrAttended && ongoing && booked && <span className="text-xs font-medium text-text-gold bg-text-gold/10 px-2 py-1 rounded-full">Ongoing</span>}
+                      {!isCheckedInOrAttended && !ongoing && booked && <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2 py-1 rounded-full">Booked</span>}
                     </div>
                   </div>
 
@@ -663,7 +673,7 @@ export default function MemberDashboard() {
                   </div>
                   
                   {/* Attendance QR */}
-                  {booked && attendance?.attendance_status !== "attended" && (
+                  {booked && !isCheckedInOrAttended && (
                     <div className="mt-4">
                       {shouldShowQr(cls, currentTime) ? (
                         qrUrl ? (
@@ -697,15 +707,19 @@ export default function MemberDashboard() {
                   )}
                 </div>
 
-                {attendance?.attendance_status === "attended" && (
+                {isCheckedInOrAttended && (
                   <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-center">
-                    <p className="text-xs font-medium text-green-600">✓ Attendance recorded</p>
+                    <p className="text-xs font-medium text-green-600">✓ Attendance recorded &amp; checked in</p>
                   </div>
                 )}
                 </div>
 
                 <div className="mt-4 space-y-2">
-                  {isPt && booked && !started ? (
+                  {isCheckedInOrAttended ? (
+                    <div className="w-full py-2.5 rounded-xl text-sm font-semibold text-center bg-green-500/10 text-green-600 border border-green-500/20">
+                      ✓ Class Attended / Checked In
+                    </div>
+                  ) : isPt && booked && !started ? (
                     <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-accent/10 text-accent border border-accent/20">
                       Personal Training Session
                     </div>
@@ -713,22 +727,25 @@ export default function MemberDashboard() {
                     <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-text-gold/10 text-text-gold border border-text-gold/20">
                       Ongoing Class
                     </div>
-                  ) : !started ? (
+                  ) : booked ? (
                     <>
-                      <button onClick={() => handleBook(cls)} disabled={booked || bookingLoading === cls.id}
-                        className={`w-full py-2.5 rounded-xl text-sm font-medium transition-all ${booked ? "bg-hover text-fg-5 cursor-not-allowed" : "bg-rail text-white hover:bg-rail/90"} disabled:opacity-50`}>
-                        {bookingLoading === cls.id ? "Booking..." : booked ? "Already Booked" : "Book Class"}
+                      <button disabled className="w-full py-2.5 rounded-xl text-sm font-medium bg-hover text-fg-5 cursor-not-allowed border border-line">
+                        Already Booked
                       </button>
-                      {booked && canCancel(cls, currentTime) && (
+                      {canCancel(cls, currentTime) ? (
                         <button onClick={() => handleCancel(cls)} disabled={bookingLoading === cls.id}
                           className="w-full py-2.5 rounded-xl text-sm font-medium border border-red-400/30 text-red-500 hover:bg-red-500/5 transition-all disabled:opacity-50">
                           {bookingLoading === cls.id ? "Cancelling..." : "Cancel Booking"}
                         </button>
-                      )}
-                      {booked && !canCancel(cls, currentTime) && (
+                      ) : (
                         <p className="text-xs text-fg-5 text-center">Cancellation closed (&lt; {policyLabel} before class)</p>
                       )}
                     </>
+                  ) : !started ? (
+                    <button onClick={() => handleBook(cls)} disabled={bookingLoading === cls.id}
+                      className="w-full py-2.5 rounded-xl text-sm font-medium transition-all bg-rail text-white hover:bg-rail/90 disabled:opacity-50">
+                      {bookingLoading === cls.id ? "Booking..." : "Book Class"}
+                    </button>
                   ) : null}
                 </div>
               </div>

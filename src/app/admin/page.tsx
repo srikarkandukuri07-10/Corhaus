@@ -102,7 +102,7 @@ export default function AdminDashboard() {
       const { data: allBookings } = await supabase
         .from("bookings")
         .select("class_id")
-        .eq("booking_status", "booked");
+        .not("booking_status", "eq", "cancelled");
 
       const bMap: Record<string, number> = {};
       if (allBookings) {
@@ -179,7 +179,7 @@ export default function AdminDashboard() {
         const bkJson = await bkRes.json();
         if (bkRes.ok && bkJson?.bookings) {
           const classBookings = bkJson.bookings.filter(
-            (b: any) => b.class_id === classId && b.booking_status === "booked"
+            (b: any) => b.class_id === classId && (b.booking_status === "booked" || b.booking_status === "confirmed" || b.booking_status === "waitlisted")
           );
           setBookings(classBookings);
         }
@@ -207,11 +207,10 @@ export default function AdminDashboard() {
         if (bkRes.ok && bkJson?.bookings) {
           const checkedInBookings = bkJson.bookings.filter((b: any) => {
             if (b.class_id !== classId) return false;
-            const isCheckedIn = b.booking_status === "checked_in" || b.booking_status === "attended";
-            const inAttTable = attData.some(
+            if (b.booking_status === "checked_in" || b.booking_status === "attended" || b.booking_status === "completed") return true;
+            return attData.some(
               (a: any) => a.booking_id === b.id || (a.member_id === b.member_id && a.attendance_status === "attended")
             );
-            return isCheckedIn || inAttTable;
           });
           setAttended(checkedInBookings);
         }
