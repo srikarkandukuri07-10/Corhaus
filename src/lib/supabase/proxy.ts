@@ -127,22 +127,29 @@ export async function updateSession(request: NextRequest) {
       isApproved = true;
       userRole = "admin";
     } else {
-      // Check approved_members by email
-      try {
-        const { data: results } = await serviceClient
-          .from("approved_members")
-          .select("id, email")
-          .eq("membership_status", "active");
+      // Check existing member profile or approved_members by email
+      if (userRole === "member") {
+        isApproved = true;
+      } else {
+        try {
+          const { data: results } = await serviceClient
+            .from("approved_members")
+            .select("id, email, membership_status")
+            .ilike("email", normalizedEmail);
 
-        const match = results?.find(
-          (r) => r.email && r.email.trim().toLowerCase() === normalizedEmail
-        );
-        isApproved = !!match;
-        if (match) {
-          matchedMemberEmail = match.email;
+          const match = results?.find(
+            (r) =>
+              r.email &&
+              r.email.trim().toLowerCase() === normalizedEmail &&
+              (r.membership_status || "").toLowerCase() === "active"
+          );
+          isApproved = !!match;
+          if (match) {
+            matchedMemberEmail = match.email;
+          }
+        } catch (e) {
+          devLog("APPROVED MEMBER CHECK ERROR:", e);
         }
-      } catch (e) {
-        devLog("APPROVED MEMBER CHECK ERROR:", e);
       }
     }
 
@@ -175,13 +182,20 @@ export async function updateSession(request: NextRequest) {
     if (!profile && isApproved) {
       devLog("PROFILE_CREATED: true");
       userRole = userRole || (isDevUser ? "developer" : "member");
-      await supabase.from("profiles").insert({
-        id: user.id,
-        full_name: user.user_metadata?.full_name ?? "",
-        phone_number: user.user_metadata?.phone_number ?? "",
-        email: normalizedEmail,
-        role: userRole,
-      });
+      try {
+        await serviceClient.from("profiles").upsert(
+          {
+            id: user.id,
+            full_name: user.user_metadata?.full_name || normalizedEmail.split("@")[0] || "Member",
+            phone_number: user.user_metadata?.phone_number || "",
+            email: normalizedEmail,
+            role: userRole,
+          },
+          { onConflict: "id" }
+        );
+      } catch (e) {
+        devLog("MIDDLEWARE PROFILE CREATION ERROR:", e);
+      }
     } else {
       devLog("PROFILE_CREATED: false");
     }

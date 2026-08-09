@@ -62,13 +62,19 @@ export default function MemberLayout({
           return;
         }
 
-        const { data: memberRecord, error: memberError } = await supabase
+        const userEmail = (user.email || "").trim().toLowerCase();
+
+        const { data: memberRecord } = await supabase
           .from("approved_members")
           .select("id, membership_status")
-          .eq("email", user.email || "")
+          .ilike("email", userEmail)
+          .limit(1)
           .maybeSingle();
 
-        if (memberError || !memberRecord || memberRecord.membership_status !== "active") {
+        const isActiveStatus = memberRecord && (memberRecord.membership_status || "").toLowerCase() === "active";
+        const hasMemberProfile = profile?.role === "member";
+
+        if (!isActiveStatus && !hasMemberProfile) {
           await supabase.auth.signOut();
           router.push("/auth/login?error=not_approved");
           return;
@@ -77,25 +83,27 @@ export default function MemberLayout({
         setIsMember(true);
         setLoading(false);
 
-        activeChannel = supabase
-          .channel(`membership-status-${user.id}`)
-          .on(
-            "postgres_changes",
-            {
-              event: "UPDATE",
-              schema: "public",
-              table: "approved_members",
-              filter: `id=eq.${memberRecord.id}`,
-            },
-            (payload: any) => {
-              if (payload.new?.membership_status === "inactive") {
-                supabase.auth.signOut().then(() => {
-                  router.push("/auth/login?error=not_approved");
-                });
+        if (memberRecord?.id) {
+          activeChannel = supabase
+            .channel(`membership-status-${user.id}`)
+            .on(
+              "postgres_changes",
+              {
+                event: "UPDATE",
+                schema: "public",
+                table: "approved_members",
+                filter: `id=eq.${memberRecord.id}`,
+              },
+              (payload: any) => {
+                if (payload.new?.membership_status === "inactive") {
+                  supabase.auth.signOut().then(() => {
+                    router.push("/auth/login?error=not_approved");
+                  });
+                }
               }
-            }
-          )
-          .subscribe();
+            )
+            .subscribe();
+        }
       } catch (err) {
         await supabase.auth.signOut();
         router.push("/auth/login");

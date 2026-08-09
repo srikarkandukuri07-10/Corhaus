@@ -124,7 +124,7 @@ export async function POST(request: Request) {
           id: staffUser.id,
           email: normalizedEmail,
           full_name: staff?.full_name || staffUser.user_metadata?.full_name || "Staff Member",
-          phone_number: staff?.phone_number || staffUser.user_metadata?.phone_number || "9876543210",
+          phone_number: staff?.phone_number || staffUser.user_metadata?.phone_number || "",
           role: "admin",
         },
         { onConflict: "id" }

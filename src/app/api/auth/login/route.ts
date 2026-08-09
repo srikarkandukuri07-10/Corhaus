@@ -154,7 +154,7 @@ export async function POST(request: Request) {
               id: staffUser.id,
               email: normalizedEmail,
               full_name: (staff as any)?.full_name || staffUser.user_metadata?.full_name || "Staff Member",
-              phone_number: (staff as any)?.phone_number || staffUser.user_metadata?.phone_number || "9876543210",
+              phone_number: (staff as any)?.phone_number || staffUser.user_metadata?.phone_number || "",
               role: "admin",
             },
             { onConflict: "id" }
@@ -191,12 +191,14 @@ export async function POST(request: Request) {
     // ─── 3. APPROVED MEMBER IDENTITY ──────────────────────────────────────────
     const { data: member } = await serviceClient
       .from("approved_members")
-      .select("id, membership_status")
+      .select("id, full_name, phone_number, membership_status")
       .ilike("email", normalizedEmail)
       .limit(1)
       .maybeSingle();
 
-    if (!member || member.membership_status !== "active") {
+    const isMemberActive = member && (member.membership_status || "").toLowerCase() === "active";
+
+    if (!isMemberActive) {
       const { data: profile } = await serviceClient
         .from("profiles")
         .select("id, role")
@@ -234,8 +236,24 @@ export async function POST(request: Request) {
     }
 
     if (memberUser) {
+      const memberFullName =
+        member?.full_name ||
+        memberUser.user_metadata?.full_name ||
+        normalizedEmail.split("@")[0] ||
+        "Member";
+      const memberPhone =
+        member?.phone_number ||
+        memberUser.user_metadata?.phone_number ||
+        "";
+
       await serviceClient.from("profiles").upsert(
-        { id: memberUser.id, email: normalizedEmail, role: "member" },
+        {
+          id: memberUser.id,
+          email: normalizedEmail,
+          role: "member",
+          full_name: memberFullName,
+          phone_number: memberPhone,
+        },
         { onConflict: "id" }
       );
     }

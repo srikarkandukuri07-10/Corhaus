@@ -66,7 +66,7 @@ function SignupForm() {
     setLoading(true);
     setError(null);
 
-    if (!validatePhone(phoneNumber)) {
+    if (phoneNumber && !validatePhone(phoneNumber)) {
       setError("Phone number must be exactly 10 digits.");
       setLoading(false);
       return;
@@ -248,11 +248,9 @@ function SignupForm() {
                 onChange={(e) =>
                   setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 10))
                 }
-                required
                 maxLength={10}
-                pattern="\d{10}"
                 className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all"
-                placeholder="9876543210"
+                placeholder="9876543210 (Optional)"
               />
               <p className="text-xs text-fg-5 mt-1">
                 10-digit Indian mobile number

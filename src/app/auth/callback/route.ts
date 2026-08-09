@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
         staffDbRecord?.phone_number ||
         user.user_metadata?.phone_number ||
         profile?.phone_number ||
-        "9876543210";
+        "";
 
       try {
         await serviceClient.from("profiles").upsert(
@@ -169,16 +169,18 @@ export async function GET(request: NextRequest) {
 
     // Member Authorization Check
     let isApprovedMember = false;
+    let memberDbRecord: { full_name?: string; phone_number?: string } | null = null;
     try {
       const { data: member } = await serviceClient
         .from("approved_members")
-        .select("membership_status")
+        .select("full_name, phone_number, membership_status")
         .ilike("email", normalizedEmail)
         .limit(1)
         .maybeSingle();
 
-      if (member && member.membership_status === "active") {
+      if (member && (member.membership_status || "").toLowerCase() === "active") {
         isApprovedMember = true;
+        memberDbRecord = { full_name: member.full_name, phone_number: member.phone_number };
       }
     } catch (_) {}
 
@@ -193,19 +195,32 @@ export async function GET(request: NextRequest) {
       return redirectWithCookies(`${origin}/auth/login?error=not_approved`);
     }
 
-    // Approved gym member
-    if (!profile) {
-      try {
-        await serviceClient.from("profiles").insert({
+    // Approved gym member profile auto-creation/update
+    try {
+      const memFullName =
+        memberDbRecord?.full_name ||
+        user.user_metadata?.full_name ||
+        profile?.full_name ||
+        normalizedEmail.split("@")[0] ||
+        "Member";
+      const memPhone =
+        memberDbRecord?.phone_number ||
+        user.user_metadata?.phone_number ||
+        profile?.phone_number ||
+        "";
+
+      await serviceClient.from("profiles").upsert(
+        {
           id: user.id,
-          full_name: user.user_metadata?.full_name || "",
-          phone_number: user.user_metadata?.phone_number || "",
+          full_name: memFullName,
+          phone_number: memPhone,
           email: normalizedEmail,
           role: "member",
-        });
-      } catch (memInsErr) {
-        console.error("Member profile insert error:", memInsErr);
-      }
+        },
+        { onConflict: "id" }
+      );
+    } catch (memInsErr) {
+      console.error("Member profile upsert error:", memInsErr);
     }
 
     return redirectWithCookies(`${origin}/member`);
