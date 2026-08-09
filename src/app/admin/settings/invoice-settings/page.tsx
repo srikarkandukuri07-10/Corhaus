@@ -79,10 +79,7 @@ export function SettingsSidebar() {
     {
       title: "BUSINESS",
       items: [
-        { label: "Business Profile", href: "/admin/settings/profile", disabled: true },
-        { label: "Locations", href: "/admin/settings/locations", disabled: true },
         { label: "Invoice Settings", href: "/admin/settings/invoice-settings", active: pathname.includes("invoice-settings") || pathname === "/admin/settings" },
-        { label: "Billing & Plan", href: "/admin/settings/billing-plan", disabled: true },
       ],
     },
     {
@@ -91,16 +88,12 @@ export function SettingsSidebar() {
         { label: "Freeze Policies", href: "/admin/settings/freeze-policies", active: pathname.includes("freeze-policies"), icon: "❄" },
         { label: "Class Attendance", href: "/admin/classes", icon: "📋" },
         { label: "PT Settings", href: "/admin/pt", icon: "🏋" },
-        { label: "Forms & Waivers", href: "/admin/settings/forms", disabled: true },
-        { label: "Member Access & Shop", href: "/admin/settings/shop", disabled: true },
       ],
     },
     {
       title: "TEAM & ACCESS",
       items: [
-        { label: "Account Settings", href: "/admin/settings/account", disabled: true },
         { label: "Roles & Permissions", href: "/admin/settings/roles", active: pathname.includes("roles") },
-        { label: "Activity Log", href: "/admin/settings/activity", disabled: true },
       ],
     },
   ];
