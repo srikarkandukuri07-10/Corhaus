@@ -397,7 +397,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-line/70">
               <span className="text-[11px] text-fg-4 font-medium">Scheduled Sessions</span>
               <Link href="/admin/classes" className="text-xs font-bold text-accent hover:underline flex items-center gap-1">
-                View ?
+                View &rarr;
               </Link>
             </div>
           </div>
@@ -426,7 +426,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-line/70">
               <span className="text-[11px] text-fg-4 font-medium">Active Studio Roster</span>
               <Link href="/admin/members" className="text-xs font-bold text-blue-500 hover:underline flex items-center gap-1">
-                Directory ?
+                Directory &rarr;
               </Link>
             </div>
           </div>
@@ -439,7 +439,7 @@ export default function AdminDashboard() {
               Monthly Revenue
             </span>
             <div className="w-9 h-9 rounded-xl bg-gold/10 text-gold font-bold text-base flex items-center justify-center group-hover:scale-105 transition-transform">
-              ?
+              &#8377;
             </div>
           </div>
           <div className="mt-4">
@@ -447,13 +447,13 @@ export default function AdminDashboard() {
               <div className="h-8 w-24 bg-line/40 animate-pulse rounded-md" />
             ) : (
               <div className="text-[32px] font-semibold text-fg tracking-tight leading-none">
-                ?{todaysRevenue.toLocaleString("en-IN")}
+                &#8377;{todaysRevenue.toLocaleString("en-IN")}
               </div>
             )}
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-line/70">
               <span className="text-[11px] text-fg-4 font-medium">Paid Invoices</span>
               <Link href="/admin/billing/invoices" className="text-xs font-bold text-gold hover:underline flex items-center gap-1">
-                Invoices ?
+                Invoices &rarr;
               </Link>
             </div>
           </div>
@@ -482,7 +482,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-line/70">
               <span className="text-[11px] text-fg-4 font-medium">Scanned Attendances</span>
               <Link href="/admin/scanner" className="text-xs font-bold text-green-500 hover:underline flex items-center gap-1">
-                Scanner ?
+                Scanner &rarr;
               </Link>
             </div>
           </div>
@@ -607,7 +607,7 @@ export default function AdminDashboard() {
                       {formatDate(c.class_date)} @ {formatTime(c.class_time)}
                     </span>
                     <span className={`font-bold text-[11px] ${isSelected ? "text-accent" : "text-fg-4"}`}>
-                      {isSelected ? "Selected ?" : "Tap to inspect"}
+                      {isSelected ? "Selected \u2713" : "Tap to inspect"}
                     </span>
                   </div>
                 </div>
@@ -747,7 +747,7 @@ export default function AdminDashboard() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-600 font-bold flex items-center justify-center text-xs border border-emerald-500/30">
-                          ?
+                          &#10003;
                         </div>
                         <div>
                           <p className="font-bold text-fg">{a.profiles?.full_name || "Member"}</p>
