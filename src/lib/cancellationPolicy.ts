@@ -5,7 +5,6 @@ export interface CancellationPolicyData {
   minutes: number;
   total_minutes: number;
   is_active: boolean;
-  allow_credit_refund: boolean;
   policy_note: string;
 }
 
@@ -14,8 +13,7 @@ export const DEFAULT_CANCELLATION_POLICY: CancellationPolicyData = {
   minutes: 0,
   total_minutes: 360,
   is_active: true,
-  allow_credit_refund: true,
-  policy_note: "Bookings can be cancelled up to 6 hours before class start time for a full credit refund.",
+  policy_note: "Bookings can be cancelled up to 6 hours before class start time to restore session credit.",
 };
 
 function getServiceClient() {
@@ -45,7 +43,6 @@ export async function getCancellationPolicy(): Promise<CancellationPolicyData> {
         minutes,
         total_minutes: total_minutes > 0 ? total_minutes : 360,
         is_active: Boolean(parsed.is_active ?? true),
-        allow_credit_refund: Boolean(parsed.allow_credit_refund ?? true),
         policy_note: (parsed.policy_note || "").trim() || DEFAULT_CANCELLATION_POLICY.policy_note,
       };
     }

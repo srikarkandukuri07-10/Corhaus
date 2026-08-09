@@ -13,7 +13,6 @@ export default function CancellationPolicySettingsPage() {
   const [hours, setHours] = useState(6);
   const [minutes, setMinutes] = useState(0);
   const [isActive, setIsActive] = useState(true);
-  const [allowCreditRefund, setAllowCreditRefund] = useState(true);
   const [policyNote, setPolicyNote] = useState("");
 
   useEffect(() => {
@@ -26,7 +25,6 @@ export default function CancellationPolicySettingsPage() {
           setHours(data.policy.hours ?? 6);
           setMinutes(data.policy.minutes ?? 0);
           setIsActive(data.policy.is_active ?? true);
-          setAllowCreditRefund(data.policy.allow_credit_refund ?? true);
           setPolicyNote(data.policy.policy_note || DEFAULT_CANCELLATION_POLICY.policy_note);
         }
       } catch (err) {
@@ -61,7 +59,6 @@ export default function CancellationPolicySettingsPage() {
           hours: safeHours,
           minutes: safeMinutes,
           is_active: isActive,
-          allow_credit_refund: allowCreditRefund,
           policy_note: policyNote,
         }),
       });
@@ -209,7 +206,7 @@ export default function CancellationPolicySettingsPage() {
                 </div>
               </div>
 
-              {/* Policy Toggles */}
+              {/* Policy Toggle */}
               <div className="space-y-4 pt-4 border-t border-line">
                 <div className="flex items-center justify-between">
                   <div>
@@ -228,28 +225,6 @@ export default function CancellationPolicySettingsPage() {
                     <div
                       className={`w-5 h-5 rounded-full bg-white transition-transform transform ${
                         isActive ? "translate-x-6" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-fg">Refund Credit on Timely Cancellation</p>
-                    <p className="text-xs text-fg-4">
-                      Automatically return session credit to member when cancelled prior to the cutoff window.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setAllowCreditRefund(!allowCreditRefund)}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${
-                      allowCreditRefund ? "bg-accent" : "bg-line"
-                    }`}
-                  >
-                    <div
-                      className={`w-5 h-5 rounded-full bg-white transition-transform transform ${
-                        allowCreditRefund ? "translate-x-6" : "translate-x-0.5"
                       }`}
                     />
                   </button>
@@ -284,8 +259,7 @@ export default function CancellationPolicySettingsPage() {
                 </p>
                 <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-600 text-xs font-medium">
                   📢 <strong>Cancellation Policy:</strong> Bookings can be cancelled up to{" "}
-                  <strong className="underline">{formatDuration(hours, minutes)}</strong> before class start time.
-                  {allowCreditRefund && " Cancelling within the deadline returns your session credit."}
+                  <strong className="underline">{formatDuration(hours, minutes)}</strong> before class start time. On-time cancellations return credit to member; late cancellations or no-shows forfeit credit.
                 </div>
 
                 <div className="pt-2 flex items-center justify-between text-xs text-fg-3 border-t border-line mt-2">

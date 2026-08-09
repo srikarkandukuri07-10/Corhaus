@@ -473,9 +473,101 @@ function MembersPageContent() {
     }
   }, [supabase]);
 
-  useEffect(() => {
-    fetchMembers();
-  }, [fetchMembers]);
+  // Booking History Modal State
+  const [showBookingHistoryModal, setShowBookingHistoryModal] = useState(false);
+  const [bookingHistoryLoading, setBookingHistoryLoading] = useState(false);
+  const [allBookingsForHistory, setAllBookingsForHistory] = useState<any[]>([]);
+  const [allClassesForHistory, setAllClassesForHistory] = useState<any[]>([]);
+  const [allAttendanceForHistory, setAllAttendanceForHistory] = useState<any[]>([]);
+  const [selectedClassIdForHistory, setSelectedClassIdForHistory] = useState<string>("ALL");
+  const [bookingHistorySearch, setBookingHistorySearch] = useState<string>("");
+  const [bookingHistoryStatusFilter, setBookingHistoryStatusFilter] = useState<string>("ALL");
+
+  const openBookingHistoryModal = async () => {
+    setShowBookingHistoryModal(true);
+    setBookingHistoryLoading(true);
+    try {
+      const [bkRes, clsRes, attRes] = await Promise.all([
+        fetch("/api/admin/bookings", { cache: "no-store" }),
+        supabase.from("classes").select("*").order("class_date", { ascending: false }),
+        supabase.from("attendance").select("*"),
+      ]);
+
+      const bkData = await bkRes.json();
+      if (bkRes.ok && bkData?.bookings) {
+        setAllBookingsForHistory(bkData.bookings);
+      }
+      if (clsRes.data) {
+        setAllClassesForHistory(clsRes.data);
+      }
+      if (attRes.data) {
+        setAllAttendanceForHistory(attRes.data);
+      }
+    } catch (err) {
+      console.error("Failed to load booking history:", err);
+    } finally {
+      setBookingHistoryLoading(false);
+    }
+  };
+
+  function computeBookingHistoryStatus(bk: any, attendanceList: any[]) {
+    const isAttended =
+      bk.booking_status === "checked_in" ||
+      bk.attendance_status === "present" ||
+      attendanceList.some(
+        (a) =>
+          (a.booking_id === bk.id || (a.class_id === bk.class_id && a.member_id === bk.member_id)) &&
+          a.attendance_status === "attended"
+      );
+
+    if (isAttended) {
+      return {
+        status: "Attended",
+        color: "bg-green-500/10 text-green-600 border-green-500/20",
+        creditStatus: "Credit Deducted (Attended)",
+        creditColor: "text-amber-700 bg-amber-50 dark:bg-amber-950/30",
+        icon: "✓",
+      };
+    }
+
+    if (bk.booking_status === "cancelled") {
+      return {
+        status: "Cancelled",
+        color: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+        creditStatus: "Credit Restored (Cancelled)",
+        creditColor: "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30",
+        icon: "↩",
+      };
+    }
+
+    // Check if class passed + 1 hour without QR scan -> No Show
+    let isPastClass = false;
+    if (bk.classes?.class_date && bk.classes?.class_time) {
+      const iso = `${bk.classes.class_date}T${bk.classes.class_time}`;
+      const classStart = new Date(iso).getTime();
+      if (Date.now() >= classStart + 60 * 60 * 1000) {
+        isPastClass = true;
+      }
+    }
+
+    if (isPastClass) {
+      return {
+        status: "No Show",
+        color: "bg-red-500/10 text-red-600 border-red-500/20",
+        creditStatus: "Credit Deducted (No Show)",
+        creditColor: "text-red-700 bg-red-50 dark:bg-red-950/30",
+        icon: "✕",
+      };
+    }
+
+    return {
+      status: "Booked",
+      color: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+      creditStatus: "Credit Reserved (Booked)",
+      creditColor: "text-blue-700 bg-blue-50 dark:bg-blue-950/30",
+      icon: "📅",
+    };
+  }
 
   // Handle URL prefill params
   useEffect(() => {
@@ -775,15 +867,24 @@ function MembersPageContent() {
             Manage approved members, assigned packages, remaining sessions &amp; billing history
           </p>
         </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowForm(!showForm);
-          }}
-          className="px-5 py-2.5 rounded-xl bg-accent text-white text-sm font-semibold hover:bg-accent-2 transition-colors shadow-md"
-        >
-          {showForm ? "Cancel" : "+ Add Member"}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={openBookingHistoryModal}
+            className="px-4 py-2.5 rounded-xl bg-surface-2 border border-line text-fg font-semibold text-sm hover:bg-hover transition-colors flex items-center gap-2"
+          >
+            <span>📊</span>
+            <span>Booking History</span>
+          </button>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowForm(!showForm);
+            }}
+            className="px-5 py-2.5 rounded-xl bg-accent text-white text-sm font-semibold hover:bg-accent-2 transition-colors shadow-md"
+          >
+            {showForm ? "Cancel" : "+ Add Member"}
+          </button>
+        </div>
       </div>
 
       {actionError && (
@@ -1815,6 +1916,236 @@ function MembersPageContent() {
               <button
                 onClick={() => setHistoryMember(null)}
                 className="px-4 py-2 rounded-xl bg-surface-2 border border-line-2 text-fg text-xs font-bold hover:bg-hover transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ALL CLASSES BOOKING & ATTENDANCE HISTORY MODAL                            */}
+      {/* ========================================================================= */}
+      {showBookingHistoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-surface rounded-2xl border border-line p-6 max-w-5xl w-full max-h-[90vh] overflow-y-auto space-y-5 shadow-2xl">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-line pb-4">
+              <div>
+                <h3 className="text-xl font-bold text-fg flex items-center gap-2">
+                  <span>📊</span> Class Booking & Attendance History
+                </h3>
+                <p className="text-xs text-fg-4 mt-0.5">
+                  View full booking status, no-show credit deductions, cancellations, and QR check-ins per class.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowBookingHistoryModal(false)}
+                className="p-2 rounded-xl bg-surface-2 border border-line text-fg-3 hover:text-fg hover:bg-hover transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {bookingHistoryLoading ? (
+              <div className="py-16 text-center">
+                <div className="w-8 h-8 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-xs text-fg-4 font-medium">Loading class history & attendance logs…</p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {/* Controls Row: Class Selector Dropdown & Search & Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Class Dropdown */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-fg-4 uppercase tracking-wider mb-1">
+                      Select Class to Filter
+                    </label>
+                    <select
+                      value={selectedClassIdForHistory}
+                      onChange={(e) => setSelectedClassIdForHistory(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-line bg-surface-2 text-sm font-semibold text-fg focus:outline-none focus:border-accent"
+                    >
+                      <option value="ALL">All Classes (Previous & Upcoming)</option>
+                      {allClassesForHistory.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.title} — {c.class_date} at {c.class_time} ({c.instructor || "Staff"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Search Member Name/Email */}
+                  <div>
+                    <label className="block text-xs font-semibold text-fg-4 uppercase tracking-wider mb-1">
+                      Search Member
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Search member name or email..."
+                      value={bookingHistorySearch}
+                      onChange={(e) => setBookingHistorySearch(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-line bg-surface-2 text-sm text-fg focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                </div>
+
+                {/* Filter Pills & Summary KPIs */}
+                {(() => {
+                  // Filter bookings by class
+                  const filteredByClass = allBookingsForHistory.filter((bk) => {
+                    if (selectedClassIdForHistory === "ALL") return true;
+                    return bk.class_id === selectedClassIdForHistory || bk.classes?.id === selectedClassIdForHistory;
+                  });
+
+                  // Compute details for each
+                  const processedBookings = filteredByClass.map((bk) => {
+                    const statusInfo = computeBookingHistoryStatus(bk, allAttendanceForHistory);
+                    const memberName = bk.approved_members?.full_name || bk.member_email || "Member";
+                    const memberEmail = bk.approved_members?.email || bk.member_email || "";
+                    return {
+                      ...bk,
+                      statusInfo,
+                      memberName,
+                      memberEmail,
+                    };
+                  });
+
+                  // Filter by status pill and search text
+                  const finalBookings = processedBookings.filter((bk) => {
+                    if (bookingHistoryStatusFilter !== "ALL" && bk.statusInfo.status !== bookingHistoryStatusFilter) {
+                      return false;
+                    }
+                    if (bookingHistorySearch.trim()) {
+                      const q = bookingHistorySearch.toLowerCase();
+                      const nameMatch = bk.memberName.toLowerCase().includes(q);
+                      const emailMatch = bk.memberEmail.toLowerCase().includes(q);
+                      const titleMatch = (bk.classes?.title || "").toLowerCase().includes(q);
+                      if (!nameMatch && !emailMatch && !titleMatch) return false;
+                    }
+                    return true;
+                  });
+
+                  // Counts
+                  const countAttended = processedBookings.filter((b) => b.statusInfo.status === "Attended").length;
+                  const countNoShow = processedBookings.filter((b) => b.statusInfo.status === "No Show").length;
+                  const countCancelled = processedBookings.filter((b) => b.statusInfo.status === "Cancelled").length;
+                  const countBooked = processedBookings.filter((b) => b.statusInfo.status === "Booked").length;
+
+                  return (
+                    <div className="space-y-4">
+                      {/* KPI Summary Cards */}
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                        <div className="bg-surface-2 p-3 rounded-xl border border-line text-center">
+                          <p className="text-[10px] font-semibold text-fg-4 uppercase">Total Bookings</p>
+                          <p className="text-xl font-bold text-fg mt-0.5">{processedBookings.length}</p>
+                        </div>
+                        <div className="bg-green-500/10 p-3 rounded-xl border border-green-500/20 text-center">
+                          <p className="text-[10px] font-semibold text-green-600 uppercase">✓ Attended</p>
+                          <p className="text-xl font-bold text-green-600 mt-0.5">{countAttended}</p>
+                        </div>
+                        <div className="bg-red-500/10 p-3 rounded-xl border border-red-500/20 text-center">
+                          <p className="text-[10px] font-semibold text-red-600 uppercase">✕ No Show</p>
+                          <p className="text-xl font-bold text-red-600 mt-0.5">{countNoShow}</p>
+                        </div>
+                        <div className="bg-amber-500/10 p-3 rounded-xl border border-amber-500/20 text-center">
+                          <p className="text-[10px] font-semibold text-amber-600 uppercase">↩ Cancelled</p>
+                          <p className="text-xl font-bold text-amber-600 mt-0.5">{countCancelled}</p>
+                        </div>
+                        <div className="bg-blue-500/10 p-3 rounded-xl border border-blue-500/20 text-center">
+                          <p className="text-[10px] font-semibold text-blue-600 uppercase">📅 Upcoming</p>
+                          <p className="text-xl font-bold text-blue-600 mt-0.5">{countBooked}</p>
+                        </div>
+                      </div>
+
+                      {/* Status Filter Buttons */}
+                      <div className="flex items-center gap-2 pt-1 overflow-x-auto pb-1">
+                        {[
+                          { label: "All Status", val: "ALL" },
+                          { label: `Attended (${countAttended})`, val: "Attended" },
+                          { label: `No Show (${countNoShow})`, val: "No Show" },
+                          { label: `Cancelled (${countCancelled})`, val: "Cancelled" },
+                          { label: `Upcoming (${countBooked})`, val: "Booked" },
+                        ].map((btn) => (
+                          <button
+                            key={btn.val}
+                            onClick={() => setBookingHistoryStatusFilter(btn.val)}
+                            className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
+                              bookingHistoryStatusFilter === btn.val
+                                ? "bg-accent text-white border-accent shadow-xs"
+                                : "bg-surface-2 text-fg-3 border-line hover:text-fg"
+                            }`}
+                          >
+                            {btn.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Table */}
+                      <div className="border border-line rounded-xl overflow-hidden">
+                        {finalBookings.length === 0 ? (
+                          <div className="py-12 text-center text-fg-4 text-xs">
+                            No booking records found for the selected criteria.
+                          </div>
+                        ) : (
+                          <table className="w-full text-left text-xs">
+                            <thead className="bg-surface-2 text-fg-4 uppercase font-semibold border-b border-line">
+                              <tr>
+                                <th className="py-3 px-4">Member</th>
+                                <th className="py-3 px-4">Class Details</th>
+                                <th className="py-3 px-4 text-center">Attendance Status</th>
+                                <th className="py-3 px-4 text-center">Credit Impact</th>
+                                <th className="py-3 px-4 text-right">Date / Time</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-line text-fg">
+                              {finalBookings.map((bk) => (
+                                <tr key={bk.id} className="hover:bg-hover/50 transition-colors">
+                                  <td className="py-3 px-4 font-medium">
+                                    <div className="font-semibold text-fg">{bk.memberName}</div>
+                                    <div className="text-[11px] text-fg-4">{bk.memberEmail}</div>
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    <div className="font-semibold text-fg">{bk.classes?.title || "Class Session"}</div>
+                                    <div className="text-[11px] text-fg-4">
+                                      {bk.classes?.instructor ? `with ${bk.classes.instructor}` : ""}
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-4 text-center">
+                                    <span
+                                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border ${bk.statusInfo.color}`}
+                                    >
+                                      <span>{bk.statusInfo.icon}</span>
+                                      <span>{bk.statusInfo.status}</span>
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-4 text-center">
+                                    <span
+                                      className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold ${bk.statusInfo.creditColor}`}
+                                    >
+                                      {bk.statusInfo.creditStatus}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-4 text-right text-fg-3 font-mono text-[11px]">
+                                    {bk.classes?.class_date} {bk.classes?.class_time}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2 border-t border-line">
+              <button
+                onClick={() => setShowBookingHistoryModal(false)}
+                className="px-5 py-2 rounded-xl bg-surface-2 border border-line text-fg text-xs font-bold hover:bg-hover transition-colors"
               >
                 Close
               </button>

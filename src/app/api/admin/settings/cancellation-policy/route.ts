@@ -34,7 +34,6 @@ export async function POST(request: Request) {
       minutes,
       total_minutes: total_minutes > 0 ? total_minutes : 360,
       is_active: Boolean(body.is_active ?? true),
-      allow_credit_refund: Boolean(body.allow_credit_refund ?? true),
       policy_note: (body.policy_note || "").trim() || `Bookings can be cancelled up to ${hours}h ${minutes}m before class start time.`,
     };
 
