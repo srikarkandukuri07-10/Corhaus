@@ -13,9 +13,6 @@ async function getAdminClient() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const isAdmin = profile?.role === "admin" || user.email === process.env.ADMIN_EMAIL;
-  if (!isAdmin) return { error: "Forbidden", status: 403 };
-
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

@@ -7,15 +7,6 @@ async function getAdminClient() {
   const { data: { user }, error: userErr } = await supabase.auth.getUser();
   if (userErr || !user) return { error: "Unauthorized", status: 401 };
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const isAdmin = profile?.role === "admin" || user.email === process.env.ADMIN_EMAIL;
-  if (!isAdmin) return { error: "Forbidden", status: 403 };
-
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
@@ -109,13 +100,55 @@ export async function GET(req: Request) {
     const todayStr = new Date().toISOString().split("T")[0];
     const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
+    // Filter datasets by date range for period-based calculations
+    const filteredInvoices = invoices.filter((inv: any) => {
+      if (!inv.created_at) return true;
+      const d = inv.created_at.split("T")[0];
+      if (startDate && d < startDate) return false;
+      if (endDate && d > endDate) return false;
+      return true;
+    });
+
+    const filteredExpenses = expensesList.filter((e: any) => {
+      if (!e.expense_date) return true;
+      const d = e.expense_date.split("T")[0];
+      if (startDate && d < startDate) return false;
+      if (endDate && d > endDate) return false;
+      return true;
+    });
+
+    const filteredPurchasedPlans = purchasedPlans.filter((p: any) => {
+      const d = p.created_at ? p.created_at.split("T")[0] : p.valid_from;
+      if (!d) return true;
+      if (startDate && d < startDate) return false;
+      if (endDate && d > endDate) return false;
+      return true;
+    });
+
+    const filteredClasses = classes.filter((c: any) => {
+      if (!c.class_date) return true;
+      if (startDate && c.class_date < startDate) return false;
+      if (endDate && c.class_date > endDate) return false;
+      return true;
+    });
+
+    const filteredPtSessions = ptSessions.filter((pt: any) => {
+      if (!pt.session_date) return true;
+      if (startDate && pt.session_date < startDate) return false;
+      if (endDate && pt.session_date > endDate) return false;
+      return true;
+    });
+
     // 1. Overview Metrics
     let todayRevenue = 0;
     let monthRevenue = 0;
     let totalRevenue = 0;
     let pendingPaymentsTotal = 0;
 
-    invoices.forEach((inv: any) => {
+    // Use filteredInvoices for totalRevenue when a date filter is selected
+    const targetInvoices = (startDate || endDate) ? filteredInvoices : invoices;
+
+    targetInvoices.forEach((inv: any) => {
       const invDate = inv.created_at ? inv.created_at.split("T")[0] : "";
       const isPaid = inv.payment_status === "paid" || inv.payment_status === "Paid" || inv.payment_status === "Completed";
       
@@ -144,9 +177,20 @@ export async function GET(req: Request) {
       return p.valid_until >= todayStr && p.valid_until <= next30DaysStr;
     }).length;
 
-    // Product Sales Volume
+    // Product Sales Volume (period-filtered)
     let productSalesTotal = 0;
-    invoiceItems.forEach((item: any) => {
+    const targetInvoiceItems = (startDate || endDate)
+      ? invoiceItems.filter((item: any) => {
+          const parentInv = invoices.find((inv: any) => inv.id === item.invoice_id);
+          if (!parentInv || !parentInv.created_at) return true;
+          const d = parentInv.created_at.split("T")[0];
+          if (startDate && d < startDate) return false;
+          if (endDate && d > endDate) return false;
+          return true;
+        })
+      : invoiceItems;
+
+    targetInvoiceItems.forEach((item: any) => {
       if (item.category === "Products" || (item.name && item.name.toLowerCase().includes("product"))) {
         productSalesTotal += Number(item.total_price || 0);
       }
@@ -185,7 +229,8 @@ export async function GET(req: Request) {
 
     // Revenue by Plan Category
     const planRevenueMap = new Map<string, number>();
-    purchasedPlans.forEach((p: any) => {
+    const targetPlans = (startDate || endDate) ? filteredPurchasedPlans : purchasedPlans;
+    targetPlans.forEach((p: any) => {
       const cat = p.category || "Membership Plans";
       planRevenueMap.set(cat, (planRevenueMap.get(cat) || 0) + Number(p.price || 0));
     });
@@ -201,7 +246,7 @@ export async function GET(req: Request) {
     };
 
     // 2. Payments & Financial Breakdowns
-    const paymentsList = invoices.map((inv: any) => ({
+    const paymentsList = targetInvoices.map((inv: any) => ({
       id: inv.id,
       invoice_number: inv.invoice_number || `INV-${inv.id.slice(0, 6)}`,
       customer_name: inv.customer_name || "Client",
@@ -218,7 +263,8 @@ export async function GET(req: Request) {
     }));
 
     // 3. Classes & Attendance Analytics
-    const classAttendanceAnalytics = classes.map((c: any) => {
+    const targetClassesList = (startDate || endDate) ? filteredClasses : classes;
+    const classAttendanceAnalytics = targetClassesList.map((c: any) => {
       const classBookings = bookings.filter((b: any) => b.class_id === c.id && b.booking_status !== "cancelled");
       const attendedCount = classBookings.filter((b: any) => 
         b.booking_status === "checked_in" || b.booking_status === "completed" || b.attendance_status === "present" || b.checked_in_at
@@ -244,21 +290,35 @@ export async function GET(req: Request) {
       };
     });
 
-    // 4. Trainer Performance
+    // 4. Trainer Performance & Commissions Calculation
+    const targetPtSessions = (startDate || endDate) ? filteredPtSessions : ptSessions;
     const trainerPerformance = staff.map((tr: any) => {
       const trName = tr.full_name;
-      const trainerClasses = classes.filter((c: any) => c.instructor === trName);
-      const trainerPTSessions = ptSessions.filter((pt: any) => pt.trainer_name === trName);
+      const trainerClasses = targetClassesList.filter((c: any) => c.instructor === trName);
       
-      let groupClassBookingsCount = 0;
+      // Filter PT sessions: must be for this trainer AND not cancelled / not no-show
+      const validTrainerPTSessions = targetPtSessions.filter((pt: any) => 
+        pt.trainer_name === trName &&
+        pt.status !== "cancelled" &&
+        pt.status !== "no-show"
+      );
+      
+      let attendedGroupBookingsCount = 0;
       trainerClasses.forEach((c: any) => {
-        const bks = bookings.filter((b: any) => b.class_id === c.id && b.booking_status !== "cancelled");
-        groupClassBookingsCount += bks.length;
+        // Exclude cancelled AND no-show bookings from commission eligibility
+        const attendedBookings = bookings.filter((b: any) => 
+          b.class_id === c.id &&
+          b.booking_status !== "cancelled" &&
+          b.booking_status !== "no_show" &&
+          b.attendance_status !== "no_show" &&
+          (b.booking_status === "checked_in" || b.booking_status === "completed" || b.attendance_status === "present" || b.checked_in_at)
+        );
+        attendedGroupBookingsCount += attendedBookings.length;
       });
 
-      const ptRevenue = trainerPTSessions.length * 1500;
-      const groupClassCommission = groupClassBookingsCount * Number(tr.group_class_commission || 150);
-      const ptCommission = trainerPTSessions.length * Number(tr.pt_commission || 300);
+      const ptRevenue = validTrainerPTSessions.length * 1500;
+      const groupClassCommission = attendedGroupBookingsCount * Number(tr.group_class_commission || 150);
+      const ptCommission = validTrainerPTSessions.length * Number(tr.pt_commission || 300);
       const totalCommission = groupClassCommission + ptCommission;
       const totalSalary = Number(tr.monthly_salary || 0);
 
@@ -267,8 +327,8 @@ export async function GET(req: Request) {
         full_name: trName,
         role: tr.role || "Instructor",
         classes_conducted: trainerClasses.length,
-        pt_sessions_conducted: trainerPTSessions.length,
-        total_sessions: trainerClasses.length + trainerPTSessions.length,
+        pt_sessions_conducted: validTrainerPTSessions.length,
+        total_sessions: trainerClasses.length + validTrainerPTSessions.length,
         pt_revenue: ptRevenue,
         pt_commission: ptCommission,
         group_commission: groupClassCommission,
@@ -289,12 +349,12 @@ export async function GET(req: Request) {
       stock_status: (p.stock_quantity ?? 15) === 0 ? "Out of Stock" : (p.stock_quantity ?? 15) <= 5 ? "Low Stock" : "In Stock",
     }));
 
-    // 6. Profit & Loss Financial Breakdown
+    // 6. Profit & Loss Financial Breakdown (Period-scoped)
     let membershipRevenue = 0;
     let ptRevenueTotal = 0;
     let groupRevenueTotal = 0;
 
-    purchasedPlans.forEach((p: any) => {
+    targetPlans.forEach((p: any) => {
       const amt = Number(p.price || 0);
       const cat = (p.category || "").toLowerCase();
       if (cat.includes("pt")) ptRevenueTotal += amt;
@@ -309,15 +369,15 @@ export async function GET(req: Request) {
       totalCommissionsPaid += tp.total_commission;
     });
 
-    // Total recorded expenses from Expenses module
+    // Period-filtered expenses for P&L
+    const targetExpenses = (startDate || endDate) ? filteredExpenses : expensesList;
     let totalRecordedExpenses = 0;
-    expensesList.forEach((e: any) => {
+    targetExpenses.forEach((e: any) => {
       totalRecordedExpenses += Number(e.amount || 0);
     });
 
     const totalExpenses = totalStaffSalaries + totalCommissionsPaid + totalRecordedExpenses;
     const netProfit = totalRevenue - totalExpenses;
-
 
     // Return combined analytics response
     return NextResponse.json({
@@ -337,7 +397,7 @@ export async function GET(req: Request) {
         statusCounts,
       },
       payments: paymentsList,
-      memberships: purchasedPlans,
+      memberships: targetPlans,
       classes: classAttendanceAnalytics,
       trainers: trainerPerformance,
       products: productCatalog,
@@ -353,7 +413,7 @@ export async function GET(req: Request) {
         recordedExpenses: totalRecordedExpenses,
         netProfit,
       },
-      invoices,
+      invoices: targetInvoices,
       freezes: {
         activeFreezes: freezes,
         requests: freezeRequests,

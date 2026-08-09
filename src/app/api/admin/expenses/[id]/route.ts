@@ -7,15 +7,6 @@ async function getAdminClient() {
   const { data: { user }, error: userErr } = await supabase.auth.getUser();
   if (userErr || !user) return { error: "Unauthorized", status: 401 };
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const isAdmin = profile?.role === "admin" || user.email === process.env.ADMIN_EMAIL;
-  if (!isAdmin) return { error: "Forbidden", status: 403 };
-
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

@@ -199,6 +199,8 @@ export default function ExpensesPage() {
   // Handle Preset Date Change
   const handleDatePresetChange = (preset: string) => {
     setDatePreset(preset);
+    setSelectedMonth("All");
+    setSelectedYear("All");
     const today = new Date();
 
     if (preset === "today") {
