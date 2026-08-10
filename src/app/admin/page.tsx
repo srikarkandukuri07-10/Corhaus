@@ -797,30 +797,6 @@ export default function AdminDashboard() {
                           <span className="admin-badge bg-accent/10 text-accent border border-accent/20">
                             BOOKED
                           </span>
-                          <button
-                            onClick={async () => {
-                              try {
-                                await supabase.from("bookings").update({ booking_status: "checked_in" }).eq("id", b.id);
-                                await supabase.from("attendance").insert({
-                                  booking_id: b.id,
-                                  class_id: b.class_id,
-                                  member_id: b.member_id,
-                                  attendance_token: crypto.randomUUID(),
-                                  attendance_status: "attended",
-                                  scanned_at: new Date().toISOString(),
-                                });
-                                if (selectedClass) {
-                                  loadBookings(selectedClass);
-                                  loadAttendance(selectedClass);
-                                }
-                              } catch (err) {
-                                console.error("Manual check-in error:", err);
-                              }
-                            }}
-                            className="px-2.5 py-1 bg-green-500/10 hover:bg-green-500/20 text-green-600 border border-green-500/20 rounded-lg text-[10px] font-bold transition-all"
-                          >
-                            Mark Checked In
-                          </button>
                         </div>
                       </div>
                     );
