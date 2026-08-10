@@ -290,23 +290,27 @@ export default function AdminClassesModulePage() {
           enrichedBookings = bkJson.bookings;
           console.log("[Admin] Bookings loaded via API:", enrichedBookings.length);
         } else {
-          // API failed — fall back to direct query (works if admin RLS migration has been run)
-          console.warn("[Admin] API failed, falling back to direct query. Error:", bkJson.error);
-          const { data: bkData } = await supabase
-            .from("bookings")
-            .select("*, classes(id, title, instructor, class_date, class_time, max_capacity, location_room, category)")
-            .order("created_at", { ascending: false });
-          enrichedBookings = (bkData || []).map(enrichMember);
+          // API failed — fall back to direct query
+          console.warn("[Admin] API failed, falling back to direct query. Error:", bkJson?.error);
+          const [bkRes, clsRes] = await Promise.all([
+            supabase.from("bookings").select("*").order("created_at", { ascending: false }),
+            supabase.from("classes").select("*"),
+          ]);
+          const clsMap: Record<string, any> = {};
+          (clsRes.data || []).forEach((c: any) => { clsMap[c.id] = c; });
+          enrichedBookings = (bkRes.data || []).map((b: any) => enrichMember({ ...b, classes: clsMap[b.class_id] || null }));
           console.log("[Admin] Bookings loaded via direct query:", enrichedBookings.length);
         }
       } catch (bkErr) {
         // Network error — fall back to direct query
         console.error("[Admin] API fetch failed, falling back:", bkErr);
-        const { data: bkData } = await supabase
-          .from("bookings")
-          .select("*, classes(id, title, instructor, class_date, class_time, max_capacity, location_room, category)")
-          .order("created_at", { ascending: false });
-        enrichedBookings = (bkData || []).map(enrichMember);
+        const [bkRes, clsRes] = await Promise.all([
+          supabase.from("bookings").select("*").order("created_at", { ascending: false }),
+          supabase.from("classes").select("*"),
+        ]);
+        const clsMap: Record<string, any> = {};
+        (clsRes.data || []).forEach((c: any) => { clsMap[c.id] = c; });
+        enrichedBookings = (bkRes.data || []).map((b: any) => enrichMember({ ...b, classes: clsMap[b.class_id] || null }));
       }
 
       const membersWithPlans = (memData || []).map((m: any) => {
@@ -376,7 +380,8 @@ export default function AdminClassesModulePage() {
     const map: Record<string, number> = {};
     bookings.forEach((b) => {
       if (b.booking_status !== "cancelled" && b.booking_status !== "waitlisted") {
-        map[b.class_id] = (map[b.class_id] || 0) + 1;
+        const cId = b.class_id || b.classes?.id;
+        if (cId) map[cId] = (map[cId] || 0) + 1;
       }
     });
     return map;

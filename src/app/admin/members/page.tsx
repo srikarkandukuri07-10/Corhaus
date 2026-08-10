@@ -356,7 +356,9 @@ function MembersPageContent() {
         .from("profiles")
         .select("email, avatar_url");
       const avatarMap = new Map(
-        profilesData?.map((p) => [p.email.toLowerCase(), p.avatar_url]) || []
+        profilesData
+          ?.filter((p) => p && p.email)
+          .map((p) => [p.email.toLowerCase(), p.avatar_url]) || []
       );
 
       const { data: plansData } = await supabase
@@ -454,7 +456,7 @@ function MembersPageContent() {
 
         return {
           ...m,
-          avatar_url: avatarMap.get(m.email.toLowerCase()) || null,
+          avatar_url: m.email ? avatarMap.get(m.email.toLowerCase()) || null : null,
           activePlan: activeP,
           allPlans: mPlans.length > 0 ? mPlans : (activeP ? [activeP] : []),
           latestInvoice: inv,
@@ -621,10 +623,10 @@ function MembersPageContent() {
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        const matchesName = m.full_name.toLowerCase().includes(q);
-        const matchesEmail = m.email.toLowerCase().includes(q);
-        const matchesPhone = m.phone_number.includes(q);
-        const matchesId = m.id.toLowerCase().includes(q);
+        const matchesName = (m.full_name || "").toLowerCase().includes(q);
+        const matchesEmail = (m.email || "").toLowerCase().includes(q);
+        const matchesPhone = (m.phone_number || "").toLowerCase().includes(q);
+        const matchesId = (m.id || "").toLowerCase().includes(q);
 
         return matchesName || matchesEmail || matchesPhone || matchesId;
       }

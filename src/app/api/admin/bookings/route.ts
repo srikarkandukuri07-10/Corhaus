@@ -41,18 +41,26 @@ export async function GET() {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // 4. Fetch ALL bookings using service role (bypasses RLS entirely)
-    const { data: bookings, error: bkError } = await supabase
-      .from("bookings")
-      .select("*, classes(id, title, instructor, class_date, class_time, max_capacity, location_room, category)")
-      .order("created_at", { ascending: false });
+    // 4. Fetch ALL bookings & classes using service role (bypasses RLS entirely)
+    const [bkRes, clsRes] = await Promise.all([
+      supabase.from("bookings").select("*").order("created_at", { ascending: false }),
+      supabase.from("classes").select("*"),
+    ]);
 
-    if (bkError) {
-      console.error("[ADMIN BOOKINGS] Bookings fetch error:", bkError);
-      return NextResponse.json({ error: bkError.message }, { status: 500 });
+    if (bkRes.error) {
+      console.error("[ADMIN BOOKINGS] Bookings fetch error:", bkRes.error);
+      return NextResponse.json({ error: bkRes.error.message }, { status: 500 });
     }
 
-    console.log("[ADMIN BOOKINGS] Total bookings fetched:", bookings?.length ?? 0);
+    const bookings = bkRes.data || [];
+    const classes = clsRes.data || [];
+
+    const classesById: Record<string, any> = {};
+    classes.forEach((c: any) => {
+      classesById[c.id] = c;
+    });
+
+    console.log("[ADMIN BOOKINGS] Total bookings fetched:", bookings.length);
 
     // 5. Fetch members and profiles for enrichment
     const [membersRes, profilesRes] = await Promise.all([
@@ -110,7 +118,7 @@ export async function GET() {
         phone_number: phoneNumber,
       };
 
-      return { ...b, approved_members: finalMember };
+      return { ...b, classes: classesById[b.class_id] || b.classes || null, approved_members: finalMember };
     });
 
     return NextResponse.json({ bookings: enrichedBookings, total: enrichedBookings.length });
