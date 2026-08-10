@@ -45,13 +45,45 @@ function computeMemberStatus(memberStatus: string, plan: any) {
   return { status: "Expired", daysLeft: 0 };
 }
 
-export async function GET() {
-  try {
-    // 1. Verify authenticated user
-    const supabaseServer = await createServerClient();
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
+async function getAuthenticatedUser(req: Request) {
+  // Method 1: Check Authorization header (Bearer token)
+  const authHeader = req.headers.get("authorization");
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.replace("Bearer ", "").trim();
+    if (token) {
+      try {
+        const supabaseAnon = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        const { data: { user } } = await supabaseAnon.auth.getUser(token);
+        if (user) return user;
+      } catch (e) {
+        console.warn("[ADMIN MEMBERS API] Token auth check error:", e);
+      }
+    }
+  }
 
-    if (authError || !user) {
+  // Method 2: Check server cookie session
+  try {
+    const supabaseServer = await createServerClient();
+    const { data: { user } } = await supabaseServer.auth.getUser();
+    if (user) return user;
+  } catch (e) {
+    console.warn("[ADMIN MEMBERS API] Cookie auth check error:", e);
+  }
+
+  return null;
+}
+
+export async function GET(req: Request) {
+  try {
+    // 1. Verify authenticated user via cookie or Bearer token
+    let user = await getAuthenticatedUser(req);
+
+    if (!user) {
+      // Fallback: If service key is available, check if user session exists in fallback or return 401
+      console.warn("[ADMIN MEMBERS API] Unauthorized - No valid session found in cookie or Bearer token");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -66,6 +98,8 @@ export async function GET() {
       userPerms.role === "Manager" ||
       userPerms.role === "Admin" ||
       userPerms.role === "Staff" ||
+      userPerms.role === "Receptionist" ||
+      userPerms.role === "Instructor" ||
       userPerms.permissions.includes("*") ||
       userPerms.permissions.includes("members.view") ||
       userPerms.permissions.includes("members.manage") ||

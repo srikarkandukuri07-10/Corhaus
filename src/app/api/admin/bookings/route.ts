@@ -2,14 +2,42 @@ import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 
-export async function GET() {
-  try {
-    // 1. Verify the requester is authenticated
-    const supabaseServer = await createServerClient();
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
+async function getAuthenticatedUser(req: Request) {
+  const authHeader = req.headers.get("authorization");
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.replace("Bearer ", "").trim();
+    if (token) {
+      try {
+        const supabaseAnon = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        const { data: { user } } = await supabaseAnon.auth.getUser(token);
+        if (user) return user;
+      } catch (e) {
+        console.warn("[ADMIN BOOKINGS API] Token auth check error:", e);
+      }
+    }
+  }
 
-    if (authError || !user) {
-      console.error("[ADMIN BOOKINGS] Auth error:", authError);
+  try {
+    const supabaseServer = await createServerClient();
+    const { data: { user } } = await supabaseServer.auth.getUser();
+    if (user) return user;
+  } catch (e) {
+    console.warn("[ADMIN BOOKINGS API] Cookie auth check error:", e);
+  }
+
+  return null;
+}
+
+export async function GET(req: Request) {
+  try {
+    // 1. Verify the requester is authenticated via Bearer token or Cookie
+    const user = await getAuthenticatedUser(req);
+
+    if (!user) {
+      console.error("[ADMIN BOOKINGS] Unauthorized - No valid session found in cookie or token");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -24,6 +52,8 @@ export async function GET() {
       userPerms.role === "Manager" ||
       userPerms.role === "Admin" ||
       userPerms.role === "Staff" ||
+      userPerms.role === "Receptionist" ||
+      userPerms.role === "Instructor" ||
       userPerms.permissions.includes("*") ||
       userPerms.permissions.includes("classes.manage") ||
       userPerms.permissions.includes("classes.view") ||

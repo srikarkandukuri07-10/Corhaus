@@ -335,7 +335,13 @@ function MembersPageContent() {
   const fetchMembers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/members", { cache: "no-store" });
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+
+      const res = await fetch("/api/admin/members", { cache: "no-store", headers });
       const data = await res.json();
       if (res.ok && Array.isArray(data.members)) {
         startTransition(() => {

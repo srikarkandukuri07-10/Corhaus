@@ -284,7 +284,13 @@ export default function AdminClassesModulePage() {
       // Fetch bookings via service-role API to bypass RLS
       let enrichedBookings: any[] = [];
       try {
-        const bkRes = await fetch("/api/admin/bookings", { cache: "no-store" });
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = {};
+        if (session?.access_token) {
+          headers["Authorization"] = `Bearer ${session.access_token}`;
+        }
+
+        const bkRes = await fetch("/api/admin/bookings", { cache: "no-store", headers });
         const bkJson = await bkRes.json();
         if (bkRes.ok && Array.isArray(bkJson.bookings)) {
           enrichedBookings = bkJson.bookings;
