@@ -166,7 +166,7 @@ export default function AdminLayout({
     return (
       <span className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail-3 opacity-60 cursor-not-allowed flex items-center justify-between">
         {label}
-        <span className="text-[10px] text-on-rail-3" title="Locked">🔒</span>
+        <svg className="w-3.5 h-3.5 text-on-rail-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
       </span>
     );
   };
@@ -459,7 +459,7 @@ export default function AdminLayout({
                 : (
                   <span className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail-3 opacity-60 flex items-center justify-between">
                     Role &amp; Permissions
-                    <span className="text-[10px] text-on-rail-3" title="Locked">🔒</span>
+                    <svg className="w-3.5 h-3.5 text-on-rail-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                   </span>
                 )}
             </nav>

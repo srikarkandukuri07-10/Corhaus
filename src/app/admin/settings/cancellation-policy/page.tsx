@@ -130,7 +130,11 @@ export default function CancellationPolicySettingsPage() {
                     Define how far in advance a member must cancel before class start time.
                   </p>
                 </div>
-                <span className="text-2xl">⏰</span>
+                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
               </div>
 
               {/* Quick Presets */}

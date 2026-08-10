@@ -709,7 +709,7 @@ export default function PtSchedulerPage() {
                   <option value="">-- Choose Member --</option>
                   {members.map(m => {
                     const plan = m.ptPlans[0];
-                    const label = plan ? `✓ ${plan.plan_name} (${plan.sessions_remaining} sessions left)` : "⚠️ No PT Package";
+                    const label = plan ? `${plan.plan_name} (${plan.sessions_remaining} sessions left)` : "No PT Package";
                     return (
                       <option key={m.id} value={m.id} disabled={!plan}>
                         {m.full_name} — {label}
@@ -825,7 +825,7 @@ export default function PtSchedulerPage() {
                   <option value="">-- Choose Member --</option>
                   {members.map(m => {
                     const plan = m.ptPlans[0];
-                    const label = plan ? `✓ ${plan.plan_name} (${plan.sessions_remaining} left)` : "⚠️ No PT Package";
+                    const label = plan ? `${plan.plan_name} (${plan.sessions_remaining} left)` : "No PT Package";
                     return (
                       <option key={m.id} value={m.id} disabled={!plan || plan.sessions_remaining <= 0}>
                         {m.full_name} — {label}

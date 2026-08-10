@@ -176,20 +176,20 @@ export default function ReportsPage() {
   const support = reportData?.support || [];
 
   // Tab definitions
-  const tabs: { id: TabType; label: string; icon: string }[] = [
-    { id: "overview", label: "Overview", icon: "📊" },
-    { id: "payments", label: "Payments", icon: "💳" },
-    { id: "memberships", label: "Memberships", icon: "👥" },
-    { id: "classes", label: "Classes & Attendance", icon: "🧘" },
-    { id: "trainers", label: "Trainers & PT", icon: "🏋️" },
-    { id: "products", label: "Products & Stock", icon: "🛍️" },
-    { id: "pnl", label: "Profit & Loss", icon: "📈" },
-    { id: "invoices", label: "Invoices", icon: "🧾" },
-    { id: "freeze", label: "Freeze Management", icon: "❄️" },
-    { id: "referrals", label: "Referrals", icon: "🎁" },
-    { id: "discounts", label: "Discounts", icon: "🏷️" },
-    { id: "trials", label: "Trial Members", icon: "⭐" },
-    { id: "support", label: "Support Tickets", icon: "💬" },
+  const tabs: { id: TabType; label: string }[] = [
+    { id: "overview", label: "Overview" },
+    { id: "payments", label: "Payments" },
+    { id: "memberships", label: "Memberships" },
+    { id: "classes", label: "Classes & Attendance" },
+    { id: "trainers", label: "Trainers & PT" },
+    { id: "products", label: "Products & Stock" },
+    { id: "pnl", label: "Profit & Loss" },
+    { id: "invoices", label: "Invoices" },
+    { id: "freeze", label: "Freeze Management" },
+    { id: "referrals", label: "Referrals" },
+    { id: "discounts", label: "Discounts" },
+    { id: "trials", label: "Trial Members" },
+    { id: "support", label: "Support Tickets" },
   ];
 
   // Common Search Filter Helper
@@ -234,9 +234,12 @@ export default function ReportsPage() {
 
               exportToCSV(exportDataset, `corhaus_${activeTab}_report`);
             }}
-            className="px-3 py-2 rounded-xl bg-surface-2 border border-line-2 text-fg text-xs font-bold hover:bg-hover transition-colors shadow-xs flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-surface-2 border border-line-2 text-fg text-xs font-bold hover:bg-hover transition-colors shadow-xs flex items-center gap-2"
           >
-            <span>📥</span> Export CSV
+            <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export CSV
           </button>
 
           <button
@@ -254,9 +257,12 @@ export default function ReportsPage() {
 
               exportToExcel(exportDataset, `corhaus_${activeTab}_report`);
             }}
-            className="px-3 py-2 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-colors shadow-xs flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-surface-2 border border-line-2 text-fg text-xs font-bold hover:bg-hover transition-colors shadow-xs flex items-center gap-2"
           >
-            <span>📊</span> Export Excel
+            <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export Excel
           </button>
         </div>
       </div>
@@ -342,7 +348,6 @@ export default function ReportsPage() {
                   : "bg-surface/50 text-fg-3 border-transparent hover:bg-hover hover:text-fg"
               }`}
             >
-              <span>{t.icon}</span>
               <span>{t.label}</span>
             </button>
           ))}

@@ -1661,8 +1661,8 @@ export default function AdminClassesModulePage() {
                 {membersList.map((m) => {
                   const activePlan = m.plans && m.plans.find((p: any) => p.status === "active");
                   const planLabel = activePlan
-                    ? `✓ ${activePlan.plan_name}${activePlan.sessions_remaining !== null && activePlan.sessions_remaining !== undefined ? ` (${activePlan.sessions_remaining} left)` : ""}`
-                    : "⚠️ No Active Plan";
+                    ? `${activePlan.plan_name}${activePlan.sessions_remaining !== null && activePlan.sessions_remaining !== undefined ? ` (${activePlan.sessions_remaining} left)` : ""}`
+                    : "No Active Plan";
                   return (
                     <option key={m.id} value={m.id}>
                       {m.full_name} ({m.phone_number || m.email}) — {planLabel}

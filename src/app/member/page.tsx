@@ -654,7 +654,7 @@ export default function MemberDashboard() {
                             const noteText = matchingBooking.notes || "Corhaus invite u to this session";
                             return (
                               <div className="mt-2 text-[11px] font-semibold text-accent bg-accent/10 px-2.5 py-1 rounded-lg flex items-center gap-1.5 inline-flex">
-                                <span>✨</span> {noteText}
+                                {noteText}
                               </div>
                             );
                           }
@@ -728,7 +728,7 @@ export default function MemberDashboard() {
                             )
                           ) : (
                             <div className="p-3 bg-red-500/10 border border-red-400/20 rounded-xl text-center">
-                              <p className="text-xs font-semibold text-red-500">⏰ QR Code Expired</p>
+                              <p className="text-xs font-semibold text-red-500">QR Code Expired</p>
                               <p className="text-[11px] text-fg-5 mt-0.5">Expired 1 hour after class timing</p>
                             </div>
                           )}

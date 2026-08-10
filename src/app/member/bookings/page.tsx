@@ -317,7 +317,7 @@ export default function BookingsPage() {
                       </p>
                       {booking.notes && (
                         <div className="mt-1.5 text-[11px] font-semibold text-accent bg-accent/10 px-2.5 py-1 rounded-lg flex items-center gap-1.5 inline-flex">
-                          <span>✨</span> {booking.notes}
+                          {booking.notes}
                         </div>
                       )}
                       <div className="flex items-center gap-4 mt-2 text-sm text-fg-3">
