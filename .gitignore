@@ -44,3 +44,7 @@ supabase/.temp/
 next-env.d.ts
 
 .vercel
+
+# scratch test scripts
+scratch/
+
