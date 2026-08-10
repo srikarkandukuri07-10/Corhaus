@@ -177,7 +177,7 @@ export default function AdminLayout({
       <aside className="hidden lg:flex w-[272px] bg-rail text-white flex-col fixed inset-y-0 left-0 z-50 border-r border-line-rail">
         {/* Logo Header */}
         <div className="px-6 py-5 border-b border-white/10 flex items-center justify-start">
-          <Logo href="/admin" variant="gold" size="lg" />
+          <Logo href="/admin" variant="white" size="lg" />
         </div>
 
         {/* Sidebar Navigation */}
