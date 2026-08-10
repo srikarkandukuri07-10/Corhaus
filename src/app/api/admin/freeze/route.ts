@@ -340,11 +340,10 @@ export async function POST(request: Request) {
         .eq("id", targetPlan.id);
     }
 
-    // Update approved_members membership_status, freeze_status & freezes_used
+    // Update approved_members freeze_status & freezes_used
     const { error: memUpdateErr } = await serviceClient
       .from("approved_members")
       .update({
-        membership_status: "frozen",
         freeze_status: "frozen",
         freezes_used: currentUsed + 1,
       })
