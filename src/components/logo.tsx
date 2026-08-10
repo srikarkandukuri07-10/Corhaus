@@ -2,7 +2,7 @@ import Link from "next/link";
 
 interface LogoProps {
   href?: string;
-  variant?: "white" | "dark" | "auto";
+  variant?: "white" | "dark" | "auto" | "gold";
   size?: "sm" | "md" | "lg";
   className?: string;
 }
@@ -21,6 +21,8 @@ export default function Logo({
   const mainTextColor =
     variant === "white"
       ? "text-white"
+      : variant === "gold"
+      ? "text-amber-400"
       : variant === "dark"
       ? "text-fg"
       : "text-fg dark:text-white";
@@ -28,6 +30,8 @@ export default function Logo({
   const tagtextColor =
     variant === "white"
       ? "text-white/85"
+      : variant === "gold"
+      ? "text-amber-300/90"
       : variant === "dark"
       ? "text-fg-3"
       : "text-fg-3 dark:text-white/85";
