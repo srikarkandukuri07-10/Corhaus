@@ -335,16 +335,25 @@ function MembersPageContent() {
   const fetchMembers = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: approvedData, error: approvedError } = await supabase
+      const res = await fetch("/api/admin/members", { cache: "no-store" });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.members)) {
+        startTransition(() => {
+          setMembers(data.members);
+          setLoading(false);
+        });
+        return;
+      }
+      console.warn("[Members] API failed, falling back to direct query:", data?.error);
+    } catch (apiErr) {
+      console.error("[Members] API fetch error, falling back:", apiErr);
+    }
+
+    try {
+      const { data: approvedData } = await supabase
         .from("approved_members")
         .select("*")
         .order("created_at", { ascending: false });
-
-      if (approvedError) {
-        setActionError(approvedError.message);
-        setLoading(false);
-        return;
-      }
 
       if (!approvedData) {
         setMembers([]);
@@ -375,91 +384,16 @@ function MembersPageContent() {
         });
       }
 
-      const { data: customersData } = await supabase
-        .from("customers")
-        .select("id, approved_member_id");
-
-      const custToMemberMap = new Map<string, string>();
-      if (customersData) {
-        customersData.forEach((c) => {
-          if (c.approved_member_id) custToMemberMap.set(c.id, c.approved_member_id);
-        });
-      }
-
-      const { data: invoicesData } = await supabase
-        .from("invoices")
-        .select("*, invoice_items(*)")
-        .order("created_at", { ascending: false });
-
-      const invoiceByMemberMap = new Map<string, InvoiceRecord>();
-      if (invoicesData) {
-        invoicesData.forEach((inv) => {
-          if (inv.customer_id) {
-            const memberId = custToMemberMap.get(inv.customer_id);
-            if (memberId && !invoiceByMemberMap.has(memberId)) {
-              invoiceByMemberMap.set(memberId, inv as InvoiceRecord);
-            }
-          }
-        });
-      }
-
-      // Combine member details & compute statuses
       const fullMembersList: ApprovedMember[] = approvedData.map((m) => {
         const mPlans = plansByMember.get(m.id) || [];
-        let activeP = mPlans.find((p) => p.status === "active" || p.status === "frozen") || mPlans[0] || null;
-
-        // If no member_purchased_plans record exists, check if member has a paid invoice linked via customer_id
-        if (!activeP) {
-          const inv = invoiceByMemberMap.get(m.id);
-          const isPaid = inv && (
-            inv.payment_status === "paid" ||
-            inv.payment_status === "Paid" ||
-            inv.payment_status === "Completed"
-          );
-
-          if (isPaid) {
-            const invItems = (inv as any).invoice_items || (inv as any).items || [];
-            const item = invItems[0] || null;
-            const planName = item?.name || (inv as any).plan_name || null;
-            
-            if (planName) {
-              const category = item?.category || "Membership Plans";
-              const invDate = inv.created_at ? new Date(inv.created_at) : new Date();
-              const validFrom = invDate.toISOString().split("T")[0];
-
-              let validityDays = 30;
-              const lower = planName.toLowerCase();
-              if (lower.includes("quarterly")) validityDays = 90;
-              else if (lower.includes("half")) validityDays = 180;
-              else if (lower.includes("annual")) validityDays = 365;
-              else if (lower.includes("couple")) validityDays = 60;
-              else if (lower.includes("group class (4)") || lower.includes("pt")) validityDays = 180;
-
-              const validUntil = new Date(invDate.getTime() + validityDays * 86400000).toISOString().split("T")[0];
-
-              activeP = {
-                id: `inv-${inv.id}`,
-                plan_name: planName,
-                category: category,
-                sessions_total: item?.sessions || null,
-                sessions_remaining: item?.sessions || null,
-                valid_from: validFrom,
-                valid_until: validUntil,
-                status: "active",
-              };
-            }
-          }
-        }
-
+        const activeP = mPlans.find((p) => p.status === "active" || p.status === "frozen") || mPlans[0] || null;
         const computed = computeMemberStatus(m.membership_status, activeP);
-        const inv = invoiceByMemberMap.get(m.id) || null;
-
         return {
           ...m,
           avatar_url: m.email ? avatarMap.get(m.email.toLowerCase()) || null : null,
           activePlan: activeP,
-          allPlans: mPlans.length > 0 ? mPlans : (activeP ? [activeP] : []),
-          latestInvoice: inv,
+          allPlans: mPlans,
+          latestInvoice: null,
           computedStatus: computed.status,
           daysLeft: computed.daysLeft,
         };
@@ -470,7 +404,7 @@ function MembersPageContent() {
         setLoading(false);
       });
     } catch (err) {
-      console.error("fetchMembers error:", err);
+      console.error("fetchMembers fallback error:", err);
       setLoading(false);
     }
   }, [supabase]);
