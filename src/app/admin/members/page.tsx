@@ -415,6 +415,11 @@ function MembersPageContent() {
     }
   }, [supabase]);
 
+  // Initial load on mount
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
+
   // Booking History Modal State
   const [showBookingHistoryModal, setShowBookingHistoryModal] = useState(false);
   const [bookingHistoryLoading, setBookingHistoryLoading] = useState(false);
