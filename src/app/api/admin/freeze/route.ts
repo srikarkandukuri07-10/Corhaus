@@ -324,24 +324,27 @@ export async function POST(request: Request) {
     }
 
     // Extend plan valid_until by freezeDays so paid membership days are preserved
-    if (targetPlan && targetPlan.valid_until) {
-      const origValidUntil = new Date(targetPlan.valid_until);
-      const newValidUntil = new Date(origValidUntil.getTime() + days * 86400000).toISOString().split("T")[0];
+    if (targetPlan) {
+      const updateObj: any = {
+        status: "frozen",
+        freeze_status: "frozen",
+        freezes_used: (targetPlan.freezes_used || 0) + 1,
+      };
+      if (targetPlan.valid_until) {
+        const origValidUntil = new Date(targetPlan.valid_until);
+        updateObj.valid_until = new Date(origValidUntil.getTime() + days * 86400000).toISOString().split("T")[0];
+      }
       await serviceClient
         .from("member_purchased_plans")
-        .update({
-          valid_until: newValidUntil,
-          status: "frozen",
-          freeze_status: "frozen",
-          freezes_used: (targetPlan.freezes_used || 0) + 1,
-        })
+        .update(updateObj)
         .eq("id", targetPlan.id);
     }
 
-    // Update approved_members freeze_status & freezes_used ONLY
+    // Update approved_members membership_status, freeze_status & freezes_used
     const { error: memUpdateErr } = await serviceClient
       .from("approved_members")
       .update({
+        membership_status: "frozen",
         freeze_status: "frozen",
         freezes_used: currentUsed + 1,
       })

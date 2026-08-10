@@ -24,10 +24,11 @@ export async function POST(req: Request) {
     );
 
     // 3. Look up approved_members record for plan lookups
+    const cleanEmail = (user.email || "").trim().toLowerCase();
     const { data: amData, error: amError } = await supabase
       .from("approved_members")
-      .select("id, membership_level")
-      .eq("email", user.email || "")
+      .select("id, membership_level, membership_status, freeze_status")
+      .ilike("email", cleanEmail)
       .maybeSingle();
 
     if (amError) {
@@ -37,6 +38,11 @@ export async function POST(req: Request) {
     if (!amData) {
       return NextResponse.json({ error: "No approved member profile found for your account. Please contact the studio." }, { status: 403 });
     }
+
+    if (amData.membership_status === "frozen" || amData.freeze_status === "frozen") {
+      return NextResponse.json({ error: "Your membership is currently frozen. Please resume your membership before booking classes." }, { status: 403 });
+    }
+
     // The bookings table's member_id FK references profiles(id) = auth.uid().
     // Use user.id for the bookings insert; use amData.id only for plan lookups.
     const memberId = user.id;         // auth UUID → satisfies bookings_member_id_fkey

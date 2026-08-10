@@ -13,11 +13,12 @@ async function getMemberData() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // Find member record by email
+  // Find member record by email (case insensitive)
+  const cleanEmail = (user.email || "").trim().toLowerCase();
   const { data: member } = await serviceClient
     .from("approved_members")
     .select("*")
-    .eq("email", user.email)
+    .ilike("email", cleanEmail)
     .maybeSingle();
 
   if (!member) {
@@ -64,7 +65,7 @@ export async function GET() {
 
     const todayStr = new Date().toISOString().split("T")[0];
 
-    // Check for expired freeze
+    // Check for active or expired freeze
     let activeFreeze = freezes.find((f) => {
       if (f.status !== "active") return false;
       const endDateVal = f.freeze_end || f.end_date;
@@ -95,7 +96,7 @@ export async function GET() {
         try {
           await serviceClient
             .from("member_purchased_plans")
-            .update({ status: "active" })
+            .update({ status: "active", freeze_status: "active" })
             .eq("id", activePlan.id);
         } catch (_) {}
       }
@@ -109,13 +110,33 @@ export async function GET() {
     const freezesUsed = activePlan?.freezes_used ?? member.freezes_used ?? 0;
     const freezeRemaining = Math.max(0, 2 - freezesUsed);
 
+    const isMemberFrozenInDb =
+      member.freeze_status === "frozen" ||
+      member.membership_status === "frozen" ||
+      activePlan?.status === "frozen" ||
+      activePlan?.freeze_status === "frozen";
+
     let freezeStatus: "active" | "frozen" | "freeze_requested" = "active";
-    if (activeFreeze) {
+
+    if (activeFreeze || isMemberFrozenInDb) {
       freezeStatus = "frozen";
+      if (!activeFreeze) {
+        // Construct fallback active_freeze object so Member Dashboard displays frozen details
+        const approvedReq = requests.find((r) => r.status === "approved") || null;
+        activeFreeze = {
+          id: approvedReq?.id || `freeze-${member.id}`,
+          package_type: activePlan?.category || "Membership Plans",
+          freeze_start: approvedReq?.requested_start_date || new Date().toISOString().split("T")[0],
+          freeze_end: approvedReq ? new Date(new Date(approvedReq.requested_start_date).getTime() + (approvedReq.requested_days || 7) * 86400000).toISOString().split("T")[0] : new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
+          freeze_days: approvedReq?.requested_days || 7,
+          reason: approvedReq?.reason || "Approved Freeze",
+          status: "active",
+          created_at: approvedReq?.approved_at || new Date().toISOString(),
+        };
+      }
     } else if (pendingRequest || member.freeze_status === "freeze_requested") {
       freezeStatus = "freeze_requested";
     }
-
 
     return NextResponse.json({
       member_name: member.full_name,
@@ -125,7 +146,7 @@ export async function GET() {
       freezes_used: freezesUsed,
       freeze_status: freezeStatus,
       active_freeze: activeFreeze,
-      pending_request: pendingRequest,
+      pending_request: freezeStatus === "frozen" ? null : pendingRequest,
       latest_rejected: latestRejectedRequest,
       history: freezes,
     });

@@ -150,24 +150,30 @@ export async function POST(request: Request) {
       })
       .eq("id", requestId);
 
-    // Update approved_members freeze_status & freezes_used ONLY
+    // Update approved_members membership_status, freeze_status & freezes_used
     await serviceClient
       .from("approved_members")
       .update({
+        membership_status: "frozen",
         freeze_status: "frozen",
         freezes_used: currentUsed + 1,
       })
       .eq("id", memberId);
 
-    // Update plan
+    // Update plan and extend validity
     if (activePlan) {
+      const updateObj: any = {
+        status: "frozen",
+        freeze_status: "frozen",
+        freezes_used: (activePlan.freezes_used || 0) + 1,
+      };
+      if (activePlan.valid_until) {
+        const origValidUntil = new Date(activePlan.valid_until);
+        updateObj.valid_until = new Date(origValidUntil.getTime() + finalDays * 86400000).toISOString().split("T")[0];
+      }
       await serviceClient
         .from("member_purchased_plans")
-        .update({
-          status: "frozen",
-          freeze_status: "frozen",
-          freezes_used: (activePlan.freezes_used || 0) + 1,
-        })
+        .update(updateObj)
         .eq("id", activePlan.id);
     }
 
