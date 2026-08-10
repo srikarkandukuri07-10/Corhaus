@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import QRCode from "qrcode";
 interface ClassData {
@@ -101,6 +102,7 @@ export default function MemberDashboard() {
 
   const [approvedMemberId, setApprovedMemberId] = useState<string | null>(null);
   const [membershipLevel, setMembershipLevel] = useState("Beginner");
+  const [isFrozenMember, setIsFrozenMember] = useState(false);
   const [totalCredits, setTotalCredits] = useState(6);
   const [usedCredits, setUsedCredits] = useState(0);
   const [classTypes, setClassTypes] = useState<Record<string, string>>({});
@@ -136,14 +138,28 @@ export default function MemberDashboard() {
 
     const today = new Date(Date.now() + IST_OFFSET_MS).toISOString().split("T")[0];
 
+    const cleanEmail = (user.email || "").trim().toLowerCase();
     const { data: amData } = await supabase
       .from("approved_members")
-      .select("id, membership_level, created_at")
-      .eq("email", user.email || "")
+      .select("id, membership_level, membership_status, freeze_status, created_at")
+      .ilike("email", cleanEmail)
       .maybeSingle();
 
     const approvedMemberId = amData?.id;
     setApprovedMemberId(approvedMemberId || null);
+
+    let isFrozen = amData?.freeze_status === "frozen" || amData?.membership_status === "frozen";
+    if (!isFrozen && approvedMemberId) {
+      const { data: activeFreeze } = await supabase
+        .from("membership_freezes")
+        .select("id, freeze_end")
+        .eq("member_id", approvedMemberId)
+        .eq("status", "active")
+        .gte("freeze_end", today)
+        .maybeSingle();
+      if (activeFreeze) isFrozen = true;
+    }
+    setIsFrozenMember(isFrozen);
 
     let bookingsQuery = supabase.from("bookings").select("*, classes(class_date)");
     if (approvedMemberId) {
@@ -402,6 +418,11 @@ export default function MemberDashboard() {
     const uid = userIdRef.current;
     if (!uid) return;
 
+    if (isFrozenMember) {
+      setMessage({ type: "error", text: "Cannot book — your membership is currently frozen. Please resume your membership under the Membership Freeze tab." });
+      return;
+    }
+
     if (isClassStarted(cls, currentTime)) {
       setMessage({ type: "error", text: "Cannot book — class has already started." });
       return;
@@ -593,6 +614,23 @@ export default function MemberDashboard() {
         )}
       </div>
 
+      {isFrozenMember && (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-blue-900 shadow-xs">
+          <div>
+            <div className="flex items-center gap-2 font-bold text-sm text-blue-950">
+              <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <span>Membership Currently Frozen</span>
+            </div>
+            <p className="text-blue-800 mt-1">Your class booking access is paused while your membership is on freeze. You can manage or resume your freeze under the Membership Freeze tab.</p>
+          </div>
+          <Link href="/member/freeze" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold whitespace-nowrap shadow-xs self-start sm:self-auto">
+            Manage Freeze
+          </Link>
+        </div>
+      )}
+
       {message && (
         <div className={`p-4 rounded-xl text-sm ${message.type === "success" ? "bg-green-500/10 border border-green-500/20 text-green-600" : "bg-red-500/10 border border-red-400/20 text-red-500"}`}>
           {message.text}
@@ -773,10 +811,16 @@ export default function MemberDashboard() {
                         )}
                       </>
                     ) : !started ? (
-                      <button onClick={() => handleBook(cls)} disabled={bookingLoading === cls.id}
-                        className="w-full py-2.5 rounded-xl text-sm font-medium transition-all bg-rail text-white hover:bg-rail/90 disabled:opacity-50">
-                        {bookingLoading === cls.id ? "Booking..." : "Book Class"}
-                      </button>
+                      isFrozenMember ? (
+                        <div className="w-full py-2.5 rounded-xl text-xs font-bold text-center bg-blue-100 text-blue-800 border border-blue-200">
+                          Membership Frozen
+                        </div>
+                      ) : (
+                        <button onClick={() => handleBook(cls)} disabled={bookingLoading === cls.id}
+                          className="w-full py-2.5 rounded-xl text-sm font-medium transition-all bg-rail text-white hover:bg-rail/90 disabled:opacity-50">
+                          {bookingLoading === cls.id ? "Booking..." : "Book Class"}
+                        </button>
+                      )
                     ) : null}
                   </div>
                 </div>

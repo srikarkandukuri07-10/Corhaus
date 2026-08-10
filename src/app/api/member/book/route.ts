@@ -39,7 +39,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No approved member profile found for your account. Please contact the studio." }, { status: 403 });
     }
 
-    if (amData.membership_status === "frozen" || amData.freeze_status === "frozen") {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const { data: activeFreeze } = await supabase
+      .from("membership_freezes")
+      .select("id, freeze_end")
+      .eq("member_id", amData.id)
+      .eq("status", "active")
+      .gte("freeze_end", todayStr)
+      .maybeSingle();
+
+    if (activeFreeze || amData.membership_status === "frozen" || amData.freeze_status === "frozen") {
       return NextResponse.json({ error: "Your membership is currently frozen. Please resume your membership before booking classes." }, { status: 403 });
     }
 
