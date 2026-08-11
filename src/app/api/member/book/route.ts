@@ -125,19 +125,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No active plan found. Please contact the studio to activate your membership." }, { status: 403 });
     }
 
-    // 7. Check payment status
-    if (plan.invoice_id) {
-      const { data: invoice } = await supabase
-        .from("invoices")
-        .select("payment_status")
-        .eq("id", plan.invoice_id)
-        .maybeSingle();
-      if (invoice?.payment_status === "due") {
-        return NextResponse.json({ error: "Payment is required before booking classes. Please contact the studio." }, { status: 403 });
-      }
-    }
-
-    // 8. Check session credits
+    // 7. Check session credits
     if (plan.sessions_total !== null) {
       if (!plan.sessions_remaining || plan.sessions_remaining <= 0) {
         return NextResponse.json({ error: "No remaining sessions on your plan." }, { status: 403 });

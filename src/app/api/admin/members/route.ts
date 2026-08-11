@@ -169,13 +169,7 @@ export async function GET(req: Request) {
 
       if (!activeP) {
         const inv = invoiceByMemberMap.get(m.id);
-        const isPaid = inv && (
-          inv.payment_status === "paid" ||
-          inv.payment_status === "Paid" ||
-          inv.payment_status === "Completed"
-        );
-
-        if (isPaid) {
+        if (inv) {
           const invItems = inv.invoice_items || inv.items || [];
           const item = invItems[0] || null;
           const planName = item?.name || inv.plan_name || null;

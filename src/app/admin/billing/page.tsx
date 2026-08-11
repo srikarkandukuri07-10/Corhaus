@@ -444,10 +444,9 @@ export default function CreateBillPage() {
         }
       }
 
-      // 6. Grant dashboard access (only on full payment)
-      if (paymentStatus === "paid") {
-        const eligibleItems = cartItems.filter((i) => i.grants_member_dashboard_access);
-        if (eligibleItems.length > 0) {
+      // 6. Grant dashboard access for package items (regardless of partial/due payment)
+      const eligibleItems = cartItems.filter((i) => i.grants_member_dashboard_access);
+      if (eligibleItems.length > 0) {
           let targetMemberId = approvedMemberId;
 
           // Walk-in upgrade
@@ -501,7 +500,6 @@ export default function CreateBillPage() {
             }
           }
         }
-      }
 
       // Update local stock state
       setAllItems((prev) => prev.map((item) => {
@@ -1073,8 +1071,9 @@ export default function CreateBillPage() {
                       </div>
                     </div>
 
-                    <div className="text-[11px] text-amber-700 font-medium">
-                      ⚠ Dashboard access activates only after full payment is received.
+                    <div className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      Member access will be granted for this package upon completing this bill.
                     </div>
                   </div>
                 )}
