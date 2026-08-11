@@ -538,7 +538,7 @@ export default function ReportsPage() {
                   <table className="w-full text-[11px] text-left">
                     <thead>
                       <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
-                        <th className="py-3 px-3">Plan Name</th>
+                        <th className="py-3 px-3">Member Name</th>
                         <th className="py-3 px-3">Category</th>
                         <th className="py-3 px-3">Sessions Remaining</th>
                         <th className="py-3 px-3">Valid From</th>
@@ -548,9 +548,12 @@ export default function ReportsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-line-2 text-fg">
-                      {filterBySearch(memberships, ["plan_name", "category", "status"]).map((m: any) => (
+                      {filterBySearch(memberships, ["member_name", "plan_name", "category", "status"]).map((m: any) => (
                         <tr key={m.id} className="hover:bg-hover/50 transition-colors">
-                          <td className="py-3 px-3 font-bold text-fg">{m.plan_name}</td>
+                          <td className="py-3 px-3 font-bold text-fg">
+                            <div>{m.member_name || "Member"}</div>
+                            <div className="text-[10px] text-fg-4 font-normal">{m.plan_name}</div>
+                          </td>
                           <td className="py-3 px-3 text-fg-2">{m.category}</td>
                           <td className="py-3 px-3 font-semibold">
                             {m.sessions_total ? `${m.sessions_remaining ?? 0} / ${m.sessions_total}` : "Unlimited"}
@@ -564,7 +567,7 @@ export default function ReportsPage() {
                           </td>
                           <td className="py-3 px-3 text-right">
                             <button
-                              onClick={() => alert(`Reminder notification sent for plan ${m.plan_name}`)}
+                              onClick={() => alert(`Reminder notification sent to ${m.member_name || "Member"} for plan ${m.plan_name}`)}
                               className="px-2.5 py-1 rounded-xl bg-accent text-white font-bold text-[10px]"
                             >
                               Send Reminder

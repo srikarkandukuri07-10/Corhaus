@@ -96,8 +96,31 @@ export async function GET(req: Request) {
     const trialMembers = trialsRes.data || [];
     const tickets = ticketsRes.data || [];
     const expensesList = expensesRes.data || [];
+    const memberMapById = new Map<string, any>();
+
+    members.forEach((m: any) => {
+      memberMapById.set(m.id, m);
+    });
+
+    const invoiceMapById = new Map<string, any>();
+    invoices.forEach((inv: any) => {
+      invoiceMapById.set(inv.id, inv);
+    });
+
+    const enrichedPurchasedPlans = purchasedPlans.map((p: any) => {
+      const m = memberMapById.get(p.approved_member_id);
+      const inv = invoiceMapById.get(p.invoice_id);
+      const memberName = m?.full_name || inv?.customer_name || "Member";
+      const memberEmail = m?.email || inv?.customer_email || "";
+      return {
+        ...p,
+        member_name: memberName,
+        member_email: memberEmail,
+      };
+    });
 
     const todayStr = new Date().toISOString().split("T")[0];
+
     const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
     // Filter datasets by date range for period-based calculations
@@ -117,13 +140,14 @@ export async function GET(req: Request) {
       return true;
     });
 
-    const filteredPurchasedPlans = purchasedPlans.filter((p: any) => {
+    const filteredPurchasedPlans = enrichedPurchasedPlans.filter((p: any) => {
       const d = p.created_at ? p.created_at.split("T")[0] : p.valid_from;
       if (!d) return true;
       if (startDate && d < startDate) return false;
       if (endDate && d > endDate) return false;
       return true;
     });
+
 
     const filteredClasses = classes.filter((c: any) => {
       if (!c.class_date) return true;
@@ -229,7 +253,8 @@ export async function GET(req: Request) {
 
     // Revenue by Plan Category
     const planRevenueMap = new Map<string, number>();
-    const targetPlans = (startDate || endDate) ? filteredPurchasedPlans : purchasedPlans;
+    const targetPlans = (startDate || endDate) ? filteredPurchasedPlans : enrichedPurchasedPlans;
+
     targetPlans.forEach((p: any) => {
       const cat = p.category || "Membership Plans";
       planRevenueMap.set(cat, (planRevenueMap.get(cat) || 0) + Number(p.price || 0));
