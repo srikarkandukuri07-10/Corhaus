@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { formatDate, formatTime } from "@/lib/date-utils";
 
 interface AttendanceData {
   id: string;
@@ -32,11 +34,8 @@ interface ConsistencyTrackerProps {
   totalCredits: number;
 }
 
-function formatTime(time: string) {
-  const [h, m] = time.split(":");
-  const hours = parseInt(h);
-  return `${hours % 12 || 12}:${m} ${hours >= 12 ? "PM" : "AM"}`;
-}
+
+
 
 export default function ConsistencyTracker({
   attendanceRecords,
@@ -211,7 +210,7 @@ export default function ConsistencyTracker({
         
         boxes.push({
           key: booking.id,
-          displayDate: new Date(booking.classes!.class_date + "T00:00:00").toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" }),
+          displayDate: formatDate(booking.classes!.class_date),
           classTime: booking.classes!.class_time ? formatTime(booking.classes!.class_time) : "",
           status,
         });
@@ -263,7 +262,7 @@ export default function ConsistencyTracker({
         </div>
         {currentMonthRange && (
           <div className="px-3 py-1 rounded-full bg-surface-2/80 border border-line text-xs text-fg-3 font-medium">
-            Renewal: {currentMonthRange.end.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+            Renewal: {formatDate(currentMonthRange.end)}
           </div>
         )}
       </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, use } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { formatDate } from "@/lib/date-utils";
 
 interface HistoryRecord {
   id: string;
@@ -126,19 +127,7 @@ export default function MemberHistoryPage({
     return { total, attended, noShow, attendanceRate };
   }, [filteredHistory]);
 
-  const formatDateDisplay = (dStr: string) => {
-    if (!dStr) return "N/A";
-    try {
-      const dt = new Date(dStr + "T00:00:00");
-      return dt.toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-    } catch (_) {
-      return dStr;
-    }
-  };
+  const formatDateDisplay = (dStr: string) => formatDate(dStr);
 
   return (
     <div className="space-y-6">

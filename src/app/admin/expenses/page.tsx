@@ -8,17 +8,11 @@ function fmt(n: number) {
   return "₹" + Number(n || 0).toLocaleString("en-IN");
 }
 
+import { formatDate } from "@/lib/date-utils";
+
 function formatDateDisplay(dStr: string | null | undefined) {
   if (!dStr) return "—";
-  try {
-    return new Date(dStr).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  } catch (_) {
-    return dStr;
-  }
+  return formatDate(dStr);
 }
 
 function exportToExcel(data: any[], filename: string) {

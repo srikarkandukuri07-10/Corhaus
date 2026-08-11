@@ -2,8 +2,11 @@
 
 import { useEffect, useState, useCallback, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formatDate, formatTime, formatDateTime } from "@/lib/date-utils";
+
 
 interface CancelledBooking {
+
   id: string;
   created_at: string;
   cancelled_at: string | null;
@@ -65,13 +68,8 @@ export default function CancelledBookingsPage() {
     };
   }, [supabase, fetchCancelled]);
 
-  function formatTime(time: string) {
-    const [hours, minutes] = time.split(":");
-    const h = parseInt(hours);
-    const ampm = h >= 12 ? "PM" : "AM";
-    const displayH = h % 12 || 12;
-    return `${displayH}:${minutes} ${ampm}`;
-  }
+
+
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -133,25 +131,13 @@ export default function CancelledBookingsPage() {
                       {item.classes?.title || "N/A"}
                     </td>
                     <td className="py-3 px-5 text-fg-3">
-                      {item.classes?.class_date
-                        ? new Date(
-                            item.classes.class_date + "T00:00:00"
-                          ).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : "N/A"}
+                      {formatDate(item.classes?.class_date)}
                     </td>
                     <td className="py-3 px-5 text-fg-3">
-                      {item.classes?.class_time
-                        ? formatTime(item.classes.class_time)
-                        : "N/A"}
+                      {formatTime(item.classes?.class_time)}
                     </td>
                     <td className="py-3 px-5 text-fg-4 text-xs">
-                      {item.cancelled_at
-                        ? new Date(item.cancelled_at).toLocaleString("en-IN")
-                        : new Date(item.created_at).toLocaleString("en-IN")}
+                      {formatDateTime(item.cancelled_at || item.created_at)}
                     </td>
                   </tr>
                 ))}

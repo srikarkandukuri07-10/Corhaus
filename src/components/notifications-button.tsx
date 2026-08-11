@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formatDate } from "@/lib/date-utils";
+
 import { useRouter } from "next/navigation";
 
 interface Notification {
@@ -329,7 +331,8 @@ function ReferralRequestNotificationItem({
           <span className="font-semibold text-fg-3">Referred by:</span> {request.referrer_name}
         </div>
         <div>
-          <span className="font-semibold text-fg-3">Date:</span> {new Date(request.created_at).toLocaleDateString("en-IN")}
+          <span className="font-semibold text-fg-3">Date:</span> {formatDate(request.created_at)}
+
         </div>
       </div>
 

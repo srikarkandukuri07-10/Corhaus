@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formatDate, formatTime } from "@/lib/date-utils";
+
 import Link from "next/link";
 
 interface ClassData {
@@ -340,24 +342,9 @@ export default function AdminDashboard() {
     }
   }
 
-  function formatTime(time: string) {
-    const [hours, minutes] = time.split(":");
-    const h = parseInt(hours);
-    const ampm = h >= 12 ? "PM" : "AM";
-    const displayH = h % 12 || 12;
-    return `${displayH}:${minutes} ${ampm}`;
-  }
-
-  function formatDate(dateStr: string) {
-    const date = new Date(dateStr + "T00:00:00");
-    return date.toLocaleDateString("en-IN", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
-  }
-
+  const todayFormatted = formatDate(new Date());
   const selectedClassData = classes.find((c) => c.id === selectedClass);
+
 
   const filteredClasses = classes.filter((c) => {
     if (!searchQuery) return true;
@@ -380,13 +367,6 @@ export default function AdminDashboard() {
     const name = a.profiles?.full_name?.toLowerCase() || "";
     const email = a.profiles?.email?.toLowerCase() || "";
     return name.includes(q) || email.includes(q);
-  });
-
-  const todayFormatted = new Date().toLocaleDateString("en-IN", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
   });
 
   return (

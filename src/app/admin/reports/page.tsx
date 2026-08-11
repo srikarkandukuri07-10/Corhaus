@@ -59,18 +59,8 @@ function fmt(n: number) {
   return "₹" + Number(n || 0).toLocaleString("en-IN");
 }
 
-function formatDate(dStr: string | null | undefined) {
-  if (!dStr) return "—";
-  try {
-    return new Date(dStr).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  } catch (_) {
-    return dStr;
-  }
-}
+import { formatDate } from "@/lib/date-utils";
+
 
 type TabType =
   | "overview"

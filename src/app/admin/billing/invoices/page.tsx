@@ -42,27 +42,12 @@ type FilterStatus = "all" | "paid" | "due" | "partial";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+import { formatDate, formatDateTime } from "@/lib/date-utils";
+
 function fmt(n: number) {
   return "₹" + n.toLocaleString("en-IN");
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 const STATUS_COLORS: Record<string, string> = {
   paid: "bg-green-500/10 text-green-600",

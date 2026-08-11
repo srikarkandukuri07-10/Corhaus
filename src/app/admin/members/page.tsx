@@ -149,25 +149,8 @@ function formatSessionsDisplay(plan: PurchasedPlan | null | undefined): { text: 
   return { text: plan.plan_name, isSessions: false };
 }
 
-function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return "N/A";
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
+import { formatDate, formatTime, formatDateTime } from "@/lib/date-utils";
 
-function formatDateTime(dateStr: string | null | undefined): string {
-  if (!dateStr) return "N/A";
-  return new Date(dateStr).toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function fmt(n: number) {
   return "₹" + Number(n).toLocaleString("en-IN");
@@ -1925,7 +1908,7 @@ function MembersPageContent() {
                       <option value="ALL">All Classes (Previous & Upcoming)</option>
                       {allClassesForHistory.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.title} — {c.class_date} at {c.class_time} ({c.instructor || "Staff"})
+                          {c.title} — {formatDate(c.class_date)} at {formatTime(c.class_time)} ({c.instructor || "Staff"})
                         </option>
                       ))}
                     </select>
@@ -2083,7 +2066,7 @@ function MembersPageContent() {
                                     </span>
                                   </td>
                                   <td className="py-3 px-4 text-right text-fg-3 font-mono text-[11px]">
-                                    {bk.classes?.class_date} {bk.classes?.class_time}
+                                    {formatDate(bk.classes?.class_date || bk.created_at)} {formatTime(bk.classes?.class_time || bk.created_at)}
                                   </td>
                                 </tr>
                               ))}

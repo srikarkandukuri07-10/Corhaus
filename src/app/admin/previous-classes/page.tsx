@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formatDate as fmtDate, formatTime as fmtTime } from "@/lib/date-utils";
+
 
 interface ClassData {
   id: string;
@@ -320,15 +322,8 @@ export default function PreviousClasses() {
     return `${displayH}:${minutes} ${ampm}`;
   }
 
-  function formatDate(dateStr: string) {
-    const date = new Date(dateStr + "T00:00:00");
-    return date.toLocaleDateString("en-IN", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  }
+  const formatDate = (dStr: string) => fmtDate(dStr);
+
 
   const selectedClassData = classes.find((c) => c.id === selectedClass);
 

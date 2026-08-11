@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { formatDate, formatTime } from "@/lib/date-utils";
+
 import QRCode from "qrcode";
 interface ClassData {
   id: string;
@@ -557,15 +559,8 @@ export default function MemberDashboard() {
     }
   }
 
-  function formatTime(time: string) {
-    const [h, m] = time.split(":");
-    const hours = parseInt(h);
-    return `${hours % 12 || 12}:${m} ${hours >= 12 ? "PM" : "AM"}`;
-  }
+  // Uses imported formatDate and formatTime from date-utils
 
-  function formatDate(dateStr: string) {
-    return new Date(dateStr + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
-  }
 
 
   return (

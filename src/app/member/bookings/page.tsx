@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formatDate, formatTime } from "@/lib/date-utils";
+
 
 interface BookingWithClass {
   id: string;
@@ -193,15 +195,8 @@ export default function BookingsPage() {
     return `${displayH}:${minutes} ${ampm}`;
   }
 
-  function formatDate(dateStr: string) {
-    const date = new Date(dateStr + "T00:00:00");
-    return date.toLocaleDateString("en-IN", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  }
+  // Uses imported formatDate and formatTime from date-utils
+
 
   const now = new Date();
 

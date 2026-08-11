@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
+import { formatTime } from "@/lib/date-utils";
 
 async function getAdminClient() {
   const supabase = await createServerClient();
@@ -117,25 +118,12 @@ export async function GET(
 
       // Format time (shows scanned time if attended, otherwise class time)
       const scannedTimestamp = b.checked_in_at || (attRecord && attRecord.scanned_at);
-      let checkInTime = cls.class_time || "N/A";
+      let checkInTime = "N/A";
       if (scannedTimestamp) {
-        try {
-          const dt = new Date(scannedTimestamp);
-          checkInTime = dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-        } catch (_) {}
+        checkInTime = formatTime(scannedTimestamp);
       } else if (cls.class_time) {
-        try {
-          const parts = cls.class_time.split(":");
-          if (parts.length >= 2) {
-            const h = parseInt(parts[0], 10);
-            const m = parts[1];
-            const ampm = h >= 12 ? "PM" : "AM";
-            const h12 = h % 12 || 12;
-            checkInTime = `${h12}:${m} ${ampm}`;
-          }
-        } catch (_) {}
+        checkInTime = formatTime(cls.class_time);
       }
-
 
       return {
         id: b.id,

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { formatDate } from "@/lib/date-utils";
 
 interface FreezeRecord {
   id: string;
@@ -467,7 +469,7 @@ export default function MembershipFreezeSection() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-fg-2 pt-1">
                       <div>
                         <span className="text-fg-4 block">Period</span>
-                        <span className="font-semibold">{f.freeze_start} to {f.freeze_end}</span>
+                        <span className="font-semibold">{formatDate(f.freeze_start)} to {formatDate(f.freeze_end)}</span>
                       </div>
                       <div>
                         <span className="text-fg-4 block">Duration</span>
@@ -476,7 +478,7 @@ export default function MembershipFreezeSection() {
                       <div>
                         <span className="text-fg-4 block">Resumed Early</span>
                         <span className="font-semibold">
-                          {f.resumed_at ? new Date(f.resumed_at).toLocaleDateString("en-IN") : "No"}
+                          {f.resumed_at ? formatDate(f.resumed_at) : "No"}
                         </span>
                       </div>
                     </div>

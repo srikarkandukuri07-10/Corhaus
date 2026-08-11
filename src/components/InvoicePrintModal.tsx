@@ -41,24 +41,13 @@ function fmt(n: number) {
   return "₹" + (n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function formatDate(iso: string) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
+import { formatDate } from "@/lib/date-utils";
 
 function calculateDueDate(iso: string, days: number) {
   if (!iso) return "";
   const d = new Date(iso);
   d.setDate(d.getDate() + (days || 15));
-  return d.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDate(d);
 }
 
 export default function InvoicePrintModal({ invoice, onClose }: Props) {

@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { usePermissions } from "@/lib/usePermissions";
+import { formatDate, formatTime } from "@/lib/date-utils";
+
 
 function Modal({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -1266,7 +1268,7 @@ export default function AdminClassesModulePage() {
                     <tr key={s.id} className="hover:bg-surface-2/60 transition-colors">
                       <td className="py-4 px-6 font-extrabold text-fg text-sm">{s.title}</td>
                       <td className="py-4 px-6 font-semibold text-fg-2">{s.instructor}</td>
-                      <td className="py-4 px-6 font-bold text-fg">{s.class_date} @ {s.class_time}</td>
+                      <td className="py-4 px-6 font-bold text-fg">{formatDate(s.class_date)} @ {formatTime(s.class_time)}</td>
                       <td className="py-4 px-6 text-fg-2 font-medium">{s.location_room}</td>
                       <td className="py-4 px-6 font-extrabold text-accent">{booked} / {s.max_capacity}</td>
                       <td className="py-4 px-6">
@@ -1354,7 +1356,7 @@ export default function AdminClassesModulePage() {
                       </td>
                       <td className="py-4 px-6 font-semibold text-fg-2">{b.approved_members?.phone_number || "N/A"}</td>
                       <td className="py-4 px-6 font-bold text-fg">{b.classes?.title || "N/A"}</td>
-                      <td className="py-4 px-6 font-semibold text-fg">{b.classes?.class_date} @ {b.classes?.class_time}</td>
+                      <td className="py-4 px-6 font-semibold text-fg">{formatDate(b.classes?.class_date)} @ {formatTime(b.classes?.class_time)}</td>
                       <td className="py-4 px-6">
                         <select
                           value={b.booking_status}
@@ -1647,7 +1649,7 @@ export default function AdminClassesModulePage() {
 
             <div className="bg-surface-2 p-4 rounded-2xl border border-line text-xs space-y-1">
               <p className="font-extrabold text-sm text-fg">{targetSessionForAssign.title}</p>
-              <p className="text-fg-3 font-semibold">{targetSessionForAssign.class_date} @ {targetSessionForAssign.class_time} &bull; {targetSessionForAssign.instructor}</p>
+              <p className="text-fg-3 font-semibold">{formatDate(targetSessionForAssign.class_date)} @ {formatTime(targetSessionForAssign.class_time)} &bull; {targetSessionForAssign.instructor}</p>
             </div>
 
             <div>
@@ -1701,7 +1703,7 @@ export default function AdminClassesModulePage() {
             </div>
 
             <p className="text-xs text-fg leading-relaxed">
-              Rescheduling booking for <strong className="font-extrabold">{rescheduleBookingTarget.approved_members?.full_name}</strong> from <em>{rescheduleBookingTarget.classes?.title} ({rescheduleBookingTarget.classes?.class_date})</em>.
+              Rescheduling booking for <strong className="font-extrabold">{rescheduleBookingTarget.approved_members?.full_name}</strong> from <em>{rescheduleBookingTarget.classes?.title} ({formatDate(rescheduleBookingTarget.classes?.class_date)})</em>.
             </p>
 
             <div>
@@ -1713,7 +1715,7 @@ export default function AdminClassesModulePage() {
               >
                 <option value="">-- Choose New Session --</option>
                 {sessions.filter((s) => s.id !== rescheduleBookingTarget.class_id && s.status !== "cancelled").map((s) => (
-                  <option key={s.id} value={s.id}>{s.title} ({s.class_date} @ {s.class_time})</option>
+                  <option key={s.id} value={s.id}>{s.title} ({formatDate(s.class_date)} @ {formatTime(s.class_time)})</option>
                 ))}
               </select>
             </div>
@@ -1752,7 +1754,7 @@ export default function AdminClassesModulePage() {
               </div>
               <div>
                 <span className="block text-fg-4 font-bold uppercase text-[9px] tracking-wider">Date &amp; Time</span>
-                <span className="font-bold text-fg">{selectedSessionForDetail.class_date} @ {selectedSessionForDetail.class_time}</span>
+                <span className="font-bold text-fg">{formatDate(selectedSessionForDetail.class_date)} @ {formatTime(selectedSessionForDetail.class_time)}</span>
               </div>
               <div>
                 <span className="block text-fg-4 font-bold uppercase text-[9px] tracking-wider">Room &amp; Capacity</span>

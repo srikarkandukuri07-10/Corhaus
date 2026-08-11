@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formatDate, formatTime } from "@/lib/date-utils";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -367,34 +369,9 @@ export default function TrialMembersPage() {
     router.push(`/admin/members?${params.toString()}`);
   };
 
-  const formatDateDisplay = (dStr: string) => {
-    if (!dStr) return "N/A";
-    try {
-      const dt = new Date(dStr + "T00:00:00");
-      return dt.toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-    } catch (_) {
-      return dStr;
-    }
-  };
+  const formatDateDisplay = (dStr: string) => formatDate(dStr);
+  const formatTimeDisplay = (tStr: string) => formatTime(tStr);
 
-  const formatTimeDisplay = (tStr: string) => {
-    if (!tStr) return "";
-    try {
-      const parts = tStr.split(":");
-      if (parts.length >= 2) {
-        const h = parseInt(parts[0], 10);
-        const m = parts[1];
-        const ampm = h >= 12 ? "PM" : "AM";
-        const h12 = h % 12 || 12;
-        return `${h12}:${m} ${ampm}`;
-      }
-    } catch (_) {}
-    return tStr;
-  };
 
   return (
     <div className="space-y-6">

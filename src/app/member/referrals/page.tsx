@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formatDate } from "@/lib/date-utils";
+
 
 interface ReferralRequest {
   id: string;
@@ -87,14 +89,8 @@ export default function ReferralsPage() {
       .slice(0, 2);
   };
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  };
+  // Uses imported formatDate from date-utils
+
 
   if (loading) {
     return (
