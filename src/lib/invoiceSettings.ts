@@ -39,6 +39,29 @@ function getServiceClient() {
   return createClient(url, key);
 }
 
+function validateInvoiceSettings(parsed: any): Partial<InvoiceSettingsData> {
+  const result: Partial<InvoiceSettingsData> = {};
+  if (!parsed || typeof parsed !== "object") return result;
+
+  if (typeof parsed.issue_tax_invoices === "boolean") result.issue_tax_invoices = parsed.issue_tax_invoices;
+  if (parsed.tax_pricing_mode === "inclusive" || parsed.tax_pricing_mode === "exclusive") {
+    result.tax_pricing_mode = parsed.tax_pricing_mode;
+  }
+  if (typeof parsed.gstin === "string") result.gstin = parsed.gstin;
+  if (typeof parsed.legal_business_name === "string") result.legal_business_name = parsed.legal_business_name;
+  if (typeof parsed.pan === "string") result.pan = parsed.pan;
+  if (typeof parsed.state === "string") result.state = parsed.state;
+  if (typeof parsed.invoice_prefix === "string") result.invoice_prefix = parsed.invoice_prefix;
+  if (typeof parsed.next_invoice_number === "number") result.next_invoice_number = parsed.next_invoice_number;
+  if (typeof parsed.default_payment_due_days === "number") result.default_payment_due_days = parsed.default_payment_due_days;
+  if (typeof parsed.footer_note === "string") result.footer_note = parsed.footer_note;
+  if (typeof parsed.terms_and_conditions === "string") result.terms_and_conditions = parsed.terms_and_conditions;
+  if (typeof parsed.allow_flat_discount === "boolean") result.allow_flat_discount = parsed.allow_flat_discount;
+  if (typeof parsed.max_staff_discount_pct === "number") result.max_staff_discount_pct = parsed.max_staff_discount_pct;
+
+  return result;
+}
+
 export async function fetchInvoiceSettings(): Promise<InvoiceSettingsData> {
   try {
     const supabase = getServiceClient();
@@ -51,7 +74,8 @@ export async function fetchInvoiceSettings(): Promise<InvoiceSettingsData> {
 
     if (data && data.length > 0 && data[0].message) {
       const parsed = JSON.parse(data[0].message);
-      return { ...DEFAULT_SETTINGS, ...parsed };
+      const validated = validateInvoiceSettings(parsed);
+      return { ...DEFAULT_SETTINGS, ...validated };
     }
   } catch (err) {
     console.error("fetchInvoiceSettings error:", err);

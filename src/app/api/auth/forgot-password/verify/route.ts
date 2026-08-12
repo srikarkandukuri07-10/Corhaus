@@ -1,24 +1,41 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import crypto from "crypto";
+import { rateLimit } from "@/lib/rateLimit";
+
+function getServiceClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 
 export async function POST(request: Request) {
   try {
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1";
+    // Rate limit forgot password verification attempts: 5 per 15 minutes per IP
+    const { success, retryAfter } = await rateLimit(ip, "forgot_password_verify", 5, 15 * 60 * 1000);
+    if (!success) {
+      return NextResponse.json(
+        { error: `Too many verification attempts. Please try again after ${retryAfter} seconds.` },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
+      );
+    }
+
     const { email, code } = await request.json();
     if (!email || !code) {
       return NextResponse.json({ error: "Email and code are required" }, { status: 400 });
     }
 
-    const serviceClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    const normalizedEmail = email.trim().toLowerCase();
+    const serviceClient = getServiceClient();
 
     // Get the most recent active request for this email
     const { data: requestRow } = await serviceClient
       .from("forgot_login_requests")
       .select("id, code, expires_at, attempts")
-      .eq("email", email.toLowerCase().trim())
+      .eq("email", normalizedEmail)
       .eq("is_used", false)
       .gte("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false })
@@ -45,8 +62,11 @@ export async function POST(request: Request) {
       );
     }
 
+    // Hash the submitted code using SHA-256 for secure comparison
+    const hashedSubmittedCode = crypto.createHash("sha256").update(code.trim()).digest("hex");
+
     // Verify code match
-    if (requestRow.code !== code) {
+    if (requestRow.code !== hashedSubmittedCode) {
       const newAttempts = requestRow.attempts + 1;
       
       // Update attempts in DB
@@ -89,7 +109,7 @@ export async function POST(request: Request) {
 
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: "magiclink",
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
       options: { redirectTo: `${request.headers.get("origin")}/auth/forgot-callback` },
     });
 
@@ -105,4 +125,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

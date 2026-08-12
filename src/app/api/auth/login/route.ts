@@ -3,9 +3,20 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { isAdminEmail, isDeveloperEmail } from "@/lib/constants";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
   try {
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1";
+    // Rate limit login attempts: 5 per 15 minutes per IP to prevent brute force
+    const { success, retryAfter } = await rateLimit(ip, "login", 5, 15 * 60 * 1000);
+    if (!success) {
+      return NextResponse.json(
+        { error: `Too many login attempts. Please try again after ${retryAfter} seconds.` },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
+      );
+    }
+
     const { email, password } = await request.json();
     if (!email || typeof email !== "string") {
       return NextResponse.json(
@@ -33,6 +44,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // Instantiate service Client inside POST handler (H-2)
     const serviceClient = createServiceClient(url, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -52,40 +64,73 @@ export async function POST(request: Request) {
         devUser = created?.user || undefined;
       }
 
-      const tempPassword = `Corhaus_Dev_Auth_${devUser?.id || "2026"}`;
-      if (devUser) {
-        await serviceClient.auth.admin.updateUserById(devUser.id, {
-          password: tempPassword,
-          email_confirm: true,
+      if (password) {
+        const cookieStore = await cookies();
+        const cookieHeaderMap = new Map<string, { name: string; value: string; options: any }>();
+        const ssrClient = createServerClient(url, anonKey, {
+          cookies: {
+            getAll() { return cookieStore.getAll(); },
+            setAll(cookiesToSet) {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                const customizedOptions = {
+                  ...options,
+                  maxAge: 60 * 60 * 24 * 365, // 1 year cookie lifetime (C-1)
+                  secure: true,
+                  sameSite: "lax" as const,
+                  httpOnly: true,
+                };
+                cookieHeaderMap.set(name, { name, value, options: customizedOptions });
+              });
+            },
+          },
+        });
+
+        const { error: pwdErr } = await ssrClient.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
+
+        if (pwdErr) {
+          return NextResponse.json(
+            { error: "Invalid password. Please check your credentials and try again." },
+            { status: 400 }
+          );
+        }
+
+        if (devUser) {
+          await serviceClient.from("profiles").upsert(
+            { id: devUser.id, email: normalizedEmail, role: "developer", full_name: "Developer" },
+            { onConflict: "id" }
+          );
+        }
+
+        const response = NextResponse.json({ success: true, redirectUrl: "/developer/support", accountType: "developer" });
+        cookieHeaderMap.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options);
+        });
+        return response;
+      }
+
+      const hasPassword = !!(
+        devUser?.user_metadata?.has_password ||
+        devUser?.user_metadata?.password_set_at
+      );
+
+      if (!hasPassword) {
+        return NextResponse.json({
+          success: false,
+          needsStaffPasswordSetup: true,
+          accountType: "developer",
+          error: "Your developer account does not have a password set yet. Please set your password.",
+        });
+      } else {
+        return NextResponse.json({
+          success: false,
+          requiresPassword: true,
+          accountType: "developer",
+          error: "Please enter your developer account password.",
         });
       }
-
-      if (devUser) {
-        await serviceClient.from("profiles").upsert(
-          { id: devUser.id, email: normalizedEmail, role: "developer", full_name: "Developer" },
-          { onConflict: "id" }
-        );
-      }
-
-      const cookieStore = await cookies();
-      const cookieHeaderMap = new Map<string, { name: string; value: string; options: any }>();
-      const ssrClient = createServerClient(url, anonKey, {
-        cookies: {
-          getAll() { return cookieStore.getAll(); },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieHeaderMap.set(name, { name, value, options });
-            });
-          },
-        },
-      });
-
-      await ssrClient.auth.signInWithPassword({ email: normalizedEmail, password: tempPassword });
-      const response = NextResponse.json({ success: true, redirectUrl: "/developer/support", accountType: "developer" });
-      cookieHeaderMap.forEach(({ name, value, options }) => {
-        response.cookies.set(name, value, options);
-      });
-      return response;
     }
 
     // ─── 2. STAFF IDENTITY (Manager, Owner, Receptionist, Trainer, Staff) ────
@@ -108,7 +153,6 @@ export async function POST(request: Request) {
 
       const staffRole = staff?.role || (isAdminEmail(normalizedEmail) ? "Manager" : "Staff");
 
-      // Find staff user in Supabase Auth
       const { data: usersData } = await serviceClient.auth.admin.listUsers();
       let staffUser = (usersData?.users || []).find(
         (u) => u.email?.trim().toLowerCase() === normalizedEmail
@@ -120,7 +164,6 @@ export async function POST(request: Request) {
         staffUser?.user_metadata?.password_set_at
       );
 
-      // If staff member has provided a password to log in:
       if (password) {
         const cookieStore = await cookies();
         const cookieHeaderMap = new Map<string, { name: string; value: string; options: any }>();
@@ -129,7 +172,14 @@ export async function POST(request: Request) {
             getAll() { return cookieStore.getAll(); },
             setAll(cookiesToSet) {
               cookiesToSet.forEach(({ name, value, options }) => {
-                cookieHeaderMap.set(name, { name, value, options });
+                const customizedOptions = {
+                  ...options,
+                  maxAge: 60 * 60 * 24 * 365, // 1 year cookie lifetime (C-1)
+                  secure: true,
+                  sameSite: "lax" as const,
+                  httpOnly: true,
+                };
+                cookieHeaderMap.set(name, { name, value, options: customizedOptions });
               });
             },
           },
@@ -147,7 +197,6 @@ export async function POST(request: Request) {
           );
         }
 
-        // Sync profiles role
         if (staffUser) {
           await serviceClient.from("profiles").upsert(
             {
@@ -168,7 +217,6 @@ export async function POST(request: Request) {
         return response;
       }
 
-      // If password not provided: check if staff password is set or needs setup
       if (!hasPassword) {
         return NextResponse.json({
           success: false,
@@ -214,69 +262,80 @@ export async function POST(request: Request) {
       }
     }
 
-    // Member Session Provisioning
-    const tempPassword = `Corhaus_Member_Auth_${normalizedEmail}`;
     const { data: usersData } = await serviceClient.auth.admin.listUsers();
     let memberUser = (usersData?.users || []).find(
       (u) => u.email?.trim().toLowerCase() === normalizedEmail
     );
 
-    if (memberUser) {
-      await serviceClient.auth.admin.updateUserById(memberUser.id, {
-        password: tempPassword,
-        email_confirm: true,
+    if (password) {
+      const cookieStore = await cookies();
+      const cookieHeaderMap = new Map<string, { name: string; value: string; options: any }>();
+      const ssrClient = createServerClient(url, anonKey, {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              const customizedOptions = {
+                ...options,
+                maxAge: 60 * 60 * 24 * 365, // 1 year session
+                secure: true,
+                sameSite: "lax" as const,
+                httpOnly: true,
+              };
+              cookieHeaderMap.set(name, { name, value, options: customizedOptions });
+            });
+          },
+        },
       });
-    } else {
-      const { data: created } = await serviceClient.auth.admin.createUser({
+
+      const { error: pwdErr } = await ssrClient.auth.signInWithPassword({
         email: normalizedEmail,
-        password: tempPassword,
-        email_confirm: true,
+        password,
       });
-      memberUser = created?.user || undefined;
+
+      if (pwdErr) {
+        return NextResponse.json(
+          { error: "Invalid password. Please check your credentials and try again." },
+          { status: 400 }
+        );
+      }
+
+      if (memberUser) {
+        const memberFullName = member?.full_name || memberUser.user_metadata?.full_name || normalizedEmail.split("@")[0] || "Member";
+        const memberPhone = member?.phone_number || memberUser.user_metadata?.phone_number || "";
+        await serviceClient.from("profiles").upsert(
+          { id: memberUser.id, email: normalizedEmail, role: "member", full_name: memberFullName, phone_number: memberPhone },
+          { onConflict: "id" }
+        );
+      }
+
+      const response = NextResponse.json({ success: true, redirectUrl: "/member", accountType: "member" });
+      cookieHeaderMap.forEach(({ name, value, options }) => {
+        response.cookies.set(name, value, options);
+      });
+      return response;
     }
 
-    if (memberUser) {
-      const memberFullName =
-        member?.full_name ||
-        memberUser.user_metadata?.full_name ||
-        normalizedEmail.split("@")[0] ||
-        "Member";
-      const memberPhone =
-        member?.phone_number ||
-        memberUser.user_metadata?.phone_number ||
-        "";
+    const hasPassword = !!(
+      memberUser?.user_metadata?.has_password ||
+      memberUser?.user_metadata?.password_set_at
+    );
 
-      await serviceClient.from("profiles").upsert(
-        {
-          id: memberUser.id,
-          email: normalizedEmail,
-          role: "member",
-          full_name: memberFullName,
-          phone_number: memberPhone,
-        },
-        { onConflict: "id" }
-      );
+    if (!hasPassword) {
+      return NextResponse.json({
+        success: false,
+        needsStaffPasswordSetup: true,
+        accountType: "member",
+        error: "Your member account does not have a password set yet. Please set your password to secure your account.",
+      }, { status: 200 });
+    } else {
+      return NextResponse.json({
+        success: false,
+        requiresPassword: true,
+        accountType: "member",
+        error: "Please enter your account password.",
+      }, { status: 200 });
     }
-
-    const cookieStore = await cookies();
-    const cookieHeaderMap = new Map<string, { name: string; value: string; options: any }>();
-    const ssrClient = createServerClient(url, anonKey, {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieHeaderMap.set(name, { name, value, options });
-          });
-        },
-      },
-    });
-
-    await ssrClient.auth.signInWithPassword({ email: normalizedEmail, password: tempPassword });
-    const response = NextResponse.json({ success: true, redirectUrl: "/member", accountType: "member" });
-    cookieHeaderMap.forEach(({ name, value, options }) => {
-      response.cookies.set(name, value, options);
-    });
-    return response;
 
   } catch (err: any) {
     console.error("POST /api/auth/login error:", err);

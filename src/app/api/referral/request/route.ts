@@ -1,15 +1,28 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { isAdminEmail } from "@/lib/constants";
+import { rateLimit } from "@/lib/rateLimit";
 
-const serviceClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
+function getServiceClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 
 export async function POST(request: Request) {
   try {
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "127.0.0.1";
+    // Rate limit request operations: 5 requests per 15 minutes per IP
+    const { success, retryAfter } = await rateLimit(ip, "referral_request", 5, 15 * 60 * 1000);
+    if (!success) {
+      return NextResponse.json(
+        { error: `Too many requests. Please try again after ${retryAfter} seconds.` },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
+      );
+    }
+
     const { referral_code, applicant_name, applicant_email, applicant_phone } =
       await request.json();
 
@@ -32,6 +45,8 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    const serviceClient = getServiceClient();
 
     // 2. referral_code must exist in referral_codes table
     const { data: referralCode, error: codeError } = await serviceClient

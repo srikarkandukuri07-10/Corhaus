@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
+import { isAdminEmail } from "@/lib/constants";
 
 async function verifyAdmin() {
   const supabase = await createServerClient();
@@ -15,7 +16,7 @@ async function verifyAdmin() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const isAdmin = profile?.role === "admin" || user.email === process.env.ADMIN_EMAIL;
+  const isAdmin = profile?.role === "admin" || isAdminEmail(user.email);
   if (!isAdmin) {
     return { error: "Forbidden", status: 403 };
   }

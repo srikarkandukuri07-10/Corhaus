@@ -4,20 +4,28 @@ import { createClient } from "@supabase/supabase-js";
 
 async function getAdminClient() {
   const supabase = await createServerClient();
-  const { data: { user }, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !user) return { error: "Unauthorized", status: 401 };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized", status: 401 };
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (serviceKey) {
-    const serviceClient = createClient(url, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-    return { client: serviceClient, user };
+  const { getUserRolePermissions } = await import("@/lib/rbac");
+  const userPerms = await getUserRolePermissions(user);
+  if (userPerms.role === "Member" || userPerms.role === "Guest") {
+    return { error: "Forbidden", status: 403 };
   }
 
-  return { client: supabase, user };
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, full_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const serviceClient = createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  return { client: serviceClient, serviceClient, user, profile };
 }
 
 export async function PUT(

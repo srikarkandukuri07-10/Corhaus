@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     }
 
     const { classId } = await req.json();
-    console.log("[BOOK API] Received classId:", classId);
+
     if (!classId) {
       return NextResponse.json({ error: "Missing classId" }, { status: 400 });
     }
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       .select("*")
       .eq("id", classId)
       .maybeSingle();
-    console.log("[BOOK API] Class fetch result:", cls, clsError);
+
 
     if (clsError) {
       console.error("Class fetch error:", clsError);

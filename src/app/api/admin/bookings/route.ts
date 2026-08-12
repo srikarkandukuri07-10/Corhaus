@@ -49,15 +49,13 @@ export async function GET(req: Request) {
 
     const isAuthorized =
       isAdminByEmail ||
+      userPerms.role === "Owner" ||
       userPerms.role === "Manager" ||
-      userPerms.role === "Admin" ||
-      userPerms.role === "Staff" ||
-      userPerms.role === "Receptionist" ||
-      userPerms.role === "Instructor" ||
       userPerms.permissions.includes("*") ||
       userPerms.permissions.includes("classes.manage") ||
       userPerms.permissions.includes("classes.view") ||
-      userPerms.permissions.length > 0;
+      userPerms.permissions.includes("classes.bookings") ||
+      userPerms.permissions.includes("members.history");
 
     if (!isAuthorized) {
       console.warn("[ADMIN BOOKINGS] Unauthorized access attempt:", user.email);
@@ -90,7 +88,7 @@ export async function GET(req: Request) {
       classesById[c.id] = c;
     });
 
-    console.log("[ADMIN BOOKINGS] Total bookings fetched:", bookings.length);
+
 
     // 5. Fetch members and profiles for enrichment
     const [membersRes, profilesRes] = await Promise.all([

@@ -95,15 +95,11 @@ export async function GET(req: Request) {
 
     const isAuthorized =
       isAdminByEmail ||
+      userPerms.role === "Owner" ||
       userPerms.role === "Manager" ||
-      userPerms.role === "Admin" ||
-      userPerms.role === "Staff" ||
-      userPerms.role === "Receptionist" ||
-      userPerms.role === "Instructor" ||
       userPerms.permissions.includes("*") ||
       userPerms.permissions.includes("members.view") ||
-      userPerms.permissions.includes("members.manage") ||
-      userPerms.permissions.length > 0;
+      userPerms.permissions.includes("members.manage");
 
     if (!isAuthorized) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

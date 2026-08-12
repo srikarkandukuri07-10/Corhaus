@@ -17,15 +17,29 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => {
+            const customizedOptions = {
+              ...options,
+              maxAge: 60 * 60 * 24 * 365, // 1 year session lifetime
+              secure: true,
+              sameSite: "lax" as const,
+              httpOnly: true,
+            };
+            request.cookies.set({ name, value, ...customizedOptions });
+          });
           supabaseResponse = NextResponse.next({
             request,
           });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => {
+            const customizedOptions = {
+              ...options,
+              maxAge: 60 * 60 * 24 * 365, // 1 year session lifetime
+              secure: true,
+              sameSite: "lax" as const,
+              httpOnly: true,
+            };
+            supabaseResponse.cookies.set(name, value, customizedOptions);
+          });
         },
       },
     }
@@ -216,11 +230,11 @@ export async function updateSession(request: NextRequest) {
       return redirectRes;
     }
 
-    // Roles & Permissions route protection (only Manager role or ADMIN_EMAILS allowed)
+    // Roles & Permissions route protection (only Owner role or ADMIN_EMAILS allowed)
     if (pathname.startsWith("/admin/settings/roles")) {
-      const isManagerEmail = isAdminEmail(googleEmail);
-      let isManagerRole = false;
-      if (!isManagerEmail) {
+      const isOwnerEmail = isAdminEmail(googleEmail);
+      let isOwnerRole = false;
+      if (!isOwnerEmail) {
         try {
           const { data: staff } = await serviceClient
             .from("staff_members")
@@ -228,11 +242,11 @@ export async function updateSession(request: NextRequest) {
             .ilike("email", normalizedEmail)
             .limit(1)
             .maybeSingle();
-          isManagerRole = staff?.role === "Manager";
+          isOwnerRole = staff?.role === "Owner";
         } catch (_) {}
       }
-      if (!isManagerEmail && !isManagerRole) {
-        devLog("DECISION: non-manager on settings/roles -> redirect to access-denied");
+      if (!isOwnerEmail && !isOwnerRole) {
+        devLog("DECISION: non-owner on settings/roles -> redirect to access-denied");
         const url = request.nextUrl.clone();
         url.pathname = "/admin/access-denied";
         const redirectRes = NextResponse.redirect(url);
@@ -385,10 +399,10 @@ export async function updateSession(request: NextRequest) {
         .select("role")
         .eq("id", user.id)
         .maybeSingle();
-      const { isDeveloperEmail } = await import("@/lib/constants");
+      const { isDeveloperEmail, isAdminEmail } = await import("@/lib/constants");
       const target = isDeveloperEmail(user.email) || profile?.role === "developer"
         ? "/developer/support"
-        : (profile?.role === "admin" || user.email === process.env.ADMIN_EMAIL ? "/admin" : "/member");
+        : (profile?.role === "admin" || isAdminEmail(user.email) ? "/admin" : "/member");
       const url = request.nextUrl.clone();
       url.pathname = target;
       const redirectRes = NextResponse.redirect(url);

@@ -129,10 +129,21 @@ export async function POST(req: Request) {
       .eq("id", user.id)
       .maybeSingle();
 
+    let authorizedUrl = newMsg.attachment_url;
+    if (authorizedUrl) {
+      const match = authorizedUrl.match(/ticket_attachments\/.+/);
+      if (match) {
+        authorizedUrl = `/api/support/attachment?path=${match[0]}`;
+      } else if (authorizedUrl.startsWith("ticket_attachments/")) {
+        authorizedUrl = `/api/support/attachment?path=${authorizedUrl}`;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: {
         ...newMsg,
+        attachment_url: authorizedUrl,
         profiles: senderProfile || { id: user.id, full_name: user.email?.split("@")[0] || "User", email: user.email },
       },
     });

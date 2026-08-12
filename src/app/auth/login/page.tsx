@@ -43,17 +43,14 @@ export function safeErrorMessage(err: any): string {
   if (!err) return "An unexpected error occurred. Please try again.";
   if (typeof err === "string" && err.trim() !== "") return err;
 
-  // 1. Error instance message or object message
   if (typeof err?.message === "string" && err.message.trim() !== "") {
     return err.message;
   }
 
-  // 2. OAuth / Supabase error_description
   if (typeof err?.error_description === "string" && err.error_description.trim() !== "") {
     return err.error_description;
   }
 
-  // 3. Nested error properties
   if (typeof err?.error === "string" && err.error.trim() !== "") {
     return err.error;
   }
@@ -64,7 +61,6 @@ export function safeErrorMessage(err: any): string {
     return err.error.error_description;
   }
 
-  // 4. Details or msg
   if (typeof err?.details === "string" && err.details.trim() !== "") {
     return err.details;
   }
@@ -72,7 +68,6 @@ export function safeErrorMessage(err: any): string {
     return err.msg;
   }
 
-  // 5. JSON stringify fallback, filtering out empty objects/arrays
   try {
     const str = JSON.stringify(err);
     if (str && str !== "{}" && str !== "[]" && str !== "null" && str !== "undefined") {
@@ -87,7 +82,8 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [step, setStep] = useState<"email" | "password" | "setup_password">("email");
+  const [forgotCode, setForgotCode] = useState("");
+  const [step, setStep] = useState<"email" | "password" | "setup_password" | "forgot_password_request" | "forgot_password_verify">("email");
   const [staffInfo, setStaffInfo] = useState<{ role: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
@@ -142,35 +138,28 @@ function LoginForm() {
         return;
       }
 
-      if (checkData.accountType === "staff") {
-        setStaffInfo({ role: checkData.staffRole || "Staff" });
+      if (checkData.accountType === "staff" || checkData.accountType === "member" || checkData.accountType === "developer") {
+        const roleName = checkData.accountType === "staff"
+          ? (checkData.staffRole || "Staff")
+          : checkData.accountType === "developer"
+          ? "Developer"
+          : "Member";
+        
+        setStaffInfo({ role: roleName });
         if (checkData.hasPassword) {
           setStep("password");
-          setInfoMsg(`Staff Account (${checkData.staffRole || "Staff"}) — Enter your password to sign in.`);
+          setInfoMsg(`${roleName} Account — Enter your password to sign in.`);
         } else {
           setStep("setup_password");
-          setInfoMsg(`Your staff account (${checkData.staffRole || "Staff"}) does not have a password set yet. Please establish your password below.`);
+          setInfoMsg(`Your ${roleName.toLowerCase()} account does not have a password set yet. Please establish your password below.`);
         }
         setLoading(false);
         return;
       }
 
-      // Developer or Member — proceed with login session provisioning
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalizedEmail }),
-      });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok || !data?.success || !data?.redirectUrl) {
-        setError(safeErrorMessage(data?.error || data || "Sign-in failed"));
-        setLoading(false);
-        return;
-      }
-
-      window.location.href = data.redirectUrl;
+      // Fallback
+      setError("Unrecognized account type.");
+      setLoading(false);
     } catch (err: any) {
       setError(safeErrorMessage(err));
       setLoading(false);
@@ -235,7 +224,68 @@ function LoginForm() {
       const data = await res.json().catch(() => null);
 
       if (!res.ok || !data?.success || !data?.redirectUrl) {
-        setError(data?.error || "Failed to set staff password. Please try again.");
+        setError(data?.error || "Failed to set password. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      window.location.href = data.redirectUrl;
+    } catch (err: any) {
+      setError(safeErrorMessage(err));
+      setLoading(false);
+    }
+  }
+
+  async function handleRequestForgotCode(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setInfoMsg(null);
+
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        setError(data?.error || "Failed to request password reset code.");
+        setLoading(false);
+        return;
+      }
+
+      setStep("forgot_password_verify");
+      setInfoMsg("A 5-digit verification code has been generated. Please obtain the code from your administrator or notifications and enter it below.");
+      setLoading(false);
+    } catch (err: any) {
+      setError(safeErrorMessage(err));
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyForgotCode(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    if (!forgotCode || forgotCode.trim().length !== 5) {
+      setError("Please enter a valid 5-digit code.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/auth/forgot-password/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), code: forgotCode.trim() }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.redirectUrl) {
+        setError(data?.error || "Invalid code. Please try again.");
         setLoading(false);
         return;
       }
@@ -284,7 +334,15 @@ function LoginForm() {
 
         <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line">
           <h2 className="text-xl font-medium text-fg mb-6">
-            {step === "email" ? "Welcome back" : step === "password" ? `Staff Sign In (${staffInfo?.role || "Staff"})` : `First-Time Staff Setup (${staffInfo?.role || "Staff"})`}
+            {step === "email"
+              ? "Welcome back"
+              : step === "password"
+              ? `Sign In (${staffInfo?.role || "Account"})`
+              : step === "setup_password"
+              ? `First-Time Setup (${staffInfo?.role || "Account"})`
+              : step === "forgot_password_request"
+              ? "Forgot Password"
+              : "Enter Verification Code"}
           </h2>
 
           {notApprovedError && (
@@ -356,7 +414,7 @@ function LoginForm() {
                   required
                   autoFocus
                   className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
-                  placeholder="Enter staff password"
+                  placeholder="Enter your password"
                 />
               </div>
 
@@ -371,17 +429,30 @@ function LoginForm() {
                     Signing in...
                   </span>
                 ) : (
-                  "Sign in to Admin Dashboard"
+                  "Sign In"
                 )}
               </button>
 
-              <button
-                type="button"
-                onClick={() => { setStep("email"); setError(null); setInfoMsg(null); }}
-                className="w-full text-xs text-center text-fg-4 hover:text-fg font-medium pt-1"
-              >
-                &larr; Use a different email
-              </button>
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("forgot_password_request");
+                    setError(null);
+                    setInfoMsg(null);
+                  }}
+                  className="text-xs text-accent hover:text-accent-dark font-medium"
+                >
+                  Forgot password?
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setStep("email"); setError(null); setInfoMsg(null); }}
+                  className="text-xs text-fg-4 hover:text-fg font-medium"
+                >
+                  &larr; Use a different email
+                </button>
+              </div>
             </form>
           )}
 
@@ -398,7 +469,7 @@ function LoginForm() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-fg/70 mb-1.5">Set Staff Password</label>
+                <label className="block text-sm font-medium text-fg/70 mb-1.5">Set Password</label>
                 <input
                   type="password"
                   value={password}
@@ -435,7 +506,7 @@ function LoginForm() {
                     Setting password...
                   </span>
                 ) : (
-                  "Set Password & Access Admin"
+                  "Set Password & Access Portal"
                 )}
               </button>
 
@@ -445,6 +516,70 @@ function LoginForm() {
                 className="w-full text-xs text-center text-fg-4 hover:text-fg font-medium pt-1"
               >
                 &larr; Use a different email
+              </button>
+            </form>
+          )}
+
+          {step === "forgot_password_request" && (
+            <form onSubmit={handleRequestForgotCode} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-fg/70 mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  disabled
+                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/30 text-fg/60 cursor-not-allowed"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-xl bg-rail text-white font-medium hover:bg-rail/90 transition-colors disabled:opacity-50 [touch-action:manipulation]"
+              >
+                {loading ? "Requesting code..." : "Request 5-Digit Code"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setStep("password"); setError(null); setInfoMsg(null); }}
+                className="w-full text-xs text-center text-fg-4 hover:text-fg font-medium pt-1 block"
+              >
+                &larr; Back to password sign-in
+              </button>
+            </form>
+          )}
+
+          {step === "forgot_password_verify" && (
+            <form onSubmit={handleVerifyForgotCode} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-fg/70 mb-1.5">Enter 5-Digit Code</label>
+                <input
+                  type="text"
+                  maxLength={5}
+                  value={forgotCode}
+                  onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, ""))}
+                  required
+                  autoFocus
+                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg text-center text-2xl tracking-widest placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
+                  placeholder="00000"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-xl bg-rail text-white font-medium hover:bg-rail/90 transition-colors disabled:opacity-50 [touch-action:manipulation]"
+              >
+                {loading ? "Verifying..." : "Verify Code & Sign In"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setStep("forgot_password_request"); setError(null); setInfoMsg(null); }}
+                className="w-full text-xs text-center text-fg-4 hover:text-fg font-medium pt-1 block"
+              >
+                &larr; Request a new code
               </button>
             </form>
           )}

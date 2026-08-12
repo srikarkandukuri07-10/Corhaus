@@ -59,11 +59,11 @@ export default function RolesPermissionsPage() {
   }, []);
 
   useEffect(() => {
-    async function verifyManager() {
+    async function verifyOwner() {
       try {
         const res = await fetch("/api/admin/my-permissions");
         const data = await res.json();
-        if (!res.ok || data.role !== "Manager") {
+        if (!res.ok || data.role !== "Owner") {
           router.push("/admin/access-denied");
           return;
         }
@@ -72,7 +72,7 @@ export default function RolesPermissionsPage() {
         router.push("/admin/access-denied");
       }
     }
-    verifyManager();
+    verifyOwner();
   }, [router]);
 
   useEffect(() => {

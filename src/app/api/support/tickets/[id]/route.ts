@@ -93,10 +93,22 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       console.error("Fetch messages error:", msgError);
     }
 
-    const messages = (rawMessages || []).map((m: any) => ({
-      ...m,
-      profiles: profileMap[m.sender_id] || { id: m.sender_id, full_name: "User", email: "" },
-    }));
+    const messages = (rawMessages || []).map((m: any) => {
+      let authorizedUrl = m.attachment_url;
+      if (authorizedUrl) {
+        const match = authorizedUrl.match(/ticket_attachments\/.+/);
+        if (match) {
+          authorizedUrl = `/api/support/attachment?path=${match[0]}`;
+        } else if (authorizedUrl.startsWith("ticket_attachments/")) {
+          authorizedUrl = `/api/support/attachment?path=${authorizedUrl}`;
+        }
+      }
+      return {
+        ...m,
+        attachment_url: authorizedUrl,
+        profiles: profileMap[m.sender_id] || { id: m.sender_id, full_name: "User", email: "" },
+      };
+    });
 
     // 4. Mark unread messages sent by opposite party as read
     const oppositeSenderType = isDeveloper ? "client" : "developer";

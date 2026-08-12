@@ -82,7 +82,7 @@ export function usePermissions() {
 
   const hasPerm = useCallback(
     (actionKey: string) => {
-      if (role === "Manager") return true;
+      if (role === "Owner") return true;
       if (permissions.includes("*")) return true;
       return permissions.includes(actionKey);
     },

@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { usePermissions } from "@/lib/usePermissions";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -74,6 +75,7 @@ interface NavSection {
 
 export function SettingsSidebar() {
   const pathname = usePathname();
+  const { role } = usePermissions();
 
   const navSections: NavSection[] = [
     {
@@ -91,13 +93,16 @@ export function SettingsSidebar() {
         { label: "PT Settings", href: "/admin/pt" },
       ],
     },
-    {
+  ];
+
+  if (role === "Owner") {
+    navSections.push({
       title: "TEAM & ACCESS",
       items: [
         { label: "Roles & Permissions", href: "/admin/settings/roles", active: pathname.includes("roles") },
       ],
-    },
-  ];
+    });
+  }
 
   return (
     <aside className="w-64 flex-shrink-0 bg-surface rounded-2xl border border-line p-4 space-y-6">

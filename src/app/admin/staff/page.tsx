@@ -44,7 +44,7 @@ interface SummaryMetrics {
   monthlyPayroll: number;
 }
 
-const ROLES = ["Trainer", "Front Desk", "Admin", "Operations", "Manager", "Other"];
+const ROLES = ["Owner", "Manager", "Trainer", "Receptionist", "Other"];
 const LOCATIONS = ["Main Studio", "Studio Room A", "Studio Room B", "All Locations"];
 
 export default function StaffPage() {
@@ -545,9 +545,10 @@ export default function StaffPage() {
                     <td className="py-4 px-4">
                       <div className="space-y-0.5">
                         <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          staff.role === "Owner" ? "bg-red-100 text-red-800 border border-red-200" :
+                          staff.role === "Manager" ? "bg-purple-100 text-purple-800" :
                           staff.role === "Trainer" ? "bg-amber-100 text-amber-800" :
-                          staff.role === "Front Desk" ? "bg-blue-100 text-blue-800" :
-                          staff.role === "Admin" ? "bg-purple-100 text-purple-800" : "bg-gray-100 text-gray-800"
+                          staff.role === "Receptionist" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
                         }`}>
                           {staff.role}
                         </span>

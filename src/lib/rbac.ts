@@ -25,11 +25,11 @@ export async function getUserRolePermissions(userBypass?: any): Promise<UserRole
       };
     }
 
-    // 1. Super Administrator (Manager) check via admin email bypass
+    // 1. Super Administrator (Owner) check via admin email bypass
     if (isAdminEmail(user.email)) {
       return {
-        role: "Manager",
-        roleId: "manager-default",
+        role: "Owner",
+        roleId: "owner-default",
         permissions: ["*"], // '*' wildcard denotes all permissions enabled
       };
     }
@@ -137,7 +137,7 @@ export function hasPermission(permissions: string[], actionKey: string): boolean
 
 export async function verifyApiPermission(actionKey: string) {
   const { role, permissions } = await getUserRolePermissions();
-  if (role !== "Manager" && !hasPermission(permissions, actionKey)) {
+  if (role !== "Owner" && !hasPermission(permissions, actionKey)) {
     const { NextResponse } = await import("next/server");
     return {
       authorized: false,
