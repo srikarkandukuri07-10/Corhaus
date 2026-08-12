@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import Logo from "@/components/logo";
 import LogoutButton from "@/components/logout-button";
@@ -22,21 +21,9 @@ export default function AdminLayout({
   const [permissions, setPermissions] = useState<string[]>([]);
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClient();
-
   useEffect(() => {
     async function checkAuth() {
       try {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-          router.push("/auth/login");
-          return;
-        }
-
         // Determine permissions and staff role directly from RBAC API
         const permRes = await fetch("/api/admin/my-permissions");
         const permData = await permRes.json();
@@ -59,21 +46,7 @@ export default function AdminLayout({
           }
           setLoading(false);
         } else {
-          // If my-permissions check failed, check profiles table
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .maybeSingle();
-
-          if (profile?.role === "member") {
-            router.push("/member");
-            return;
-          }
-
-          setIsAdmin(true);
-          setRole(profile?.role || "Staff");
-          setLoading(false);
+          router.push("/auth/login");
         }
       } catch {
         router.push("/auth/login");
@@ -81,7 +54,7 @@ export default function AdminLayout({
     }
 
     checkAuth();
-  }, [router, supabase]);
+  }, [router]);
 
   // Listen for permission updates
   useEffect(() => {
@@ -450,7 +423,7 @@ export default function AdminLayout({
               {mobileLink("packages.view", "/admin/packages", "Packages &amp; Plans")}
               {mobileLink("expenses.view", "/admin/expenses", "Expenses")}
               {mobileLink("reports.view", "/admin/reports", "Reports &amp; Analytics")}
-              {role === "Manager"
+              {role === "Owner"
                 ? (
                   <Link href="/admin/settings/roles" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
                     Role &amp; Permissions
