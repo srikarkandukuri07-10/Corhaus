@@ -123,7 +123,7 @@ function formatSlotHour(time24: string): string {
 
 export default function AdminClassesModulePage() {
   const { hasPerm } = usePermissions();
-  const [activeTab, setActiveTab] = useState<"class_types" | "schedule" | "sessions" | "bookings">("schedule");
+  const [activeTab, setActiveTab] = useState<"class_types" | "schedule" | "sessions">("schedule");
   const [calendarView, setCalendarView] = useState<"day" | "week" | "month">("week");
   const [weekOffset, setWeekOffset] = useState(0);
   
@@ -139,14 +139,6 @@ export default function AdminClassesModulePage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  // Filters & Search
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterClass, setFilterClass] = useState("All");
-  const [filterTrainer, setFilterTrainer] = useState("All");
-  const [filterBookingStatus, setFilterBookingStatus] = useState("All");
-  const [filterAttendanceStatus, setFilterAttendanceStatus] = useState("All");
-  const [selectedDateFilter, setSelectedDateFilter] = useState("");
-
   // Modals state
   const [showCreateClassTypeModal, setShowCreateClassTypeModal] = useState(false);
   const [editingClassType, setEditingClassType] = useState<ClassType | null>(null);
@@ -157,9 +149,6 @@ export default function AdminClassesModulePage() {
   const [showAssignMemberModal, setShowAssignMemberModal] = useState(false);
   const [targetSessionForAssign, setTargetSessionForAssign] = useState<ScheduledSession | null>(null);
   const [selectedAssignMemberId, setSelectedAssignMemberId] = useState("");
-
-  const [rescheduleBookingTarget, setRescheduleBookingTarget] = useState<BookingRecord | null>(null);
-  const [targetRescheduleSessionId, setTargetRescheduleSessionId] = useState("");
 
   // Session Detail Modal State
   const [showSessionDetailModal, setShowSessionDetailModal] = useState(false);
@@ -208,7 +197,7 @@ export default function AdminClassesModulePage() {
   };
 
   // Prevent background scroll when any modal is open
-  const isAnyModalOpen = showCreateClassTypeModal || showScheduleModal || showAssignMemberModal || !!rescheduleBookingTarget || showSessionDetailModal;
+  const isAnyModalOpen = showCreateClassTypeModal || showScheduleModal || showAssignMemberModal || showSessionDetailModal;
   useEffect(() => {
     if (isAnyModalOpen) {
       document.body.style.overflow = "hidden";
@@ -768,70 +757,6 @@ export default function AdminClassesModulePage() {
     else fetchAllData();
   };
 
-  const handleRescheduleBooking = async () => {
-    if (!rescheduleBookingTarget || !targetRescheduleSessionId) return;
-
-    setActionLoading(true);
-    const { error } = await supabase.rpc("reschedule_member_class_booking", {
-      p_booking_id: rescheduleBookingTarget.id,
-      p_new_class_id: targetRescheduleSessionId,
-    });
-
-    setActionLoading(false);
-    if (error) {
-      setActionError("Failed to reschedule: " + error.message);
-    } else {
-      setActionSuccess("Booking rescheduled successfully!");
-      setRescheduleBookingTarget(null);
-      fetchAllData();
-    }
-  };
-
-  const exportBookingsToCSV = () => {
-    if (bookings.length === 0) return;
-    const headers = ["Member Name", "Email", "Phone", "Class Title", "Trainer", "Date", "Time", "Booking Status", "Attendance", "Package"];
-    const rows = filteredBookings.map((b) => [
-      b.approved_members?.full_name || "N/A",
-      b.approved_members?.email || "N/A",
-      b.approved_members?.phone_number || "N/A",
-      b.classes?.title || "N/A",
-      b.classes?.instructor || "N/A",
-      b.classes?.class_date || "N/A",
-      b.classes?.class_time || "N/A",
-      b.booking_status,
-      b.attendance_status,
-      b.member_purchased_plans?.plan_name || "Active Membership",
-    ]);
-
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.map((x) => `"${x}"`).join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Corhaus_Bookings_Report_${getTodayIstString()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const filteredBookings = useMemo(() => {
-    return bookings.filter((b) => {
-      if (filterClass !== "All" && b.classes?.title !== filterClass) return false;
-      if (filterTrainer !== "All" && b.classes?.instructor !== filterTrainer) return false;
-      if (filterBookingStatus !== "All" && b.booking_status !== filterBookingStatus) return false;
-      if (filterAttendanceStatus !== "All" && b.attendance_status !== filterAttendanceStatus) return false;
-      if (selectedDateFilter && b.classes?.class_date !== selectedDateFilter) return false;
-
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const mName = b.approved_members?.full_name?.toLowerCase() || "";
-        const mPhone = b.approved_members?.phone_number?.toLowerCase() || "";
-        const cTitle = b.classes?.title?.toLowerCase() || "";
-        return mName.includes(q) || mPhone.includes(q) || cTitle.includes(q);
-      }
-      return true;
-    });
-  }, [bookings, filterClass, filterTrainer, filterBookingStatus, filterAttendanceStatus, selectedDateFilter, searchQuery]);
-
   return (
     <div className="space-y-8 animate-fade-in font-sans pb-12">
       {/* Top Banner Header */}
@@ -953,18 +878,6 @@ export default function AdminClassesModulePage() {
         >
           <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           Sessions
-        </button>
-
-        <button
-          onClick={() => setActiveTab("bookings")}
-          className={`px-6 py-3 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap ${
-            activeTab === "bookings"
-              ? "bg-accent text-white shadow-lg shadow-accent/25"
-              : "text-fg-3 hover:text-fg hover:bg-surface"
-          }`}
-        >
-          <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-          Bookings ({bookings.filter(b => b.booking_status !== "cancelled").length})
         </button>
       </div>
 
@@ -1304,103 +1217,6 @@ export default function AdminClassesModulePage() {
         </div>
       )}
 
-      {/* ─── TAB 4: DEDICATED BOOKINGS MODULE ─────────────────────────────── */}
-      {activeTab === "bookings" && (
-        <div className="space-y-6 animate-fade-in font-sans">
-          {/* Controls & Filters Bar */}
-          <div className="bg-surface rounded-3xl border border-line p-5 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-            <div className="relative flex-1 max-w-md">
-              <input
-                type="text"
-                placeholder="Search member name or phone..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-surface-2 border border-line-2 rounded-2xl text-xs text-fg focus:outline-none focus:ring-2 focus:ring-accent/40"
-              />
-              <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-
-            <div className="flex items-center gap-3 flex-wrap">
-              <button
-                onClick={exportBookingsToCSV}
-                className="px-5 py-3 rounded-2xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-md shadow-emerald-600/20 flex items-center gap-2 transition-all"
-              >
-                📥 Export CSV / Excel
-              </button>
-            </div>
-          </div>
-
-          {/* Bookings Table */}
-          <div className="bg-surface rounded-3xl border border-line overflow-hidden shadow-xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-surface-2 border-b border-line text-fg-3 uppercase font-bold text-[10px]">
-                  <tr>
-                    <th className="py-4 px-6">Member</th>
-                    <th className="py-4 px-6">Phone</th>
-                    <th className="py-4 px-6">Class</th>
-                    <th className="py-4 px-6">Session Date &amp; Time</th>
-                    <th className="py-4 px-6">Booking Status</th>
-                    <th className="py-4 px-6">Attendance</th>
-                    <th className="py-4 px-6 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {filteredBookings.map((b) => (
-                    <tr key={b.id} className="hover:bg-surface-2/60 transition-colors">
-                      <td className="py-4 px-6 font-extrabold text-fg text-sm">
-                        {b.approved_members?.full_name || "Member"}
-                        <span className="block text-xs text-fg-4 font-medium">{b.approved_members?.email}</span>
-                      </td>
-                      <td className="py-4 px-6 font-semibold text-fg-2">{b.approved_members?.phone_number || "N/A"}</td>
-                      <td className="py-4 px-6 font-bold text-fg">{b.classes?.title || "N/A"}</td>
-                      <td className="py-4 px-6 font-semibold text-fg">{formatDate(b.classes?.class_date)} @ {formatTime(b.classes?.class_time)}</td>
-                      <td className="py-4 px-6">
-                        <select
-                          value={b.booking_status}
-                          onChange={(e) => handleUpdateBookingStatus(b.id, e.target.value)}
-                          className="p-2 rounded-xl border border-line-2 bg-surface-2 text-xs font-bold text-accent"
-                        >
-                          <option value="booked">Booked</option>
-                          <option value="confirmed">Confirmed</option>
-                          <option value="checked_in">Checked In</option>
-                          <option value="completed">Completed</option>
-                          <option value="waitlisted">Waitlisted</option>
-                          <option value="cancelled">Cancelled</option>
-                          <option value="no_show">No Show</option>
-                        </select>
-                      </td>
-                      <td className="py-4 px-6">
-                        <select
-                          value={b.attendance_status}
-                          onChange={(e) => handleUpdateAttendance(b.id, e.target.value)}
-                          className="p-2 rounded-xl border border-line-2 bg-surface-2 text-xs font-bold text-fg"
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="present">Mark Present</option>
-                          <option value="no_show">Mark No Show</option>
-                          <option value="late">Late Check-In</option>
-                        </select>
-                      </td>
-                      <td className="py-4 px-6 text-right space-x-2">
-                        <button
-                          onClick={() => setRescheduleBookingTarget(b)}
-                          className="px-4 py-2 bg-surface-2 border border-accent/30 text-accent rounded-xl text-xs font-bold hover:bg-accent/10"
-                        >
-                          Reschedule
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ─── CREATE CLASS TYPE MODAL ─────────────────────────────────────── */}
       {showCreateClassTypeModal && (
         <Modal>
@@ -1686,43 +1502,6 @@ export default function AdminClassesModulePage() {
               <button onClick={handleConfirmMemberAssignment} disabled={actionLoading || !selectedAssignMemberId} className="px-7 py-3 bg-accent text-white font-extrabold text-xs rounded-2xl hover:bg-accent-2 transition-all shadow-md shadow-accent/20">
                 {actionLoading ? "Assigning..." : "Confirm Booking"}
               </button>
-            </div>
-          </div>
-        </div>
-        </Modal>
-      )}
-
-      {/* ─── RESCHEDULE BOOKING MODAL ────────────────────────────────────── */}
-      {rescheduleBookingTarget && (
-        <Modal>
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5">
-            <div className="flex items-center justify-between border-b border-line pb-4 flex-shrink-0">
-              <h3 className="text-xl font-extrabold text-fg">Reschedule Member Booking</h3>
-              <button onClick={() => setRescheduleBookingTarget(null)} className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-base font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
-            </div>
-
-            <p className="text-xs text-fg leading-relaxed">
-              Rescheduling booking for <strong className="font-extrabold">{rescheduleBookingTarget.approved_members?.full_name}</strong> from <em>{rescheduleBookingTarget.classes?.title} ({formatDate(rescheduleBookingTarget.classes?.class_date)})</em>.
-            </p>
-
-            <div>
-              <label className="block text-xs font-bold text-fg mb-2">Target Session *</label>
-              <select
-                value={targetRescheduleSessionId}
-                onChange={(e) => setTargetRescheduleSessionId(e.target.value)}
-                className="w-full p-3.5 rounded-2xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
-              >
-                <option value="">-- Choose New Session --</option>
-                {sessions.filter((s) => s.id !== rescheduleBookingTarget.class_id && s.status !== "cancelled").map((s) => (
-                  <option key={s.id} value={s.id}>{s.title} ({formatDate(s.class_date)} @ {formatTime(s.class_time)})</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-line flex-shrink-0">
-              <button onClick={() => setRescheduleBookingTarget(null)} className="px-6 py-3 border border-line-2 rounded-2xl font-bold text-xs text-fg hover:bg-black/5 transition-all">Cancel</button>
-              <button onClick={handleRescheduleBooking} disabled={actionLoading || !targetRescheduleSessionId} className="px-7 py-3 bg-accent text-white font-extrabold text-xs rounded-2xl hover:bg-accent-2 transition-all shadow-md shadow-accent/20">Confirm Reschedule</button>
             </div>
           </div>
         </div>
