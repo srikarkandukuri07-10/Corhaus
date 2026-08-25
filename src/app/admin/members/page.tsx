@@ -285,7 +285,7 @@ function MembersPageContent() {
   const [historyEndDate, setHistoryEndDate] = useState("");
   const [historyClassFilter, setHistoryClassFilter] = useState("All");
   const [historyInstructorFilter, setHistoryInstructorFilter] = useState("All");
-  const [historyStatusFilter, setHistoryStatusFilter] = useState<"All" | "Attended" | "No Show" | "Cancelled">("All");
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<"All" | "Attended" | "No Show" | "Cancelled" | "Booked">("All");
 
   // Trial member conversion state
   const [convertTrialId, setConvertTrialId] = useState<string | null>(null);
@@ -1782,6 +1782,7 @@ function MembersPageContent() {
                   <option value="Attended">Attended</option>
                   <option value="No Show">No Show</option>
                   <option value="Cancelled">Cancelled</option>
+                  <option value="Booked">Booked (Upcoming)</option>
                 </select>
               </div>
             </div>
@@ -1837,6 +1838,8 @@ function MembersPageContent() {
                                     ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                                     : row.status === "Cancelled"
                                     ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                    : row.status === "Booked"
+                                    ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
                                     : "bg-red-500/10 text-red-500 border-red-500/20"
                                 }`}
                               >

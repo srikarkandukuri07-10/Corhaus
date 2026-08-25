@@ -11,7 +11,7 @@ interface HistoryRecord {
   time: string;
   className: string;
   instructor: string;
-  status: "Attended" | "No Show" | "Cancelled";
+  status: "Attended" | "No Show" | "Cancelled" | "Booked";
   rawBookingStatus?: string;
   rawAttendanceStatus?: string;
   checkedInAt?: string | null;
@@ -43,7 +43,7 @@ export default function MemberHistoryPage({
   const [endDate, setEndDate] = useState<string>("");
   const [classFilter, setClassFilter] = useState<string>("All");
   const [instructorFilter, setInstructorFilter] = useState<string>("All");
-  const [statusFilter, setStatusFilter] = useState<"All" | "Attended" | "No Show" | "Cancelled">("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | "Attended" | "No Show" | "Cancelled" | "Booked">("All");
 
   useEffect(() => {
     async function loadData() {
@@ -294,6 +294,7 @@ export default function MemberHistoryPage({
               <option value="Attended">Attended</option>
               <option value="No Show">No Show</option>
               <option value="Cancelled">Cancelled</option>
+              <option value="Booked">Booked (Upcoming)</option>
             </select>
           </div>
         </div>
@@ -348,6 +349,8 @@ export default function MemberHistoryPage({
                             ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                             : row.status === "Cancelled"
                             ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                            : row.status === "Booked"
+                            ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
                             : "bg-red-500/10 text-red-500 border-red-500/20"
                         }`}
                       >

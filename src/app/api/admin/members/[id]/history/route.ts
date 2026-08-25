@@ -60,20 +60,45 @@ export async function GET(
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
     }
 
-    // Resolve dual-identity memberIds: bookings may be stored under
-    // approved_members.id OR auth uid (profiles.id). Lookup auth uid by email.
+    // Resolve dual-identity memberIds and emails: bookings may be stored under
+    // approved_members.id OR auth uid (profiles.id) OR member email/phone.
     const memberIds: string[] = [memberId];
-    try {
-      const { data: profileRow } = await client
-        .from("profiles")
-        .select("id")
-        .eq("email", member.email)
-        .maybeSingle();
-      if (profileRow?.id && profileRow.id !== memberId) {
-        memberIds.push(profileRow.id);
+    const memberEmails: string[] = member.email ? [member.email.toLowerCase().trim()] : [];
+
+    if (member.email) {
+      try {
+        const { data: profileRows } = await client
+          .from("profiles")
+          .select("id, email")
+          .ilike("email", member.email.trim());
+
+        (profileRows || []).forEach((p: any) => {
+          if (p.id && !memberIds.includes(p.id)) memberIds.push(p.id);
+          if (p.email && !memberEmails.includes(p.email.toLowerCase())) memberEmails.push(p.email.toLowerCase());
+        });
+      } catch (e) {
+        console.warn("[MEMBER HISTORY] Profile email lookup failed:", e);
       }
-    } catch {
-      // ignore profile lookup failure, fallback to approved_members id only
+    }
+
+    if (member.phone_number) {
+      try {
+        const cleanPhone = member.phone_number.replace(/\D/g, "");
+        if (cleanPhone) {
+          const { data: phoneProfiles } = await client
+            .from("profiles")
+            .select("id, email, phone_number");
+
+          (phoneProfiles || []).forEach((p: any) => {
+            if (p.phone_number && p.phone_number.replace(/\D/g, "").includes(cleanPhone)) {
+              if (p.id && !memberIds.includes(p.id)) memberIds.push(p.id);
+              if (p.email && !memberEmails.includes(p.email.toLowerCase())) memberEmails.push(p.email.toLowerCase());
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("[MEMBER HISTORY] Profile phone lookup failed:", e);
+      }
     }
 
     // Query bookings with joined classes for ALL linked member ids
@@ -90,12 +115,15 @@ export async function GET(
           title,
           instructor,
           class_date,
-          class_time,
-          category
+          class_time
         )
       `)
       .in("member_id", memberIds)
       .order("created_at", { ascending: false });
+
+    if (bookingsErr) {
+      console.error("[MEMBER HISTORY] Bookings fetch error:", bookingsErr);
+    }
 
     // Query attendance records for QR scan verification (attendance.member_id is auth uid)
     const { data: attendanceData } = await client
@@ -108,7 +136,7 @@ export async function GET(
       if (a.booking_id) attendanceMap.set(a.booking_id, a);
     });
 
-    // Format history records: Date, Check-in Time, Class Name, Instructor, Attendance Status ('Attended' | 'No Show' | 'Cancelled')
+    // Format history records: Date, Check-in Time, Class Name, Instructor, Attendance Status ('Attended' | 'No Show' | 'Cancelled' | 'Booked')
     // Uses existing bookings + attendance data only (no dummy data)
     const history = (bookingsData || []).map((b: any) => {
       const cls = b.classes || {};
@@ -117,8 +145,9 @@ export async function GET(
       // Determine Attendance Status from existing data:
       // - cancelled booking_status => Cancelled (takes precedence)
       // - QR scanned / checked_in / present / completed => Attended
-      // - otherwise => No Show
-      let status: "Attended" | "No Show" | "Cancelled" = "No Show";
+      // - past class without check-in => No Show
+      // - future class without check-in => Booked
+      let status: "Attended" | "No Show" | "Cancelled" | "Booked" = "No Show";
       if (b.booking_status === "cancelled") {
         status = "Cancelled";
       } else if (
@@ -131,7 +160,15 @@ export async function GET(
       ) {
         status = "Attended";
       } else {
-        status = "No Show";
+        let isPastClass = true;
+        if (cls.class_date && cls.class_time) {
+          const iso = `${cls.class_date}T${cls.class_time}`;
+          const classStart = new Date(iso).getTime();
+          if (Date.now() < classStart) {
+            isPastClass = false;
+          }
+        }
+        status = isPastClass ? "No Show" : "Booked";
       }
 
       // Format time (shows scanned time if attended, otherwise class time)
