@@ -448,56 +448,43 @@ export default function AdminClassesModulePage() {
       is_active: true,
     };
 
-    const isMissingColumnError = (err: { code?: string; message?: string } | null) =>
-      Boolean(err && err.code === "PGRST204" && err.message?.includes("class_types") && err.message?.includes("column"));
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
 
-    const tryMinimalPayload = async (): Promise<{ error: { message: string } | null }> => {
-      const minimal: Record<string, unknown> = {
-        name: ctName.trim(),
-        description: ctDescription.trim() || null,
-      };
+      let res: Response;
       if (editingClassType) {
-        const key = (editingClassType as unknown as { id?: string })?.id ? "id" : "name";
-        const val = (editingClassType as unknown as { id?: string; name: string })[key as "id" | "name"];
-        const res = await supabase.from("class_types").update(minimal).eq(key, val as string);
-        return { error: res.error as unknown as { message: string } | null };
+        const editId = (editingClassType as unknown as { id?: string })?.id;
+        const editName = (editingClassType as unknown as { name: string }).name;
+        res = await fetch("/api/admin/class-types", {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({ id: editId, name: editName, payload }),
+        });
+      } else {
+        res = await fetch("/api/admin/class-types", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+        });
       }
-      const res = await supabase.from("class_types").insert(minimal);
-      return { error: res.error as unknown as { message: string } | null };
-    };
 
-    let error: { code?: string; message: string } | null = null;
-    if (editingClassType) {
-      const key = (editingClassType as unknown as { id?: string })?.id ? "id" : "name";
-      const val = (editingClassType as unknown as { id?: string; name: string })[key as "id" | "name"];
-      const res = await supabase.from("class_types").update(payload).eq(key, val as string);
-      error = res.error as unknown as { code?: string; message: string } | null;
-      if (isMissingColumnError(error)) {
-        const fallback = await tryMinimalPayload();
-        error = fallback.error as unknown as { code?: string; message: string } | null;
-        if (!error) {
-          console.warn("[class_types] Full schema missing — saved with minimal columns. Apply migration 042_fix_class_types_schema.sql to restore full fields.");
-        }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || `Request failed (${res.status})`);
       }
-    } else {
-      const res = await supabase.from("class_types").insert(payload);
-      error = res.error as unknown as { code?: string; message: string } | null;
-      if (isMissingColumnError(error)) {
-        const fallback = await tryMinimalPayload();
-        error = fallback.error as unknown as { code?: string; message: string } | null;
-        if (!error) {
-          console.warn("[class_types] Full schema missing — saved with minimal columns. Apply migration 042_fix_class_types_schema.sql to restore full fields.");
-        }
+      if (data.fallback) {
+        console.warn("[class_types] Saved with minimal columns (full schema not yet migrated). Apply 042_fix_class_types_schema.sql to restore full fields.");
       }
-    }
-
-    setActionLoading(false);
-    if (error) {
-      setActionError("Failed to save class type: " + error.message);
-    } else {
       setActionSuccess(editingClassType ? "Class type updated successfully!" : "Class type created successfully!");
       setShowCreateClassTypeModal(false);
       fetchAllData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save class type";
+      setActionError("Failed to save class type: " + msg);
+    } finally {
+      setActionLoading(false);
     }
   };
 
