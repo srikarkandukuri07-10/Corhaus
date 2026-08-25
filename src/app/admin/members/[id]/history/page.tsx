@@ -11,7 +11,7 @@ interface HistoryRecord {
   time: string;
   className: string;
   instructor: string;
-  status: "Attended" | "No Show";
+  status: "Attended" | "No Show" | "Cancelled";
   rawBookingStatus?: string;
   rawAttendanceStatus?: string;
   checkedInAt?: string | null;
@@ -43,7 +43,7 @@ export default function MemberHistoryPage({
   const [endDate, setEndDate] = useState<string>("");
   const [classFilter, setClassFilter] = useState<string>("All");
   const [instructorFilter, setInstructorFilter] = useState<string>("All");
-  const [statusFilter, setStatusFilter] = useState<"All" | "Attended" | "No Show">("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | "Attended" | "No Show" | "Cancelled">("All");
 
   useEffect(() => {
     async function loadData() {
@@ -122,9 +122,10 @@ export default function MemberHistoryPage({
     const total = filteredHistory.length;
     const attended = filteredHistory.filter((h) => h.status === "Attended").length;
     const noShow = filteredHistory.filter((h) => h.status === "No Show").length;
+    const cancelled = filteredHistory.filter((h) => h.status === "Cancelled").length;
     const attendanceRate = total > 0 ? Math.round((attended / total) * 100) : 0;
 
-    return { total, attended, noShow, attendanceRate };
+    return { total, attended, noShow, cancelled, attendanceRate };
   }, [filteredHistory]);
 
   const formatDateDisplay = (dStr: string) => formatDate(dStr);
@@ -171,7 +172,7 @@ export default function MemberHistoryPage({
       )}
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
           <p className="text-[11px] font-bold uppercase tracking-wider text-fg-3">Total Classes</p>
           <p className="text-2xl font-bold text-fg mt-1">{stats.total}</p>
@@ -183,6 +184,10 @@ export default function MemberHistoryPage({
         <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
           <p className="text-[11px] font-bold uppercase tracking-wider text-red-500">No Show</p>
           <p className="text-2xl font-bold text-red-500 mt-1">{stats.noShow}</p>
+        </div>
+        <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-amber-600">Cancelled</p>
+          <p className="text-2xl font-bold text-amber-600 mt-1">{stats.cancelled}</p>
         </div>
         <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
           <p className="text-[11px] font-bold uppercase tracking-wider text-gold-fg">Attendance Rate</p>
@@ -288,6 +293,7 @@ export default function MemberHistoryPage({
               <option value="All">All</option>
               <option value="Attended">Attended</option>
               <option value="No Show">No Show</option>
+              <option value="Cancelled">Cancelled</option>
             </select>
           </div>
         </div>
@@ -340,6 +346,8 @@ export default function MemberHistoryPage({
                         className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold border ${
                           row.status === "Attended"
                             ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                            : row.status === "Cancelled"
+                            ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
                             : "bg-red-500/10 text-red-500 border-red-500/20"
                         }`}
                       >

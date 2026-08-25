@@ -285,7 +285,7 @@ function MembersPageContent() {
   const [historyEndDate, setHistoryEndDate] = useState("");
   const [historyClassFilter, setHistoryClassFilter] = useState("All");
   const [historyInstructorFilter, setHistoryInstructorFilter] = useState("All");
-  const [historyStatusFilter, setHistoryStatusFilter] = useState<"All" | "Attended" | "No Show">("All");
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<"All" | "Attended" | "No Show" | "Cancelled">("All");
 
   // Trial member conversion state
   const [convertTrialId, setConvertTrialId] = useState<string | null>(null);
@@ -1781,6 +1781,7 @@ function MembersPageContent() {
                   <option value="All">All</option>
                   <option value="Attended">Attended</option>
                   <option value="No Show">No Show</option>
+                  <option value="Cancelled">Cancelled</option>
                 </select>
               </div>
             </div>
@@ -1834,6 +1835,8 @@ function MembersPageContent() {
                                 className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
                                   row.status === "Attended"
                                     ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                    : row.status === "Cancelled"
+                                    ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
                                     : "bg-red-500/10 text-red-500 border-red-500/20"
                                 }`}
                               >

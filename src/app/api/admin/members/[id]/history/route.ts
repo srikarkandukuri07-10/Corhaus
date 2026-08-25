@@ -60,7 +60,23 @@ export async function GET(
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
     }
 
-    // Query bookings with joined classes
+    // Resolve dual-identity memberIds: bookings may be stored under
+    // approved_members.id OR auth uid (profiles.id). Lookup auth uid by email.
+    const memberIds: string[] = [memberId];
+    try {
+      const { data: profileRow } = await client
+        .from("profiles")
+        .select("id")
+        .eq("email", member.email)
+        .maybeSingle();
+      if (profileRow?.id && profileRow.id !== memberId) {
+        memberIds.push(profileRow.id);
+      }
+    } catch {
+      // ignore profile lookup failure, fallback to approved_members id only
+    }
+
+    // Query bookings with joined classes for ALL linked member ids
     const { data: bookingsData, error: bookingsErr } = await client
       .from("bookings")
       .select(`
@@ -78,31 +94,34 @@ export async function GET(
           category
         )
       `)
-      .eq("member_id", memberId)
+      .in("member_id", memberIds)
       .order("created_at", { ascending: false });
 
-    // Query attendance records for QR scan verification
+    // Query attendance records for QR scan verification (attendance.member_id is auth uid)
     const { data: attendanceData } = await client
       .from("attendance")
       .select("booking_id, attendance_status, scanned_at")
-      .eq("member_id", memberId);
+      .in("member_id", memberIds);
 
     const attendanceMap = new Map<string, any>();
     (attendanceData || []).forEach((a: any) => {
       if (a.booking_id) attendanceMap.set(a.booking_id, a);
     });
 
-    // Format history records strictly according to specification:
-    // Columns: Date, Check-in Time, Class Name, Instructor, Attendance Status ('Attended' | 'No Show')
+    // Format history records: Date, Check-in Time, Class Name, Instructor, Attendance Status ('Attended' | 'No Show' | 'Cancelled')
+    // Uses existing bookings + attendance data only (no dummy data)
     const history = (bookingsData || []).map((b: any) => {
       const cls = b.classes || {};
       const attRecord = attendanceMap.get(b.id);
-      
-      // Determine Attendance Status:
-      // - If QR code was scanned OR status is checked_in / present / completed -> Attended
-      // - If newly booked or not yet checked in / no show -> No Show
-      let status: "Attended" | "No Show" = "No Show";
-      if (
+
+      // Determine Attendance Status from existing data:
+      // - cancelled booking_status => Cancelled (takes precedence)
+      // - QR scanned / checked_in / present / completed => Attended
+      // - otherwise => No Show
+      let status: "Attended" | "No Show" | "Cancelled" = "No Show";
+      if (b.booking_status === "cancelled") {
+        status = "Cancelled";
+      } else if (
         b.booking_status === "checked_in" ||
         b.booking_status === "completed" ||
         b.attendance_status === "present" ||
