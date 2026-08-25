@@ -431,7 +431,7 @@ export default function AdminClassesModulePage() {
     setActionLoading(true);
     setActionError(null);
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: ctName.trim(),
       category: ctCategory,
       description: ctDescription.trim() || null,
@@ -448,13 +448,47 @@ export default function AdminClassesModulePage() {
       is_active: true,
     };
 
-    let error;
+    const isMissingColumnError = (err: { code?: string; message?: string } | null) =>
+      Boolean(err && err.code === "PGRST204" && err.message?.includes("class_types") && err.message?.includes("column"));
+
+    const tryMinimalPayload = async (): Promise<{ error: { message: string } | null }> => {
+      const minimal: Record<string, unknown> = {
+        name: ctName.trim(),
+        description: ctDescription.trim() || null,
+      };
+      if (editingClassType) {
+        const key = (editingClassType as unknown as { id?: string })?.id ? "id" : "name";
+        const val = (editingClassType as unknown as { id?: string; name: string })[key as "id" | "name"];
+        const res = await supabase.from("class_types").update(minimal).eq(key, val as string);
+        return { error: res.error as unknown as { message: string } | null };
+      }
+      const res = await supabase.from("class_types").insert(minimal);
+      return { error: res.error as unknown as { message: string } | null };
+    };
+
+    let error: { code?: string; message: string } | null = null;
     if (editingClassType) {
-      const res = await supabase.from("class_types").update(payload).eq("id", editingClassType.id);
-      error = res.error;
+      const key = (editingClassType as unknown as { id?: string })?.id ? "id" : "name";
+      const val = (editingClassType as unknown as { id?: string; name: string })[key as "id" | "name"];
+      const res = await supabase.from("class_types").update(payload).eq(key, val as string);
+      error = res.error as unknown as { code?: string; message: string } | null;
+      if (isMissingColumnError(error)) {
+        const fallback = await tryMinimalPayload();
+        error = fallback.error as unknown as { code?: string; message: string } | null;
+        if (!error) {
+          console.warn("[class_types] Full schema missing — saved with minimal columns. Apply migration 042_fix_class_types_schema.sql to restore full fields.");
+        }
+      }
     } else {
       const res = await supabase.from("class_types").insert(payload);
-      error = res.error;
+      error = res.error as unknown as { code?: string; message: string } | null;
+      if (isMissingColumnError(error)) {
+        const fallback = await tryMinimalPayload();
+        error = fallback.error as unknown as { code?: string; message: string } | null;
+        if (!error) {
+          console.warn("[class_types] Full schema missing — saved with minimal columns. Apply migration 042_fix_class_types_schema.sql to restore full fields.");
+        }
+      }
     }
 
     setActionLoading(false);
