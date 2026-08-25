@@ -80,6 +80,9 @@ UPDATE public.class_types SET cancellation_window_hours = 4 WHERE cancellation_w
 UPDATE public.class_types SET is_active = true WHERE is_active IS NULL;
 UPDATE public.class_types SET created_at = NOW() WHERE created_at IS NULL;
 
+-- Allow description to be nullable going forward (025's definition is nullable)
+ALTER TABLE public.class_types ALTER COLUMN description DROP NOT NULL;
+
 -- 5. Ensure classes table has all columns from 023 (in case 023 was skipped)
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS end_time TIME;
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS buffer_minutes INTEGER DEFAULT 15;

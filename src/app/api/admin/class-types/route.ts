@@ -33,6 +33,10 @@ function isMissingColumnError(err: { code?: string; message?: string } | null) {
   return Boolean(err && err.code === "PGRST204" && err.message?.includes("class_types") && err.message?.includes("column"));
 }
 
+function isDescriptionNotNullError(err: { code?: string; message?: string } | null) {
+  return Boolean(err && err.message?.includes("description") && err.message?.toLowerCase().includes("not-null"));
+}
+
 export async function POST(req: Request) {
   try {
     const user = await getAuthenticatedUser(req);
@@ -62,11 +66,13 @@ export async function POST(req: Request) {
     let res = await serviceClient.from("class_types").insert(payload).select().maybeSingle();
     let error = res.error as unknown as { code?: string; message: string } | null;
 
-    if (isMissingColumnError(error)) {
+    if (isMissingColumnError(error) || isDescriptionNotNullError(error)) {
       // Fallback to minimal schema (name, description) for DBs still on 018
+      // 018 has description NOT NULL, so never send null
+      const desc = (payload.description as string)?.trim() || (payload.name as string) || "Class description";
       const minimal: Record<string, unknown> = {
         name: payload.name,
-        description: payload.description ?? null,
+        description: desc,
       };
       const fb = await serviceClient.from("class_types").insert(minimal).select().maybeSingle();
       if (fb.error) {
@@ -117,10 +123,11 @@ export async function PUT(req: Request) {
     let res = await serviceClient.from("class_types").update(payload).eq(key, val).select().maybeSingle();
     let error = res.error as unknown as { code?: string; message: string } | null;
 
-    if (isMissingColumnError(error)) {
+    if (isMissingColumnError(error) || isDescriptionNotNullError(error)) {
+      const desc = ((payload["description"] as string) || "").trim() || (payload["name"] as string) || "Class description";
       const minimal: Record<string, unknown> = {
         name: payload["name"] as string,
-        description: (payload["description"] as string) ?? null,
+        description: desc,
       };
       // If fallback payload has name change, use original key for eq, but update name via minimal
       const fb = await serviceClient.from("class_types").update(minimal).eq(key, val).select().maybeSingle();
