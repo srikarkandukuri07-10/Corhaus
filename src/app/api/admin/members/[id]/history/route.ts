@@ -136,9 +136,19 @@ export async function GET(
       if (a.booking_id) attendanceMap.set(a.booking_id, a);
     });
 
+    // Query PT sessions for this member (pt_sessions.member_id may be the
+    // approved_members.id OR the auth uid, so match against all linked ids).
+    // PT members have no class bookings — their history lives here.
+    const { data: ptSessionsData } = await client
+      .from("pt_sessions")
+      .select("id, trainer_name, session_date, session_time, status")
+      .in("member_id", memberIds)
+      .order("session_date", { ascending: false })
+      .order("session_time", { ascending: false });
+
     // Format history records: Date, Check-in Time, Class Name, Instructor, Attendance Status ('Attended' | 'No Show' | 'Cancelled' | 'Booked')
-    // Uses existing bookings + attendance data only (no dummy data)
-    const history = (bookingsData || []).map((b: any) => {
+    // Uses existing bookings + attendance + pt_sessions data only (no dummy data)
+    const bookingsHistory = (bookingsData || []).map((b: any) => {
       const cls = b.classes || {};
       const attRecord = attendanceMap.get(b.id);
 
@@ -191,6 +201,47 @@ export async function GET(
         rawAttendanceStatus: b.attendance_status,
         checkedInAt: b.checked_in_at,
       };
+    });
+
+    const ptHistory = (ptSessionsData || []).map((s: any) => {
+      // PT session statuses: 'scheduled' | 'completed' | 'no-show' | 'cancelled'
+      let status: "Attended" | "No Show" | "Cancelled" | "Booked" = "Booked";
+      if (s.status === "cancelled") {
+        status = "Cancelled";
+      } else if (s.status === "completed") {
+        status = "Attended";
+      } else if (s.status === "no-show") {
+        status = "No Show";
+      } else {
+        let isPastSession = true;
+        if (s.session_date && s.session_time) {
+          const iso = `${s.session_date}T${s.session_time}`;
+          const start = new Date(iso).getTime();
+          if (!isNaN(start) && Date.now() < start) {
+            isPastSession = false;
+          }
+        }
+        status = isPastSession ? "No Show" : "Booked";
+      }
+
+      return {
+        id: `pt-${s.id}`,
+        date: s.session_date,
+        time: s.session_time ? formatTime(s.session_time) : "N/A",
+        className: "PT Session",
+        instructor: s.trainer_name || "Trainer",
+        status,
+        rawBookingStatus: s.status,
+        rawAttendanceStatus: null,
+        checkedInAt: null,
+      };
+    });
+
+    // Merge class bookings + PT sessions, newest first
+    const history = [...bookingsHistory, ...ptHistory].sort((a, b) => {
+      const da = `${a.date || ""} ${a.time || ""}`;
+      const db = `${b.date || ""} ${b.time || ""}`;
+      return da < db ? 1 : da > db ? -1 : 0;
     });
 
     return NextResponse.json({

@@ -694,10 +694,25 @@ function MembersPageContent() {
     setSelectedReferral(null);
 
     // 1. Fetch attendance session logs
+    // attendance.member_id may store the auth uid (profiles.id) rather than
+    // the approved_members.id, so match against both.
+    const attendanceMemberIds: string[] = [member.id];
+    if (member.email) {
+      try {
+        const { data: profRows } = await supabase
+          .from("profiles")
+          .select("id")
+          .ilike("email", member.email.trim());
+        (profRows || []).forEach((p) => {
+          if (p?.id && !attendanceMemberIds.includes(p.id)) attendanceMemberIds.push(p.id);
+        });
+      } catch (_) {}
+    }
+
     const { data: logs } = await supabase
       .from("attendance")
       .select("id, scanned_at, attendance_status, classes(title)")
-      .eq("member_id", member.id)
+      .in("member_id", attendanceMemberIds)
       .order("scanned_at", { ascending: false })
       .limit(10);
 
