@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="black"/>
+  <text x="256" y="220" font-family="Cormorant Garamond, Georgia, serif" font-size="110" font-weight="400" fill="white" text-anchor="middle" letter-spacing="-2">Corhaus</text>
+  <text x="256" y="270" font-family="Georgia, serif" font-size="22" font-weight="300" fill="white" text-anchor="middle" letter-spacing="12" style="font-variant: small-caps;">pilates for everyone</text>
+</svg>
