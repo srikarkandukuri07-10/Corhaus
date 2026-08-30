@@ -288,12 +288,12 @@ export default function ConsistencyTracker({
 
       <div className="relative">
         <p className="text-xs font-medium text-fg-5 uppercase tracking-wide mb-3">Monthly Credits & Status</p>
-        <div className="overflow-x-auto pb-4 -mx-2 px-2">
+        <div className="overflow-x-auto snap-x pb-4 -mx-2 px-2">
           <div className="flex gap-2 min-w-max">
             {trackerBoxes.map((box, i) => (
               <div
                 key={box.key}
-                className={`w-9 h-9 rounded-lg cursor-pointer transition-all hover:scale-105 flex items-center justify-center ${getColorClass(box.status)}`}
+                className={`w-9 h-9 rounded-lg cursor-pointer transition-all hover:scale-105 flex items-center justify-center snap-center ${getColorClass(box.status)}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   const rect = e.currentTarget.getBoundingClientRect();

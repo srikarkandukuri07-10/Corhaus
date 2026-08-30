@@ -168,7 +168,7 @@ export default function ProfileModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-surface rounded-2xl shadow-xl max-w-md w-full p-6 animate-fade-in">
+      <div className="relative bg-surface rounded-2xl shadow-xl w-[95vw] max-w-md p-4 sm:p-6 animate-fade-in">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-medium text-fg">My Profile</h2>
           <button

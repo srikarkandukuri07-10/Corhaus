@@ -294,7 +294,7 @@ export default function BookingsPage() {
                 {upcomingBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="bg-surface rounded-2xl border border-line p-5 flex items-center justify-between"
+                    className="bg-surface rounded-2xl border border-line flex flex-col sm:flex-row sm:items-center gap-3 p-4 sm:p-5"
                   >
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -365,9 +365,9 @@ export default function BookingsPage() {
                 {cancelledBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="bg-surface rounded-2xl border border-line p-5 opacity-60"
+                    className="bg-surface rounded-2xl border border-line p-4 sm:p-5 opacity-60"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-medium text-fg line-through">
@@ -422,9 +422,9 @@ export default function BookingsPage() {
                 {pastBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="bg-surface rounded-2xl border border-line p-5 opacity-50"
+                    className="bg-surface rounded-2xl border border-line p-4 sm:p-5 opacity-50"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-medium text-fg">

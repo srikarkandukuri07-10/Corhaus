@@ -250,7 +250,7 @@ export default function DiscountsPage() {
       </div>
 
       {/* KPI Metrics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-surface border border-line rounded-3xl p-5 shadow-2xs space-y-1">
           <p className="text-[11px] font-bold text-fg-4 uppercase tracking-wider">Registered Members</p>
           <p className="text-2xl font-black text-fg">{metrics.totalMembers}</p>
@@ -329,7 +329,7 @@ export default function DiscountsPage() {
       ) : (
         <div className="bg-surface border border-line rounded-3xl shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="min-w-[700px] w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-surface-2/60 border-b border-line text-[11px] font-extrabold text-fg-4 uppercase tracking-wider">
                   <th className="py-3.5 px-5">Member Name</th>

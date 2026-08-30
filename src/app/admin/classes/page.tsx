@@ -864,7 +864,7 @@ export default function AdminClassesModulePage() {
       </div>
 
       {/* 4 INDEPENDENT TABS NAVIGATION */}
-      <div className="flex items-center gap-3 border-b border-line pb-4 overflow-x-auto">
+      <div className="flex items-center gap-3 border-b border-line pb-4 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
         <button
           onClick={() => setActiveTab("class_types")}
           className={`px-6 py-3 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap ${
@@ -1035,9 +1035,9 @@ export default function AdminClassesModulePage() {
 
           {/* ── GOOGLE CALENDAR WEEKLY TIME GRID ── */}
           <div className="bg-surface rounded-3xl border border-line shadow-md overflow-x-auto">
-            <div className="min-w-[950px]">
+            <div className="min-w-[700px] lg:min-w-[950px]">
               {/* Day Columns Header Row */}
-              <div className="grid grid-cols-[90px_repeat(7,1fr)] border-b border-line bg-surface-2 text-center sticky top-0 z-10">
+              <div className="grid grid-cols-[60px_repeat(7,1fr)] lg:grid-cols-[90px_repeat(7,1fr)] border-b border-line bg-surface-2 text-center sticky top-0 z-10">
                 <div className="p-4 text-xs font-bold text-fg-4 border-r border-line uppercase flex items-center justify-center">
                   Time
                 </div>
@@ -1069,7 +1069,7 @@ export default function AdminClassesModulePage() {
                   const slotHourPrefix = slot.substring(0, 2);
 
                   return (
-                    <div key={slot} className="grid grid-cols-[90px_repeat(7,1fr)] min-h-[95px]">
+                    <div key={slot} className="grid grid-cols-[60px_repeat(7,1fr)] lg:grid-cols-[90px_repeat(7,1fr)] min-h-[95px]">
                       {/* Left Time Column */}
                       <div className="p-2 text-xs font-bold text-fg-4 border-r border-line bg-surface-2/60 text-center flex items-center justify-center">
                         {displayTimeLabel}
@@ -1242,7 +1242,7 @@ export default function AdminClassesModulePage() {
       {showCreateClassTypeModal && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-2xl w-full p-6 flex flex-col max-h-[90vh] animate-fade-in space-y-5 overflow-y-auto">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-2xl w-full p-6 flex flex-col max-h-[85dvh] animate-fade-in space-y-5 overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-4 flex-shrink-0">
               <div>
                 <h3 className="text-2xl font-extrabold text-fg">{editingClassType ? "Edit Class Type" : "Create Master Class Type"}</h3>
@@ -1260,7 +1260,7 @@ export default function AdminClassesModulePage() {
                   <input type="text" required value={ctName} onChange={(e) => setCtName(e.target.value)} placeholder="e.g. Reformer Basic" className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-sm text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block font-bold text-fg mb-1.5">Category</label>
                     <input type="text" value={ctCategory} onChange={(e) => setCtCategory(e.target.value)} className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-sm text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none" />
@@ -1322,7 +1322,7 @@ export default function AdminClassesModulePage() {
       {showScheduleModal && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-3 sm:p-4">
-          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-3xl w-full p-5 flex flex-col animate-fade-in space-y-3.5">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-3xl w-full p-5 flex flex-col max-h-[85dvh] overflow-y-auto animate-fade-in space-y-3.5">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-line pb-2.5 flex-shrink-0">
               <div>
@@ -1334,7 +1334,7 @@ export default function AdminClassesModulePage() {
 
             {/* Form Body - Compact 2-Column Grid */}
             <form onSubmit={handleSaveScheduledSession} className="space-y-3.5 text-xs">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-3">
+              <div className="grid sm:grid-cols-2 gap-x-5 gap-y-3">
                 {/* Left Column */}
                 <div className="space-y-2.5">
                   <div>
@@ -1478,7 +1478,7 @@ export default function AdminClassesModulePage() {
       {showAssignMemberModal && targetSessionForAssign && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-7 flex flex-col max-h-[85dvh] overflow-y-auto animate-fade-in space-y-5">
             <div className="flex items-center justify-between border-b border-line pb-4 flex-shrink-0">
               <h3 className="text-xl font-extrabold text-fg">Assign Member to Session</h3>
               <button onClick={() => setShowAssignMemberModal(false)} className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-base font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
@@ -1533,7 +1533,7 @@ export default function AdminClassesModulePage() {
       {showSessionDetailModal && selectedSessionForDetail && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-2xl w-full p-7 flex flex-col animate-fade-in space-y-5 max-h-[85vh]">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-2xl w-full p-7 flex flex-col animate-fade-in space-y-5 max-h-[85dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-4 flex-shrink-0">
               <div>
                 <h3 className="text-xl font-extrabold text-fg">Class Session Details</h3>

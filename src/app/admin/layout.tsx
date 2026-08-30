@@ -379,19 +379,19 @@ export default function AdminLayout({
       </aside>
 
       {/* Mobile Top Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-rail border-b border-white/10 z-40 flex items-center justify-between px-4 text-white">
-        <div className="flex items-center gap-2">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-rail border-b border-white/10 z-40 flex items-center justify-between px-3 sm:px-4 text-white gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2 rounded-xl text-white hover:bg-rail-hover"
+            className="p-2 rounded-xl text-white hover:bg-rail-hover flex-shrink-0"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="font-bold text-sm tracking-[0.18em] text-white">CORHAUS</span>
+          <span className="font-bold text-sm tracking-[0.18em] text-white truncate">CORHAUS</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           <ThemeToggle />
           <NotificationsButton role="admin" />
           <LogoutButton />
@@ -402,7 +402,7 @@ export default function AdminLayout({
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <aside className="w-[272px] bg-rail text-white flex-col relative z-10 p-4 space-y-5 h-full overflow-y-auto shadow-2xl">
+          <aside className="w-[272px] max-w-[85vw] bg-rail text-white flex-col relative z-10 p-4 space-y-5 h-full overflow-y-auto shadow-2xl">
             <div className="flex justify-between items-center pb-4 border-b border-white/10">
               <Logo href="/admin" variant="white" size="sm" />
               <button onClick={() => setMobileOpen(false)} className="text-white font-bold text-lg" aria-label="Close navigation">×</button>
@@ -443,19 +443,19 @@ export default function AdminLayout({
       {/* ──────────────────────────────────────────────────────────── */}
       <main className="flex-1 lg:pl-[272px] flex flex-col min-h-screen pt-16 lg:pt-0">
         {/* Top Header Bar */}
-        <header className="bg-bar/90 backdrop-blur-md border-b border-line-bar px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-30">
-          <div className="relative flex-1 max-w-lg">
+        <header className="bg-bar/90 backdrop-blur-md border-b border-line-bar px-3 sm:px-6 py-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sticky top-0 z-30">
+          <div className="relative flex-1 max-w-lg min-w-0">
             <input
               type="text"
               placeholder="Search members, classes, invoices..."
-              className="admin-input w-full pl-9 pr-4 py-2 text-xs placeholder:text-fg-4 focus:ring-2 focus:ring-accent/15"
+              className="admin-input w-full pl-9 pr-4 py-2 text-xs placeholder:text-fg-4 focus:ring-2 focus:ring-accent/15 truncate"
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
             </svg>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 overflow-x-auto no-scrollbar">
             <ThemeToggle />
             {hasPerm("staff.view") ? (
               <Link

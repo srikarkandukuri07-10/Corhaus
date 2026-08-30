@@ -1056,8 +1056,8 @@ function MembersPageContent() {
             </p>
           </div>
         ) : (
-          <div className="w-full overflow-x-hidden">
-            <table className="w-full text-[11px] text-left">
+          <div className="w-full overflow-x-auto">
+            <table className="min-w-[900px] w-full text-[11px] text-left">
               <thead>
                 <tr className="bg-surface-2 border-b border-border-input text-text-secondary/60 font-semibold uppercase tracking-wider">
                   <th className="py-2.5 px-2.5">Member</th>
@@ -1095,8 +1095,8 @@ function MembersPageContent() {
                       </td>
 
                       {/* Package / Plan */}
-                      <td className="py-2.5 px-2 font-semibold text-text-primary max-w-[140px] truncate">
-                        {plan ? plan.plan_name : <span className="text-text-secondary/40 font-normal italic">No plan</span>}
+                      <td className="py-2.5 px-2 font-semibold text-text-primary max-w-[140px]">
+                        <span className="block truncate" title={plan?.plan_name || ""}>{plan ? plan.plan_name : <span className="text-text-secondary/40 font-normal italic">No plan</span>}</span>
                       </td>
 
                       {/* Category */}
@@ -1203,7 +1203,7 @@ function MembersPageContent() {
           onClick={() => setSelectedMember(null)}
         >
           <div
-            className="w-full max-w-lg bg-surface h-full shadow-2xl overflow-y-auto p-6 space-y-6 animate-slide-up"
+            className="w-[95vw] max-w-lg sm:w-full bg-surface h-full shadow-2xl overflow-y-auto p-6 space-y-6 animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -1476,7 +1476,7 @@ function MembersPageContent() {
           onClick={() => setSelectedInvoice(null)}
         >
           <div
-            className="bg-surface rounded-3xl p-6 max-w-lg w-full space-y-5 shadow-2xl border border-border-input max-h-[90vh] overflow-y-auto animate-slide-up"
+            className="bg-surface rounded-3xl p-6 max-w-lg w-full mx-4 sm:mx-auto space-y-5 shadow-2xl border border-border-input max-h-[85dvh] overflow-y-auto animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -1700,7 +1700,7 @@ function MembersPageContent() {
       {/* Member Check-in History Modal */}
       {historyMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-surface border border-line-2 rounded-2xl max-w-4xl w-full p-6 space-y-5 max-h-[90vh] flex flex-col shadow-2xl">
+          <div className="bg-surface border border-line-2 rounded-2xl max-w-4xl w-[95vw] p-4 sm:p-6 space-y-5 max-h-[90vh] flex flex-col shadow-2xl">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-line-2 pb-4">
               <div>
@@ -1888,7 +1888,7 @@ function MembersPageContent() {
       {/* ========================================================================= */}
       {showBookingHistoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-surface rounded-2xl border border-line p-6 max-w-5xl w-full max-h-[90vh] overflow-y-auto space-y-5 shadow-2xl">
+          <div className="bg-surface rounded-2xl border border-line p-6 max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto space-y-5 shadow-2xl">
             {/* Header */}
             <div className="flex items-start justify-between border-b border-line pb-4">
               <div>
@@ -2048,7 +2048,8 @@ function MembersPageContent() {
                             No booking records found for the selected criteria.
                           </div>
                         ) : (
-                          <table className="w-full text-left text-xs">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-[900px] w-full text-left text-xs">
                             <thead className="bg-surface-2 text-fg-4 uppercase font-semibold border-b border-line">
                               <tr>
                                 <th className="py-3 px-4">Member</th>
@@ -2093,6 +2094,7 @@ function MembersPageContent() {
                               ))}
                             </tbody>
                           </table>
+                          </div>
                         )}
                       </div>
                     </div>

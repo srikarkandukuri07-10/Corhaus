@@ -595,8 +595,8 @@ export default function ExpensesPage() {
             <p className="text-xs text-fg-3 mt-1">Try adjusting your filters or click Add Expense.</p>
           </div>
         ) : (
-          <div className="w-full overflow-x-hidden">
-            <table className="w-full text-[11px] text-left">
+          <div className="w-full overflow-x-auto">
+            <table className="min-w-[900px] w-full text-[11px] text-left">
               <thead>
                 <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
                   <th className="py-3 px-3">Date</th>

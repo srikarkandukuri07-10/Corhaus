@@ -411,7 +411,7 @@ export default function TrialMembersPage() {
       )}
 
       {/* KPI Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
           <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Total Trials</p>
           <p className="text-2xl font-bold text-fg mt-1">{metrics.total}</p>

@@ -755,7 +755,7 @@ export default function CreateBillPage() {
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-3">
                 {filteredItems.map((item) => (
                   <PlanItemCard
                     key={item.id}

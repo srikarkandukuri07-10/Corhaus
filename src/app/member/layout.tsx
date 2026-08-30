@@ -144,9 +144,9 @@ export default function MemberLayout({
     <div className="min-h-screen bg-canvas">
       <header className="bg-bar border-b border-line sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-8">
-              <Logo size="sm" />
+          <div className="flex items-center justify-between h-16 gap-3">
+            <div className="flex items-center gap-4 sm:gap-8 min-w-0">
+              <Logo size="sm" className="flex-shrink-0" />
               <nav className="hidden sm:flex items-center gap-1">
                 {navItems.map((item) => {
                   const isActive = item.exact
@@ -185,11 +185,11 @@ export default function MemberLayout({
                 })}
               </nav>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 min-w-0">
               <ThemeToggle />
               <NotificationsButton role="member" />
-              <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                Member
+              <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full flex items-center gap-1.5 flex-shrink-0">
+                <span className="hidden sm:inline">Member</span>
                 <button
                   onClick={() => setProfileOpen(true)}
                   className="ml-0.5 p-0.5 rounded-full hover:bg-green-500/20 transition-colors"

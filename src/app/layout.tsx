@@ -26,6 +26,12 @@ export const metadata: Metadata = {
     "Premium Pilates and wellness studio. Book your classes with ease.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 const noFlashScript = `
 (function() {
   try {
@@ -49,7 +55,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
       </head>
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col overflow-x-hidden min-w-0">
         <ThemeProvider>{children}</ThemeProvider>
         <PWAInstaller />
       </body>

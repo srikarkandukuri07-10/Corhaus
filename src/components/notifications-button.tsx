@@ -125,7 +125,7 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
   }, []);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative flex-shrink-0" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 rounded-full text-fg-3 hover:text-fg hover:bg-brand-sand/30 transition-colors relative"
@@ -140,7 +140,7 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-surface rounded-xl shadow-lg border border-line overflow-hidden z-50">
+        <div className="absolute right-0 mt-2 w-[calc(100vw-1rem)] max-w-[90vw] sm:w-80 sm:max-w-sm bg-surface rounded-xl shadow-lg border border-line overflow-hidden z-50 sm:right-0 -right-2">
           <div className="px-4 py-3 border-b border-line bg-surface-2/30 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-fg">Notifications</h3>
             {role === "admin" && notifications.length > 0 && (

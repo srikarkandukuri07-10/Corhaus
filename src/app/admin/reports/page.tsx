@@ -481,7 +481,7 @@ export default function ReportsPage() {
               </div>
 
               <div className="bg-surface rounded-2xl border border-line-2 shadow-xs overflow-hidden">
-                <div className="w-full overflow-x-hidden">
+                <div className="w-full overflow-x-auto">
                   <table className="w-full text-[11px] text-left">
                     <thead>
                       <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
@@ -534,7 +534,7 @@ export default function ReportsPage() {
           {activeTab === "memberships" && (
             <div className="space-y-4">
               <div className="bg-surface rounded-2xl border border-line-2 shadow-xs overflow-hidden">
-                <div className="w-full overflow-x-hidden">
+                <div className="w-full overflow-x-auto">
                   <table className="w-full text-[11px] text-left">
                     <thead>
                       <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
@@ -586,7 +586,7 @@ export default function ReportsPage() {
           {activeTab === "classes" && (
             <div className="space-y-4">
               <div className="bg-surface rounded-2xl border border-line-2 shadow-xs overflow-hidden">
-                <div className="w-full overflow-x-hidden">
+                <div className="w-full overflow-x-auto">
                   <table className="w-full text-[11px] text-left">
                     <thead>
                       <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
@@ -624,7 +624,7 @@ export default function ReportsPage() {
           {activeTab === "trainers" && (
             <div className="space-y-4">
               <div className="bg-surface rounded-2xl border border-line-2 shadow-xs overflow-hidden">
-                <div className="w-full overflow-x-hidden">
+                <div className="w-full overflow-x-auto">
                   <table className="w-full text-[11px] text-left">
                     <thead>
                       <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
@@ -662,7 +662,7 @@ export default function ReportsPage() {
           {activeTab === "products" && (
             <div className="space-y-4">
               <div className="bg-surface rounded-2xl border border-line-2 shadow-xs overflow-hidden">
-                <div className="w-full overflow-x-hidden">
+                <div className="w-full overflow-x-auto">
                   <table className="w-full text-[11px] text-left">
                     <thead>
                       <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
@@ -770,7 +770,7 @@ export default function ReportsPage() {
           {activeTab === "invoices" && (
             <div className="space-y-4">
               <div className="bg-surface rounded-2xl border border-line-2 shadow-xs overflow-hidden">
-                <div className="w-full overflow-x-hidden">
+                <div className="w-full overflow-x-auto">
                   <table className="w-full text-[11px] text-left">
                     <thead>
                       <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
@@ -808,7 +808,7 @@ export default function ReportsPage() {
           {activeTab === "freeze" && (
             <div className="space-y-4">
               <div className="bg-surface rounded-2xl border border-line-2 shadow-xs overflow-hidden">
-                <div className="w-full overflow-x-hidden">
+                <div className="w-full overflow-x-auto">
                   <table className="w-full text-[11px] text-left">
                     <thead>
                       <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
@@ -844,7 +844,7 @@ export default function ReportsPage() {
           {activeTab === "referrals" && (
             <div className="space-y-4">
               <div className="bg-surface rounded-2xl border border-line-2 shadow-xs overflow-hidden">
-                <div className="w-full overflow-x-hidden">
+                <div className="w-full overflow-x-auto">
                   <table className="w-full text-[11px] text-left">
                     <thead>
                       <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
@@ -884,7 +884,7 @@ export default function ReportsPage() {
           {activeTab === "discounts" && (
             <div className="space-y-4">
               <div className="bg-surface rounded-2xl border border-line-2 shadow-xs overflow-hidden">
-                <div className="w-full overflow-x-hidden">
+                <div className="w-full overflow-x-auto">
                   <table className="w-full text-[11px] text-left">
                     <thead>
                       <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
@@ -916,7 +916,7 @@ export default function ReportsPage() {
           {activeTab === "trials" && (
             <div className="space-y-4">
               <div className="bg-surface rounded-2xl border border-line-2 shadow-xs overflow-hidden">
-                <div className="w-full overflow-x-hidden">
+                <div className="w-full overflow-x-auto">
                   <table className="w-full text-[11px] text-left">
                     <thead>
                       <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
@@ -964,7 +964,7 @@ export default function ReportsPage() {
           {activeTab === "support" && (
             <div className="space-y-4">
               <div className="bg-surface rounded-2xl border border-line-2 shadow-xs overflow-hidden">
-                <div className="w-full overflow-x-hidden">
+                <div className="w-full overflow-x-auto">
                   <table className="w-full text-[11px] text-left">
                     <thead>
                       <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
