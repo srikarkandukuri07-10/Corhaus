@@ -538,7 +538,7 @@ export default function PtSchedulerPage() {
   }, [sessions, selectedTrainer]);
 
   const ptMembers = useMemo(() => {
-    return members.filter(m => m.ptPlans.some(p => p.plan_name.toLowerCase().includes("private reformer")));
+    return members.filter(m => m.ptPlans.length > 0);
   }, [members]);
 
   return (
@@ -1040,21 +1040,22 @@ export default function PtSchedulerPage() {
           <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-6 flex flex-col animate-fade-in space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-4 flex-shrink-0">
               <div>
-                <h3 className="text-xl font-extrabold text-fg">PT Members — Private Reformer</h3>
-                <p className="text-xs text-fg-3 mt-0.5">{ptMembers.length} members with active Private Reformer package</p>
+                <h3 className="text-xl font-extrabold text-fg">PT Members — All PT Packages</h3>
+                <p className="text-xs text-fg-3 mt-0.5">{ptMembers.length} members with active PT package</p>
               </div>
               <button onClick={() => setShowPtMembersModal(false)} className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-base font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
             </div>
             <div className="space-y-2">
               {ptMembers.length === 0 ? (
-                <p className="text-xs text-fg-4 text-center py-8">No PT members found with Private Reformer package.</p>
+                <p className="text-xs text-fg-4 text-center py-8">No PT members found.</p>
               ) : (
                 ptMembers.map(m => {
-                  const plan = m.ptPlans.find(p => p.plan_name.toLowerCase().includes("private reformer")) || m.ptPlans[0];
+                  const plan = m.ptPlans[0];
                   return (
                     <div key={m.id} className="flex items-center justify-between p-3 rounded-2xl border border-line bg-surface-2">
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-fg truncate">{m.full_name}</p>
+                        <p className="text-xs text-fg-3 truncate">{plan?.plan_name || "PT Package"}</p>
                         <p className="text-xs text-fg-4 truncate">{m.email} • {m.phone_number}</p>
                       </div>
                       <span className="text-xs font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-full flex-shrink-0 ml-3">
