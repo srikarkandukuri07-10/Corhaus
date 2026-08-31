@@ -96,30 +96,32 @@ export default function PackagesAndPlansPage() {
   const fetchPlans = useCallback(async () => {
     try {
       setLoading(true);
-      const [plansRes, purchasedRes] = await Promise.all([
-        supabase.from("billing_plan_items").select("*").order("sort_order", { ascending: true }),
-        supabase.from("member_purchased_plans").select("plan_name, status"),
-      ]);
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
 
-      const rawPlans = plansRes.data || [];
-      const purchased = purchasedRes.data || [];
+      const res = await fetch("/api/admin/billing-plan-items", { headers, cache: "no-store" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to fetch plans");
 
-      // Calculate active subscribers count for each plan by matching plan_name
-      const activeCounts: Record<string, number> = {};
-      purchased.forEach((p: any) => {
-        if (p.status === "active" && p.plan_name) {
-          activeCounts[p.plan_name] = (activeCounts[p.plan_name] || 0) + 1;
-        }
-      });
-
-      const enriched = rawPlans.map((item: any) => ({
-        ...item,
-        active_subscribers_count: activeCounts[item.name] || 0,
-      }));
-
-      setPlans(enriched);
+      setPlans(json.plans || []);
     } catch (err) {
       console.error("Error fetching packages & plans:", err);
+      // Fallback to direct query for backwards compat
+      try {
+        const [plansRes, purchasedRes] = await Promise.all([
+          supabase.from("billing_plan_items").select("*").order("sort_order", { ascending: true }),
+          supabase.from("member_purchased_plans").select("plan_name, status"),
+        ]);
+        const rawPlans = plansRes.data || [];
+        const purchased = purchasedRes.data || [];
+        const activeCounts: Record<string, number> = {};
+        purchased.forEach((p: any) => {
+          if (p.status === "active" && p.plan_name) activeCounts[p.plan_name] = (activeCounts[p.plan_name] || 0) + 1;
+        });
+        const enriched = rawPlans.map((item: any) => ({ ...item, active_subscribers_count: activeCounts[item.name] || 0 }));
+        setPlans(enriched);
+      } catch {}
     } finally {
       setLoading(false);
     }

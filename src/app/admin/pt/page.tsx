@@ -105,6 +105,7 @@ export default function PtSchedulerPage() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showBookModal, setShowBookModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showPtMembersModal, setShowPtMembersModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState<PtSession | null>(null);
 
   // Assign Form state
@@ -137,7 +138,7 @@ export default function PtSchedulerPage() {
   const [isPending, startTransition] = useTransition();
 
   // Scroll lock when modal is open
-  const isAnyModalOpen = showAssignModal || showBookModal || showDetailModal;
+  const isAnyModalOpen = showAssignModal || showBookModal || showDetailModal || showPtMembersModal;
   useEffect(() => {
     document.body.style.overflow = isAnyModalOpen ? "hidden" : "unset";
     return () => { document.body.style.overflow = "unset"; };
@@ -155,12 +156,18 @@ export default function PtSchedulerPage() {
       const { data: assignData } = await supabase.from("pt_assignments").select("*");
       const { data: sessData } = await supabase.from("pt_sessions").select("*").order("session_date").order("session_time");
       const { data: profilesList } = await supabase.from("profiles").select("id, email");
-      const { data: trainersData } = await supabase
+      const { data: staffData } = await supabase
         .from("staff_members")
-        .select("id, full_name, designation, specialization")
-        .eq("role", "Trainer")
+        .select("id, full_name, designation, specialization, role, employment_status")
         .eq("employment_status", "Active")
         .order("full_name");
+
+      const trainersData = (staffData || []).filter((s: any) => {
+        const role = (s.role || "").toLowerCase();
+        const desig = (s.designation || "").toLowerCase();
+        const spec = (s.specialization || "").toLowerCase();
+        return role.includes("trainer") || desig.includes("trainer") || spec.includes("trainer") || role === "trainer";
+      });
 
       // Lookup maps
       const memberMap: Record<string, any> = {};
@@ -530,6 +537,10 @@ export default function PtSchedulerPage() {
     return sessions.filter(s => s.trainer_name === selectedTrainer);
   }, [sessions, selectedTrainer]);
 
+  const ptMembers = useMemo(() => {
+    return members.filter(m => m.ptPlans.some(p => p.plan_name.toLowerCase().includes("private reformer")));
+  }, [members]);
+
   return (
     <div className="space-y-8 animate-fade-in font-sans pb-12">
       {/* Header Bar */}
@@ -542,7 +553,7 @@ export default function PtSchedulerPage() {
             Manage personal training trainer calendars, recurring assignments, and status tracking
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {/* Trainer Selector */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-fg-3 uppercase tracking-wider">Trainer:</span>
@@ -552,8 +563,16 @@ export default function PtSchedulerPage() {
               className="p-2 rounded-lg border border-line-2 bg-surface text-[11px] font-bold text-accent focus:outline-none"
             >
               {trainers.map(t => <option key={t.id} value={t.full_name}>{t.full_name}</option>)}
+              {trainers.length === 0 && <option value="" disabled>No trainers found</option>}
             </select>
           </div>
+
+          <button
+            onClick={() => setShowPtMembersModal(true)}
+            className="px-4 py-3 rounded-2xl bg-surface border border-line-2 text-fg text-xs font-bold hover:bg-hover shadow-xs"
+          >
+            PT Members ({ptMembers.length})
+          </button>
 
           <button
             onClick={() => {
@@ -1008,6 +1027,46 @@ export default function PtSchedulerPage() {
 
             <div className="flex items-center justify-end pt-3 border-t border-line">
               <button onClick={() => setShowDetailModal(false)} className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-xs text-fg hover:bg-black/5">Close</button>
+            </div>
+          </div>
+        </div>
+        </Modal>
+      )}
+
+      {/* ─── PT MEMBERS LIST MODAL ─────────────────────────────────────── */}
+      {showPtMembersModal && (
+        <Modal>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-6 flex flex-col animate-fade-in space-y-4 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-line pb-4 flex-shrink-0">
+              <div>
+                <h3 className="text-xl font-extrabold text-fg">PT Members — Private Reformer</h3>
+                <p className="text-xs text-fg-3 mt-0.5">{ptMembers.length} members with active Private Reformer package</p>
+              </div>
+              <button onClick={() => setShowPtMembersModal(false)} className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-base font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
+            </div>
+            <div className="space-y-2">
+              {ptMembers.length === 0 ? (
+                <p className="text-xs text-fg-4 text-center py-8">No PT members found with Private Reformer package.</p>
+              ) : (
+                ptMembers.map(m => {
+                  const plan = m.ptPlans.find(p => p.plan_name.toLowerCase().includes("private reformer")) || m.ptPlans[0];
+                  return (
+                    <div key={m.id} className="flex items-center justify-between p-3 rounded-2xl border border-line bg-surface-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-fg truncate">{m.full_name}</p>
+                        <p className="text-xs text-fg-4 truncate">{m.email} • {m.phone_number}</p>
+                      </div>
+                      <span className="text-xs font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-full flex-shrink-0 ml-3">
+                        {plan ? `${plan.sessions_remaining}/${plan.sessions_total}` : "—"}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            <div className="flex justify-end pt-3 border-t border-line">
+              <button onClick={() => setShowPtMembersModal(false)} className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-xs text-fg hover:bg-black/5">Close</button>
             </div>
           </div>
         </div>
