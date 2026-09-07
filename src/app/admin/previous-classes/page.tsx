@@ -62,16 +62,33 @@ export default function PreviousClasses() {
 
   const loadClasses = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("classes")
-        .select("*")
-        .order("class_date", { ascending: true })
-        .order("class_time", { ascending: true });
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
 
-      if (error) {
-        console.error("Failed to load classes:", error);
-        setLoading(false);
-        return;
+      // Try service-role API first (consistent across devices, bypasses RLS)
+      let data: any[] | null = null;
+      try {
+        const res = await fetch("/api/admin/classes/previous", { headers, cache: "no-store" });
+        if (res.ok) {
+          const json = await res.json();
+          data = json.data || [];
+        } else {
+          throw new Error("API failed");
+        }
+      } catch {
+        // Fallback to direct query
+        const { data: directData, error } = await supabase
+          .from("classes")
+          .select("*")
+          .order("class_date", { ascending: true })
+          .order("class_time", { ascending: true });
+        if (error) {
+          console.error("Failed to load classes:", error);
+          setLoading(false);
+          return;
+        }
+        data = directData;
       }
 
       if (data) {
