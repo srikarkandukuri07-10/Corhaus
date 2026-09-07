@@ -69,6 +69,10 @@ export default function TrialMembersPage() {
   const [formInstructorName, setFormInstructorName] = useState("");
   const [formInstructorId, setFormInstructorId] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [formSource, setFormSource] = useState("Website");
+  const [formInterest, setFormInterest] = useState("");
+  const [formConvertibility, setFormConvertibility] = useState("Warm");
+  const [formAssignedStaff, setFormAssignedStaff] = useState("");
 
   // Edit Modal state
   const [editingTrial, setEditingTrial] = useState<TrialMember | null>(null);
@@ -207,6 +211,10 @@ export default function TrialMembersPage() {
     setFormInstructorName("");
     setFormInstructorId("");
     setFormNotes("");
+    setFormSource("Website");
+    setFormInterest("");
+    setFormConvertibility("Warm");
+    setFormAssignedStaff("");
     setCreateError(null);
   };
 
@@ -223,6 +231,23 @@ export default function TrialMembersPage() {
     }
     if (!formPhone.trim()) {
       setCreateError("Phone Number is required.");
+      setCreateLoading(false);
+      return;
+    }
+    const cleanPhone = formPhone.replace(/\D/g, "");
+    if (cleanPhone.length !== 10) {
+      setCreateError("Phone Number must be exactly 10 digits.");
+      setCreateLoading(false);
+      return;
+    }
+    if (!formEmail.trim()) {
+      setCreateError("Email is required.");
+      setCreateLoading(false);
+      return;
+    }
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!emailRegex.test(formEmail.trim())) {
+      setCreateError("Invalid email format.");
       setCreateLoading(false);
       return;
     }
@@ -248,8 +273,8 @@ export default function TrialMembersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           full_name: formName.trim(),
-          phone_number: formPhone.trim(),
-          email: formEmail.trim() || null,
+          phone_number: cleanPhone,
+          email: formEmail.trim(),
           trial_date: formDate,
           trial_time: formTime,
           class_id: formClassId || null,
@@ -257,6 +282,11 @@ export default function TrialMembersPage() {
           instructor_id: formInstructorId || null,
           instructor_name: formInstructorName.trim(),
           notes: formNotes.trim() || null,
+          source: formSource,
+          interest: formInterest.trim() || null,
+          convertibility: formConvertibility,
+          assigned_staff_id: formAssignedStaff || null,
+          primary_location: "CorhausPilates - Main Branch",
         }),
       });
 
@@ -733,15 +763,56 @@ export default function TrialMembersPage() {
                 </div>
                 <div>
                   <label className="block font-bold text-fg-3 uppercase tracking-wider text-[10px] mb-1">
-                    Email Address (Optional)
+                    Email <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
+                    required
                     placeholder="e.g. client@example.com"
                     value={formEmail}
                     onChange={(e) => setFormEmail(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-line-2 bg-surface-2 text-fg focus:ring-1 focus:ring-accent outline-none"
                   />
+                </div>
+              </div>
+
+              {/* Source, Interest, Convertibility, Assigned Staff */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-fg-3 uppercase tracking-wider text-[10px] mb-1">
+                    Source <span className="text-red-500">*</span>
+                  </label>
+                  <select value={formSource} onChange={(e) => setFormSource(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-line-2 bg-surface-2 text-fg focus:ring-1 focus:ring-accent outline-none">
+                    <option value="Website">Website</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Walk-in">Walk-in</option>
+                    <option value="Phone">Phone</option>
+                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="Referral">Referral</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-fg-3 uppercase tracking-wider text-[10px] mb-1">Interest</label>
+                  <input type="text" placeholder="e.g. Reformer Pilates" value={formInterest} onChange={(e) => setFormInterest(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-line-2 bg-surface-2 text-fg focus:ring-1 focus:ring-accent outline-none" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-fg-3 uppercase tracking-wider text-[10px] mb-1">Convertibility</label>
+                  <select value={formConvertibility} onChange={(e) => setFormConvertibility(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-line-2 bg-surface-2 text-fg focus:ring-1 focus:ring-accent outline-none">
+                    <option value="Hot">Hot</option>
+                    <option value="Warm">Warm</option>
+                    <option value="Cold">Cold</option>
+                    <option value="Others">Others</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-fg-3 uppercase tracking-wider text-[10px] mb-1">Assigned Staff</label>
+                  <select value={formAssignedStaff} onChange={(e) => setFormAssignedStaff(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-line-2 bg-surface-2 text-fg focus:ring-1 focus:ring-accent outline-none">
+                    <option value="">Unassigned</option>
+                    {availableStaff.map((s: any) => <option key={s.id} value={s.id}>{s.full_name} ({s.designation})</option>)}
+                  </select>
                 </div>
               </div>
 

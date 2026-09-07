@@ -58,8 +58,17 @@ export async function PUT(
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
 
     if (body.full_name !== undefined) updatePayload.full_name = body.full_name;
-    if (body.phone_number !== undefined) updatePayload.phone_number = body.phone_number;
-    if (body.email !== undefined) updatePayload.email = body.email;
+    if (body.phone_number !== undefined) {
+      const cleanPhone = body.phone_number.replace(/\D/g, "");
+      if (cleanPhone.length !== 10) return NextResponse.json({ error: "Phone must be 10 digits" }, { status: 400 });
+      updatePayload.phone_number = cleanPhone;
+    }
+    if (body.email !== undefined) {
+      if (!body.email || !body.email.trim()) return NextResponse.json({ error: "Email is required" }, { status: 400 });
+      const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+      if (!emailRegex.test(body.email.trim())) return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+      updatePayload.email = body.email.trim().toLowerCase();
+    }
     if (body.trial_date !== undefined) updatePayload.trial_date = body.trial_date;
     if (body.trial_time !== undefined) updatePayload.trial_time = body.trial_time;
     if (body.class_id !== undefined) updatePayload.class_id = isValidUUID(body.class_id) ? body.class_id : null;
@@ -75,19 +84,42 @@ export async function PUT(
       updatePayload.status = body.status;
     }
     if (body.notes !== undefined) updatePayload.notes = body.notes;
+    if (body.source !== undefined) {
+      const allowed = ["Walk-in", "Phone", "Instagram", "Website", "WhatsApp", "Referral", "Other"];
+      if (allowed.includes(body.source)) updatePayload.source = body.source;
+    }
+    if (body.source_detail !== undefined) updatePayload.source_detail = body.source_detail;
+    if (body.interest !== undefined) updatePayload.interest = body.interest;
+    if (body.convertibility !== undefined) {
+      const allowed = ["Hot", "Warm", "Cold", "Others"];
+      if (allowed.includes(body.convertibility)) updatePayload.convertibility = body.convertibility;
+    }
+    if (body.assigned_staff_id !== undefined) updatePayload.assigned_staff_id = isValidUUID(body.assigned_staff_id) ? body.assigned_staff_id : null;
+    if (body.pipeline_stage !== undefined) {
+      const allowed = ["New", "Qualified", "Follow-up", "Trial Booked", "Trial Attended", "Negotiating", "Converted", "Lost"];
+      if (allowed.includes(body.pipeline_stage)) updatePayload.pipeline_stage = body.pipeline_stage;
+    }
+    if (body.primary_location !== undefined) updatePayload.primary_location = body.primary_location;
+    if (body.preferred_time !== undefined) updatePayload.preferred_time = body.preferred_time;
+    if (body.message !== undefined) updatePayload.message = body.message;
 
-    const { data, error } = await client
-      .from("trial_members")
-      .update(updatePayload)
-      .eq("id", id)
-      .select("*")
-      .single();
+    let result = await client.from("trial_members").update(updatePayload).eq("id", id).select("*").single();
+    let error = result.error;
+    if (error && error.code === "PGRST204" && error.message?.includes("column")) {
+      // Fallback for old DB - strip new columns and retry
+      const fallbackPayload: Record<string, any> = {};
+      const oldKeys = ["full_name", "phone_number", "email", "trial_date", "trial_time", "class_id", "class_name", "instructor_id", "instructor_name", "status", "notes", "updated_at"];
+      for (const k of oldKeys) if (updatePayload[k] !== undefined) fallbackPayload[k] = updatePayload[k];
+      const retry = await client.from("trial_members").update(fallbackPayload).eq("id", id).select("*").single();
+      if (retry.error) return NextResponse.json({ error: retry.error.message }, { status: 400 });
+      return NextResponse.json({ data: retry.data, success: true, fallback: true });
+    }
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ data, success: true });
+    return NextResponse.json({ data: result.data, success: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
   }

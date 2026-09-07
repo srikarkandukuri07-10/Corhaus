@@ -79,41 +79,89 @@ export async function POST(req: Request) {
       instructor_id,
       instructor_name,
       notes,
+      source,
+      source_detail,
+      interest,
+      convertibility,
+      assigned_staff_id,
+      pipeline_stage,
+      primary_location,
+      preferred_time,
+      message,
     } = body;
 
-    // Server-side validation
+    // Server-side validation - Email is REQUIRED per spec
     if (!full_name || typeof full_name !== "string" || !full_name.trim()) {
       return NextResponse.json({ error: "Full Name is required" }, { status: 400 });
     }
     if (!phone_number || typeof phone_number !== "string" || !phone_number.trim()) {
       return NextResponse.json({ error: "Phone Number is required" }, { status: 400 });
     }
-    if (!trial_date || !trial_time) {
-      return NextResponse.json({ error: "Trial Date and Time are required" }, { status: 400 });
+    // Indian phone validation - exactly 10 digits
+    const cleanPhone = phone_number.replace(/\D/g, "");
+    if (cleanPhone.length !== 10) {
+      return NextResponse.json({ error: "Phone Number must be exactly 10 digits" }, { status: 400 });
     }
+    if (!email || typeof email !== "string" || !email.trim()) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    }
+    const emailTrimmed = email.trim().toLowerCase();
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!emailRegex.test(emailTrimmed)) {
+      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+    }
+    // For trial members, trial_date/time are required, but for general leads (from /trial) we allow defaults
+    const finalTrialDate = trial_date || new Date().toISOString().split("T")[0];
+    const finalTrialTime = trial_time || preferred_time || "09:00";
     if (!class_name || !class_name.trim()) {
-      return NextResponse.json({ error: "Assigned Class is required" }, { status: 400 });
+      // For general leads, class_name can be the interest
+      if (!interest || !interest.trim()) {
+        return NextResponse.json({ error: "Assigned Class or Interest is required" }, { status: 400 });
+      }
     }
     if (!instructor_name || !instructor_name.trim()) {
-      return NextResponse.json({ error: "Assigned Instructor is required" }, { status: 400 });
+      // For general leads without instructor, use a default
+      if (!interest) {
+        return NextResponse.json({ error: "Assigned Instructor is required" }, { status: 400 });
+      }
     }
 
     const isValidUUID = (val: any) =>
       typeof val === "string" &&
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(val);
 
-    const newRecord = {
+    // Source validation - only allow valid sources
+    const allowedSources = ["Walk-in", "Phone", "Instagram", "Website", "WhatsApp", "Referral", "Other"];
+    const finalSource = allowedSources.includes(source) ? source : "Website";
+    const finalSourceDetail = source_detail ? source_detail.trim() : null;
+
+    const allowedConvertibility = ["Hot", "Warm", "Cold", "Others"];
+    const finalConvertibility = allowedConvertibility.includes(convertibility) ? convertibility : "Warm";
+
+    const allowedPipeline = ["New", "Qualified", "Follow-up", "Trial Booked", "Trial Attended", "Negotiating", "Converted", "Lost"];
+    const finalPipelineStage = allowedPipeline.includes(pipeline_stage) ? pipeline_stage : "New";
+
+    const newRecord: Record<string, unknown> = {
       full_name: full_name.trim(),
-      phone_number: phone_number.trim(),
-      email: email ? email.trim() : null,
-      trial_date,
-      trial_time,
+      phone_number: cleanPhone,
+      email: emailTrimmed,
+      trial_date: finalTrialDate,
+      trial_time: finalTrialTime,
       class_id: isValidUUID(class_id) ? class_id : null,
-      class_name: class_name.trim(),
+      class_name: (class_name || interest || "General Enquiry").trim(),
       instructor_id: isValidUUID(instructor_id) ? instructor_id : null,
-      instructor_name: instructor_name.trim(),
-      notes: notes ? notes.trim() : null,
+      instructor_name: (instructor_name || "Staff").trim(),
+      notes: notes ? notes.trim() : (message ? message.trim() : null),
       status: "Scheduled",
+      source: finalSource,
+      source_detail: finalSourceDetail,
+      interest: interest ? interest.trim() : null,
+      convertibility: finalConvertibility,
+      assigned_staff_id: isValidUUID(assigned_staff_id) ? assigned_staff_id : null,
+      pipeline_stage: finalPipelineStage,
+      primary_location: primary_location || "CorhausPilates - Main Branch",
+      preferred_time: preferred_time || null,
+      message: message ? message.trim() : null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -126,6 +174,27 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
+      // Fallback for DBs that haven't run 043 migration yet - retry with minimal old columns
+      if (error.code === "PGRST204" && error.message?.includes("column")) {
+        const minimalRecord: Record<string, unknown> = {
+          full_name: newRecord.full_name,
+          phone_number: newRecord.phone_number,
+          email: newRecord.email,
+          trial_date: newRecord.trial_date,
+          trial_time: newRecord.trial_time,
+          class_id: newRecord.class_id,
+          class_name: newRecord.class_name,
+          instructor_id: newRecord.instructor_id,
+          instructor_name: newRecord.instructor_name,
+          notes: newRecord.notes,
+          status: newRecord.status,
+          created_at: newRecord.created_at,
+          updated_at: newRecord.updated_at,
+        };
+        const retry = await client.from("trial_members").insert(minimalRecord).select("*").single();
+        if (retry.error) return NextResponse.json({ error: retry.error.message }, { status: 400 });
+        return NextResponse.json({ data: retry.data, success: true, fallback: true });
+      }
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
