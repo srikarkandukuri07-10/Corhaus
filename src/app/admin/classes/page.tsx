@@ -245,11 +245,41 @@ export default function AdminClassesModulePage() {
         setLoading(true);
       }
 
-      const { data: ctData } = await supabase.from("class_types").select("*").order("name");
-      const { data: sessData } = await supabase.from("classes").select("*").order("class_date", { ascending: true }).order("class_time", { ascending: true });
-      const { data: memData } = await supabase.from("approved_members").select("id, full_name, email, phone_number").order("full_name");
-      const { data: plansData } = await supabase.from("member_purchased_plans").select("id, approved_member_id, plan_name, category, sessions_remaining, sessions_total, valid_until, status");
-      const { data: profilesList } = await supabase.from("profiles").select("id, email");
+      // Try service-role API first (consistent, bypasses RLS)
+      let ctData: any[] | null = null;
+      let sessData: any[] | null = null;
+      let memData: any[] | null = null;
+      let plansData: any[] | null = null;
+      let profilesList: any[] | null = null;
+      let apiSucceeded = false;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = {};
+        if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+        const apiRes = await fetch("/api/admin/classes/data", { headers, cache: "no-store" });
+        if (apiRes.ok) {
+          const json = await apiRes.json();
+          ctData = json.classTypes;
+          sessData = json.sessions;
+          memData = json.members;
+          plansData = json.plans;
+          profilesList = json.profiles;
+          apiSucceeded = true;
+        }
+      } catch {}
+
+      if (!apiSucceeded) {
+        const ctRes = await supabase.from("class_types").select("*").order("name");
+        const sessRes = await supabase.from("classes").select("*").order("class_date", { ascending: true }).order("class_time", { ascending: true });
+        const memRes = await supabase.from("approved_members").select("id, full_name, email, phone_number").order("full_name");
+        const plansRes = await supabase.from("member_purchased_plans").select("id, approved_member_id, plan_name, category, sessions_remaining, sessions_total, valid_until, status");
+        const profRes = await supabase.from("profiles").select("id, email");
+        ctData = ctRes.data;
+        sessData = sessRes.data;
+        memData = memRes.data;
+        plansData = plansRes.data;
+        profilesList = profRes.data;
+      }
 
       // Build member lookup maps (used in both API-path and fallback-path)
       const memberById: Record<string, any> = {};
