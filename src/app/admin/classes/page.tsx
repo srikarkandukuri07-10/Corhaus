@@ -421,6 +421,31 @@ export default function AdminClassesModulePage() {
     setShowCreateClassTypeModal(true);
   };
 
+  const handleDeleteClassType = async (ct: ClassType) => {
+    if (!confirm(`Delete template "${ct.name}"? This cannot be undone.`)) return;
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+      const params = new URLSearchParams();
+      const ctId = (ct as unknown as { id?: string }).id;
+      if (ctId) params.set("id", ctId);
+      params.set("name", ct.name);
+      const res = await fetch(`/api/admin/class-types?${params.toString()}`, { method: "DELETE", headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to delete");
+      setActionSuccess(`Template "${ct.name}" deleted.`);
+      fetchAllData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete";
+      setActionError("Failed to delete template: " + msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleSaveClassType = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ctName.trim() || !ctTrainer.trim() || ctCapacity <= 0 || ctDuration <= 0) {
@@ -926,9 +951,20 @@ export default function AdminClassesModulePage() {
                       </span>
                       <h3 className="text-xl font-extrabold text-fg leading-tight">{ct.name}</h3>
                     </div>
-                    <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 flex-shrink-0">
-                      {ct.difficulty}
-                    </span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">
+                        {ct.difficulty}
+                      </span>
+                      {hasPerm("classes.delete") && (
+                        <button
+                          onClick={() => handleDeleteClassType(ct)}
+                          title="Delete template"
+                          className="w-8 h-8 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 flex items-center justify-center transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {ct.description && <p className="text-xs text-fg-3 mt-3 leading-relaxed line-clamp-2">{ct.description}</p>}
                 </div>

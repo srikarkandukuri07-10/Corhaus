@@ -152,3 +152,54 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const user = await getAuthenticatedUser(req);
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("classes.delete");
+    if (!check.authorized) {
+      const { getUserRolePermissions } = await import("@/lib/rbac");
+      const perms = await getUserRolePermissions(user);
+      const byEmail = process.env.ADMIN_EMAIL && user.email?.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase();
+      const ok = Boolean(byEmail || perms.role === "Owner" || perms.role === "Manager" || perms.permissions.includes("*") || perms.permissions.includes("classes.delete") || perms.permissions.includes("classes.create") || perms.permissions.includes("classes.manage"));
+      if (!ok) return check.response!;
+    }
+
+    const { searchParams } = new URL(req.url);
+    let id = searchParams.get("id");
+    let name = searchParams.get("name");
+    // Also support JSON body
+    if (!id && !name) {
+      try {
+        const body = await req.json();
+        id = body.id || null;
+        name = body.name || null;
+      } catch {}
+    }
+    if (!id && !name) return NextResponse.json({ error: "Missing id or name" }, { status: 400 });
+
+    const serviceClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } });
+
+    // Try by id first if provided, fallback to name if id column missing
+    let res;
+    if (id) {
+      res = await serviceClient.from("class_types").delete().eq("id", id);
+      if (res.error && res.error.message?.includes("column") && res.error.message?.includes("id") && name) {
+        res = await serviceClient.from("class_types").delete().eq("name", name);
+      } else if (res.error && res.error.code === "PGRST204" && name) {
+        res = await serviceClient.from("class_types").delete().eq("name", name);
+      }
+    } else if (name) {
+      res = await serviceClient.from("class_types").delete().eq("name", name);
+    }
+
+    if (res!.error) return NextResponse.json({ error: res!.error.message }, { status: 400 });
+    return NextResponse.json({ success: true });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Internal server error";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
