@@ -81,7 +81,7 @@ export default function AdminDashboard() {
       setLoading(true);
       const todayStr = getTodayIstString();
 
-      // 1. Fetch Classes
+      // 1. Fetch Classes (for schedule)
       const { data: classData, error: classError } = await supabase
         .from("classes")
         .select("*")
@@ -100,62 +100,65 @@ export default function AdminDashboard() {
         todayCount = upcomingClasses.length;
       }
 
-      // 2. Fetch Booking Counts for all active classes
-      const { data: allBookings } = await supabase
-        .from("bookings")
-        .select("class_id")
-        .not("booking_status", "eq", "cancelled");
-
-      const bMap: Record<string, number> = {};
-      if (allBookings) {
-        allBookings.forEach((b) => {
-          bMap[b.class_id] = (bMap[b.class_id] || 0) + 1;
-        });
-      }
-
-      // 3. Fetch Total Members
-      const { count: membersCount } = await supabase
-        .from("approved_members")
-        .select("*", { count: "exact", head: true });
-
-      // 4. Fetch This Month's Revenue from all Paid Invoices
-      const istNow = new Date(new Date().getTime() + IST_OFFSET_MS - (-new Date().getTimezoneOffset() * 60 * 1000));
-      const firstOfMonthIso = `${istNow.getFullYear()}-${String(istNow.getMonth() + 1).padStart(2, "0")}-01T00:00:00.000+05:30`;
-
-      const { data: monthlyInvoices } = await supabase
-        .from("invoices")
-        .select("amount_paid, grand_total, payment_status, created_at")
-        .gte("created_at", firstOfMonthIso);
-
+      // 2-5. Fetch KPIs via service-role API (bypasses RLS, consistent across devices)
+      let membersCount = 0;
       let revTotal = 0;
-      if (monthlyInvoices) {
-        revTotal = monthlyInvoices.reduce((sum, inv) => {
-          const status = (inv.payment_status || "").toLowerCase();
-          if (status === "paid" || status === "completed") {
-            const paid = inv.amount_paid !== null && inv.amount_paid !== undefined && Number(inv.amount_paid) > 0
-              ? Number(inv.amount_paid)
-              : Number(inv.grand_total || 0);
-            return sum + paid;
-          }
-          return sum;
-        }, 0);
+      let checkInsCount = 0;
+      let bMap: Record<string, number> = {};
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = {};
+        if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+        const res = await fetch("/api/admin/dashboard", { headers, cache: "no-store" });
+        if (res.ok) {
+          const json = await res.json();
+          membersCount = json.totalMembers ?? 0;
+          revTotal = json.monthlyRevenue ?? 0;
+          checkInsCount = json.checkInsToday ?? 0;
+          todayCount = json.todaysClasses ?? todayCount;
+        } else {
+          throw new Error("dashboard API failed");
+        }
+      } catch {
+        // Fallback to direct queries if API fails
+        const { data: allBookings } = await supabase.from("bookings").select("class_id").not("booking_status", "eq", "cancelled");
+        if (allBookings) {
+          allBookings.forEach((b) => { bMap[b.class_id] = (bMap[b.class_id] || 0) + 1; });
+        }
+        const { count } = await supabase.from("approved_members").select("*", { count: "exact", head: true });
+        membersCount = count || 0;
+        const istNow = new Date(new Date().getTime() + IST_OFFSET_MS - (-new Date().getTimezoneOffset() * 60 * 1000));
+        const firstOfMonthIso = `${istNow.getFullYear()}-${String(istNow.getMonth() + 1).padStart(2, "0")}-01T00:00:00.000+05:30`;
+        const { data: monthlyInvoices } = await supabase.from("invoices").select("amount_paid, grand_total, payment_status, created_at").gte("created_at", firstOfMonthIso);
+        if (monthlyInvoices) {
+          revTotal = monthlyInvoices.reduce((sum, inv) => {
+            const status = (inv.payment_status || "").toLowerCase();
+            if (status === "paid" || status === "completed") {
+              const paid = inv.amount_paid != null && Number(inv.amount_paid) > 0 ? Number(inv.amount_paid) : Number(inv.grand_total || 0);
+              return sum + paid;
+            }
+            return sum;
+          }, 0);
+        }
+        const { data: checkInsData } = await supabase.from("attendance").select("id, attendance_status, scanned_at, created_at");
+        if (checkInsData) {
+          checkInsCount = checkInsData.filter((a: any) => {
+            const status = (a.attendance_status || "").toLowerCase();
+            const isAttended = status === "attended" || status === "present";
+            if (!isAttended) return false;
+            const dt = a.scanned_at || a.created_at;
+            if (!dt) return false;
+            return dt.startsWith(todayStr);
+          }).length;
+        }
       }
 
-      // 5. Fetch Check-ins Today
-      const { data: checkInsData } = await supabase
-        .from("attendance")
-        .select("id, attendance_status, scanned_at, created_at");
-
-      let checkInsCount = 0;
-      if (checkInsData) {
-        checkInsCount = checkInsData.filter((a: any) => {
-          const status = (a.attendance_status || "").toLowerCase();
-          const isAttended = status === "attended" || status === "present";
-          if (!isAttended) return false;
-          const dt = a.scanned_at || a.created_at;
-          if (!dt) return false;
-          return dt.startsWith(todayStr);
-        }).length;
+      // Still need bMap for schedule (from bookings) - fetch it separately if not from API
+      if (Object.keys(bMap).length === 0) {
+        const { data: allBookings } = await supabase.from("bookings").select("class_id").not("booking_status", "eq", "cancelled");
+        if (allBookings) {
+          allBookings.forEach((b) => { bMap[b.class_id] = (bMap[b.class_id] || 0) + 1; });
+        }
       }
 
       startTransition(() => {
