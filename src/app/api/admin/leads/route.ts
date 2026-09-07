@@ -23,7 +23,13 @@ export async function GET() {
     const auth = await getAdminClient();
     if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
     const { data, error } = await auth.client.from("leads").select("*").order("created_at", { ascending: false });
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error) {
+      // Graceful handling for DBs where migration hasn't run yet
+      if (error.code === "42P01" || error.message?.includes("leads") || error.code === "PGRST204") {
+        return NextResponse.json({ data: [], error: "Leads table not yet migrated. Please run 044_create_leads_table.sql in Supabase SQL Editor.", needsMigration: true });
+      }
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     return NextResponse.json({ data: data || [] });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
@@ -69,7 +75,12 @@ export async function POST(req: Request) {
     };
 
     const { data, error } = await auth.client.from("leads").insert(record).select("*").single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error) {
+      if (error.code === "42P01" || error.code === "PGRST204" || error.message?.includes("leads")) {
+        return NextResponse.json({ error: "Leads table not yet migrated. Please run 044_create_leads_table.sql in Supabase SQL Editor. Meanwhile, use Trial Members.", needsMigration: true }, { status: 503 });
+      }
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     return NextResponse.json({ data, success: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
