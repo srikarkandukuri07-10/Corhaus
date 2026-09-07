@@ -115,24 +115,24 @@ function TrialForm() {
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">Full Name <span className="text-red-500">*</span></label>
-              <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Ananya Sharma" className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none text-sm" />
+              <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Ananya Sharma" className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none text-sm text-gray-900 placeholder:text-gray-400" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">Phone Number <span className="text-red-500">*</span></label>
-                <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="9876543210" maxLength={10} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none text-sm" />
+                <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="9876543210" maxLength={10} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none text-sm text-gray-900 placeholder:text-gray-400" />
                 <p className="text-[10px] text-gray-400 mt-1">10 digits, Indian number</p>
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">Email <span className="text-red-500">*</span></label>
-                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none text-sm" />
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none text-sm text-gray-900 placeholder:text-gray-400" />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">Interest <span className="text-red-500">*</span></label>
-              <select required value={interest} onChange={(e) => setInterest(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none text-sm bg-white">
+              <select required value={interest} onChange={(e) => setInterest(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none text-sm text-gray-900 placeholder:text-gray-400 bg-white">
                 <option value="">Select your interest</option>
                 <option value="Reformer Pilates">Reformer Pilates</option>
                 <option value="Mat Pilates">Mat Pilates</option>
@@ -145,7 +145,7 @@ function TrialForm() {
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">Preferred Time <span className="text-gray-400 font-normal">(Optional)</span></label>
-              <input type="text" value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)} placeholder="e.g. Weekday mornings, 7-9 AM" className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none text-sm" />
+              <input type="text" value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)} placeholder="e.g. Weekday mornings, 7-9 AM" className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none text-sm text-gray-900 placeholder:text-gray-400" />
             </div>
 
             <div>
