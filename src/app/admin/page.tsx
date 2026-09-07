@@ -81,12 +81,25 @@ export default function AdminDashboard() {
       setLoading(true);
       const todayStr = getTodayIstString();
 
-      // 1. Fetch Classes (for schedule)
-      const { data: classData, error: classError } = await supabase
-        .from("classes")
-        .select("*")
-        .order("class_date", { ascending: true })
-        .order("class_time", { ascending: true });
+      // 1. Fetch Classes (for schedule) - try service-role API first for consistency
+      let classData: any[] | null = null;
+      let classError: any = null;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = {};
+        if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+        const apiRes = await fetch("/api/admin/classes/data", { headers, cache: "no-store" });
+        if (apiRes.ok) {
+          const json = await apiRes.json();
+          classData = json.sessions || json.data || [];
+        } else {
+          throw new Error("API failed");
+        }
+      } catch {
+        const res = await supabase.from("classes").select("*").order("class_date", { ascending: true }).order("class_time", { ascending: true });
+        classData = res.data;
+        classError = res.error;
+      }
 
       if (classError) {
         console.error("Failed to load classes:", classError);
