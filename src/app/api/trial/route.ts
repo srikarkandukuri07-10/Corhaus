@@ -38,42 +38,37 @@ export async function POST(req: Request) {
       full_name: full_name.trim(),
       phone_number: cleanPhone,
       email: emailTrimmed,
-      trial_date: new Date().toISOString().split("T")[0],
-      trial_time: "09:00",
-      class_name: interest.trim(),
-      instructor_name: "Staff",
-      notes: message ? message.trim() : null,
-      status: "Scheduled",
       source: finalSource,
+      primary_location: "CorhausPilates - Main Branch",
       interest: interest.trim(),
       convertibility: "Warm",
       pipeline_stage: "New",
-      primary_location: "CorhausPilates - Main Branch",
       preferred_time: preferred_time || null,
       message: message ? message.trim() : null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      notes: message ? message.trim() : null,
     };
 
-    let result = await serviceClient.from("trial_members").insert(newRecord).select("*").single();
+    let result = await serviceClient.from("leads").insert(newRecord).select("*").single();
 
     if (result.error) {
-      if (result.error.code === "PGRST204" && result.error.message?.includes("column")) {
-        // Fallback for DB without new columns
-        const minimal: Record<string, unknown> = {
-          full_name: newRecord.full_name,
-          phone_number: newRecord.phone_number,
-          email: newRecord.email,
-          trial_date: newRecord.trial_date,
-          trial_time: newRecord.trial_time,
-          class_name: newRecord.class_name,
-          instructor_name: newRecord.instructor_name,
-          notes: newRecord.notes,
-          status: newRecord.status,
-          created_at: newRecord.created_at,
-          updated_at: newRecord.updated_at,
+      // Fallback for old DB without leads table - try trial_members
+      if (result.error.message?.includes("leads") || result.error.code === "PGRST204" || result.error.code === "42P01") {
+        const trialFallback: Record<string, unknown> = {
+          full_name: full_name.trim(),
+          phone_number: cleanPhone,
+          email: emailTrimmed,
+          trial_date: new Date().toISOString().split("T")[0],
+          trial_time: "09:00",
+          class_name: interest.trim(),
+          instructor_name: "Staff",
+          notes: message ? message.trim() : null,
+          status: "Scheduled",
+          source: finalSource,
+          interest: interest.trim(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         };
-        const retry = await serviceClient.from("trial_members").insert(minimal).select("*").single();
+        const retry = await serviceClient.from("trial_members").insert(trialFallback).select("*").single();
         if (retry.error) return NextResponse.json({ error: retry.error.message }, { status: 400 });
         return NextResponse.json({ success: true, data: retry.data, fallback: true });
       }

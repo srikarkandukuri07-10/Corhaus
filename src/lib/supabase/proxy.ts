@@ -261,6 +261,7 @@ export async function updateSession(request: NextRequest) {
     const routePermissionMap: Record<string, string> = {
       "/admin/members": "members.view",
       "/admin/trial-members": "members.trial",
+      "/admin/leads": "members.trial",
       "/admin/freeze": "members.edit",
       "/admin/classes": "classes.view",
       "/admin/pt": "pt.view",
