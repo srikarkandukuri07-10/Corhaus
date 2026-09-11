@@ -3,32 +3,8 @@
 import { useEffect, useState, useCallback, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate, formatTime } from "@/lib/date-utils";
-import QRCode from "qrcode";
 
 import Link from "next/link";
-
-function AttendanceStaticQr() {
-  const [qrUrl, setQrUrl] = useState<string | null>(null);
-  useEffect(() => {
-    async function load() {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase.from("attendance_config").select("static_token").eq("id", "default").maybeSingle();
-        const token = data?.static_token || "corhaus-attendance-static";
-        const payload = JSON.stringify({ type: "corhaus-attendance", token });
-        const url = await QRCode.toDataURL(payload, { width: 240, margin: 1, color: { dark: "#000000", light: "#FFFFFF" } });
-        setQrUrl(url);
-      } catch {
-        // fallback to static string if DB not yet migrated
-        QRCode.toDataURL(JSON.stringify({ type: "corhaus-attendance", token: "corhaus-attendance-static" }), { width: 240, margin: 1 }).then(setQrUrl).catch(() => {});
-      }
-    }
-    load();
-  }, []);
-  if (!qrUrl) return <div className="w-40 h-40 bg-surface-2 animate-pulse rounded-lg" />;
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={qrUrl} alt="Attendance QR" className="w-full h-full object-contain" />;
-}
 
 interface ClassData {
   id: string;
@@ -411,16 +387,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in font-sans pb-12">
-      {/* Permanent Attendance QR - Reception Display */}
-      <div className="admin-card p-6 flex flex-col items-center text-center space-y-4">
-        <h2 className="text-lg font-bold text-fg">Attendance QR</h2>
-        <p className="text-sm text-fg-3">Scan this QR to mark attendance</p>
-        <div className="w-64 h-64 bg-white rounded-xl border-2 border-line p-4 flex items-center justify-center">
-          <AttendanceStaticQr />
-        </div>
-        <p className="text-xs text-fg-4">Permanent QR • Display at reception</p>
-      </div>
-
       {/* Top Header & Quick Action Bar */}
       <div className="admin-card flex flex-col md:flex-row md:items-center justify-between gap-5 p-5 sm:p-6">
         <div className="max-w-2xl">
