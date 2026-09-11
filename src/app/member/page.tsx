@@ -5,8 +5,6 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate, formatTime } from "@/lib/date-utils";
-
-import QRCode from "qrcode";
 interface ClassData {
   id: string;
   title: string;
@@ -65,11 +63,7 @@ function parseAsIst(dateStr: string, timeStr: string): number {
 
 
 
-// QR is shown immediately once a class is booked (valid until 1 hour after class start time)
-function shouldShowQr(cls: ClassData, now: number): boolean {
-  const classStart = parseAsIst(cls.class_date, cls.class_time);
-  return now < classStart + 60 * 60 * 1000;
-}
+
 
 function isClassStarted(cls: ClassData, now: number): boolean {
   const classStart = parseAsIst(cls.class_date, cls.class_time);
@@ -93,12 +87,9 @@ export default function MemberDashboard() {
   const [ptSessions, setPtSessions] = useState<PtSessionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
-  const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const supabase = createClient();
   const userIdRef = useRef<string | null>(null);
-  const generatingRef = useRef<Set<string>>(new Set());
-  const [isGenerating, setIsGenerating] = useState<Record<string, boolean>>({});
   const [currentTime, setCurrentTime] = useState(0);
   const [mounted, setMounted] = useState(false);
 
@@ -129,7 +120,6 @@ export default function MemberDashboard() {
   // Store latest data in refs for interval access
   const classesRef = useRef<ClassData[]>([]);
   const bookingsRef = useRef<BookingData[]>([]);
-  const qrDataUrlsRef = useRef<Record<string, string>>({});
   const forceBookedIdsRef = useRef(forceBookedIds);
   forceBookedIdsRef.current = forceBookedIds;
 
@@ -332,90 +322,6 @@ export default function MemberDashboard() {
     return () => clearInterval(id);
   }, []);
 
-  // Generate QR — reads from refs for latest data
-  const generateQrForClass = useCallback(async (cls: ClassData) => {
-    const isPt = cls.id.startsWith("pt_");
-    const booking = bookingsRef.current.find(b => b.class_id === cls.id && b.booking_status === "booked");
-    const uid = userIdRef.current;
-    if (!booking || !uid) return;
-    if (qrDataUrlsRef.current[cls.id]) return;
-    if (generatingRef.current.has(cls.id)) return;
-
-    const existing = attendanceRecords.find(a => a.class_id === cls.id);
-    if (existing) {
-      const dataUrl = await QRCode.toDataURL(
-        JSON.stringify({ bookingId: booking.id, token: existing.attendance_token }),
-        { width: 200, margin: 2, color: { dark: "#1C1C2E", light: "#FAF7F2" } }
-      );
-      setQrDataUrls(prev => ({ ...prev, [cls.id]: dataUrl }));
-      qrDataUrlsRef.current[cls.id] = dataUrl;
-      return;
-    }
-
-    generatingRef.current.add(cls.id);
-    setIsGenerating(prev => ({ ...prev, [cls.id]: true }));
-
-    try {
-      const realClassId = isPt ? cls.id.replace("pt_", "") : cls.id;
-      const res = await fetch("/api/attendance/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId: booking.id, classId: realClassId, memberId: uid, isPtSession: isPt }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-
-      const dataUrl = await QRCode.toDataURL(
-        JSON.stringify({ bookingId: booking.id, token: data.token }),
-        { width: 200, margin: 2, color: { dark: "#1C1C2E", light: "#FAF7F2" } }
-      );
-      setQrDataUrls(prev => ({ ...prev, [cls.id]: dataUrl }));
-      qrDataUrlsRef.current[cls.id] = dataUrl;
-
-      const { data: fresh } = await supabase.from("attendance").select("*").eq("member_id", uid);
-      if (fresh) setAttendanceRecords(fresh as AttendanceData[]);
-    } catch (err: unknown) {
-      console.error("QR ERROR:", err);
-    } finally {
-      generatingRef.current.delete(cls.id);
-      setIsGenerating(prev => ({ ...prev, [cls.id]: false }));
-    }
-  }, [attendanceRecords, supabase]);
-
-  // Main QR check interval — runs every 3s using refs (no closure staleness)
-  useEffect(() => {
-    const id = setInterval(() => {
-      const now = Date.now();
-      for (const cls of classesRef.current) {
-        if (!bookingsRef.current.some(b => b.class_id === cls.id && b.booking_status === "booked") && !forceBookedIdsRef.current.has(cls.id)) continue;
-        const classStart = parseAsIst(cls.class_date, cls.class_time);
-        const classExpiry = classStart + 60 * 60 * 1000;
-        if (now >= classExpiry) continue;
-        if (qrDataUrlsRef.current[cls.id]) continue;
-        if (generatingRef.current.has(cls.id)) continue;
-
-        generateQrForClass(cls);
-      }
-    }, 3000);
-    return () => clearInterval(id);
-  }, [generateQrForClass]);
-
-  // Also check on every render for immediate response
-  const renderCheckCount = useRef(0);
-  useEffect(() => {
-    renderCheckCount.current++;
-    const now = Date.now();
-    for (const cls of classes) {
-      if (!bookings.some(b => b.class_id === cls.id && b.booking_status === "booked") && !forceBookedIds.has(cls.id)) continue;
-      const classStart = parseAsIst(cls.class_date, cls.class_time);
-      const classExpiry = classStart + 60 * 60 * 1000;
-      if (now >= classExpiry) continue;
-      if (qrDataUrls[cls.id]) continue;
-      if (generatingRef.current.has(cls.id)) continue;
-      generateQrForClass(cls);
-    }
-  });
-
   async function handleBook(cls: ClassData) {
     const uid = userIdRef.current;
     if (!uid) return;
@@ -548,8 +454,6 @@ export default function MemberDashboard() {
         saveForceBooked(next);
         return next;
       });
-      setQrDataUrls(prev => { const n = { ...prev }; delete n[cls.id]; return n; });
-      delete qrDataUrlsRef.current[cls.id];
     } catch (err) {
       console.error("Cancel booking error:", err);
       setMessage({ type: "error", text: "Network error. Please try again." });
@@ -660,10 +564,9 @@ export default function MemberDashboard() {
                 matchingBooking?.booking_status === "attended" ||
                 matchingBooking?.booking_status === "completed";
 
-              const isExpired = !shouldShowQr(cls, currentTime);
+              const isExpired = isClassOver(cls, currentTime);
               const isNoShow = (booked || matchingBooking?.booking_status === "no_show") && !isCheckedInOrAttended && !isCancelled && isExpired;
 
-              const qrUrl = qrDataUrls[cls.id];
               const started = isClassStarted(cls, currentTime);
               const ongoing = isClassOngoing(cls, currentTime);
 
@@ -734,37 +637,13 @@ export default function MemberDashboard() {
                         {formatTime(cls.class_time)}
                       </div>
 
-                      {/* Attendance QR logic for active upcoming booked classes */}
+                      {/* Scanner option for booked classes */}
                       {booked && !isCheckedInOrAttended && !isNoShow && !isCancelled && (
                         <div className="mt-4">
-                          {shouldShowQr(cls, currentTime) ? (
-                            qrUrl ? (
-                              <div className="flex flex-col items-center gap-2 p-4 bg-surface-2 rounded-xl border border-line">
-                                <div className="flex items-center justify-between w-full text-[10px] font-medium text-fg-3">
-                                  <span className="uppercase tracking-wide font-semibold">Corhaus Pilates</span>
-                                  <span className="text-accent font-semibold bg-accent/10 px-2 py-0.5 rounded-full">
-                                    Valid 1h after class
-                                  </span>
-                                </div>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={qrUrl} alt="Attendance QR" className="w-40 h-40 rounded-lg" />
-                                <p className="text-xs text-fg-5 text-center">Show this to the instructor at the studio</p>
-                              </div>
-                            ) : isGenerating[cls.id] ? (
-                              <div className="flex items-center justify-center py-4">
-                                <div className="w-5 h-5 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
-                              </div>
-                            ) : (
-                              <p className="text-xs text-fg-5 text-center py-3 bg-surface-2 rounded-xl border border-line">
-                                Generating QR...
-                              </p>
-                            )
-                          ) : (
-                            <div className="p-3 bg-red-500/10 border border-red-400/20 rounded-xl text-center">
-                              <p className="text-xs font-semibold text-red-500">QR Code Expired</p>
-                              <p className="text-[11px] text-fg-5 mt-0.5">Expired 1 hour after class timing</p>
-                            </div>
-                          )}
+                          <a href="/member/scanner" className="block w-full py-3 rounded-xl text-sm font-bold text-center bg-accent text-white hover:bg-accent-2 shadow-md shadow-accent/20">
+                            📷 Scan Attendance QR
+                          </a>
+                          <p className="text-[11px] text-fg-5 text-center mt-1.5">Scan the QR at reception to mark attendance</p>
                         </div>
                       )}
                     </div>
