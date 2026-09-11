@@ -62,8 +62,6 @@ export async function POST(req: Request) {
 
     // Find member's approved record
     const email = user.email?.toLowerCase();
-    const { data: approvedMember } = await service.from("approved_members").select("id, full_name, email, membership_status").maybeSingle();
-    // Actually need to find by email
     let memberId: string | null = null;
     let memberName: string | null = null;
     if (email) {
@@ -76,14 +74,11 @@ export async function POST(req: Request) {
         memberName = am.full_name;
       }
     }
-    // Fallback to auth uid if no approved member found, but check if user is approved
-    if (!memberId) {
-      // Check if user is in approved_members at all
-      return NextResponse.json({ error: "You do not have an eligible class booking for attendance at this time." }, { status: 404 });
-    }
-
-    // Find eligible bookings
-    const { data: bookings } = await service.from("bookings").select("id, class_id, booking_status, member_id").eq("member_id", memberId).in("booking_status", ["booked", "confirmed", "checked_in"]);
+    // Also consider auth uid as memberId for bookings that use profiles.id
+    const memberIds = [user.id];
+    if (memberId) memberIds.push(memberId);
+    // Find eligible bookings - check both approved_member_id and auth uid
+    const { data: bookings } = await service.from("bookings").select("id, class_id, booking_status, member_id").in("member_id", memberIds).in("booking_status", ["booked", "confirmed", "checked_in"]);
     if (!bookings || bookings.length === 0) {
       return NextResponse.json({ error: "You do not have an eligible class booking for attendance at this time." }, { status: 404 });
     }
