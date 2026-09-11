@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { Html5Qrcode } from "html5-qrcode";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function MemberScanner() {
+function MemberScannerContent() {
+  const searchParams = useSearchParams();
+  const targetClassId = searchParams.get("classId");
   const [result, setResult] = useState<{ success?: boolean; message?: string; member?: any; className?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [eligibleClasses, setEligibleClasses] = useState<any[]>([]);
@@ -14,11 +17,12 @@ export default function MemberScanner() {
   const isRunningRef = useRef(false);
 
   async function submitScan(qrData: string, classId?: string) {
+    const effectiveClassId = classId || targetClassId || undefined;
     try {
       const res = await fetch("/api/attendance/member-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qrData, classId }),
+        body: JSON.stringify({ qrData, classId: effectiveClassId }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -119,5 +123,13 @@ export default function MemberScanner() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function MemberScanner() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-fg-3">Loading scanner...</div>}>
+      <MemberScannerContent />
+    </Suspense>
   );
 }
