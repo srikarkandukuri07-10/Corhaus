@@ -103,19 +103,12 @@ export async function POST(req: Request) {
       if (!cls) continue;
       const classStart = parseAsIst(cls.class_date, cls.class_time);
       const classExpiry = classStart + 60 * 60 * 1000; // 1 hour after start
-      if (now < classStart) continue; // class not started
+      // Allow scanning right after booking — only block if already expired (1h after start)
       if (now >= classExpiry) continue; // expired
       eligible.push({ booking, cls });
     }
 
     if (eligible.length === 0) {
-      // Check if there's a future class not yet started
-      const hasFuture = bookings.some(b => {
-        const cls = classes.find(c => c.id === b.class_id);
-        if (!cls) return false;
-        return now < parseAsIst(cls.class_date, cls.class_time);
-      });
-      if (hasFuture) return NextResponse.json({ error: "Attendance will be available once the class starts." }, { status: 400 });
       return NextResponse.json({ error: "You do not have an eligible class booking for attendance at this time." }, { status: 404 });
     }
 
