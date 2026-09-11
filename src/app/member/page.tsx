@@ -481,8 +481,14 @@ export default function MemberDashboard() {
           <p className="text-sm text-fg-4 mt-1">Book your next Pilates session</p>
         </div>
         
-        {!loading && (
-          <div className="w-full md:w-80 bg-gradient-to-br from-rail to-accent/90 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden flex-shrink-0">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <a href="/member/scanner" className="flex-1 md:w-48 bg-accent text-white rounded-2xl p-5 shadow-lg flex flex-col items-center justify-center text-center gap-2 hover:bg-accent-2 transition-colors">
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+            <span className="text-sm font-bold">Scan Attendance QR</span>
+            <span className="text-xs text-white/80">Mark your attendance</span>
+          </a>
+          {!loading && (
+          <div className="flex-1 md:w-80 bg-gradient-to-br from-rail to-accent/90 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden flex-shrink-0">
             <div className="absolute top-0 right-0 w-24 h-24 bg-accent/20 rounded-full blur-xl -mr-6 -mt-6" />
             <div className="flex items-center justify-between mb-3 relative z-10">
               <div>
@@ -511,6 +517,7 @@ export default function MemberDashboard() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {isFrozenMember && (
