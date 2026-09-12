@@ -116,7 +116,7 @@ export default function BookTrialPage() {
         <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4">
           <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">✓</div>
           <h2 className="text-2xl font-black">Trial Booked!</h2>
-          <p className="text-sm text-gray-600">Your trial has been booked. Check Trial Members in the admin dashboard.</p>
+          <p className="text-sm text-gray-600">Your trial has been booked.</p>
         </div>
       </div>
     );
