@@ -77,13 +77,14 @@ export default function BookTrialPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!fullName.trim() || !phone.trim() || !email.trim() || !selectedDate || !selectedSlot) {
-      setError("All fields and a time slot are required.");
-      return;
-    }
+    if (!fullName.trim()) { setError("Full Name is required."); return; }
+    if (!phone.trim()) { setError("Phone is required."); return; }
     const cleanPhone = phone.replace(/\D/g, "");
     if (cleanPhone.length !== 10) { setError("Phone must be 10 digits."); return; }
+    if (!email.trim()) { setError("Email is required."); return; }
     if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email.trim())) { setError("Invalid email."); return; }
+    if (!selectedDate) { setError("Please select a date."); return; }
+    if (!selectedSlot) { setError("Please select a time slot."); return; }
 
     const slotInfo = getSlotAvailability(selectedDate, selectedSlot);
     const targetClass = (slotInfo as any).cls;
