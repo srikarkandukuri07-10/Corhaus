@@ -596,7 +596,7 @@ export default function TrialMembersPage() {
               </thead>
               <tbody className="divide-y divide-line-2 text-fg">
                 {filteredTrialMembers.map((item) => (
-                  <tr key={item.id} className="hover:bg-hover/50 transition-colors">
+                  <tr key={item.id} onClick={() => setEditingTrial(item)} className="hover:bg-hover/50 transition-colors cursor-pointer">
                     {/* Full Name */}
                     <td className="py-3.5 px-4 font-bold text-fg">
                       {item.full_name}
