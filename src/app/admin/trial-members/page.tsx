@@ -434,13 +434,13 @@ export default function TrialMembersPage() {
       </div>
 
       {/* Public Trial Booking Link Card */}
-      <div className="bg-surface border border-line rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white border border-gray-200 rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
         <div className="min-w-0">
-          <h3 className="text-sm font-bold text-fg">Public Trial Booking Link</h3>
-          <p className="text-xs text-fg-3 mt-1">Share this link for Razorpay Test Mode bookings — fills details then pays.</p>
-          <code className="text-xs bg-surface-2 border border-line px-3 py-1.5 rounded-xl mt-2 inline-block max-w-full truncate">
+          <h3 className="text-sm font-bold text-gray-900">Public Trial Booking Link</h3>
+          <p className="text-xs text-gray-500 mt-1">Share this link for Razorpay Test Mode bookings — fills details then pays.</p>
+          <a href="/book-trial" target="_blank" className="text-xs bg-white border border-gray-200 px-3 py-1.5 rounded-xl mt-2 inline-block max-w-full truncate text-green-600 font-mono hover:bg-gray-50">
             {typeof window !== "undefined" ? window.location.origin : ""}/book-trial
-          </code>
+          </a>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <a href="/book-trial" target="_blank" className="px-4 py-2.5 rounded-xl bg-black text-white text-xs font-bold hover:bg-gray-800">Open</a>
@@ -449,12 +449,12 @@ export default function TrialMembersPage() {
               const url = `${window.location.origin}/book-trial`;
               navigator.clipboard.writeText(url);
               setCreateError(null);
-              // Show temporary success via createError with success style? Use a simple alert for now
               alert("Link copied: " + url);
             }}
-            className="px-4 py-2.5 rounded-xl border-2 border-line bg-surface text-xs font-bold hover:bg-hover"
+            title="Copy link"
+            className="w-10 h-10 rounded-xl border-2 border-gray-200 bg-white text-gray-700 hover:bg-gray-50 flex items-center justify-center"
           >
-            Copy
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-8 0h8a2 2 0 012 2v8a2 2 0 01-2 2h-8a2 2 0 01-2-2v-8a2 2 0 012-2z" /></svg>
           </button>
         </div>
       </div>
