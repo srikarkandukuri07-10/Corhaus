@@ -434,21 +434,20 @@ export default function TrialMembersPage() {
       </div>
 
       {/* Public Trial Booking Link Card */}
-      <div className="bg-white border border-gray-200 rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-        <div className="min-w-0">
-          <h3 className="text-sm font-bold text-gray-900">Public Trial Booking Link</h3>
-          <p className="text-xs text-gray-500 mt-1">Share this link for Razorpay Test Mode bookings — fills details then pays.</p>
-          <a href="/book-trial" target="_blank" className="text-xs bg-white border border-gray-200 px-3 py-1.5 rounded-xl mt-2 inline-block max-w-full truncate text-green-600 font-mono hover:bg-gray-50">
+      <div className="bg-surface border border-line rounded-3xl p-5 space-y-3">
+        <div>
+          <h3 className="text-sm font-bold text-fg">Public Trial Booking Link</h3>
+          <p className="text-xs text-fg-3 mt-1">share this link to the trail member to book their trail session</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <a href="/book-trial" target="_blank" className="text-xs bg-white border border-gray-200 px-3 py-1.5 rounded-xl inline-block truncate text-green-600 font-mono hover:bg-gray-50">
             {typeof window !== "undefined" ? window.location.origin : ""}/book-trial
           </a>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <a href="/book-trial" target="_blank" className="px-4 py-2.5 rounded-xl bg-black text-white text-xs font-bold hover:bg-gray-800">Open</a>
+          <a href="/book-trial" target="_blank" className="px-4 py-2 rounded-xl bg-black text-white text-xs font-bold hover:bg-gray-800">Open</a>
           <button
             onClick={() => {
               const url = `${window.location.origin}/book-trial`;
               navigator.clipboard.writeText(url);
-              setCreateError(null);
               alert("Link copied: " + url);
             }}
             title="Copy link"
