@@ -8,6 +8,16 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
+  const pathname = request.nextUrl.pathname;
+  // Public routes that don't require auth - allow without session check
+  if (
+    pathname.startsWith("/api/trial") ||
+    pathname.startsWith("/api/webhooks/razorpay") ||
+    pathname.startsWith("/book-trial")
+  ) {
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -51,8 +61,6 @@ export async function updateSession(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
-
-  const pathname = request.nextUrl.pathname;
 
   const isDev = process.env.NODE_ENV === "development";
   const devLog = (...args: any[]) => {

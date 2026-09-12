@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://zmzevqorbdogwishiahw.supabase.co; font-src 'self' data:; connect-src 'self' https://zmzevqorbdogwishiahw.supabase.co wss://zmzevqorbdogwishiahw.supabase.co; frame-src 'self' https://accounts.google.com;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://api.razorpay.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://zmzevqorbdogwishiahw.supabase.co; font-src 'self' data:; connect-src 'self' https://zmzevqorbdogwishiahw.supabase.co wss://zmzevqorbdogwishiahw.supabase.co https://api.razorpay.com https://checkout.razorpay.com; frame-src 'self' https://accounts.google.com https://checkout.razorpay.com https://api.razorpay.com;",
           },
           { key: "X-DNS-Prefetch-Control", value: "on" },
         ],
