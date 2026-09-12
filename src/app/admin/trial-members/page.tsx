@@ -433,6 +433,32 @@ export default function TrialMembersPage() {
         </button>
       </div>
 
+      {/* Public Trial Booking Link Card */}
+      <div className="bg-surface border border-line rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold text-fg">Public Trial Booking Link</h3>
+          <p className="text-xs text-fg-3 mt-1">Share this link for Razorpay Test Mode bookings — fills details then pays.</p>
+          <code className="text-xs bg-surface-2 border border-line px-3 py-1.5 rounded-xl mt-2 inline-block max-w-full truncate">
+            {typeof window !== "undefined" ? window.location.origin : ""}/book-trial
+          </code>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <a href="/book-trial" target="_blank" className="px-4 py-2.5 rounded-xl bg-black text-white text-xs font-bold hover:bg-gray-800">Open</a>
+          <button
+            onClick={() => {
+              const url = `${window.location.origin}/book-trial`;
+              navigator.clipboard.writeText(url);
+              setCreateError(null);
+              // Show temporary success via createError with success style? Use a simple alert for now
+              alert("Link copied: " + url);
+            }}
+            className="px-4 py-2.5 rounded-xl border-2 border-line bg-surface text-xs font-bold hover:bg-hover"
+          >
+            Copy
+          </button>
+        </div>
+      </div>
+
       {/* Error notification */}
       {error && (
         <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-semibold">
