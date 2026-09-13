@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { full_name, phone_number, email, message } = body;
+    const { full_name, phone_number, email, message, source } = body;
 
     // Validation
     if (!full_name || typeof full_name !== "string" || !full_name.trim()) {
@@ -28,9 +28,16 @@ export async function POST(req: Request) {
     // Message is optional
     const messageText = typeof message === "string" ? message.trim() : "";
 
-    // This is the public Instagram bio lead form. Source is enforced server-side
-    // as Instagram regardless of any client-supplied value (cannot be manipulated).
-    const finalSource = "Instagram";
+    // Source is determined server-side from the entry URL and cannot be set
+    // arbitrarily by the client. Only the supported public enquiry sources
+    // are accepted; anything missing or unknown becomes a generic Website lead.
+    const sourceMap: Record<string, string> = {
+      instagram: "Instagram",
+      facebook: "Facebook",
+      whatsapp: "WhatsApp",
+    };
+    const rawSource = typeof source === "string" ? source.trim().toLowerCase() : "";
+    const finalSource = sourceMap[rawSource] || "Website";
 
     const serviceClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } });
 

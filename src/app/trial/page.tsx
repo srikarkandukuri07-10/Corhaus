@@ -5,7 +5,13 @@ import { useSearchParams } from "next/navigation";
 
 function EnquiryForm() {
   const searchParams = useSearchParams();
-  const isInstagram = searchParams.get("source")?.toLowerCase() === "instagram";
+  const sourceParam = (searchParams.get("source") || "").toLowerCase();
+  const sourceLabels: Record<string, string> = {
+    instagram: "Instagram",
+    facebook: "Facebook",
+    whatsapp: "WhatsApp",
+  };
+  const sourceLabel = sourceLabels[sourceParam] || null;
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -35,6 +41,7 @@ function EnquiryForm() {
           phone_number: cleanPhone,
           email: email.trim(),
           message: message.trim() || null,
+          source: sourceParam || null,
         }),
       });
       const data = await res.json();
@@ -82,7 +89,7 @@ function EnquiryForm() {
           <div className="text-center mb-8">
             <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Get in Touch</h2>
             <p className="text-sm text-white/60 mt-2">Have a question or interested in Corhaus? Fill out the form and our team will get back to you.</p>
-            {isInstagram && <span className="inline-block mt-3 text-xs bg-white/10 text-white px-3 py-1 rounded-full">Via Instagram</span>}
+            {sourceLabel && <span className="inline-block mt-3 text-xs bg-white/10 text-white px-3 py-1 rounded-full">Via {sourceLabel}</span>}
           </div>
 
           <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl">

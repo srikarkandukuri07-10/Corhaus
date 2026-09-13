@@ -97,6 +97,55 @@ function convertBadge(c: string): string {
 
 const inputCls = "w-full px-3 py-2 rounded-xl border border-line bg-surface-2/50 text-fg text-sm placeholder:text-fg-5 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40";
 const labelCls = "block text-xs font-semibold text-fg-3 mb-1";
+
+const ENQUIRY_LINKS = [
+  { label: "Instagram", path: "/trial?source=instagram", desc: "Use this link for enquiries coming from Instagram. This is the Instagram bio link." },
+  { label: "WhatsApp", path: "/trial?source=whatsapp", desc: "Copy this link and send it directly to a lead through WhatsApp." },
+  { label: "Facebook", path: "/trial?source=facebook", desc: "Use this link for enquiries coming from Facebook." },
+  { label: "General Enquiry", path: "/trial", desc: "Use this link when the enquiry does not belong to a specific source." },
+] as const;
+
+function EnquiryLinks() {
+  const [copied, setCopied] = useState<string | null>(null);
+
+  async function copyLink(path: string) {
+    const url = `${window.location.origin}${path}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(path);
+    setTimeout(() => setCopied((c) => (c === path ? null : c)), 2000);
+  }
+
+  return (
+    <div className="bg-surface border border-line rounded-2xl p-4 sm:p-5">
+      <h2 className="text-base font-bold text-fg">Enquiry Links</h2>
+      <p className="text-xs text-fg-4 mt-0.5">Share these links to collect enquiries. Every submission appears in Leads below.</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+        {ENQUIRY_LINKS.map((l) => (
+          <div key={l.label} className="border border-line rounded-xl p-3.5 bg-surface-2/40">
+            <p className="text-sm font-bold text-fg">{l.label}</p>
+            <p className="text-xs text-fg-4 mt-0.5">{l.desc}</p>
+            <p className="text-xs font-mono text-fg-3 mt-2 truncate">{`${typeof window !== "undefined" ? window.location.origin : ""}${l.path}`}</p>
+            <button
+              onClick={() => copyLink(l.path)}
+              className="mt-2.5 px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-colors"
+            >
+              {copied === l.path ? "Copied!" : "Copy Link"}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 const btnPrimary = "px-4 py-2 rounded-xl bg-accent text-white text-sm font-semibold hover:bg-accent-dark transition-colors disabled:opacity-50";
 const btnGhost = "px-4 py-2 rounded-xl border border-line bg-surface text-fg text-sm font-semibold hover:bg-hover transition-colors";
 const selectCls = "px-3 py-2 rounded-xl border border-line bg-surface text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent/20";
@@ -531,6 +580,8 @@ export default function LeadsPage() {
           </div>
         ))}
       </div>
+
+      <EnquiryLinks />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <select className={selectCls} value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}>
