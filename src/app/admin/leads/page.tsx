@@ -80,6 +80,21 @@ function convertBadge(c: string): string {
   }
 }
 
+function stageColor(stage: string): string {
+  switch (stage) {
+    case "Converted":
+      return "text-emerald-600 dark:text-emerald-400";
+    case "Trial attended":
+      return "text-violet-600 dark:text-violet-400";
+    case "New":
+      return "text-blue-800 dark:text-blue-300";
+    case "Trial booked":
+      return "text-sky-600 dark:text-sky-400";
+    default:
+      return "text-fg-3";
+  }
+}
+
 function followUpLabel(v: string | null | undefined): { text: string; cls: string; full: string } {
   if (!v) return { text: "-", cls: "text-fg-4", full: "No follow-up scheduled" };
   const d = new Date(v);
@@ -644,7 +659,7 @@ export default function LeadsPage() {
                 }}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-bold text-fg">{stage}</p>
+                  <p className={"text-sm font-bold " + stageColor(stage)}>{stage}</p>
                   <span className="text-xs font-bold bg-surface-2 border border-line rounded-full px-2 py-0.5 text-fg-3">{cards.length}</span>
                 </div>
                 <div className="space-y-2">
@@ -712,7 +727,7 @@ export default function LeadsPage() {
                       </td>
                       <td className="p-3" onClick={(e) => e.stopPropagation()}>
                         <select
-                          className={selectCls + " text-xs py-1"}
+                          className={selectCls + " text-xs py-1 font-semibold " + stageColor(l.pipeline_stage)}
                           value={l.pipeline_stage}
                           onChange={(e) => inlineUpdate(l.id, { pipeline_stage: e.target.value })}
                         >
@@ -782,7 +797,7 @@ export default function LeadsPage() {
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Source</p><p className="font-semibold text-fg mt-0.5">{detail.source}</p></div>
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Interest</p><p className="font-semibold text-fg mt-0.5">{detail.interest || "-"}</p></div>
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Convertibility</p><p className="font-semibold text-fg mt-0.5">{detail.convertibility}</p></div>
-                <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Status</p><p className="font-semibold text-fg mt-0.5">{detail.pipeline_stage}</p></div>
+                <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Status</p><p className={"font-semibold mt-0.5 " + stageColor(detail.pipeline_stage)}>{detail.pipeline_stage}</p></div>
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Follow-up</p><p className="font-semibold text-fg mt-0.5" title={detail.follow_up_at ? fmtDateTime(detail.follow_up_at) : undefined}>{detail.follow_up_at ? followUpLabel(detail.follow_up_at).text : "-"}</p></div>
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Created</p><p className="font-semibold text-fg mt-0.5">{fmtDate(detail.created_at)}</p></div>
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Location</p><p className="font-semibold text-fg mt-0.5">{detail.primary_location || "-"}</p></div>
@@ -796,7 +811,7 @@ export default function LeadsPage() {
             </div>
             <div className="space-y-2">
               <div className="flex gap-2">
-                <select className={selectCls + " flex-1"} value={stageDraft} onChange={(e) => setStageDraft(e.target.value)}>
+                <select className={selectCls + " flex-1 font-semibold " + stageColor(detail.pipeline_stage)} value={stageDraft} onChange={(e) => setStageDraft(e.target.value)}>
                   {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <button className={btnPrimary} disabled={drawerSaving} onClick={() => drawerPatch({ pipeline_stage: stageDraft })}>Save Stage</button>
