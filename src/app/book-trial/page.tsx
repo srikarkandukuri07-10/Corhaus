@@ -38,6 +38,35 @@ export default function BookTrialPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [rzpReady, setRzpReady] = useState(false);
+
+  function loadRazorpayScript(): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (typeof window === "undefined") return resolve(false);
+      const w = window as any;
+      if (typeof w.Razorpay === "function") return resolve(true);
+      const existing = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]') as HTMLScriptElement | null;
+      if (existing) {
+        existing.addEventListener("load", () => resolve(typeof (window as any).Razorpay === "function"), { once: true });
+        existing.addEventListener("error", () => resolve(false), { once: true });
+        // In case it already loaded between check and listener
+        setTimeout(() => {
+          if (typeof (window as any).Razorpay === "function") resolve(true);
+        }, 1500);
+        return;
+      }
+      const s = document.createElement("script");
+      s.src = "https://checkout.razorpay.com/v1/checkout.js";
+      s.async = true;
+      s.onload = () => resolve(typeof (window as any).Razorpay === "function");
+      s.onerror = () => resolve(false);
+      document.body.appendChild(s);
+    });
+  }
+
+  useEffect(() => {
+    loadRazorpayScript().then((ok) => setRzpReady(ok));
+  }, []);
 
   const upcomingDates = useMemo(() => {
     const dates = [];
@@ -109,6 +138,12 @@ export default function BookTrialPage() {
       });
       const orderData = await orderRes.json();
       if (!orderRes.ok) throw new Error(orderData.error || "Failed to create order");
+
+      const rzpLoaded = (window as any).Razorpay ? true : await loadRazorpayScript();
+      if (!rzpLoaded || typeof (window as any).Razorpay !== "function") {
+        throw new Error("Payment library failed to load. Check your internet/ad-blocker and retry.");
+      }
+      setRzpReady(true);
 
       const options: any = {
         key: orderData.keyId,
@@ -248,13 +283,13 @@ export default function BookTrialPage() {
             </div>
 
             <button type="submit" disabled={submitting || loading || !selectedSlot} className="w-full py-4 rounded-xl bg-black text-white font-extrabold text-sm hover:bg-gray-900 disabled:opacity-50">
-              {submitting ? "Processing..." : "Pay & Book Trial — Razorpay Test Mode"}
+              {submitting ? "Processing..." : rzpReady ? "Pay & Book Trial — Razorpay Test Mode" : "Loading payment..."}
             </button>
+            {!rzpReady && <p className="text-[10px] text-amber-600 text-center">Loading secure payment library...</p>}
             <p className="text-[10px] text-gray-400 text-center">Test payments only. Use Razorpay test cards. No real money is charged.</p>
           </form>
         </div>
       </div>
-      <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
     </div>
   );
 }
