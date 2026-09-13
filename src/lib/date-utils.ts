@@ -91,3 +91,39 @@ export function formatDateTime(dt: string | Date | null | undefined): string {
   if (!dt) return "N/A";
   return `${formatDate(dt)} ${formatTime(dt)}`;
 }
+
+/**
+ * Parses class_date (YYYY-MM-DD) and class_time (HH:MM or HH:MM am/pm or HH:MM:SS)
+ * strictly in IST (Asia/Kolkata, UTC+05:30) and returns epoch timestamp in milliseconds.
+ */
+export function parseClassTimeAsIst(dateStr: string | null | undefined, timeStr: string | null | undefined): number {
+  if (!dateStr || !timeStr) return 0;
+  const cleanDate = dateStr.trim().split("T")[0];
+  let hours = 0;
+  let minutes = 0;
+  const timeUpper = timeStr.trim().toUpperCase();
+  const isPm = timeUpper.includes("PM");
+  const isAm = timeUpper.includes("AM");
+  const cleanTime = timeUpper.replace(/(AM|PM)/g, "").trim();
+  const parts = cleanTime.split(":");
+  if (parts.length >= 1) hours = parseInt(parts[0], 10) || 0;
+  if (parts.length >= 2) minutes = parseInt(parts[1], 10) || 0;
+  if (isPm && hours < 12) hours += 12;
+  if (isAm && hours === 12) hours = 0;
+
+  const hh = String(hours).padStart(2, "0");
+  const mm = String(minutes).padStart(2, "0");
+  const isoStr = `${cleanDate}T${hh}:${mm}:00+05:30`;
+  const parsed = new Date(isoStr).getTime();
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+/**
+ * Checks if a class has reached or passed its start time in IST.
+ */
+export function isClassStarted(dateStr: string | null | undefined, timeStr: string | null | undefined): boolean {
+  const startTime = parseClassTimeAsIst(dateStr, timeStr);
+  if (!startTime) return false;
+  return Date.now() >= startTime;
+}
+

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { formatDate, formatTime } from "@/lib/date-utils";
+import { formatDate, formatTime, isClassStarted } from "@/lib/date-utils";
 
 import Link from "next/link";
 
@@ -23,6 +23,16 @@ interface BookingWithProfile {
   created_at: string;
   member_id: string;
   cancelled_at?: string | null;
+  attendance_status?: string;
+  checked_in_at?: string | null;
+  is_attended?: boolean;
+  attendance?: any;
+  approved_members?: {
+    id: string;
+    full_name: string;
+    email: string;
+    phone_number: string;
+  } | null;
   profiles: {
     full_name: string;
     email: string;
@@ -35,6 +45,12 @@ interface AttendanceWithProfile {
   id: string;
   scanned_at: string;
   member_id: string;
+  approved_members?: {
+    id: string;
+    full_name: string;
+    email: string;
+    phone_number: string;
+  } | null;
   profiles: {
     full_name: string;
     email: string;
@@ -56,6 +72,8 @@ export default function AdminDashboard() {
   const [bookings, setBookings] = useState<BookingWithProfile[]>([]);
   const [attended, setAttended] = useState<AttendanceWithProfile[]>([]);
   const [bookingsCountMap, setBookingsCountMap] = useState<Record<string, number>>({});
+  const [markingAttendanceId, setMarkingAttendanceId] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<{ id: string; text: string; success: boolean } | null>(null);
   
   // Real KPI Metrics
   const [todaysClassesCount, setTodaysClassesCount] = useState<number>(0);
@@ -80,6 +98,7 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
       const todayStr = getTodayIstString();
+      let bMap: Record<string, number> = {};
 
       // 1. Fetch Classes (for schedule) - try service-role API first for consistency
       let classData: any[] | null = null;
@@ -92,6 +111,13 @@ export default function AdminDashboard() {
         if (apiRes.ok) {
           const json = await apiRes.json();
           classData = json.sessions || json.data || [];
+          if (Array.isArray(json.bookings)) {
+            json.bookings.forEach((b: any) => {
+              if (b.class_id && b.booking_status !== "cancelled") {
+                bMap[b.class_id] = (bMap[b.class_id] || 0) + 1;
+              }
+            });
+          }
         } else {
           throw new Error("API failed");
         }
@@ -117,7 +143,6 @@ export default function AdminDashboard() {
       let membersCount = 0;
       let revTotal = 0;
       let checkInsCount = 0;
-      let bMap: Record<string, number> = {};
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const headers: Record<string, string> = {};
@@ -129,6 +154,9 @@ export default function AdminDashboard() {
           revTotal = json.monthlyRevenue ?? 0;
           checkInsCount = json.checkInsToday ?? 0;
           todayCount = json.todaysClasses ?? todayCount;
+          if (json.bookingsCountMap) {
+            bMap = { ...bMap, ...json.bookingsCountMap };
+          }
         } else {
           throw new Error("dashboard API failed");
         }
@@ -166,12 +194,22 @@ export default function AdminDashboard() {
         }
       }
 
-      // Still need bMap for schedule (from bookings) - fetch it separately if not from API
+      // Ensure bMap has counts from API if not set
       if (Object.keys(bMap).length === 0) {
-        const { data: allBookings } = await supabase.from("bookings").select("class_id").not("booking_status", "eq", "cancelled");
-        if (allBookings) {
-          allBookings.forEach((b) => { bMap[b.class_id] = (bMap[b.class_id] || 0) + 1; });
-        }
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const headers: Record<string, string> = {};
+          if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+          const bksRes = await fetch("/api/admin/bookings", { headers, cache: "no-store" });
+          if (bksRes.ok) {
+            const bksJson = await bksRes.json();
+            (bksJson.bookings || []).forEach((b: any) => {
+              if (b.class_id && b.booking_status !== "cancelled") {
+                bMap[b.class_id] = (bMap[b.class_id] || 0) + 1;
+              }
+            });
+          }
+        } catch {}
       }
 
       startTransition(() => {
@@ -189,14 +227,19 @@ export default function AdminDashboard() {
     }
   }, [supabase]);
 
-  const loadBookings = useCallback(
+  const loadRoster = useCallback(
     async (classId: string) => {
       setBookingsLoading(true);
+      setAttendanceLoading(true);
       try {
         let allBookings: any[] = [];
-        const bkRes = await fetch(`/api/admin/bookings`, { cache: "no-store" });
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = {};
+        if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+
+        const bkRes = await fetch(`/api/admin/bookings`, { headers, cache: "no-store" });
         const bkJson = await bkRes.json();
-        if (bkRes.ok && bkJson?.bookings) {
+        if (bkRes.ok && Array.isArray(bkJson?.bookings)) {
           allBookings = bkJson.bookings;
         } else {
           const [bkDataRes, amDataRes] = await Promise.all([
@@ -225,81 +268,107 @@ export default function AdminDashboard() {
             };
           });
         }
+
+        const isAttended = (b: any) => {
+          if (b.is_attended) return true;
+          if (b.booking_status === "checked_in" || b.booking_status === "attended" || b.booking_status === "completed") return true;
+          if (b.attendance_status === "present" || b.attendance_status === "attended" || Boolean(b.checked_in_at)) return true;
+          return Boolean(b.attendance);
+        };
 
         const classBookings = allBookings.filter(
           (b: any) =>
             (b.class_id === classId || b.classes?.id === classId) &&
-            (b.booking_status === "booked" || b.booking_status === "confirmed" || b.booking_status === "waitlisted")
+            b.booking_status !== "cancelled"
         );
-        setBookings(classBookings);
+
+        const unattendedBookings = classBookings.filter((b: any) => !isAttended(b));
+        const attendedBookings = classBookings.filter((b: any) => isAttended(b));
+
+        setBookings(unattendedBookings);
+        setAttended(attendedBookings);
+
+        // Keep capacity count strictly in sync with valid bookings
+        setBookingsCountMap((prev) => ({
+          ...prev,
+          [classId]: classBookings.length,
+        }));
       } catch (err) {
-        console.error("loadBookings error:", err);
+        console.error("loadRoster error:", err);
       } finally {
         setBookingsLoading(false);
-      }
-    },
-    [supabase]
-  );
-
-  const loadAttendance = useCallback(
-    async (classId: string) => {
-      setAttendanceLoading(true);
-      try {
-        let allBookings: any[] = [];
-        const [bkRes, attRes] = await Promise.all([
-          fetch(`/api/admin/bookings`, { cache: "no-store" }),
-          supabase.from("attendance").select("*").eq("class_id", classId).eq("attendance_status", "attended"),
-        ]);
-
-        const bkJson = await bkRes.json();
-        const attData = attRes.data || [];
-
-        if (bkRes.ok && bkJson?.bookings) {
-          allBookings = bkJson.bookings;
-        } else {
-          const [bkDataRes, amDataRes] = await Promise.all([
-            supabase.from("bookings").select("*, profiles(id, full_name, email, phone_number)").eq("class_id", classId),
-            supabase.from("approved_members").select("id, full_name, email, phone_number"),
-          ]);
-          const rawBks = bkDataRes.data || [];
-          const amList = amDataRes.data || [];
-          const amByEmail: Record<string, any> = {};
-          amList.forEach((m: any) => {
-            if (m.email) amByEmail[m.email.toLowerCase()] = m;
-          });
-
-          allBookings = rawBks.map((b: any) => {
-            const p = b.profiles || {};
-            const email = p.email || "";
-            const am = email ? amByEmail[email.toLowerCase()] : null;
-            return {
-              ...b,
-              approved_members: {
-                id: am?.id || p.id || b.member_id,
-                full_name: am?.full_name || p.full_name || (email ? email.split("@")[0] : "Member"),
-                email: email,
-                phone_number: am?.phone_number || p.phone_number || "N/A",
-              },
-            };
-          });
-        }
-
-        const checkedInBookings = allBookings.filter((b: any) => {
-          if (b.class_id !== classId && b.classes?.id !== classId) return false;
-          if (b.booking_status === "checked_in" || b.booking_status === "attended" || b.booking_status === "completed") return true;
-          return attData.some(
-            (a: any) => a.booking_id === b.id || (a.member_id === b.member_id && a.attendance_status === "attended")
-          );
-        });
-        setAttended(checkedInBookings);
-      } catch (err) {
-        console.error("loadAttendance error:", err);
-      } finally {
         setAttendanceLoading(false);
       }
     },
     [supabase]
   );
+
+  const loadBookings = loadRoster;
+  const loadAttendance = loadRoster;
+
+  const handleMarkAsAttended = async (booking: any) => {
+    if (!selectedClass || markingAttendanceId) return;
+    setMarkingAttendanceId(booking.id);
+    setActionNotice(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+
+      const res = await fetch("/api/admin/attendance/manual", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          bookingId: booking.id,
+          classId: selectedClass,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to mark attendance");
+      }
+
+      const nowIso = json.checkedInAt || new Date().toISOString();
+      const attendedRecord: any = {
+        ...booking,
+        booking_status: "checked_in",
+        attendance_status: "present",
+        checked_in_at: nowIso,
+        is_attended: true,
+      };
+
+      // 1. Immediately move from Booked Roster to Checked In
+      setBookings((prev) => prev.filter((b) => b.id !== booking.id));
+      setAttended((prev) => {
+        if (prev.some((a) => a.id === booking.id)) return prev;
+        return [attendedRecord, ...prev];
+      });
+
+      // 2. Increment check-ins today counter
+      setCheckInsTodayCount((prev) => prev + 1);
+
+      // 3. Show confirmation feedback
+      setActionNotice({
+        id: booking.id,
+        text: "Attendance marked",
+        success: true,
+      });
+
+      // 4. Background re-sync
+      loadDashboardData();
+    } catch (err: any) {
+      console.error("handleMarkAsAttended error:", err);
+      setActionNotice({
+        id: booking.id,
+        text: err.message || "Failed to mark attendance",
+        success: false,
+      });
+    } finally {
+      setMarkingAttendanceId(null);
+    }
+  };
 
   useEffect(() => {
     loadDashboardData();
@@ -314,7 +383,7 @@ export default function AdminDashboard() {
         { event: "*", schema: "public", table: "bookings" },
         () => {
           loadDashboardData();
-          if (selectedClass) loadBookings(selectedClass);
+          if (selectedClass) loadRoster(selectedClass);
         }
       )
       .on(
@@ -329,7 +398,7 @@ export default function AdminDashboard() {
         { event: "*", schema: "public", table: "attendance" },
         () => {
           loadDashboardData();
-          if (selectedClass) loadAttendance(selectedClass);
+          if (selectedClass) loadRoster(selectedClass);
         }
       )
       .on(
@@ -344,17 +413,18 @@ export default function AdminDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, loadDashboardData, loadBookings, loadAttendance, selectedClass]);
+  }, [supabase, loadDashboardData, loadRoster, selectedClass]);
 
   function handleClassClick(classId: string) {
     if (selectedClass === classId) {
       setSelectedClass(null);
       setBookings([]);
       setAttended([]);
+      setActionNotice(null);
     } else {
       setSelectedClass(classId);
-      loadBookings(classId);
-      loadAttendance(classId);
+      setActionNotice(null);
+      loadRoster(classId);
     }
   }
 
@@ -368,20 +438,20 @@ export default function AdminDashboard() {
     return c.title.toLowerCase().includes(q) || c.instructor.toLowerCase().includes(q);
   });
 
-  const filteredBookings = bookings.filter((b) => {
+  const filteredBookings = bookings.filter((b: any) => {
     if (!rosterSearch) return true;
     const q = rosterSearch.toLowerCase();
-    const name = b.profiles?.full_name?.toLowerCase() || "";
-    const email = b.profiles?.email?.toLowerCase() || "";
-    const phone = b.profiles?.phone_number?.toLowerCase() || "";
+    const name = (b.approved_members?.full_name || b.profiles?.full_name || "").toLowerCase();
+    const email = (b.approved_members?.email || b.profiles?.email || "").toLowerCase();
+    const phone = (b.approved_members?.phone_number || b.profiles?.phone_number || "").toLowerCase();
     return name.includes(q) || email.includes(q) || phone.includes(q);
   });
 
-  const filteredAttended = attended.filter((a) => {
+  const filteredAttended = attended.filter((a: any) => {
     if (!rosterSearch) return true;
     const q = rosterSearch.toLowerCase();
-    const name = a.profiles?.full_name?.toLowerCase() || "";
-    const email = a.profiles?.email?.toLowerCase() || "";
+    const name = (a.approved_members?.full_name || a.profiles?.full_name || "").toLowerCase();
+    const email = (a.approved_members?.email || a.profiles?.email || "").toLowerCase();
     return name.includes(q) || email.includes(q);
   });
 
@@ -773,27 +843,58 @@ export default function AdminDashboard() {
                     const memberName = b.approved_members?.full_name || b.profiles?.full_name || "Member";
                     const memberEmail = b.approved_members?.email || b.profiles?.email || "";
                     const initial = memberName ? memberName.charAt(0).toUpperCase() : "M";
+                    const hasClassStarted = selectedClassData
+                      ? isClassStarted(selectedClassData.class_date, selectedClassData.class_time)
+                      : false;
 
                     return (
                       <div
                         key={b.id}
-                        className="p-3.5 rounded-xl bg-surface-2 border border-line flex items-center justify-between text-xs hover:border-line-2 hover:bg-hover/35 transition-all"
+                        className="p-3.5 rounded-xl bg-surface-2 border border-line flex flex-col gap-2.5 text-xs hover:border-line-2 hover:bg-hover/35 transition-all"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-accent/20 text-accent font-bold flex items-center justify-center text-xs border border-accent/30">
-                            {initial}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-full bg-accent/20 text-accent font-bold flex items-center justify-center text-xs border border-accent/30 shrink-0">
+                              {initial}
+                            </div>
+                            <div className="truncate">
+                              <p className="font-bold text-fg truncate">{memberName}</p>
+                              <p className="text-[11px] text-fg-3 truncate">{memberEmail || "No email"}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-bold text-fg">{memberName}</p>
-                            <p className="text-[11px] text-fg-3">{memberEmail || "No email"}</p>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="admin-badge bg-accent/10 text-accent border border-accent/20">
+                              BOOKED
+                            </span>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className="admin-badge bg-accent/10 text-accent border border-accent/20">
-                            BOOKED
-                          </span>
-                        </div>
+                        {/* Manual Attendance Override - only shown at or after class start time */}
+                        {hasClassStarted && (
+                          <div className="pt-2 border-t border-line/60 flex items-center justify-between gap-2">
+                            <span className="text-[11px] text-fg-3 font-medium">
+                              Present but missed attendance?
+                            </span>
+                            <button
+                              type="button"
+                              disabled={markingAttendanceId === b.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsAttended(b);
+                              }}
+                              className="admin-button px-3 py-1 text-xs font-semibold bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all rounded-lg disabled:opacity-50 whitespace-nowrap shadow-2xs"
+                            >
+                              {markingAttendanceId === b.id ? "Marking..." : "Mark as Attended"}
+                            </button>
+                          </div>
+                        )}
+
+                        {actionNotice && actionNotice.id === b.id && (
+                          <div className={`text-[11px] font-medium pt-1 ${actionNotice.success ? "text-emerald-600" : "text-red-500"}`}>
+                            {actionNotice.text}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -813,25 +914,31 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
-                  {filteredAttended.map((a) => (
-                    <div
-                      key={a.id}
-                      className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-600 font-bold flex items-center justify-center text-xs border border-emerald-500/30">
-                          &#10003;
+                  {filteredAttended.map((a: any) => {
+                    const memberName = a.approved_members?.full_name || a.profiles?.full_name || "Member";
+                    const memberEmail = a.approved_members?.email || a.profiles?.email || "";
+                    const initial = memberName ? memberName.charAt(0).toUpperCase() : "M";
+
+                    return (
+                      <div
+                        key={a.id}
+                        className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-600 font-bold flex items-center justify-center text-xs border border-emerald-500/30 shrink-0">
+                            &#10003;
+                          </div>
+                          <div className="truncate">
+                            <p className="font-bold text-fg truncate">{memberName}</p>
+                            <p className="text-[11px] text-fg-3 truncate">{memberEmail || "No email"}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-fg">{a.profiles?.full_name || "Member"}</p>
-                          <p className="text-[11px] text-fg-3">{a.profiles?.email}</p>
-                        </div>
+                        <span className="admin-badge bg-emerald-500/20 text-emerald-700 border border-emerald-500/30 shrink-0">
+                          ATTENDED
+                        </span>
                       </div>
-                      <span className="admin-badge bg-emerald-500/20 text-emerald-700 border border-emerald-500/30">
-                        ATTENDED
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

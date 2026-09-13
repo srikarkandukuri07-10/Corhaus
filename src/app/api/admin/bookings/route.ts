@@ -55,6 +55,9 @@ export async function GET(req: Request) {
       userPerms.permissions.includes("classes.manage") ||
       userPerms.permissions.includes("classes.view") ||
       userPerms.permissions.includes("classes.bookings") ||
+      userPerms.permissions.includes("attendance.manual") ||
+      userPerms.permissions.includes("attendance.scan") ||
+      userPerms.permissions.includes("attendance.view") ||
       userPerms.permissions.includes("members.history");
 
     if (!isAuthorized) {
@@ -69,10 +72,11 @@ export async function GET(req: Request) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // 4. Fetch ALL bookings & classes using service role (bypasses RLS entirely)
-    const [bkRes, clsRes] = await Promise.all([
+    // 4. Fetch ALL bookings, classes & attendances using service role (bypasses RLS entirely)
+    const [bkRes, clsRes, attRes] = await Promise.all([
       supabase.from("bookings").select("*").order("created_at", { ascending: false }),
       supabase.from("classes").select("*"),
+      supabase.from("attendance").select("id, booking_id, class_id, member_id, attendance_status, scanned_at"),
     ]);
 
     if (bkRes.error) {
@@ -82,13 +86,19 @@ export async function GET(req: Request) {
 
     const bookings = bkRes.data || [];
     const classes = clsRes.data || [];
+    const attendances = attRes.data || [];
 
     const classesById: Record<string, any> = {};
     classes.forEach((c: any) => {
       classesById[c.id] = c;
     });
 
-
+    const attendanceByBookingId: Record<string, any> = {};
+    attendances.forEach((a: any) => {
+      if (a.booking_id && a.attendance_status === "attended") {
+        attendanceByBookingId[a.booking_id] = a;
+      }
+    });
 
     // 5. Fetch members and profiles for enrichment
     const [membersRes, profilesRes] = await Promise.all([
@@ -114,7 +124,7 @@ export async function GET(req: Request) {
       if (p.email) profileEmailById[p.id] = p.email.toLowerCase();
     });
 
-    // Enrich each booking with member info
+    // Enrich each booking with member and attendance info
     const enrichedBookings = (bookings || []).map((b: any) => {
       // Path 1: booking.member_id == approved_members.id (admin-assigned old bookings)
       let member = memberById[b.member_id] || null;
@@ -146,7 +156,23 @@ export async function GET(req: Request) {
         phone_number: phoneNumber,
       };
 
-      return { ...b, classes: classesById[b.class_id] || b.classes || null, approved_members: finalMember };
+      const attRecord = attendanceByBookingId[b.id] || null;
+      const isAttended =
+        b.booking_status === "checked_in" ||
+        b.booking_status === "attended" ||
+        b.booking_status === "completed" ||
+        b.attendance_status === "present" ||
+        b.attendance_status === "attended" ||
+        Boolean(b.checked_in_at) ||
+        Boolean(attRecord);
+
+      return {
+        ...b,
+        classes: classesById[b.class_id] || b.classes || null,
+        approved_members: finalMember,
+        attendance: attRecord,
+        is_attended: isAttended,
+      };
     });
 
     return NextResponse.json({ bookings: enrichedBookings, total: enrichedBookings.length });

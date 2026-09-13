@@ -18,15 +18,25 @@ export async function GET() {
     const now = new Date();
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
 
-    const [classesRes, membersRes, invoicesRes, attendanceRes] = await Promise.all([
+    const [classesRes, membersRes, invoicesRes, attendanceRes, bookingsRes] = await Promise.all([
       service.from("classes").select("id, class_date").gte("class_date", todayStr),
       service.from("approved_members").select("id", { count: "exact", head: false }),
       service.from("invoices").select("grand_total, amount_paid, payment_status, created_at").gte("created_at", firstOfMonth),
       service.from("attendance").select("id, attendance_status, scanned_at, created_at").eq("attendance_status", "attended"),
+      service.from("bookings").select("class_id, booking_status").neq("booking_status", "cancelled"),
     ]);
 
     const todaysClasses = (classesRes.data || []).filter((c: any) => c.class_date === todayStr).length;
     const totalMembers = membersRes.count ?? (membersRes.data?.length || 0);
+
+    const bookingsCountMap: Record<string, number> = {};
+    if (bookingsRes.data) {
+      bookingsRes.data.forEach((b: any) => {
+        if (b.class_id) {
+          bookingsCountMap[b.class_id] = (bookingsCountMap[b.class_id] || 0) + 1;
+        }
+      });
+    }
 
     let revenue = 0;
     if (invoicesRes.data) {
@@ -52,6 +62,7 @@ export async function GET() {
       totalMembers,
       monthlyRevenue: revenue,
       checkInsToday: checkIns,
+      bookingsCountMap,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
