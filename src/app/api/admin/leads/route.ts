@@ -54,19 +54,25 @@ export async function POST(req: Request) {
     const emailTrimmed = email.trim().toLowerCase();
     if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(emailTrimmed)) return NextResponse.json({ error: "Invalid email" }, { status: 400 });
 
-    const allowedSources = ["Walk-in", "Phone", "Instagram", "Website", "WhatsApp", "Referral", "Other"];
-    const allowedConvert = ["Hot", "Warm", "Cold", "Others"];
-    const allowedStage = ["New", "Qualified", "Follow-up", "Trial Booked", "Trial Attended", "Negotiating", "Converted", "Lost"];
+    const allowedSources = ["Walk-in", "Phone", "Instagram", "Website", "WhatsApp", "Referral", "Facebook", "Google", "Other"];
+    const allowedConvert = ["Hot", "Warm", "Cold"];
+    const allowedStage = ["New", "Converted", "Trial booked", "Trial attended"];
+    const allowedInterests = ["General Membership", "Personal Training", "Group Classes", "Yoga", "Zumba", "CrossFit", "Kickboxing/MMA", "Trial Class", "Just Enquiring", "Other", "Reformer Pilates", "Mat Pilates", "Private Session"];
+
+    if (!source || !allowedSources.includes(source)) return NextResponse.json({ error: "Valid Source is required" }, { status: 400 });
+    if (!convertibility || !allowedConvert.includes(convertibility)) return NextResponse.json({ error: "Convertibility (Hot, Warm or Cold) is required" }, { status: 400 });
+    if (!pipeline_stage || !allowedStage.includes(pipeline_stage)) return NextResponse.json({ error: "Status (New, Converted, Trial booked or Trial attended) is required" }, { status: 400 });
+    if (interest && !allowedInterests.includes(interest)) return NextResponse.json({ error: "Invalid Interest" }, { status: 400 });
 
     const record: Record<string, unknown> = {
       full_name: full_name.trim(),
       phone_number: cleanPhone,
       email: emailTrimmed,
-      source: allowedSources.includes(source) ? source : "Website",
+      source,
       primary_location: primary_location || "CorhausPilates - Main Branch",
       interest: interest || null,
-      convertibility: allowedConvert.includes(convertibility) ? convertibility : "Others",
-      pipeline_stage: allowedStage.includes(pipeline_stage) ? pipeline_stage : "New",
+      convertibility,
+      pipeline_stage,
       assigned_to: assigned_to || null,
       follow_up_at: follow_up_at || null,
       notes: notes || null,

@@ -37,17 +37,23 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       payload.email = body.email.trim().toLowerCase();
     }
     if (body.source !== undefined) {
-      const allowed = ["Walk-in", "Phone", "Instagram", "Website", "WhatsApp", "Referral", "Other"];
-      if (allowed.includes(body.source)) payload.source = body.source;
+      const allowed = ["Walk-in", "Phone", "Instagram", "Website", "WhatsApp", "Referral", "Facebook", "Google", "Other"];
+      if (!allowed.includes(body.source)) return NextResponse.json({ error: "Invalid Source" }, { status: 400 });
+      payload.source = body.source;
     }
     if (body.primary_location !== undefined) payload.primary_location = body.primary_location;
-    if (body.interest !== undefined) payload.interest = body.interest;
+    if (body.interest !== undefined) {
+      const allowed = ["General Membership", "Personal Training", "Group Classes", "Yoga", "Zumba", "CrossFit", "Kickboxing/MMA", "Trial Class", "Just Enquiring", "Other", "Reformer Pilates", "Mat Pilates", "Private Session"];
+      if (body.interest !== null && !allowed.includes(body.interest)) return NextResponse.json({ error: "Invalid Interest" }, { status: 400 });
+      payload.interest = body.interest;
+    }
     if (body.convertibility !== undefined) {
-      const allowed = ["Hot", "Warm", "Cold", "Others"];
-      if (allowed.includes(body.convertibility)) payload.convertibility = body.convertibility;
+      const allowed = ["Hot", "Warm", "Cold"];
+      if (!allowed.includes(body.convertibility)) return NextResponse.json({ error: "Convertibility must be Hot, Warm or Cold" }, { status: 400 });
+      payload.convertibility = body.convertibility;
     }
     if (body.pipeline_stage !== undefined) {
-      const allowed = ["New", "Qualified", "Follow-up", "Trial Booked", "Trial Attended", "Negotiating", "Converted", "Lost"];
+      const allowed = ["New", "Converted", "Trial booked", "Trial attended"];
       if (!allowed.includes(body.pipeline_stage)) return NextResponse.json({ error: "Invalid stage" }, { status: 400 });
       payload.pipeline_stage = body.pipeline_stage;
     }

@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { full_name, phone_number, email, interest, preferred_time, message, source } = body;
+    const { full_name, phone_number, email, interest, preferred_time, message } = body;
 
     // Validation
     if (!full_name || typeof full_name !== "string" || !full_name.trim()) {
@@ -29,8 +29,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Interest is required" }, { status: 400 });
     }
 
-    const allowedSources = ["Walk-in", "Phone", "Instagram", "Website", "WhatsApp", "Referral", "Other"];
-    const finalSource = allowedSources.includes(source) ? source : "Website";
+    // This is the public Instagram bio lead form. Source is enforced server-side
+    // as Instagram regardless of any client-supplied value (cannot be manipulated).
+    const finalSource = "Instagram";
 
     const serviceClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } });
 
