@@ -811,29 +811,30 @@ function MembersPageContent() {
   return (
     <div className="space-y-6 animate-fade-in font-sans">
       {/* Top Title & Add Member Trigger */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-serif text-text-primary">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-serif text-text-primary">
             View <span className="font-semibold">Members</span>
           </h1>
-          <p className="text-sm text-text-secondary/60 mt-0.5">
-            Manage approved members, assigned packages, remaining sessions &amp; billing history
+          <p className="text-xs sm:text-sm text-text-secondary/60 mt-0.5">
+            Manage approved members, packages, sessions &amp; billing history
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={openBookingHistoryModal}
-            className="px-4 py-2.5 rounded-xl bg-surface-2 border border-line text-fg font-semibold text-sm hover:bg-hover transition-colors flex items-center gap-2"
+            className="px-3 py-2 rounded-xl bg-surface-2 border border-line text-fg font-semibold text-xs sm:text-sm hover:bg-hover transition-colors flex items-center gap-1.5"
           >
             <span>📊</span>
-            <span>Booking History</span>
+            <span className="hidden sm:inline">Booking History</span>
+            <span className="sm:hidden">History</span>
           </button>
           <button
             onClick={() => {
               resetForm();
               setShowForm(!showForm);
             }}
-            className="px-5 py-2.5 rounded-xl bg-accent text-white text-sm font-semibold hover:bg-accent-2 transition-colors shadow-md"
+            className="px-4 py-2 rounded-xl bg-accent text-white text-xs sm:text-sm font-semibold hover:bg-accent-2 transition-colors shadow-md whitespace-nowrap"
           >
             {showForm ? "Cancel" : "+ Add Member"}
           </button>
@@ -1057,142 +1058,193 @@ function MembersPageContent() {
             </p>
           </div>
         ) : (
-          <div className="w-full overflow-x-auto">
-            <table className="min-w-[900px] w-full text-[11px] text-left">
-              <thead>
-                <tr className="bg-surface-2 border-b border-border-input text-text-secondary/60 font-semibold uppercase tracking-wider">
-                  <th className="py-2.5 px-2.5">Member</th>
-                  <th className="py-2.5 px-2">Package / Plan</th>
-                  <th className="py-2.5 px-2">Category</th>
-                  <th className="py-2.5 px-2">Sessions</th>
-                  <th className="py-2.5 px-2">Start Date</th>
-                  <th className="py-2.5 px-2">End Date</th>
-                  <th className="py-2.5 px-2">Days Left</th>
-                  <th className="py-2.5 px-2">Status</th>
-                  <th className="py-2.5 px-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-input/50">
-                {filteredMembers.map((m) => {
-                  const plan = m.activePlan;
+          <>
+            {/* ─── Desktop Table — hidden on mobile ─── */}
+            <div className="hidden md:block w-full overflow-x-auto">
+              <table className="min-w-[900px] w-full text-[11px] text-left">
+                <thead>
+                  <tr className="bg-surface-2 border-b border-border-input text-text-secondary/60 font-semibold uppercase tracking-wider">
+                    <th className="py-2.5 px-2.5">Member</th>
+                    <th className="py-2.5 px-2">Package / Plan</th>
+                    <th className="py-2.5 px-2">Category</th>
+                    <th className="py-2.5 px-2">Sessions</th>
+                    <th className="py-2.5 px-2">Start Date</th>
+                    <th className="py-2.5 px-2">End Date</th>
+                    <th className="py-2.5 px-2">Days Left</th>
+                    <th className="py-2.5 px-2">Status</th>
+                    <th className="py-2.5 px-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border-input/50">
+                  {filteredMembers.map((m) => {
+                    const plan = m.activePlan;
 
-                  return (
-                    <tr key={m.id} className="hover:bg-surface-2/50 transition-colors">
-                      {/* Member column */}
-                      <td className="py-2.5 px-2.5 font-medium text-text-primary">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full overflow-hidden border border-border-input bg-surface-2 flex-shrink-0 flex items-center justify-center font-bold text-text-secondary text-xs">
-                            {m.avatar_url ? (
-                              <img src={m.avatar_url} alt={m.full_name} className="w-full h-full object-cover" />
-                            ) : (
-                              m.full_name.charAt(0).toUpperCase()
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-xs leading-tight text-text-primary truncate">{m.full_name}</p>
-                            <p className="text-[10px] text-text-secondary/50 mt-0.5">{m.phone_number}</p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Package / Plan */}
-                      <td className="py-2.5 px-2 font-semibold text-text-primary max-w-[140px]">
-                        <span className="block truncate" title={plan?.plan_name || ""}>{plan ? plan.plan_name : <span className="text-text-secondary/40 font-normal italic">No plan</span>}</span>
-                      </td>
-
-                      {/* Category */}
-                      <td className="py-2.5 px-2">
-                        {plan ? (
-                          <span className="inline-block whitespace-nowrap px-2 py-0.5 rounded-full bg-surface-2 text-text-gold font-semibold text-[10px] border border-border-input">
-                            {plan.category}
-                          </span>
-                        ) : (
-                          <span className="text-text-secondary/30">—</span>
-                        )}
-                      </td>
-
-                      {/* Classes / Sessions */}
-                      <td className="py-2.5 px-2">
-                        {plan ? (
-                          (() => {
-                            const sessInfo = formatSessionsDisplay(plan);
-                            return (
-                              <span
-                                className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-lg font-semibold text-[10px] border ${
-                                  sessInfo.isSessions
-                                    ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
-                                    : "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                                }`}
-                              >
-                                {sessInfo.text}
-                              </span>
-                            );
-                          })()
-                        ) : (
-                          <span className="text-text-secondary/30">—</span>
-                        )}
-                      </td>
-
-                      {/* Start Date */}
-                      <td className="py-2.5 px-2 text-text-secondary/80 font-sans font-medium text-[11px] whitespace-nowrap">
-                        {plan?.valid_from ? formatDate(plan.valid_from) : "—"}
-                      </td>
-
-                      {/* End Date */}
-                      <td className="py-2.5 px-2 text-text-secondary/80 font-sans font-medium text-[11px] whitespace-nowrap">
-                        {plan?.valid_until ? formatDate(plan.valid_until) : "—"}
-                      </td>
-
-                      {/* Days Left & Classes Left */}
-                      <td className="py-2.5 px-2">
-                        {m.daysLeft !== null && m.daysLeft !== undefined ? (
-                          <div className={`inline-flex flex-col items-center justify-center text-center px-2 py-1 rounded-xl font-semibold text-[10px] border ${
-                            m.daysLeft <= 7
-                              ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                              : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                          }`}>
-                            <div>{m.daysLeft}d left</div>
-                            <div className="text-[9px] opacity-80 mt-0.5 font-bold border-t border-current/10 pt-0.5 w-full">
-                              {plan ? (
-                                plan.sessions_total !== null && plan.sessions_total !== undefined
-                                  ? `${plan.sessions_remaining ?? 0} left`
-                                  : "Unlimited"
-                              ) : "0 left"}
+                    return (
+                      <tr key={m.id} className="hover:bg-surface-2/50 transition-colors">
+                        <td className="py-2.5 px-2.5 font-medium text-text-primary">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full overflow-hidden border border-border-input bg-surface-2 flex-shrink-0 flex items-center justify-center font-bold text-text-secondary text-xs">
+                              {m.avatar_url ? (
+                                <img src={m.avatar_url} alt={m.full_name} className="w-full h-full object-cover" />
+                              ) : (
+                                m.full_name.charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-xs leading-tight text-text-primary truncate">{m.full_name}</p>
+                              <p className="text-[10px] text-text-secondary/50 mt-0.5">{m.phone_number}</p>
                             </div>
                           </div>
+                        </td>
+                        <td className="py-2.5 px-2 font-semibold text-text-primary max-w-[140px]">
+                          <span className="block truncate" title={plan?.plan_name || ""}>{plan ? plan.plan_name : <span className="text-text-secondary/40 font-normal italic">No plan</span>}</span>
+                        </td>
+                        <td className="py-2.5 px-2">
+                          {plan ? (
+                            <span className="inline-block whitespace-nowrap px-2 py-0.5 rounded-full bg-surface-2 text-text-gold font-semibold text-[10px] border border-border-input">
+                              {plan.category}
+                            </span>
+                          ) : (
+                            <span className="text-text-secondary/30">—</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-2">
+                          {plan ? (
+                            (() => {
+                              const sessInfo = formatSessionsDisplay(plan);
+                              return (
+                                <span
+                                  className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-lg font-semibold text-[10px] border ${
+                                    sessInfo.isSessions
+                                      ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                                      : "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                                  }`}
+                                >
+                                  {sessInfo.text}
+                                </span>
+                              );
+                            })()
+                          ) : (
+                            <span className="text-text-secondary/30">—</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-2 text-text-secondary/80 font-sans font-medium text-[11px] whitespace-nowrap">
+                          {plan?.valid_from ? formatDate(plan.valid_from) : "—"}
+                        </td>
+                        <td className="py-2.5 px-2 text-text-secondary/80 font-sans font-medium text-[11px] whitespace-nowrap">
+                          {plan?.valid_until ? formatDate(plan.valid_until) : "—"}
+                        </td>
+                        <td className="py-2.5 px-2">
+                          {m.daysLeft !== null && m.daysLeft !== undefined ? (
+                            <div className={`inline-flex flex-col items-center justify-center text-center px-2 py-1 rounded-xl font-semibold text-[10px] border ${
+                              m.daysLeft <= 7
+                                ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                                : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                            }`}>
+                              <div>{m.daysLeft}d left</div>
+                              <div className="text-[9px] opacity-80 mt-0.5 font-bold border-t border-current/10 pt-0.5 w-full">
+                                {plan ? (
+                                  plan.sessions_total !== null && plan.sessions_total !== undefined
+                                    ? `${plan.sessions_remaining ?? 0} left`
+                                    : "Unlimited"
+                                ) : "0 left"}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-text-secondary/30">—</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-2">
+                          <StatusBadge status={m.computedStatus || "Active"} />
+                        </td>
+                        <td className="py-2.5 px-2 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => handleOpenDetails(m)}
+                              className="px-2.5 py-1 rounded-xl bg-accent text-white font-bold text-[11px] hover:bg-accent-2 transition-colors shadow-xs"
+                            >
+                              Details
+                            </button>
+                            <button
+                              onClick={() => handleOpenHistory(m)}
+                              className="px-2.5 py-1 rounded-xl bg-surface-2 border border-line-2 text-fg font-bold text-[11px] hover:bg-hover transition-colors shadow-xs"
+                            >
+                              History
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ─── Mobile Cards — shown only on mobile ─── */}
+            <div className="md:hidden divide-y divide-border-input/50">
+              {filteredMembers.map((m) => {
+                const plan = m.activePlan;
+                const sessInfo = plan ? formatSessionsDisplay(plan) : null;
+                return (
+                  <div key={m.id} className="p-3 space-y-3">
+                    {/* Member identity row */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-border-input bg-surface-2 flex-shrink-0 flex items-center justify-center font-bold text-text-secondary">
+                        {m.avatar_url ? (
+                          <img src={m.avatar_url} alt={m.full_name} className="w-full h-full object-cover" />
                         ) : (
-                          <span className="text-text-secondary/30">—</span>
+                          m.full_name.charAt(0).toUpperCase()
                         )}
-                      </td>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-text-primary truncate">{m.full_name}</p>
+                        <p className="text-xs text-text-secondary/60">{m.phone_number}</p>
+                      </div>
+                      <StatusBadge status={m.computedStatus || "Active"} />
+                    </div>
 
-                      {/* Status */}
-                      <td className="py-2.5 px-2">
-                        <StatusBadge status={m.computedStatus || "Active"} />
-                      </td>
+                    {/* Plan info grid */}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="bg-surface-2 rounded-xl p-2.5 border border-border-input">
+                        <p className="text-[10px] text-text-secondary/50 font-semibold uppercase tracking-wide mb-0.5">Plan</p>
+                        <p className="font-semibold text-text-primary truncate">{plan?.plan_name || <span className="italic text-text-secondary/40">No plan</span>}</p>
+                      </div>
+                      <div className="bg-surface-2 rounded-xl p-2.5 border border-border-input">
+                        <p className="text-[10px] text-text-secondary/50 font-semibold uppercase tracking-wide mb-0.5">Sessions</p>
+                        <p className="font-semibold text-text-primary">{sessInfo ? sessInfo.text : "—"}</p>
+                      </div>
+                      <div className="bg-surface-2 rounded-xl p-2.5 border border-border-input">
+                        <p className="text-[10px] text-text-secondary/50 font-semibold uppercase tracking-wide mb-0.5">End Date</p>
+                        <p className="font-semibold text-text-primary">{plan?.valid_until ? formatDate(plan.valid_until) : "—"}</p>
+                      </div>
+                      <div className="bg-surface-2 rounded-xl p-2.5 border border-border-input">
+                        <p className="text-[10px] text-text-secondary/50 font-semibold uppercase tracking-wide mb-0.5">Days Left</p>
+                        <p className={`font-bold ${m.daysLeft !== null && m.daysLeft !== undefined ? (m.daysLeft <= 7 ? "text-amber-500" : "text-emerald-500") : "text-text-secondary/40"}`}>
+                          {m.daysLeft !== null && m.daysLeft !== undefined ? `${m.daysLeft}d` : "—"}
+                        </p>
+                      </div>
+                    </div>
 
-                      {/* Actions */}
-                      <td className="py-2.5 px-2 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => handleOpenDetails(m)}
-                            className="px-2.5 py-1 rounded-xl bg-accent text-white font-bold text-[11px] hover:bg-accent-2 transition-colors shadow-xs"
-                          >
-                            Details
-                          </button>
-                          <button
-                            onClick={() => handleOpenHistory(m)}
-                            className="px-2.5 py-1 rounded-xl bg-surface-2 border border-line-2 text-fg font-bold text-[11px] hover:bg-hover transition-colors shadow-xs"
-                          >
-                            History
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    {/* Action buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleOpenDetails(m)}
+                        className="flex-1 py-2 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-2 transition-colors"
+                      >
+                        Details
+                      </button>
+                      <button
+                        onClick={() => handleOpenHistory(m)}
+                        className="flex-1 py-2 rounded-xl bg-surface-2 border border-line-2 text-fg font-bold text-xs hover:bg-hover transition-colors"
+                      >
+                        History
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
 
       </div>
@@ -1200,17 +1252,17 @@ function MembersPageContent() {
       {/* Member Details Drawer Modal */}
       {selectedMember && (
         <div
-          className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-xs animate-fade-in"
+          className="fixed inset-0 z-50 flex items-end sm:justify-end bg-black/40 backdrop-blur-xs animate-fade-in"
           onClick={() => setSelectedMember(null)}
         >
           <div
-            className="w-[95vw] max-w-lg sm:w-full bg-surface h-full shadow-2xl overflow-y-auto p-6 space-y-6 animate-slide-up"
+            className="w-full sm:w-[95vw] sm:max-w-lg bg-surface sm:h-full h-[90dvh] shadow-2xl overflow-y-auto p-4 sm:p-6 space-y-5 sm:space-y-6 rounded-t-3xl sm:rounded-none animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border-input pb-4">
               <div>
-                <h2 className="text-lg font-serif text-text-primary">Member Details</h2>
+                <h2 className="text-base sm:text-lg font-serif text-text-primary">Member Details</h2>
                 <p className="text-xs text-text-secondary/50 font-mono">ID: {selectedMember.id.slice(0, 8)}</p>
               </div>
               <button

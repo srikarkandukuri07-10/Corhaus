@@ -595,7 +595,9 @@ export default function ExpensesPage() {
             <p className="text-xs text-fg-3 mt-1">Try adjusting your filters or click Add Expense.</p>
           </div>
         ) : (
-          <div className="w-full overflow-x-auto">
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block w-full overflow-x-auto">
             <table className="min-w-[900px] w-full text-[11px] text-left">
               <thead>
                 <tr className="bg-surface-2 border-b border-line-2 text-fg-3 uppercase font-bold text-[10px]">
@@ -664,13 +666,69 @@ export default function ExpensesPage() {
               </tbody>
             </table>
           </div>
-        )}
+
+          {/* Mobile Cards View */}
+          <div className="md:hidden divide-y divide-line-2 p-3 space-y-3">
+            {filteredExpenses.map((exp) => (
+              <div key={exp.id} className="p-4 rounded-xl bg-surface-2/60 border border-line-2 space-y-3 text-xs">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-bold text-sm text-fg">{exp.title}</p>
+                    <p className="text-fg-3 text-[11px] mt-0.5">{exp.category_name} {exp.paid_to ? `• Paid to: ${exp.paid_to}` : ""}</p>
+                  </div>
+                  <span className="font-bold text-red-500 text-sm shrink-0">
+                    {fmt(exp.amount)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] bg-surface p-2.5 rounded-lg border border-line-2/50">
+                  <div>
+                    <span className="text-fg-4 font-medium block">Date & Method</span>
+                    <span className="font-semibold text-fg">{formatDateDisplay(exp.expense_date)} ({exp.payment_method})</span>
+                  </div>
+                  {exp.is_recurring && (
+                    <span className="inline-block px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold text-[10px]">
+                      {exp.recurring_frequency}
+                    </span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="pt-2 border-t border-line-2 flex items-center justify-end gap-1.5">
+                  <button
+                    onClick={() => setViewingExpense(exp)}
+                    className="px-2.5 py-1 rounded-lg bg-surface border border-line-2 text-fg font-semibold text-[11px]"
+                  >
+                    View
+                  </button>
+                  {hasPerm("expenses.edit") && (
+                    <button
+                      onClick={() => handleOpenEditModal(exp)}
+                      className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-semibold text-[11px]"
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {hasPerm("expenses.delete") && (
+                    <button
+                      onClick={() => setDeletingExpense(exp)}
+                      className="px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 font-semibold text-[11px]"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
       </div>
 
       {/* Add / Edit Expense Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-line-2 rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-surface border border-line-2 rounded-2xl w-full max-w-lg shadow-xl overflow-y-auto max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between px-6 py-4 border-b border-line-2 bg-surface-2">
               <h2 className="text-base font-serif font-bold text-fg">
                 {editingExpense ? "Edit Expense Record" : "Record New Expense"}

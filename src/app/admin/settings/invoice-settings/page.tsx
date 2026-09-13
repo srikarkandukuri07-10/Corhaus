@@ -106,7 +106,7 @@ export function SettingsSidebar() {
   }
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-surface rounded-2xl border border-line p-4 space-y-6">
+    <aside className="w-full md:w-64 flex-shrink-0 bg-surface rounded-2xl border border-line p-4 space-y-6">
       <div>
         <h2 className="text-xl font-bold text-fg">Settings</h2>
         <p className="text-xs text-fg-4 mt-0.5">Manage your business and account preferences</p>

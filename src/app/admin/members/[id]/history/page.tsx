@@ -316,52 +316,87 @@ export default function MemberHistoryPage({
             <p className="text-xs text-fg-4 mt-1">No check-in records match the selected filters.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-line-2 bg-surface-2/60 text-fg-3 uppercase font-bold text-[10px] tracking-wider">
-                  <th className="py-3.5 px-4">Date</th>
-                  <th className="py-3.5 px-4">Check-in Time</th>
-                  <th className="py-3.5 px-4">Class Name</th>
-                  <th className="py-3.5 px-4">Instructor</th>
-                  <th className="py-3.5 px-4 text-right">Attendance Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line-2 text-fg">
-                {filteredHistory.map((row) => (
-                  <tr key={row.id} className="hover:bg-hover/50 transition-colors">
-                    <td className="py-3.5 px-4 font-semibold text-fg">
-                      {formatDateDisplay(row.date)}
-                    </td>
-                    <td className="py-3.5 px-4 text-fg-2 font-medium">
-                      {row.time}
-                    </td>
-                    <td className="py-3.5 px-4 font-bold text-fg">
-                      {row.className}
-                    </td>
-                    <td className="py-3.5 px-4 text-fg-2">
-                      {row.instructor}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <span
-                        className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold border ${
-                          row.status === "Attended"
-                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                            : row.status === "Cancelled"
-                            ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                            : row.status === "Booked"
-                            ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                            : "bg-red-500/10 text-red-500 border-red-500/20"
-                        }`}
-                      >
-                        {row.status}
-                      </span>
-                    </td>
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-line-2 bg-surface-2/60 text-fg-3 uppercase font-bold text-[10px] tracking-wider">
+                    <th className="py-3.5 px-4">Date</th>
+                    <th className="py-3.5 px-4">Check-in Time</th>
+                    <th className="py-3.5 px-4">Class Name</th>
+                    <th className="py-3.5 px-4">Instructor</th>
+                    <th className="py-3.5 px-4 text-right">Attendance Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-line-2 text-fg">
+                  {filteredHistory.map((row) => (
+                    <tr key={row.id} className="hover:bg-hover/50 transition-colors">
+                      <td className="py-3.5 px-4 font-semibold text-fg">
+                        {formatDateDisplay(row.date)}
+                      </td>
+                      <td className="py-3.5 px-4 text-fg-2 font-medium">
+                        {row.time}
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-fg">
+                        {row.className}
+                      </td>
+                      <td className="py-3.5 px-4 text-fg-2">
+                        {row.instructor}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold border ${
+                            row.status === "Attended"
+                              ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                              : row.status === "Cancelled"
+                              ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                              : row.status === "Booked"
+                              ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                              : "bg-red-500/10 text-red-500 border-red-500/20"
+                          }`}
+                        >
+                          {row.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden divide-y divide-line-2 p-3 space-y-3">
+              {filteredHistory.map((row) => (
+                <div key={row.id} className="p-4 rounded-xl bg-surface-2/60 border border-line-2 space-y-2 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-bold text-sm text-fg">{row.className}</p>
+                      <p className="text-fg-3 text-[11px] mt-0.5">{row.instructor}</p>
+                    </div>
+                    <span
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${
+                        row.status === "Attended"
+                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                          : row.status === "Cancelled"
+                          ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                          : row.status === "Booked"
+                          ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                          : "bg-red-500/10 text-red-500 border-red-500/20"
+                      }`}
+                    >
+                      {row.status}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] bg-surface p-2 rounded-lg border border-line-2/50">
+                    <span className="text-fg-4 font-medium">Date & Time</span>
+                    <span className="font-semibold text-fg">{formatDateDisplay(row.date)} @ {row.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

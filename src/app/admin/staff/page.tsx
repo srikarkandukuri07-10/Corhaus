@@ -390,7 +390,7 @@ export default function StaffPage() {
       )}
 
       {/* ─── SUMMARY CARDS ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-surface p-5 rounded-3xl border border-line shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-fg-3 uppercase tracking-wider">Total Staff</span>
@@ -510,122 +510,175 @@ export default function StaffPage() {
             <p className="text-xs text-fg-4 mt-1">Try adjusting search filters or click "Add Staff" to register a team member.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-surface-2 border-b border-line text-fg-2 font-extrabold uppercase text-[10px] tracking-wider">
-                  <th className="py-3.5 px-5">Staff Member</th>
-                  <th className="py-3.5 px-4">Role &amp; Designation</th>
-                  <th className="py-3.5 px-4">Location</th>
-                  <th className="py-3.5 px-4">Phone Number</th>
-                  <th className="py-3.5 px-4">Specialization</th>
-                  <th className="py-3.5 px-4">Compensation</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4">Join Date</th>
-                  <th className="py-3.5 px-5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line font-semibold text-fg">
-                {staffList.map((staff) => (
-                  <tr key={staff.id} className="hover:bg-surface-2/70 transition-colors">
-                    {/* Full Name & Avatar */}
-                    <td className="py-4 px-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent to-accent-3 text-white font-extrabold flex items-center justify-center text-sm shadow-sm flex-shrink-0">
-                          {staff.full_name ? staff.full_name.charAt(0).toUpperCase() : "S"}
-                        </div>
-                        <div>
-                          <p className="font-extrabold text-sm text-fg">{staff.full_name}</p>
-                          <p className="text-[11px] text-fg-4">{staff.email || "No Email"}</p>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Role & Designation */}
-                    <td className="py-4 px-4">
-                      <div className="space-y-0.5">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          staff.role === "Owner" ? "bg-red-100 text-red-800 border border-red-200" :
-                          staff.role === "Manager" ? "bg-purple-100 text-purple-800" :
-                          staff.role === "Trainer" ? "bg-amber-100 text-amber-800" :
-                          staff.role === "Receptionist" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
-                        }`}>
-                          {staff.role}
-                        </span>
-                        <p className="text-xs font-semibold text-fg/80">{staff.designation}</p>
-                      </div>
-                    </td>
-
-                    {/* Location */}
-                    <td className="py-4 px-4 text-fg-2">{staff.location || "Main Studio"}</td>
-
-                    {/* Phone Number */}
-                    <td className="py-4 px-4 font-mono text-fg">{staff.phone_number}</td>
-
-                    {/* Specialization */}
-                    <td className="py-4 px-4 text-fg-2">
-                      {staff.specialization ? (
-                        <span className="truncate max-w-[140px] block">{staff.specialization}</span>
-                      ) : (
-                        <span className="text-fg-5">—</span>
-                      )}
-                    </td>
-
-                    {/* Compensation */}
-                    <td className="py-4 px-4">
-                      <p className="font-bold text-fg">₹{Number(staff.monthly_salary || 0).toLocaleString("en-IN")}/mo</p>
-                      <p className="text-[10px] text-fg-4">{staff.payment_type}</p>
-                    </td>
-
-                    {/* Status */}
-                    <td className="py-4 px-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
-                        staff.employment_status === "Active"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-gray-200 text-gray-600"
-                      }`}>
-                        {staff.employment_status}
-                      </span>
-                    </td>
-
-                    {/* Join Date */}
-                    <td className="py-4 px-4 text-fg-3">
-                      {staff.joining_date ? new Date(staff.joining_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="py-4 px-5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setSelectedStaffProfile(staff)}
-                          title="View Profile"
-                          className="p-1.5 rounded-lg text-fg-3 hover:text-accent hover:bg-accent/10 transition-colors"
-                        >
-                          👁️ Profile
-                        </button>
-                        <button
-                          onClick={() => handleOpenEditStaff(staff)}
-                          title="Edit Staff"
-                          className="p-1.5 rounded-lg text-fg-3 hover:text-gold hover:bg-gold/10 transition-colors"
-                        >
-                          ✏️ Edit
-                        </button>
-                        {staff.employment_status === "Active" && (
-                          <button
-                            onClick={() => setDeactivatingStaff(staff)}
-                            title="Deactivate Staff"
-                            className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
-                          >
-                            🚫 Deactivate
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-surface-2 border-b border-line text-fg-2 font-extrabold uppercase text-[10px] tracking-wider">
+                    <th className="py-3.5 px-5">Staff Member</th>
+                    <th className="py-3.5 px-4">Role &amp; Designation</th>
+                    <th className="py-3.5 px-4">Location</th>
+                    <th className="py-3.5 px-4">Phone Number</th>
+                    <th className="py-3.5 px-4">Specialization</th>
+                    <th className="py-3.5 px-4">Compensation</th>
+                    <th className="py-3.5 px-4">Status</th>
+                    <th className="py-3.5 px-4">Join Date</th>
+                    <th className="py-3.5 px-5 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-line font-semibold text-fg">
+                  {staffList.map((staff) => (
+                    <tr key={staff.id} className="hover:bg-surface-2/70 transition-colors">
+                      <td className="py-4 px-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent to-accent-3 text-white font-extrabold flex items-center justify-center text-sm shadow-sm flex-shrink-0">
+                            {staff.full_name ? staff.full_name.charAt(0).toUpperCase() : "S"}
+                          </div>
+                          <div>
+                            <p className="font-extrabold text-sm text-fg">{staff.full_name}</p>
+                            <p className="text-[11px] text-fg-4">{staff.email || "No Email"}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="space-y-0.5">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            staff.role === "Owner" ? "bg-red-100 text-red-800 border border-red-200" :
+                            staff.role === "Manager" ? "bg-purple-100 text-purple-800" :
+                            staff.role === "Trainer" ? "bg-amber-100 text-amber-800" :
+                            staff.role === "Receptionist" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
+                          }`}>
+                            {staff.role}
+                          </span>
+                          <p className="text-xs font-semibold text-fg/80">{staff.designation}</p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-fg-2">{staff.location || "Main Studio"}</td>
+                      <td className="py-4 px-4 font-mono text-fg">{staff.phone_number}</td>
+                      <td className="py-4 px-4 text-fg-2">
+                        {staff.specialization ? (
+                          <span className="truncate max-w-[140px] block">{staff.specialization}</span>
+                        ) : (
+                          <span className="text-fg-5">—</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-4">
+                        <p className="font-bold text-fg">₹{Number(staff.monthly_salary || 0).toLocaleString("en-IN")}/mo</p>
+                        <p className="text-[10px] text-fg-4">{staff.payment_type}</p>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
+                          staff.employment_status === "Active"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-gray-200 text-gray-600"
+                        }`}>
+                          {staff.employment_status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-fg-3">
+                        {staff.joining_date ? new Date(staff.joining_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                      </td>
+                      <td className="py-4 px-5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => setSelectedStaffProfile(staff)}
+                            title="View Profile"
+                            className="p-1.5 rounded-lg text-fg-3 hover:text-accent hover:bg-accent/10 transition-colors"
+                          >
+                            👁️ Profile
+                          </button>
+                          <button
+                            onClick={() => handleOpenEditStaff(staff)}
+                            title="Edit Staff"
+                            className="p-1.5 rounded-lg text-fg-3 hover:text-gold hover:bg-gold/10 transition-colors"
+                          >
+                            ✏️ Edit
+                          </button>
+                          {staff.employment_status === "Active" && (
+                            <button
+                              onClick={() => setDeactivatingStaff(staff)}
+                              title="Deactivate Staff"
+                              className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+                            >
+                              🚫 Deactivate
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden divide-y divide-line p-3 space-y-3">
+              {staffList.map((staff) => (
+                <div key={staff.id} className="p-4 rounded-2xl bg-surface-2/60 border border-line space-y-3 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-accent-3 text-white font-extrabold flex items-center justify-center text-sm shadow-sm shrink-0">
+                        {staff.full_name ? staff.full_name.charAt(0).toUpperCase() : "S"}
+                      </div>
+                      <div>
+                        <p className="font-extrabold text-sm text-fg">{staff.full_name}</p>
+                        <p className="text-[11px] text-fg-4">{staff.designation}</p>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                      staff.employment_status === "Active" ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-600"
+                    }`}>
+                      {staff.employment_status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-surface p-2.5 rounded-xl border border-line">
+                    <div>
+                      <span className="text-fg-4 font-medium block">Role</span>
+                      <span className="font-bold text-fg">{staff.role}</span>
+                    </div>
+                    <div>
+                      <span className="text-fg-4 font-medium block">Phone</span>
+                      <span className="font-mono font-bold text-fg">{staff.phone_number}</span>
+                    </div>
+                    <div>
+                      <span className="text-fg-4 font-medium block">Salary</span>
+                      <span className="font-bold text-fg">₹{Number(staff.monthly_salary || 0).toLocaleString("en-IN")}/mo</span>
+                    </div>
+                    <div>
+                      <span className="text-fg-4 font-medium block">Specialization</span>
+                      <span className="font-medium text-fg truncate block">{staff.specialization || "—"}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="pt-2 border-t border-line flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => setSelectedStaffProfile(staff)}
+                      className="px-3 py-1.5 rounded-xl bg-surface border border-line text-accent font-bold text-xs"
+                    >
+                      View Profile
+                    </button>
+                    <button
+                      onClick={() => handleOpenEditStaff(staff)}
+                      className="px-3 py-1.5 rounded-xl bg-surface border border-line text-fg font-bold text-xs"
+                    >
+                      Edit
+                    </button>
+                    {staff.employment_status === "Active" && (
+                      <button
+                        onClick={() => setDeactivatingStaff(staff)}
+                        className="px-3 py-1.5 rounded-xl bg-red-50 text-red-600 font-bold text-xs"
+                      >
+                        Deactivate
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 

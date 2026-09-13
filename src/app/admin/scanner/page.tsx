@@ -37,7 +37,7 @@ export default function ScannerPage() {
       <div className="bg-surface rounded-3xl border border-line p-8 shadow-xs flex flex-col items-center text-center space-y-4">
         <h2 className="text-lg font-bold text-fg">Attendance QR</h2>
         <p className="text-sm text-fg-3">Scan this QR to mark attendance</p>
-        <div className="w-80 h-80 bg-white rounded-2xl border-2 border-line p-4 flex items-center justify-center">
+        <div className="max-w-full w-72 sm:w-80 aspect-square bg-white rounded-2xl border-2 border-line p-4 flex items-center justify-center">
           {qrUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={qrUrl} alt="Attendance QR" className="w-full h-full object-contain" />

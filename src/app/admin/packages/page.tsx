@@ -485,7 +485,7 @@ export default function PackagesAndPlansPage() {
       {/* Create / Edit Plan Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-line rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5">
+          <div className="bg-surface border border-line rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <h3 className="text-lg font-extrabold text-fg">
                 {editingPlan ? "Edit Package / Plan" : "Create New Package / Plan"}

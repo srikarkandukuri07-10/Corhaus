@@ -316,7 +316,7 @@ export default function MembershipFreezeSection() {
       {/* ─── MEMBER REQUEST MODAL ────────────────────────────────────────────── */}
       {showRequestModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-surface rounded-2xl border border-line shadow-xl max-w-md w-[95vw] p-6 space-y-5">
+          <div className="bg-surface rounded-2xl border border-line shadow-xl max-w-md w-[95vw] p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
                 <h3 className="font-serif text-lg font-bold text-fg">Request Membership Freeze</h3>

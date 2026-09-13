@@ -267,8 +267,10 @@ export default function InvoicesPage() {
         </div>
       ) : (
         <div className="bg-surface rounded-2xl border border-line overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-[1fr_1.5fr_1fr_1fr_1fr_auto] gap-4 px-5 py-3 border-b border-line bg-surface-2/30">
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            {/* Table header */}
+            <div className="grid grid-cols-[1fr_1.5fr_1fr_1fr_1fr_auto] gap-4 px-5 py-3 border-b border-line bg-surface-2/30">
             {["Invoice #", "Customer", "Date", "Amount", "Status", ""].map(
               (h) => (
                 <p key={h} className="text-xs font-semibold text-fg-5 uppercase tracking-wide">
@@ -456,6 +458,68 @@ export default function InvoicesPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          </div>
+
+          {/* Mobile Cards View */}
+          <div className="md:hidden divide-y divide-line p-3 space-y-3">
+            {filtered.map((inv) => (
+              <div key={inv.id} className="p-4 rounded-2xl bg-surface-2/60 border border-line space-y-3 text-xs">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-mono font-bold text-sm text-fg">{inv.invoice_number}</p>
+                    <p className="font-semibold text-fg-2 text-xs mt-0.5">{inv.customer_name}</p>
+                    {inv.customer_phone && <p className="text-[11px] text-fg-4">{inv.customer_phone}</p>}
+                  </div>
+                  <span
+                    className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold capitalize shrink-0 ${
+                      STATUS_COLORS[inv.payment_status]
+                    }`}
+                  >
+                    {inv.payment_status}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs bg-surface p-2.5 rounded-xl border border-line">
+                  <div>
+                    <span className="text-fg-5 block text-[10px]">Date</span>
+                    <span className="font-medium text-fg">{formatDate(inv.created_at)}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-fg-5 block text-[10px]">Total</span>
+                    <span className="font-bold text-fg text-sm">{fmt(inv.grand_total)}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-line">
+                  <button
+                    onClick={() => handleExpand(inv.id)}
+                    className="px-3 py-1.5 rounded-xl bg-surface border border-line text-fg font-semibold text-xs"
+                  >
+                    {expandedId === inv.id ? "Hide Details" : "View Items"}
+                  </button>
+                  <button
+                    onClick={() => setPrintInvoice({ ...inv, invoice_items: itemsMap[inv.id] || [] })}
+                    className="px-3 py-1.5 rounded-xl bg-accent text-white font-bold text-xs"
+                  >
+                    Print
+                  </button>
+                </div>
+
+                {expandedId === inv.id && (
+                  <div className="pt-3 border-t border-line space-y-3 text-[11px]">
+                    <p className="font-bold text-fg">Items:</p>
+                    {(itemsMap[inv.id] || []).map((item) => (
+                      <div key={item.id} className="flex justify-between text-fg-2">
+                        <span>{item.name} ({item.quantity}x)</span>
+                        <span className="font-semibold">{fmt(item.total_price)}</span>
+                      </div>
+                    ))}
+                    {inv.payment_method && <p className="text-fg-4">Method: <strong className="text-fg">{inv.payment_method}</strong></p>}
                   </div>
                 )}
               </div>

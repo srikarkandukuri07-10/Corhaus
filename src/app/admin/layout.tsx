@@ -123,13 +123,14 @@ export default function AdminLayout({
 
   const mobileLink = (perm: string, href: string, label: string) => {
     if (hasPerm(perm)) {
+      const isActive = href === "/admin" ? pathname === href : pathname.startsWith(href);
       return (
         <Link
           href={href}
-          className={`block px-4 py-2.5 rounded-xl font-semibold transition-all ${
-            pathname.startsWith(href)
-              ? "bg-surface/20 text-white font-bold"
-              : "text-on-rail hover:text-white"
+          className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${
+            isActive
+              ? "sidebar-active text-white font-bold"
+              : "text-on-rail hover:text-white hover:bg-rail-hover"
           }`}
         >
           {label}
@@ -137,12 +138,13 @@ export default function AdminLayout({
       );
     }
     return (
-      <span className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail-3 opacity-60 cursor-not-allowed flex items-center justify-between">
+      <span className="flex items-center justify-between px-3 py-3 rounded-xl text-sm font-semibold text-on-rail-3 opacity-60 cursor-not-allowed">
         {label}
         <svg className="w-3.5 h-3.5 text-on-rail-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
       </span>
     );
   };
+
 
   return (
     <div className="min-h-screen admin-shell flex font-sans">
@@ -389,21 +391,25 @@ export default function AdminLayout({
       </aside>
 
       {/* Mobile Top Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-rail border-b border-white/10 z-40 flex items-center justify-between px-3 sm:px-4 text-white gap-2">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-rail border-b border-white/10 z-40 flex items-center justify-between px-3 text-white">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2 rounded-xl text-white hover:bg-rail-hover flex-shrink-0"
+            className="p-2.5 rounded-xl text-white hover:bg-rail-hover flex-shrink-0 touch-manipulation"
+            aria-label="Open navigation"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
           <span className="font-bold text-sm tracking-[0.18em] text-white truncate">CORHAUS</span>
         </div>
-        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0">
           <ThemeToggle />
           <NotificationsButton role="admin" />
+          <div className="w-8 h-8 rounded-full bg-accent text-white font-bold flex items-center justify-center text-xs flex-shrink-0">
+            {role ? role.charAt(0).toUpperCase() : "A"}
+          </div>
           <LogoutButton />
         </div>
       </div>
@@ -411,50 +417,99 @@ export default function AdminLayout({
       {/* Mobile Drawer Slideout */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <aside className="w-[272px] max-w-[85vw] bg-rail text-white flex-col relative z-10 p-4 space-y-5 h-full overflow-y-auto shadow-2xl">
-            <div className="flex justify-between items-center pb-4 border-b border-white/10">
+          <div className="fixed inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
+          <aside className="w-[280px] max-w-[88vw] bg-rail text-white flex flex-col relative z-10 h-full overflow-y-auto shadow-2xl">
+            {/* Drawer Header */}
+            <div className="flex justify-between items-center px-4 py-4 border-b border-white/10 flex-shrink-0">
               <Logo href="/admin" variant="white" size="sm" />
-              <button onClick={() => setMobileOpen(false)} className="text-white font-bold text-lg" aria-label="Close navigation">×</button>
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="w-8 h-8 rounded-xl text-white hover:bg-rail-hover flex items-center justify-center flex-shrink-0"
+                aria-label="Close navigation"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
-            <nav className="space-y-1" onClick={() => setMobileOpen(false)}>
-              <Link href="/admin" className="block px-4 py-2.5 rounded-xl font-bold text-white sidebar-active">
+            {/* Role pill */}
+            <div className="px-4 py-3 border-b border-white/10 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-accent text-white font-bold flex items-center justify-center text-sm ring-2 ring-accent/30">
+                  {role ? role.charAt(0).toUpperCase() : "A"}
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white leading-tight">Admin Panel</p>
+                  <p className="text-[11px] text-on-rail-2">{role || "Super Admin"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Nav Items */}
+            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" onClick={() => setMobileOpen(false)}>
+              {/* Dashboard */}
+              <Link
+                href="/admin"
+                className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${
+                  pathname === "/admin" ? "sidebar-active text-white font-bold" : "text-on-rail hover:text-white hover:bg-rail-hover"
+                }`}
+              >
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
                 Dashboard
               </Link>
+
+              <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 pt-3 pb-1">PEOPLE &amp; CLASSES</p>
               {mobileLink("members.view", "/admin/members", "Members")}
               {mobileLink("members.trial", "/admin/trial-members", "Trial Members")}
               {mobileLink("members.trial", "/admin/leads", "Leads & Enquiries")}
               {mobileLink("members.edit", "/admin/freeze", "Freeze Management")}
-              {mobileLink("classes.view", "/admin/classes", "Classes &amp; Schedule")}
+              {mobileLink("classes.view", "/admin/classes", "Classes & Schedule")}
               {mobileLink("classes.view", "/admin/previous-classes", "Previous Classes")}
               {mobileLink("pt.view", "/admin/pt", "PT Scheduler")}
               {mobileLink("attendance.scan", "/admin/scanner", "Attendance Scanner")}
+
+              <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 pt-4 pb-1">SALES &amp; BILLING</p>
               {mobileLink("billing.view", "/admin/billing", "Billing")}
-              {mobileLink("packages.view", "/admin/packages", "Packages &amp; Plans")}
+              {mobileLink("packages.view", "/admin/packages", "Packages & Plans")}
               {mobileLink("expenses.view", "/admin/expenses", "Expenses")}
-              {mobileLink("reports.view", "/admin/reports", "Reports &amp; Analytics")}
-              {role === "Owner"
-                ? (
-                  <Link href="/admin/settings/roles" className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail">
-                    Role &amp; Permissions
+
+              <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 pt-4 pb-1">ANALYTICS</p>
+              {mobileLink("reports.view", "/admin/reports", "Reports & Analytics")}
+
+              {(role === "Manager" || role === "Owner") && (
+                <>
+                  <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 pt-4 pb-1">SETTINGS</p>
+                  <Link
+                    href="/admin/settings"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${
+                      pathname.startsWith("/admin/settings") ? "sidebar-active text-white font-bold" : "text-on-rail hover:text-white hover:bg-rail-hover"
+                    }`}
+                  >
+                    <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Settings
                   </Link>
-                )
-                : (
-                  <span className="block px-4 py-2.5 rounded-xl font-semibold text-on-rail-3 opacity-60 flex items-center justify-between">
-                    Role &amp; Permissions
-                    <svg className="w-3.5 h-3.5 text-on-rail-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                  </span>
-                )}
+                </>
+              )}
             </nav>
+
+            {/* Drawer Footer */}
+            <div className="p-4 border-t border-white/10 flex-shrink-0">
+              <LogoutButton />
+            </div>
           </aside>
         </div>
       )}
 
       {/* ──────────────────────────────────────────────────────────── */}
-      <main className="flex-1 lg:pl-[272px] flex flex-col min-h-screen pt-16 lg:pt-0">
-        {/* Top Header Bar */}
-        <header className="bg-bar/90 backdrop-blur-md border-b border-line-bar px-3 sm:px-6 py-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sticky top-0 z-30">
+      <main className="flex-1 lg:pl-[272px] flex flex-col min-h-screen pt-14 lg:pt-0">
+        {/* Top Header Bar — desktop only version (hidden on mobile, which has its own header above) */}
+        <header className="hidden lg:flex bg-bar/90 backdrop-blur-md border-b border-line-bar px-4 xl:px-6 py-3 items-center justify-between gap-3 sticky top-0 z-30">
           <div className="relative flex-1 max-w-lg min-w-0">
             <input
               type="text"
@@ -466,7 +521,7 @@ export default function AdminLayout({
             </svg>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2 xl:gap-3 flex-shrink-0">
             <ThemeToggle />
             {hasPerm("staff.view") ? (
               <Link
@@ -481,7 +536,7 @@ export default function AdminLayout({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                <span className="hidden sm:inline">Staff</span>
+                <span>Staff</span>
               </Link>
             ) : (
               <span
@@ -491,7 +546,7 @@ export default function AdminLayout({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                <span className="hidden sm:inline">Staff</span>
+                <span>Staff</span>
               </span>
             )}
             {hasPerm("support.view") ? (
@@ -507,7 +562,7 @@ export default function AdminLayout({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
-                <span className="hidden sm:inline">Support</span>
+                <span>Support</span>
               </Link>
             ) : (
               <span
@@ -517,11 +572,11 @@ export default function AdminLayout({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
-                <span className="hidden sm:inline">Support</span>
+                <span>Support</span>
               </span>
             )}
             <NotificationsButton role="admin" />
-            <div className="hidden sm:flex items-center gap-2 bg-surface border border-line-2 px-3 py-1.5 rounded-full text-xs text-fg font-semibold">
+            <div className="flex items-center gap-2 bg-surface border border-line-2 px-3 py-1.5 rounded-full text-xs text-fg font-semibold">
               <div className="w-6 h-6 rounded-full bg-accent text-white flex items-center justify-center font-bold text-[11px]">
                 {role ? role.charAt(0).toUpperCase() : "A"}
               </div>
@@ -531,7 +586,7 @@ export default function AdminLayout({
         </header>
 
         {/* Page Content Body */}
-        <div className="p-4 sm:p-6 lg:p-8 flex-1 max-w-[1440px] w-full mx-auto">{children}</div>
+        <div className="p-3 sm:p-5 lg:p-8 flex-1 max-w-[1440px] w-full mx-auto min-w-0">{children}</div>
       </main>
     </div>
   );

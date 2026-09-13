@@ -265,20 +265,20 @@ export default function AdminFreezeManagementPage() {
         </div>
 
         {/* Top KPI Metrics Pill Row */}
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="bg-surface-2 px-4 py-2.5 rounded-2xl border border-line text-center flex-1 md:flex-initial min-w-[100px]">
-            <span className="text-[10px] font-bold text-fg-4 uppercase tracking-wider block">Total Members</span>
-            <span className="text-lg font-extrabold text-fg">{totalMembersCount}</span>
+        <div className="grid grid-cols-3 sm:flex items-center gap-2 sm:gap-3 w-full md:w-auto">
+          <div className="bg-surface-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl border border-line text-center">
+            <span className="text-[9px] sm:text-[10px] font-bold text-fg-4 uppercase tracking-wider block">Total</span>
+            <span className="text-base sm:text-lg font-extrabold text-fg">{totalMembersCount}</span>
           </div>
 
-          <div className="bg-blue-50 px-4 py-2.5 rounded-2xl border border-blue-200 text-center flex-1 md:flex-initial min-w-[100px]">
-            <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider block">Currently Frozen</span>
-            <span className="text-lg font-extrabold text-blue-900">{currentlyFrozenCount}</span>
+          <div className="bg-blue-50 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl border border-blue-200 text-center">
+            <span className="text-[9px] sm:text-[10px] font-bold text-blue-800 uppercase tracking-wider block">Frozen</span>
+            <span className="text-base sm:text-lg font-extrabold text-blue-900">{currentlyFrozenCount}</span>
           </div>
 
-          <div className="bg-amber-50 px-4 py-2.5 rounded-2xl border border-amber-200 text-center flex-1 md:flex-initial min-w-[100px]">
-            <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">Requests Pending</span>
-            <span className="text-lg font-extrabold text-amber-900">{requestsPendingCount}</span>
+          <div className="bg-amber-50 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl border border-amber-200 text-center">
+            <span className="text-[9px] sm:text-[10px] font-bold text-amber-800 uppercase tracking-wider block">Pending</span>
+            <span className="text-base sm:text-lg font-extrabold text-amber-900">{requestsPendingCount}</span>
           </div>
         </div>
       </div>
@@ -286,12 +286,12 @@ export default function AdminFreezeManagementPage() {
       {/* Filter and Search Controls */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 p-1 bg-surface-2 rounded-2xl border border-line overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1 bg-surface-2 rounded-2xl border border-line overflow-x-auto no-scrollbar">
           {(["All", "Active", "Frozen", "Freeze Requested"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setFilter(tab)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 filter === tab
                   ? "bg-accent text-white shadow-md shadow-accent/20"
                   : "text-fg-3 hover:text-fg hover:bg-surface"
@@ -322,7 +322,7 @@ export default function AdminFreezeManagementPage() {
         </div>
       </div>
 
-      {/* Main Table */}
+      {/* Main Table & Mobile Cards */}
       <div className="bg-surface rounded-3xl border border-line shadow-xs overflow-hidden">
         {loading ? (
           <div className="py-20 text-center">
@@ -335,156 +335,247 @@ export default function AdminFreezeManagementPage() {
             <p className="text-xs mt-1">Try adjusting your filters or search terms.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-surface-2 border-b border-line text-fg-3 uppercase font-bold tracking-wider text-[10px]">
-                <tr>
-                  <th className="py-3.5 px-4">Member Name</th>
-                  <th className="py-3.5 px-4">Package Type</th>
-                  <th className="py-3.5 px-4">Current Duration</th>
-                  <th className="py-3.5 px-4">Current Status</th>
-                  <th className="py-3.5 px-4">Freeze Remaining</th>
-                  <th className="py-3.5 px-4">Current Freeze Status</th>
-                  <th className="py-3.5 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {filteredMembers.map((m) => (
-                  <tr key={m.id} className="hover:bg-surface-2/50 transition-colors">
-                    {/* Member Name */}
-                    <td className="py-3.5 px-4">
-                      <div className="font-bold text-fg">{m.member_name}</div>
-                      <div className="text-[10px] text-fg-4">{m.email}</div>
-                    </td>
-
-                    {/* Package Type */}
-                    <td className="py-3.5 px-4 font-bold text-fg">
-                      {m.package_type === "No package selected" ? (
-                        <span className="inline-block px-3 py-1 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-normal italic">
-                          No package selected
-                        </span>
-                      ) : (
-                        <span className="inline-block px-3 py-1 rounded-lg bg-surface-2 text-accent border border-accent/20 text-[11px] font-bold">
-                          {m.package_type}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Current Duration */}
-                    <td className="py-3.5 px-4 text-fg/80 font-medium">
-                      {formatDate(m.valid_from)} &ndash; {formatDate(m.valid_until)}
-                    </td>
-
-                    {/* Current Status */}
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
-                          m.current_status === "Active"
-                            ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-                            : m.current_status === "Frozen"
-                            ? "bg-blue-100 text-blue-800 border-blue-200"
-                            : "bg-amber-100 text-amber-800 border-amber-200"
-                        }`}
-                      >
-                        {m.current_status}
-                      </span>
-                    </td>
-
-                    {/* Freeze Remaining */}
-                    <td className="py-3.5 px-4 font-bold text-fg">
-                      {m.freeze_remaining} / 2
-                      <span className="text-[10px] text-fg-5 block font-normal">
-                        ({m.freezes_used} used)
-                      </span>
-                    </td>
-
-                    {/* Current Freeze Status */}
-                    <td className="py-3.5 px-4 text-fg">
-                      {m.active_freeze ? (
-                        <div>
-                          <p className="font-bold text-blue-800 text-[11px]">
-                            Frozen ({m.active_freeze.freeze_days} days)
-                          </p>
-                          <p className="text-[10px] text-fg-4">
-                            {m.active_freeze.freeze_start} to {m.active_freeze.freeze_end}
-                          </p>
-                          {m.active_freeze.reason && (
-                            <p className="text-[10px] text-fg-3 italic">
-                              &quot;{m.active_freeze.reason}&quot;
-                            </p>
-                          )}
-                        </div>
-                      ) : m.pending_request ? (
-                        <div>
-                          <p className="font-bold text-amber-800 text-[11px]">
-                            Pending Approval ({m.pending_request.requested_days} days)
-                          </p>
-                          <p className="text-[10px] text-fg-4">
-                            Start: {m.pending_request.requested_start_date}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-fg-5 text-[11px]">No Active Freeze</span>
-                      )}
-                    </td>
-
-                    {/* Action buttons */}
-                    <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
-                      {m.pending_request ? (
-                        <>
-                          <button
-                            onClick={() => handleApproveRequest(m.pending_request!.id)}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleRejectRequest(m.pending_request!.id)}
-                            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      ) : m.current_status === "Frozen" ? (
-                        <button
-                          onClick={() => setResumeModalMember(m)}
-                          className="px-3.5 py-1.5 bg-accent hover:bg-accent-2 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
-                        >
-                          Resume
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleOpenFreeze(m)}
-                          disabled={m.freeze_remaining <= 0 || m.package_type === "No package selected"}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
-                            m.freeze_remaining <= 0 || m.package_type === "No package selected"
-                              ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
-                              : "bg-accent hover:bg-accent-2 text-white"
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-surface-2 border-b border-line text-fg-3 uppercase font-bold tracking-wider text-[10px]">
+                  <tr>
+                    <th className="py-3.5 px-4">Member Name</th>
+                    <th className="py-3.5 px-4">Package Type</th>
+                    <th className="py-3.5 px-4">Current Duration</th>
+                    <th className="py-3.5 px-4">Current Status</th>
+                    <th className="py-3.5 px-4">Freeze Remaining</th>
+                    <th className="py-3.5 px-4">Current Freeze Status</th>
+                    <th className="py-3.5 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {filteredMembers.map((m) => (
+                    <tr key={m.id} className="hover:bg-surface-2/50 transition-colors">
+                      <td className="py-3.5 px-4">
+                        <div className="font-bold text-fg">{m.member_name}</div>
+                        <div className="text-[10px] text-fg-4">{m.email}</div>
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-fg">
+                        {m.package_type === "No package selected" ? (
+                          <span className="inline-block px-3 py-1 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-normal italic">
+                            No package selected
+                          </span>
+                        ) : (
+                          <span className="inline-block px-3 py-1 rounded-lg bg-surface-2 text-accent border border-accent/20 text-[11px] font-bold">
+                            {m.package_type}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-fg/80 font-medium">
+                        {formatDate(m.valid_from)} &ndash; {formatDate(m.valid_until)}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${
+                            m.current_status === "Active"
+                              ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                              : m.current_status === "Frozen"
+                              ? "bg-blue-100 text-blue-800 border-blue-200"
+                              : "bg-amber-100 text-amber-800 border-amber-200"
                           }`}
                         >
-                          Freeze
-                        </button>
-                      )}
+                          {m.current_status}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-fg">
+                        {m.freeze_remaining} / 2
+                        <span className="text-[10px] text-fg-5 block font-normal">
+                          ({m.freezes_used} used)
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-fg">
+                        {m.active_freeze ? (
+                          <div>
+                            <p className="font-bold text-blue-800 text-[11px]">
+                              Frozen ({m.active_freeze.freeze_days} days)
+                            </p>
+                            <p className="text-[10px] text-fg-4">
+                              {m.active_freeze.freeze_start} to {m.active_freeze.freeze_end}
+                            </p>
+                            {m.active_freeze.reason && (
+                              <p className="text-[10px] text-fg-3 italic">
+                                &quot;{m.active_freeze.reason}&quot;
+                              </p>
+                            )}
+                          </div>
+                        ) : m.pending_request ? (
+                          <div>
+                            <p className="font-bold text-amber-800 text-[11px]">
+                              Pending Approval ({m.pending_request.requested_days} days)
+                            </p>
+                            <p className="text-[10px] text-fg-4">
+                              Start: {m.pending_request.requested_start_date}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-fg-5 text-[11px]">No Active Freeze</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
+                        {m.pending_request ? (
+                          <>
+                            <button
+                              onClick={() => handleApproveRequest(m.pending_request!.id)}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleRejectRequest(m.pending_request!.id)}
+                              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        ) : m.current_status === "Frozen" ? (
+                          <button
+                            onClick={() => setResumeModalMember(m)}
+                            className="px-3.5 py-1.5 bg-accent hover:bg-accent-2 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                          >
+                            Resume
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenFreeze(m)}
+                            disabled={m.freeze_remaining <= 0 || m.package_type === "No package selected"}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                              m.freeze_remaining <= 0 || m.package_type === "No package selected"
+                                ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+                                : "bg-accent hover:bg-accent-2 text-white"
+                            }`}
+                          >
+                            Freeze
+                          </button>
+                        )}
 
+                        <button
+                          onClick={() => setHistoryModalMember(m)}
+                          className="px-3.5 py-1.5 border border-accent/20 bg-surface-2 hover:bg-accent/10 text-accent rounded-xl text-xs font-bold transition-all"
+                        >
+                          View History
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden divide-y divide-line p-3 space-y-3">
+              {filteredMembers.map((m) => (
+                <div key={m.id} className="p-4 rounded-2xl bg-surface-2/60 border border-line space-y-3 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-bold text-sm text-fg">{m.member_name}</p>
+                      <p className="text-fg-4 text-[11px] mt-0.5">{m.email}</p>
+                    </div>
+                    <span
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider shrink-0 ${
+                        m.current_status === "Active"
+                          ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                          : m.current_status === "Frozen"
+                          ? "bg-blue-100 text-blue-800 border-blue-200"
+                          : "bg-amber-100 text-amber-800 border-amber-200"
+                      }`}
+                    >
+                      {m.current_status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-surface p-2.5 rounded-xl border border-line">
+                    <div>
+                      <span className="text-fg-4 font-medium block">Package</span>
+                      <span className="font-bold text-fg">{m.package_type}</span>
+                    </div>
+                    <div>
+                      <span className="text-fg-4 font-medium block">Freeze Left</span>
+                      <span className="font-bold text-accent">{m.freeze_remaining} / 2 ({m.freezes_used} used)</span>
+                    </div>
+                    <div className="col-span-2 pt-1 border-t border-line/50">
+                      <span className="text-fg-4 font-medium block">Validity</span>
+                      <span className="font-medium text-fg">{formatDate(m.valid_from)} &ndash; {formatDate(m.valid_until)}</span>
+                    </div>
+                  </div>
+
+                  {m.active_freeze && (
+                    <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-[11px] space-y-0.5">
+                      <p className="font-bold">Active Freeze ({m.active_freeze.freeze_days} days)</p>
+                      <p>{m.active_freeze.freeze_start} to {m.active_freeze.freeze_end}</p>
+                      {m.active_freeze.reason && <p className="italic">&quot;{m.active_freeze.reason}&quot;</p>}
+                    </div>
+                  )}
+
+                  {m.pending_request && (
+                    <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] space-y-0.5">
+                      <p className="font-bold">Pending Request ({m.pending_request.requested_days} days)</p>
+                      <p>Start Date: {m.pending_request.requested_start_date}</p>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="pt-2 border-t border-line flex flex-wrap items-center justify-end gap-1.5">
+                    {m.pending_request ? (
+                      <>
+                        <button
+                          onClick={() => handleApproveRequest(m.pending_request!.id)}
+                          className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleRejectRequest(m.pending_request!.id)}
+                          className="px-3 py-1.5 bg-rose-600 text-white rounded-xl text-xs font-bold"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    ) : m.current_status === "Frozen" ? (
                       <button
-                        onClick={() => setHistoryModalMember(m)}
-                        className="px-3.5 py-1.5 border border-accent/20 bg-surface-2 hover:bg-accent/10 text-accent rounded-xl text-xs font-bold transition-all"
+                        onClick={() => setResumeModalMember(m)}
+                        className="px-3.5 py-1.5 bg-accent text-white rounded-xl text-xs font-bold"
                       >
-                        View History
+                        Resume
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    ) : (
+                      <button
+                        onClick={() => handleOpenFreeze(m)}
+                        disabled={m.freeze_remaining <= 0 || m.package_type === "No package selected"}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold ${
+                          m.freeze_remaining <= 0 || m.package_type === "No package selected"
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+                            : "bg-accent text-white"
+                        }`}
+                      >
+                        Freeze
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => setHistoryModalMember(m)}
+                      className="px-3.5 py-1.5 border border-accent/20 bg-surface text-accent rounded-xl text-xs font-bold"
+                    >
+                      History
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
       {/* ─── DIRECT FREEZE MODAL ────────────────────────────────────────────── */}
       {freezeModalMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-md w-full p-6 space-y-5">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-md w-full p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             {freezeStep === "confirm" ? (
               <>
                 <div className="flex items-center gap-3">

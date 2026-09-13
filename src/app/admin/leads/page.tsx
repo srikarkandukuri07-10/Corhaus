@@ -703,71 +703,110 @@ export default function LeadsPage() {
               <p className="text-xs text-fg-5 mt-1">Add your first lead to get started.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1000px] text-sm">
-                <thead>
-                  <tr className="bg-surface-2/60 border-b border-line text-[11px] uppercase tracking-wider text-fg-4">
-                    <th className="text-left p-3 font-semibold">Lead</th>
-                    <th className="text-left p-3 font-semibold">Source</th>
-                    <th className="text-left p-3 font-semibold">Status</th>
-                    <th className="text-left p-3 font-semibold">Convertibility</th>
-                    <th className="text-left p-3 font-semibold">Follow-up</th>
-                    <th className="text-left p-3 font-semibold">Created</th>
-                    <th className="text-right p-3 font-semibold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((l) => (
-                    <tr key={l.id} className="border-b border-line last:border-0 hover:bg-surface-2/30 cursor-pointer" onClick={() => setDetailId(l.id)}>
-                      <td className="p-3">
-                        <p className="font-semibold text-fg">{l.full_name}</p>
-                        <p className="text-xs text-fg-4">{l.phone_number}</p>
-                      </td>
-                      <td className="p-3">
-                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-surface-2 border border-line text-fg-3">{l.source}</span>
-                      </td>
-                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                        <select
-                          className={selectStageCls + " text-xs py-1 font-semibold " + stageColor(l.pipeline_stage)}
-                          value={l.pipeline_stage}
-                          onChange={(e) => inlineUpdate(l.id, { pipeline_stage: e.target.value })}
-                        >
-                          {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </td>
-                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                        <select
-                          className={selectCls + " text-xs py-1"}
-                          value={l.convertibility}
-                          onChange={(e) => inlineUpdate(l.id, { convertibility: e.target.value })}
-                        >
-                          {CONVERT_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                      </td>
-                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                        {l.follow_up_at ? (
-                          <span className={followUpLabel(l.follow_up_at).cls} title={followUpLabel(l.follow_up_at).full}>{followUpLabel(l.follow_up_at).text}</span>
-                        ) : (
-                          <button
-                            className="text-xs font-bold text-accent bg-accent/10 border border-accent/25 px-2.5 py-1 rounded-full hover:bg-accent/20"
-                            onClick={() => setDetailId(l.id)}
-                          >
-                            + Schedule
-                          </button>
-                        )}
-                      </td>
-                      <td className="p-3 text-fg-3 text-xs whitespace-nowrap">{fmtDate(l.created_at)}</td>
-                      <td className="p-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex gap-2 justify-end">
-                          <button className={btnPrimary + " !py-1.5 !px-3 !text-xs"} onClick={() => handleConvert(l.id)}>Convert to Member</button>
-                          <button className={btnGhost + " !py-1.5 !px-3 !text-xs"} onClick={() => { setDetailId(l.id); setTimeout(openEditFromDetail, 0); }}>Edit</button>
-                        </div>
-                      </td>
+            <>
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full min-w-[1000px] text-sm">
+                  <thead>
+                    <tr className="bg-surface-2/60 border-b border-line text-[11px] uppercase tracking-wider text-fg-4">
+                      <th className="text-left p-3 font-semibold">Lead</th>
+                      <th className="text-left p-3 font-semibold">Source</th>
+                      <th className="text-left p-3 font-semibold">Status</th>
+                      <th className="text-left p-3 font-semibold">Convertibility</th>
+                      <th className="text-left p-3 font-semibold">Follow-up</th>
+                      <th className="text-left p-3 font-semibold">Created</th>
+                      <th className="text-right p-3 font-semibold">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filtered.map((l) => (
+                      <tr key={l.id} className="border-b border-line last:border-0 hover:bg-surface-2/30 cursor-pointer" onClick={() => setDetailId(l.id)}>
+                        <td className="p-3">
+                          <p className="font-semibold text-fg">{l.full_name}</p>
+                          <p className="text-xs text-fg-4">{l.phone_number}</p>
+                        </td>
+                        <td className="p-3">
+                          <span className="text-xs font-semibold px-2 py-1 rounded-full bg-surface-2 border border-line text-fg-3">{l.source}</span>
+                        </td>
+                        <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            className={selectStageCls + " text-xs py-1 font-semibold " + stageColor(l.pipeline_stage)}
+                            value={l.pipeline_stage}
+                            onChange={(e) => inlineUpdate(l.id, { pipeline_stage: e.target.value })}
+                          >
+                            {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </td>
+                        <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            className={selectCls + " text-xs py-1"}
+                            value={l.convertibility}
+                            onChange={(e) => inlineUpdate(l.id, { convertibility: e.target.value })}
+                          >
+                            {CONVERT_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </td>
+                        <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                          {l.follow_up_at ? (
+                            <span className={followUpLabel(l.follow_up_at).cls} title={followUpLabel(l.follow_up_at).full}>{followUpLabel(l.follow_up_at).text}</span>
+                          ) : (
+                            <button
+                              className="text-xs font-bold text-accent bg-accent/10 border border-accent/25 px-2.5 py-1 rounded-full hover:bg-accent/20"
+                              onClick={() => setDetailId(l.id)}
+                            >
+                              + Schedule
+                            </button>
+                          )}
+                        </td>
+                        <td className="p-3 text-fg-3 text-xs whitespace-nowrap">{fmtDate(l.created_at)}</td>
+                        <td className="p-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex gap-2 justify-end">
+                            <button className={btnPrimary + " !py-1.5 !px-3 !text-xs"} onClick={() => handleConvert(l.id)}>Convert to Member</button>
+                            <button className={btnGhost + " !py-1.5 !px-3 !text-xs"} onClick={() => { setDetailId(l.id); setTimeout(openEditFromDetail, 0); }}>Edit</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards View */}
+              <div className="md:hidden space-y-3 p-3">
+                {filtered.map((l) => (
+                  <div key={l.id} className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-3 text-xs" onClick={() => setDetailId(l.id)}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-bold text-sm text-fg">{l.full_name}</p>
+                        <p className="text-fg-4 text-[11px] mt-0.5">{l.phone_number}</p>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${convertBadge(l.convertibility)} shrink-0`}>
+                        {l.convertibility}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px] bg-surface p-2.5 rounded-lg border border-line">
+                      <div>
+                        <span className="text-fg-4 font-medium block">Source</span>
+                        <span className="font-bold text-fg">{l.source}</span>
+                      </div>
+                      <div>
+                        <span className="text-fg-4 font-medium block">Stage</span>
+                        <span className={"font-bold " + stageColor(l.pipeline_stage)}>{l.pipeline_stage}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-line" onClick={(e) => e.stopPropagation()}>
+                      <button className={btnPrimary + " !py-1.5 !px-3 !text-xs"} onClick={() => handleConvert(l.id)}>
+                        Convert
+                      </button>
+                      <button className={btnGhost + " !py-1.5 !px-3 !text-xs"} onClick={() => setDetailId(l.id)}>
+                        Details
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -133,18 +133,63 @@ export default function MemberLayout({
   if (!isMember) return null;
 
   const navItems = [
-    { href: "/member", label: "Classes", exact: true },
-    { href: "/member/bookings", label: "My Bookings", exact: true },
-    { href: "/member/attendance", label: "Attendance Tracker", exact: false },
-    { href: "/member/freeze", label: "Membership Freeze", exact: true },
-    { href: "/member/referrals", label: "Referrals", exact: true },
+    {
+      href: "/member",
+      label: "Classes",
+      exact: true,
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+    },
+    {
+      href: "/member/bookings",
+      label: "Bookings",
+      exact: true,
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+      ),
+    },
+    {
+      href: "/member/attendance",
+      label: "Attendance",
+      exact: false,
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    },
+    {
+      href: "/member/freeze",
+      label: "Freeze",
+      exact: true,
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      ),
+    },
+    {
+      href: "/member/referrals",
+      label: "Referrals",
+      exact: true,
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      ),
+    },
   ];
 
   return (
     <div className="min-h-screen bg-canvas">
       <header className="bg-bar border-b border-line sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 gap-3">
+          <div className="flex items-center justify-between h-14 sm:h-16 gap-3">
             <div className="flex items-center gap-4 sm:gap-8 min-w-0">
               <Logo size="sm" className="flex-shrink-0" />
               <nav className="hidden sm:flex items-center gap-1">
@@ -185,14 +230,15 @@ export default function MemberLayout({
                 })}
               </nav>
             </div>
+
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 min-w-0">
               <ThemeToggle />
               <NotificationsButton role="member" />
-              <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full flex items-center gap-1.5 flex-shrink-0">
+              <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2 sm:px-2.5 py-1 rounded-full flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
                 <span className="hidden sm:inline">Member</span>
                 <button
                   onClick={() => setProfileOpen(true)}
-                  className="ml-0.5 p-0.5 rounded-full hover:bg-green-500/20 transition-colors"
+                  className="p-0.5 rounded-full hover:bg-green-500/20 transition-colors"
                   title="View Profile"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -202,48 +248,9 @@ export default function MemberLayout({
               </span>
               <LogoutButton />
             </div>
-            <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
           </div>
         </div>
-
-        {/* Mobile nav */}
-        <div className="sm:hidden border-t border-line px-4 py-2 flex gap-1 overflow-x-auto">
-          {navItems.map((item) => {
-            const isActive = item.exact
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
-
-            if (item.href === "/member/referrals") {
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-300 active:scale-95 ${
-                    isActive
-                      ? "bg-gradient-to-r from-gradient-from via-gradient-mid to-gradient-to text-white shadow-sm"
-                      : "bg-gradient-to-r from-gradient-from/15 via-gradient-mid/15 to-gradient-to/15 text-fg-2 border border-line"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            }
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-                  isActive
-                    ? "bg-accent text-white"
-                    : "text-fg-3 hover:text-fg"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
+        <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
       </header>
 
       {needsPassword && showPasswordBanner && (
@@ -251,7 +258,7 @@ export default function MemberLayout({
           <div className="flex-1 text-center text-sm font-medium">
             Please secure your account by setting a password in your Profile Settings.
           </div>
-          <button 
+          <button
             onClick={() => setShowPasswordBanner(false)}
             className="p-1 hover:bg-surface/10 rounded-lg transition-colors absolute right-4"
           >
@@ -262,9 +269,37 @@ export default function MemberLayout({
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 pb-24 sm:pb-8 min-w-0">
         {children}
       </main>
+
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-bar border-t border-line">
+        <div className="flex items-stretch">
+          {navItems.map((item) => {
+            const isActive = item.exact
+              ? pathname === item.href
+              : pathname.startsWith(item.href);
+            const isReferral = item.href === "/member/referrals";
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 px-1 text-[10px] font-semibold transition-colors touch-manipulation min-w-0 ${
+                  isReferral
+                    ? isActive ? "text-gradient-mid" : "text-fg-4"
+                    : isActive ? "text-accent" : "text-fg-4"
+                }`}
+              >
+                <span className={`flex-shrink-0 transition-transform ${isActive ? "scale-110" : ""}`}>
+                  {item.icon}
+                </span>
+                <span className="truncate w-full text-center leading-tight">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

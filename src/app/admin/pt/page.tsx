@@ -706,7 +706,7 @@ export default function PtSchedulerPage() {
       {showAssignModal && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-xl w-full p-7 flex flex-col animate-fade-in space-y-4">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-xl w-full p-7 flex flex-col animate-fade-in space-y-4 max-h-[85dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-4">
               <div>
                 <h3 className="text-xl font-extrabold text-fg">Assign Trainer &amp; Recurring Schedule</h3>
@@ -896,7 +896,7 @@ export default function PtSchedulerPage() {
       {showDetailModal && selectedSession && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-5 max-h-[85dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-4 flex-shrink-0">
               <div>
                 <h3 className="text-xl font-extrabold text-fg">PT Session Details</h3>

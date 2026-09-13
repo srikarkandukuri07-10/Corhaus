@@ -366,7 +366,7 @@ export default function SupportCenterPage() {
       {/* Main 2-Panel Chat Layout */}
       <div className="flex-1 bg-surface rounded-3xl border border-line overflow-hidden flex flex-col md:flex-row shadow-sm min-h-0">
         {/* Left Panel: Ticket List & Search */}
-        <div className="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-line flex flex-col flex-shrink-0 bg-surface-2/30">
+        <div className={`w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-line flex-col flex-shrink-0 bg-surface-2/30 ${selectedTicket ? "hidden md:flex" : "flex"}`}>
           {/* Search & Filters */}
           <div className="p-4 border-b border-line space-y-3">
             <div className="relative">
@@ -459,12 +459,18 @@ export default function SupportCenterPage() {
         </div>
 
         {/* Right Panel: Selected Ticket Thread */}
-        <div className="flex-1 flex flex-col min-w-0 bg-surface">
+        <div className={`flex-1 flex-col min-w-0 bg-surface ${!selectedTicket ? "hidden md:flex" : "flex"}`}>
           {selectedTicket ? (
             <>
               {/* Ticket Header */}
               <div className="p-4 border-b border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-2/20 flex-shrink-0">
                 <div>
+                  <button
+                    onClick={() => setSelectedTicket(null)}
+                    className="md:hidden text-xs font-bold text-accent mb-2 flex items-center gap-1"
+                  >
+                    &larr; Back to Tickets
+                  </button>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-black text-accent tracking-wider">{selectedTicket.ticket_number}</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadgeClass(selectedTicket.status)}`}>
@@ -671,7 +677,7 @@ export default function SupportCenterPage() {
       {/* New Ticket Modal */}
       {showNewTicketModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-line rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5">
+          <div className="bg-surface border border-line rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 max-h-[85dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <h3 className="text-lg font-extrabold text-fg">Raise Support Ticket</h3>
               <button

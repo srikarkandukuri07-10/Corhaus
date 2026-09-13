@@ -468,7 +468,7 @@ export default function TrialMembersPage() {
       )}
 
       {/* KPI Metric Cards */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
           <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Total Trials</p>
           <p className="text-2xl font-bold text-fg mt-1">{metrics.total}</p>
@@ -499,10 +499,10 @@ export default function TrialMembersPage() {
       <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line-2 pb-3">
           {/* View Tabs */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar shrink-0">
             <button
               onClick={() => setViewTab("active")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 viewTab === "active"
                   ? "bg-accent text-white shadow-xs"
                   : "bg-surface-2 text-fg-3 hover:text-fg hover:bg-hover"
@@ -512,7 +512,7 @@ export default function TrialMembersPage() {
             </button>
             <button
               onClick={() => setViewTab("converted")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 viewTab === "converted"
                   ? "bg-purple-600 text-white shadow-xs"
                   : "bg-surface-2 text-fg-3 hover:text-fg hover:bg-hover"
@@ -522,7 +522,7 @@ export default function TrialMembersPage() {
             </button>
             <button
               onClick={() => setViewTab("all")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 viewTab === "all"
                   ? "bg-fg text-surface shadow-xs"
                   : "bg-surface-2 text-fg-3 hover:text-fg hover:bg-hover"
@@ -548,12 +548,12 @@ export default function TrialMembersPage() {
         </div>
 
         {/* Dropdown Filters */}
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-3 text-xs flex-wrap">
           <span className="font-bold text-fg-3 uppercase text-[10px] tracking-wider">Status Filter:</span>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-xl border border-line-2 bg-surface-2 text-fg focus:ring-1 focus:ring-accent outline-none font-semibold"
+            className="px-3 py-1.5 rounded-xl border border-line-2 bg-surface-2 text-fg focus:ring-1 focus:ring-accent outline-none font-semibold text-xs"
           >
             <option value="All Active">All Active (Scheduled, Attended, No Show)</option>
             <option value="All">All Statuses (Including Converted)</option>
@@ -565,7 +565,7 @@ export default function TrialMembersPage() {
         </div>
       </div>
 
-      {/* Trial Members Dashboard Data Table */}
+      {/* Trial Members Dashboard Data Table & Mobile Cards */}
       <div className="bg-surface rounded-2xl border border-line-2 shadow-xs overflow-hidden">
         {loading ? (
           <div className="p-12 flex flex-col items-center justify-center text-fg-3">
@@ -581,167 +581,245 @@ export default function TrialMembersPage() {
             <p className="text-xs text-fg-4 mt-1">No prospective trial records match your current view.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-line-2 bg-surface-2/60 text-fg-3 uppercase font-bold text-[10px] tracking-wider">
-                  <th className="py-3.5 px-4">Full Name</th>
-                  <th className="py-3.5 px-4">Phone Number</th>
-                  <th className="py-3.5 px-4">Email</th>
-                  <th className="py-3.5 px-4">Trial Date &amp; Time</th>
-                  <th className="py-3.5 px-4">Assigned Class</th>
-                  <th className="py-3.5 px-4">Instructor</th>
-                  <th className="py-3.5 px-4">Trial Status</th>
-                  <th className="py-3.5 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line-2 text-fg">
-                {filteredTrialMembers.map((item) => (
-                  <tr key={item.id} onClick={() => setEditingTrial(item)} className="hover:bg-hover/50 transition-colors cursor-pointer">
-                    {/* Full Name */}
-                    <td className="py-3.5 px-4 font-bold text-fg">
-                      {item.full_name}
-                      {item.notes && (
-                        <div className="text-[10px] text-fg-4 font-normal mt-0.5 max-w-xs truncate" title={item.notes}>
-                          Note: {item.notes}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Phone Number */}
-                    <td className="py-3.5 px-4 text-fg-2 font-medium">
-                      {item.phone_number}
-                    </td>
-
-                    {/* Email */}
-                    <td className="py-3.5 px-4 text-fg-3">
-                      {item.email || "—"}
-                    </td>
-
-                    {/* Trial Date & Time */}
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-fg">{formatDateDisplay(item.trial_date)}</div>
-                      <div className="text-[10px] text-fg-3">{formatTimeDisplay(item.trial_time)}</div>
-                    </td>
-
-                    {/* Assigned Class */}
-                    <td className="py-3.5 px-4 font-semibold text-fg">
-                      {item.class_name}
-                    </td>
-
-                    {/* Instructor */}
-                    <td className="py-3.5 px-4 text-fg-2">
-                      {item.instructor_name}
-                    </td>
-
-                    {/* Trial Status Badge */}
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold border ${
-                          item.status === "Scheduled"
-                            ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                            : item.status === "Attended"
-                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                            : item.status === "No Show"
-                            ? "bg-red-500/10 text-red-500 border-red-500/20"
-                            : "bg-purple-500/10 text-purple-500 border-purple-500/20"
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                      {item.status === "Converted" && item.converted_at && (
-                        <div className="text-[9px] text-fg-4 mt-0.5 font-semibold">
-                          Converted: {formatDateDisplay(item.converted_at.split("T")[0])}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                        {item.status !== "Converted" ? (
-                          <>
-                            {/* Convert to Member */}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleConvertToMember(item); }}
-                              title="Convert to regular member"
-                              className="px-2.5 py-1 rounded-xl bg-purple-600 text-white font-bold text-[11px] hover:bg-purple-700 transition-colors shadow-xs"
-                            >
-                              Convert to Member
-                            </button>
-
-                            {/* Mark Attended & No Show (Only shown when Scheduled) */}
-                            {item.status === "Scheduled" && (
-                              <>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleUpdateStatus(item.id, "Attended", item.full_name); }}
-                                  title="Mark Attended"
-                                  className="px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 font-bold text-[11px] hover:bg-emerald-500/20 transition-colors"
-                                >
-                                  Attended
-                                </button>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleUpdateStatus(item.id, "No Show", item.full_name); }}
-                                  title="Mark No Show"
-                                  className="px-2.5 py-1 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-[11px] hover:bg-red-500/20 transition-colors"
-                                >
-                                  No Show
-                                </button>
-                              </>
-                            )}
-
-
-                            {/* Reschedule */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setReschedulingTrial(item);
-                                setRescheduleDate(item.trial_date);
-                                setRescheduleTime(item.trial_time);
-                              }}
-                              title="Reschedule Trial"
-                              className="px-2.5 py-1 rounded-xl bg-surface-2 border border-line-2 text-fg font-semibold text-[11px] hover:bg-hover transition-colors"
-                            >
-                              Reschedule
-                            </button>
-
-                            {/* Edit */}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setEditingTrial({ ...item }); }}
-                              title="Edit Trial Details"
-                              className="px-2.5 py-1 rounded-xl bg-surface-2 border border-line-2 text-fg-3 hover:text-fg font-semibold text-[11px] hover:bg-hover transition-colors"
-                            >
-                              Edit
-                            </button>
-                          </>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-xl">
-                              Converted Member
-                            </span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setEditingTrial({ ...item }); }}
-                              title="Edit Trial Record"
-                              className="px-2.5 py-1 rounded-xl bg-surface-2 border border-line-2 text-fg-3 hover:text-fg font-semibold text-[11px]"
-                            >
-                              Details
-                            </button>
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-line-2 bg-surface-2/60 text-fg-3 uppercase font-bold text-[10px] tracking-wider">
+                    <th className="py-3.5 px-4">Full Name</th>
+                    <th className="py-3.5 px-4">Phone Number</th>
+                    <th className="py-3.5 px-4">Email</th>
+                    <th className="py-3.5 px-4">Trial Date &amp; Time</th>
+                    <th className="py-3.5 px-4">Assigned Class</th>
+                    <th className="py-3.5 px-4">Instructor</th>
+                    <th className="py-3.5 px-4">Trial Status</th>
+                    <th className="py-3.5 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line-2 text-fg">
+                  {filteredTrialMembers.map((item) => (
+                    <tr key={item.id} onClick={() => setEditingTrial(item)} className="hover:bg-hover/50 transition-colors cursor-pointer">
+                      <td className="py-3.5 px-4 font-bold text-fg">
+                        {item.full_name}
+                        {item.notes && (
+                          <div className="text-[10px] text-fg-4 font-normal mt-0.5 max-w-xs truncate" title={item.notes}>
+                            Note: {item.notes}
                           </div>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-fg-2 font-medium">
+                        {item.phone_number}
+                      </td>
+                      <td className="py-3.5 px-4 text-fg-3">
+                        {item.email || "—"}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="font-semibold text-fg">{formatDateDisplay(item.trial_date)}</div>
+                        <div className="text-[10px] text-fg-3">{formatTimeDisplay(item.trial_time)}</div>
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-fg">
+                        {item.class_name}
+                      </td>
+                      <td className="py-3.5 px-4 text-fg-2">
+                        {item.instructor_name}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold border ${
+                            item.status === "Scheduled"
+                              ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                              : item.status === "Attended"
+                              ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                              : item.status === "No Show"
+                              ? "bg-red-500/10 text-red-500 border-red-500/20"
+                              : "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+                        {item.status === "Converted" && item.converted_at && (
+                          <div className="text-[9px] text-fg-4 mt-0.5 font-semibold">
+                            Converted: {formatDateDisplay(item.converted_at.split("T")[0])}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                          {item.status !== "Converted" ? (
+                            <>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleConvertToMember(item); }}
+                                title="Convert to regular member"
+                                className="px-2.5 py-1 rounded-xl bg-purple-600 text-white font-bold text-[11px] hover:bg-purple-700 transition-colors shadow-xs"
+                              >
+                                Convert to Member
+                              </button>
+                              {item.status === "Scheduled" && (
+                                <>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleUpdateStatus(item.id, "Attended", item.full_name); }}
+                                    title="Mark Attended"
+                                    className="px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 font-bold text-[11px] hover:bg-emerald-500/20 transition-colors"
+                                  >
+                                    Attended
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleUpdateStatus(item.id, "No Show", item.full_name); }}
+                                    title="Mark No Show"
+                                    className="px-2.5 py-1 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-[11px] hover:bg-red-500/20 transition-colors"
+                                  >
+                                    No Show
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setReschedulingTrial(item);
+                                  setRescheduleDate(item.trial_date);
+                                  setRescheduleTime(item.trial_time);
+                                }}
+                                title="Reschedule Trial"
+                                className="px-2.5 py-1 rounded-xl bg-surface-2 border border-line-2 text-fg font-semibold text-[11px] hover:bg-hover transition-colors"
+                              >
+                                Reschedule
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setEditingTrial({ ...item }); }}
+                                title="Edit Trial Details"
+                                className="px-2.5 py-1 rounded-xl bg-surface-2 border border-line-2 text-fg-3 hover:text-fg font-semibold text-[11px] hover:bg-hover transition-colors"
+                              >
+                                Edit
+                              </button>
+                            </>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-xl">
+                                Converted Member
+                              </span>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setEditingTrial({ ...item }); }}
+                                title="Edit Trial Record"
+                                className="px-2.5 py-1 rounded-xl bg-surface-2 border border-line-2 text-fg-3 hover:text-fg font-semibold text-[11px]"
+                              >
+                                Details
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden divide-y divide-line-2 p-3 space-y-3">
+              {filteredTrialMembers.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => setEditingTrial(item)}
+                  className="p-4 rounded-xl bg-surface-2/60 border border-line-2 space-y-3 text-xs cursor-pointer hover:bg-hover/50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-bold text-sm text-fg">{item.full_name}</p>
+                      <p className="text-fg-3 text-[11px] mt-0.5">{item.phone_number} {item.email ? `• ${item.email}` : ""}</p>
+                    </div>
+                    <span
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${
+                        item.status === "Scheduled"
+                          ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                          : item.status === "Attended"
+                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                          : item.status === "No Show"
+                          ? "bg-red-500/10 text-red-500 border-red-500/20"
+                          : "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                      }`}
+                    >
+                      {item.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-surface/50 p-2.5 rounded-lg border border-line-2/50">
+                    <div>
+                      <span className="text-fg-4 font-medium block">Date & Time</span>
+                      <span className="font-semibold text-fg">{formatDateDisplay(item.trial_date)} @ {formatTimeDisplay(item.trial_time)}</span>
+                    </div>
+                    <div>
+                      <span className="text-fg-4 font-medium block">Class & Instructor</span>
+                      <span className="font-semibold text-fg">{item.class_name} ({item.instructor_name})</span>
+                    </div>
+                  </div>
+
+                  {item.notes && (
+                    <p className="text-[11px] text-fg-3 bg-surface/30 p-2 rounded-lg italic">
+                      Note: {item.notes}
+                    </p>
+                  )}
+
+                  {/* Actions Bar */}
+                  <div className="pt-2 border-t border-line-2 flex flex-wrap items-center gap-1.5 justify-end" onClick={(e) => e.stopPropagation()}>
+                    {item.status !== "Converted" ? (
+                      <>
+                        <button
+                          onClick={() => handleConvertToMember(item)}
+                          className="px-2.5 py-1 rounded-lg bg-purple-600 text-white font-bold text-[11px]"
+                        >
+                          Convert
+                        </button>
+                        {item.status === "Scheduled" && (
+                          <>
+                            <button
+                              onClick={() => handleUpdateStatus(item.id, "Attended", item.full_name)}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 font-bold text-[11px]"
+                            >
+                              Attended
+                            </button>
+                            <button
+                              onClick={() => handleUpdateStatus(item.id, "No Show", item.full_name)}
+                              className="px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-[11px]"
+                            >
+                              No Show
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => {
+                            setReschedulingTrial(item);
+                            setRescheduleDate(item.trial_date);
+                            setRescheduleTime(item.trial_time);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-surface border border-line-2 text-fg font-semibold text-[11px]"
+                        >
+                          Reschedule
+                        </button>
+                        <button
+                          onClick={() => setEditingTrial({ ...item })}
+                          className="px-2.5 py-1 rounded-lg bg-surface border border-line-2 text-fg-3 font-semibold text-[11px]"
+                        >
+                          Edit
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-[11px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-lg">
+                        Converted Member
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
       {/* CREATE TRIAL MEMBER MODAL */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-surface border border-line-2 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-surface border border-line-2 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line-2 pb-3">
               <h3 className="text-lg font-serif font-bold text-fg">+ Create Trial Member</h3>
               <button
@@ -943,7 +1021,7 @@ export default function TrialMembersPage() {
       {/* EDIT TRIAL MEMBER MODAL */}
       {editingTrial && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-surface border border-line-2 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-surface border border-line-2 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line-2 pb-3">
               <h3 className="text-lg font-serif font-bold text-fg">Edit Trial Member</h3>
               <button

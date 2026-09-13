@@ -327,156 +327,214 @@ export default function DiscountsPage() {
           <p className="text-xs font-bold text-fg-3">No members match your search criteria</p>
         </div>
       ) : (
-        <div className="bg-surface border border-line rounded-3xl shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-[700px] w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-surface-2/60 border-b border-line text-[11px] font-extrabold text-fg-4 uppercase tracking-wider">
-                  <th className="py-3.5 px-5">Member Name</th>
-                  <th className="py-3.5 px-5">Contact</th>
-                  <th className="py-3.5 px-5">Active Package</th>
-                  <th className="py-3.5 px-5">Active Discount</th>
-                  <th className="py-3.5 px-5">Source &amp; Reason</th>
-                  <th className="py-3.5 px-5">Status</th>
-                  <th className="py-3.5 px-5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {filteredMembers.map((member) => {
-                  const activeDisc = member.active_discount;
-                  const hasActive = !!activeDisc;
+        <>
+          <div className="hidden md:block bg-surface border border-line rounded-3xl shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-[700px] w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-surface-2/60 border-b border-line text-[11px] font-extrabold text-fg-4 uppercase tracking-wider">
+                    <th className="py-3.5 px-5">Member Name</th>
+                    <th className="py-3.5 px-5">Contact</th>
+                    <th className="py-3.5 px-5">Active Package</th>
+                    <th className="py-3.5 px-5">Active Discount</th>
+                    <th className="py-3.5 px-5">Source &amp; Reason</th>
+                    <th className="py-3.5 px-5">Status</th>
+                    <th className="py-3.5 px-5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {filteredMembers.map((member) => {
+                    const activeDisc = member.active_discount;
+                    const hasActive = !!activeDisc;
 
-                  return (
-                    <tr key={member.id} className="hover:bg-surface-2/30 transition-colors">
-                      {/* Name */}
-                      <td className="py-4 px-5">
-                        <div className="font-extrabold text-fg text-sm">{member.full_name}</div>
-                      </td>
+                    return (
+                      <tr key={member.id} className="hover:bg-surface-2/30 transition-colors">
+                        {/* Name */}
+                        <td className="py-4 px-5">
+                          <div className="font-extrabold text-fg text-sm">{member.full_name}</div>
+                        </td>
 
-                      {/* Contact */}
-                      <td className="py-4 px-5 text-fg-3 font-medium">
-                        <div>{member.phone_number || "No phone"}</div>
-                        <div className="text-[10px] text-fg-4">{member.email}</div>
-                      </td>
+                        {/* Contact */}
+                        <td className="py-4 px-5 text-fg-3 font-medium">
+                          <div>{member.phone_number || "No phone"}</div>
+                          <div className="text-[10px] text-fg-4">{member.email}</div>
+                        </td>
 
-                      {/* Active Package */}
-                      <td className="py-4 px-5 font-semibold text-fg-2">
-                        {member.current_package}
-                      </td>
+                        {/* Active Package */}
+                        <td className="py-4 px-5 font-semibold text-fg-2">
+                          {member.current_package}
+                        </td>
 
-                      {/* Active Discount */}
-                      <td className="py-4 px-5">
-                        {hasActive ? (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-black rounded-full text-xs">
-                            <span>
-                              {activeDisc.discount_type === "percentage"
-                                ? `${activeDisc.discount_value}% OFF`
-                                : `₹${activeDisc.discount_value.toLocaleString("en-IN")} OFF`}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-fg-4 font-semibold text-[11px]">No Active Discount</span>
-                        )}
-                      </td>
-
-                      {/* Source & Reason */}
-                      <td className="py-4 px-5">
-                        {hasActive ? (
-                          <div>
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                                activeDisc.source === "Referral Reward"
-                                  ? "bg-purple-500/10 text-purple-500 border border-purple-500/20"
-                                  : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
-                              }`}
-                            >
-                              {activeDisc.source}
-                            </span>
-                            <p className="text-[11px] font-medium text-fg-3 mt-1">{activeDisc.reason}</p>
-                          </div>
-                        ) : (
-                          <span className="text-fg-4">&mdash;</span>
-                        )}
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-4 px-5">
-                        {hasActive ? (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                            Active
-                          </span>
-                        ) : member.discount_history && member.discount_history.length > 0 ? (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                            {member.discount_history[0].status}
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20">
-                            No Discount
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-4 px-5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleOpenAddModal(member)}
-                            className="px-3 py-1.5 bg-emerald-600/10 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl text-xs font-bold transition-all"
-                          >
-                            + Add
-                          </button>
-
-                          {hasActive && (
-                            <>
-                              <button
-                                onClick={() => handleOpenEditModal(member, activeDisc!)}
-                                className="p-1.5 bg-surface-2 hover:bg-surface-3 text-fg-3 rounded-xl transition-colors"
-                                title="Edit Discount"
-                              >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                              </button>
-
-                              <button
-                                onClick={() => handleToggleStatus(activeDisc!)}
-                                className="p-1.5 bg-surface-2 hover:bg-red-500/10 text-fg-4 hover:text-red-400 rounded-xl transition-colors"
-                                title="Deactivate Discount"
-                              >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                </svg>
-                              </button>
-                            </>
+                        {/* Active Discount */}
+                        <td className="py-4 px-5">
+                          {hasActive ? (
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-black rounded-full text-xs">
+                              <span>
+                                {activeDisc.discount_type === "percentage"
+                                  ? `${activeDisc.discount_value}% OFF`
+                                  : `₹${activeDisc.discount_value.toLocaleString("en-IN")} OFF`}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-fg-4 font-semibold text-[11px]">No Active Discount</span>
                           )}
+                        </td>
 
-                          <button
-                            onClick={() => {
-                              setSelectedMemberForHistory(member);
-                              setShowHistoryModal(true);
-                            }}
-                            className="p-1.5 bg-surface-2 hover:bg-surface-3 text-fg-3 rounded-xl transition-colors"
-                            title="Discount History"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        {/* Source & Reason */}
+                        <td className="py-4 px-5">
+                          {hasActive ? (
+                            <div>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                  activeDisc.source === "Referral Reward"
+                                    ? "bg-purple-500/10 text-purple-500 border border-purple-500/20"
+                                    : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                                }`}
+                              >
+                                {activeDisc.source}
+                              </span>
+                              <p className="text-[11px] font-medium text-fg-3 mt-1">{activeDisc.reason}</p>
+                            </div>
+                          ) : (
+                            <span className="text-fg-4">&mdash;</span>
+                          )}
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-4 px-5">
+                          {hasActive ? (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                              Active
+                            </span>
+                          ) : member.discount_history && member.discount_history.length > 0 ? (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                              {member.discount_history[0].status}
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                              No Discount
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-4 px-5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleOpenAddModal(member)}
+                              className="px-3 py-1.5 bg-emerald-600/10 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-xl text-xs font-bold transition-all"
+                            >
+                              + Add
+                            </button>
+
+                            {hasActive && (
+                              <>
+                                <button
+                                  onClick={() => handleOpenEditModal(member, activeDisc!)}
+                                  className="p-1.5 bg-surface-2 hover:bg-surface-3 text-fg-3 rounded-xl transition-colors"
+                                  title="Edit Discount"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
+
+                                <button
+                                  onClick={() => handleToggleStatus(activeDisc!)}
+                                  className="p-1.5 bg-surface-2 hover:bg-red-500/10 text-fg-4 hover:text-red-400 rounded-xl transition-colors"
+                                  title="Deactivate Discount"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                  </svg>
+                                </button>
+                              </>
+                            )}
+
+                            <button
+                              onClick={() => {
+                                setSelectedMemberForHistory(member);
+                                setShowHistoryModal(true);
+                              }}
+                              className="p-1.5 bg-surface-2 hover:bg-surface-3 text-fg-3 rounded-xl transition-colors"
+                              title="Discount History"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* Mobile Card List View */}
+          <div className="md:hidden space-y-3">
+            {filteredMembers.map((member) => {
+              const activeDisc = member.active_discount;
+              const hasActive = !!activeDisc;
+
+              return (
+                <div key={member.id} className="p-4 rounded-2xl bg-surface border border-line space-y-3 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-extrabold text-sm text-fg">{member.full_name}</p>
+                      <p className="text-fg-4 text-[11px] mt-0.5">{member.phone_number || member.email}</p>
+                    </div>
+                    {hasActive ? (
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+                        {activeDisc.discount_type === "percentage" ? `${activeDisc.discount_value}% OFF` : `₹${activeDisc.discount_value} OFF`}
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20 shrink-0">
+                        No Discount
+                      </span>
+                    )}
+                  </div>
+
+                  {hasActive && (
+                    <div className="p-2.5 rounded-xl bg-surface-2 border border-line text-[11px] space-y-1">
+                      <p className="font-bold text-fg">Source: {activeDisc.source}</p>
+                      <p className="text-fg-3">Reason: {activeDisc.reason}</p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-2 border-t border-line">
+                    <span className="text-[11px] font-semibold text-fg-3">{member.current_package || "Standard Member"}</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleOpenAddModal(member)}
+                        className="px-3 py-1 bg-emerald-600/10 text-emerald-600 rounded-lg text-xs font-bold"
+                      >
+                        + Add
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedMemberForHistory(member);
+                          setShowHistoryModal(true);
+                        }}
+                        className="px-3 py-1 bg-surface-2 text-fg-3 rounded-lg text-xs font-bold"
+                      >
+                        History
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* Add / Edit Discount Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-line rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5">
+          <div className="bg-surface border border-line rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 max-h-[85dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <h3 className="text-lg font-extrabold text-fg">
                 {editingDiscount ? "Edit Member Discount" : "Add Discount to Member"}
