@@ -6,12 +6,12 @@ import Razorpay from "razorpay";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, full_name, phone_number, email, class_id } = body;
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, full_name, phone_number, email, class_id, trial_date, trial_time, class_name } = body;
 
     if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
       return NextResponse.json({ error: "Missing payment verification data" }, { status: 400 });
     }
-    if (!full_name || !phone_number || !email || !class_id) {
+    if (!full_name || !phone_number || !email || (!class_id && (!trial_date || !trial_time))) {
       return NextResponse.json({ error: "Missing booking data" }, { status: 400 });
     }
 
@@ -50,29 +50,55 @@ export async function POST(req: Request) {
 
     // Check by razorpay_payment_id if we store it (we will store in notes or a separate field - for now check trial_members with same email+class)
     // Also check leads
-    const { data: existingLead } = await service.from("leads").select("id").eq("email", email.trim().toLowerCase()).eq("interest", (await service.from("classes").select("title").eq("id", class_id).maybeSingle()).data?.title || "").maybeSingle();
-    // Simplify idempotency: check if there's already a trial for this email+class from the last hour
+    const cleanPhoneEarly = (phone_number as string).replace(/\D/g, "");
+    const emailLowerEarly = (email as string).trim().toLowerCase();
+    const { data: existingLead } = await service.from("leads").select("id").eq("email", emailLowerEarly).maybeSingle();
+    // Simplify idempotency: check if there's already a trial for this email from the last hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { data: recentTrial } = await service.from("trial_members").select("id").eq("email", email.trim().toLowerCase()).gte("created_at", oneHourAgo).maybeSingle();
+    const { data: recentTrial } = await service.from("trial_members").select("id").eq("email", emailLowerEarly).gte("created_at", oneHourAgo).maybeSingle();
     if (recentTrial) {
       return NextResponse.json({ success: true, message: "Trial already booked", trialId: recentTrial.id });
     }
 
-    // Re-check capacity and class
-    const { data: cls } = await service.from("classes").select("id, title, instructor, class_date, class_time, max_capacity").eq("id", class_id).maybeSingle();
-    if (!cls) return NextResponse.json({ error: "Class not found" }, { status: 404 });
+    // Resolve class: existing class_id OR date+time slot (new trial slots like Morning/Evening Reformer)
+    let cls: any = null;
+    if (class_id) {
+      const { data } = await service.from("classes").select("id, title, instructor, class_date, class_time, max_capacity").eq("id", class_id).maybeSingle();
+      if (!data) return NextResponse.json({ error: "Class not found" }, { status: 404 });
+      cls = data;
+    } else {
+      // Slot flow: find existing class for that date+time, else build a virtual one
+      const timeWithSecs = (trial_date as string) && (trial_time as string).length === 5 ? `${trial_time}:00` : trial_time;
+      const { data: slotClass } = await service.from("classes").select("id, title, instructor, class_date, class_time, max_capacity").eq("class_date", trial_date).eq("class_time", timeWithSecs).maybeSingle();
+      if (slotClass) {
+        cls = slotClass;
+      } else {
+        const isEvening = ["16", "17", "18", "19"].some((h) => (trial_time as string).startsWith(h));
+        const derivedTitle = (class_name as string) || (isEvening ? "Evening Reformer" : "Morning Reformer");
+        const { data: staffRow } = await service.from("staff_members").select("id, full_name").ilike("role", "Trainer").eq("employment_status", "Active").limit(1).maybeSingle();
+        cls = { id: null, title: derivedTitle, instructor: staffRow?.full_name || "Staff", instructor_id: staffRow?.id || null, class_date: trial_date, class_time: timeWithSecs, max_capacity: 10 };
+      }
+    }
 
-    const { data: bookings } = await service.from("bookings").select("id").eq("class_id", class_id).in("booking_status", ["booked", "confirmed", "checked_in", "completed"]);
-    if (bookings && bookings.length >= (cls.max_capacity ?? 10)) {
-      return NextResponse.json({ error: "Class is now full" }, { status: 400 });
+    if (cls?.id) {
+      const { data: bookings } = await service.from("bookings").select("id").eq("class_id", cls.id).in("booking_status", ["booked", "confirmed", "checked_in", "completed"]);
+      if (bookings && bookings.length >= (cls.max_capacity ?? 10)) {
+        return NextResponse.json({ error: "Class is now full" }, { status: 400 });
+      }
     }
 
     // Fulfill: create trial member and booking
     const cleanPhone = phone_number.replace(/\D/g, "");
     const emailLower = email.trim().toLowerCase();
 
-    // Find staff for instructor
-    const { data: staff } = await service.from("staff_members").select("id, full_name").ilike("full_name", cls.instructor).maybeSingle();
+    // Find staff for instructor (cls may already carry instructor_id for slot flow)
+    let staff: any = null;
+    if ((cls as any)?.instructor_id) {
+      staff = { id: (cls as any).instructor_id, full_name: cls.instructor };
+    } else {
+      const { data } = await service.from("staff_members").select("id, full_name").ilike("full_name", cls.instructor).maybeSingle();
+      staff = data;
+    }
 
     const trialInsert: Record<string, unknown> = {
       full_name: full_name.trim(),
@@ -80,7 +106,7 @@ export async function POST(req: Request) {
       email: emailLower,
       trial_date: cls.class_date,
       trial_time: cls.class_time,
-      class_id: cls.id,
+      class_id: cls.id || null,
       class_name: cls.title,
       instructor_id: staff?.id || null,
       instructor_name: cls.instructor,
@@ -139,17 +165,15 @@ export async function POST(req: Request) {
       });
     } catch {}
 
-    // Create booking via the existing booking logic (re-use the member/book API logic or directly insert)
-    // For trial, we can create a booking directly if the user is not an approved member yet, we create it with a temporary member_id
-    // For now, we create a booking with the trial's email as the member identifier, or we can skip booking and rely on trial_members
-    // Let's try to create a booking if the user has an approved_members record
+    // Create booking via the existing booking logic
+    // Only possible when a real classes row exists and the user is an approved member
     const { data: approvedMember } = await service.from("approved_members").select("id").ilike("email", emailLower).maybeSingle();
-    if (approvedMember) {
+    if (approvedMember && cls.id) {
       // Check capacity again and create booking
-      const { data: existingBooking } = await service.from("bookings").select("id").eq("class_id", class_id).eq("member_id", approvedMember.id).maybeSingle();
+      const { data: existingBooking } = await service.from("bookings").select("id").eq("class_id", cls.id).eq("member_id", approvedMember.id).maybeSingle();
       if (!existingBooking) {
         const { data: bookingData } = await service.from("bookings").insert({
-          class_id: class_id,
+          class_id: cls.id,
           member_id: approvedMember.id,
           booking_status: "booked",
           created_at: new Date().toISOString(),
