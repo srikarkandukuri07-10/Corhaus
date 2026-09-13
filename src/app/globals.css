@@ -151,6 +151,11 @@ textarea {
   transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
+select option {
+  color: var(--color-fg);
+  background-color: var(--color-surface);
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;
