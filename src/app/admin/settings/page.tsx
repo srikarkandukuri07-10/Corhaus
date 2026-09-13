@@ -1,5 +1,5 @@
-import InvoiceSettingsPage from "./invoice-settings/page";
+import BusinessProfilePage from "./business-profile/page";
 
 export default function SettingsRootPage() {
-  return <InvoiceSettingsPage />;
+  return <BusinessProfilePage />;
 }

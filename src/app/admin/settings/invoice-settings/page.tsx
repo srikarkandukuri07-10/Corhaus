@@ -81,7 +81,8 @@ export function SettingsSidebar() {
     {
       title: "BUSINESS",
       items: [
-        { label: "Invoice Settings", href: "/admin/settings/invoice-settings", active: pathname.includes("invoice-settings") || pathname === "/admin/settings" },
+        { label: "Business Profile", href: "/admin/settings/business-profile", active: pathname.includes("business-profile") || pathname === "/admin/settings" },
+        { label: "Invoice Settings", href: "/admin/settings/invoice-settings", active: pathname.includes("invoice-settings") },
       ],
     },
     {
@@ -142,6 +143,11 @@ export function SettingsSidebar() {
                       : "text-fg-3 hover:text-fg hover:bg-surface-2"
                   }`}
                 >
+                  {item.label === "Business Profile" && (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h6m-6 4h6m-2 5h2" />
+                    </svg>
+                  )}
                   {item.label === "Invoice Settings" && (
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
