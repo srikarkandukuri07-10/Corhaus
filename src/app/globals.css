@@ -130,21 +130,28 @@ html {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Prevent horizontal scroll at the document level */
-  overflow-x: hidden;
 }
 
 body {
   overflow-x: hidden;
-}
-
-body {
   background-color: var(--color-canvas);
   color: var(--color-fg);
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   transition: background-color 0.2s ease, color 0.2s ease;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* App shell: never let the page itself scroll sideways; long content must
+   wrap or scroll within its own container. */
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
 }
 
 a,

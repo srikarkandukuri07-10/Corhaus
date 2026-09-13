@@ -441,22 +441,34 @@ export default function TrialMembersPage() {
           <h3 className="text-sm font-bold text-fg">Public Trial Booking Link</h3>
           <p className="text-xs text-fg-3 mt-1">share this link to the trail member to book their trail session</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <a href="/book-trial" target="_blank" className="text-xs bg-white border border-gray-200 px-3 py-1.5 rounded-xl inline-block truncate text-green-600 font-mono hover:bg-gray-50">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
+          <a
+            href="/book-trial"
+            target="_blank"
+            className="text-xs bg-surface-2 border border-line-2 px-3 py-2.5 rounded-xl block min-w-0 sm:max-w-xs truncate text-accent font-mono hover:bg-hover"
+          >
             {typeof window !== "undefined" ? window.location.origin : ""}/book-trial
           </a>
-          <a href="/book-trial" target="_blank" className="px-4 py-2 rounded-xl bg-black text-white text-xs font-bold hover:bg-gray-800">Open</a>
-          <button
-            onClick={() => {
-              const url = `${window.location.origin}/book-trial`;
-              navigator.clipboard.writeText(url);
-              alert("Link copied: " + url);
-            }}
-            title="Copy link"
-            className="w-10 h-10 rounded-xl border-2 border-gray-200 bg-white text-gray-700 hover:bg-gray-50 flex items-center justify-center"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-8 0h8a2 2 0 012 2v8a2 2 0 01-2 2h-8a2 2 0 01-2-2v-8a2 2 0 012-2z" /></svg>
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/book-trial`;
+                navigator.clipboard.writeText(url);
+                alert("Link copied: " + url);
+              }}
+              title="Copy link"
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-colors"
+            >
+              Copy
+            </button>
+            <a
+              href="/book-trial"
+              target="_blank"
+              className="flex-1 sm:flex-none text-center px-4 py-2.5 rounded-xl bg-surface-2 border border-line-2 text-fg text-xs font-bold hover:bg-hover transition-colors"
+            >
+              Open
+            </a>
+          </div>
         </div>
       </div>
 

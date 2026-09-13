@@ -613,13 +613,13 @@ export default function PtSchedulerPage() {
 
       {/* Weekly Calendar View */}
       <div className="bg-surface rounded-3xl border border-line shadow-md">
-        <div className="flex items-center justify-between p-5 border-b border-line bg-surface-2/60 rounded-t-3xl">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 sm:p-5 border-b border-line bg-surface-2/60 rounded-t-3xl">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <button
               onClick={() => setWeekOffset(prev => prev - 1)}
-              className="px-3 py-2 rounded-xl border border-line-2 bg-surface text-xs font-bold text-fg hover:bg-gray-50"
+              className="px-3 py-2 rounded-xl border border-line-2 bg-surface text-xs font-bold text-fg hover:bg-hover"
             >
-              &larr; Prev Week
+              &larr; Prev
             </button>
             <button
               onClick={() => setWeekOffset(0)}
@@ -629,13 +629,13 @@ export default function PtSchedulerPage() {
             </button>
             <button
               onClick={() => setWeekOffset(prev => prev + 1)}
-              className="px-3 py-2 rounded-xl border border-line-2 bg-surface text-xs font-bold text-fg hover:bg-gray-50"
+              className="px-3 py-2 rounded-xl border border-line-2 bg-surface text-xs font-bold text-fg hover:bg-hover"
             >
-              Next Week &rarr;
+              Next &rarr;
             </button>
-            <span className="text-sm font-extrabold text-fg ml-2">{weekHeaderDateRange}</span>
+            <span className="text-xs sm:text-sm font-extrabold text-fg w-full sm:w-auto sm:ml-2">{weekHeaderDateRange}</span>
           </div>
-          <span className="text-xs font-bold text-accent bg-accent/10 px-3 py-1 rounded-lg">
+          <span className="text-xs font-bold text-accent bg-accent/10 px-3 py-1 rounded-lg self-start sm:self-auto">
             Active Schedule for {selectedTrainer}
           </span>
         </div>
@@ -752,7 +752,7 @@ export default function PtSchedulerPage() {
               </div>
 
               {/* Start Date, Time & Duration */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Start Date *</label>
                   <input type="date" required value={assignStartDate} onChange={(e) => setAssignStartDate(e.target.value)} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg" />
@@ -761,7 +761,7 @@ export default function PtSchedulerPage() {
                   <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Start Time *</label>
                   <input type="time" required value={assignStartTime} onChange={(e) => setAssignStartTime(e.target.value)} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg" />
                 </div>
-                <div>
+                <div className="col-span-2 sm:col-span-1">
                   <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Duration (mins)</label>
                   <input type="number" min="15" step="15" value={assignDuration} onChange={(e) => setAssignDuration(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg" />
                 </div>

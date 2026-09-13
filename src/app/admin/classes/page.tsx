@@ -126,6 +126,8 @@ export default function AdminClassesModulePage() {
   const [activeTab, setActiveTab] = useState<"class_types" | "schedule" | "sessions">("schedule");
   const [calendarView, setCalendarView] = useState<"day" | "week" | "month">("week");
   const [weekOffset, setWeekOffset] = useState(0);
+  const [mobileDayOffset, setMobileDayOffset] = useState(0);
+  const [monthOffset, setMonthOffset] = useState(0);
   
   // Realtime Supabase Data
   const [classTypes, setClassTypes] = useState<ClassType[]>([]);
@@ -236,6 +238,51 @@ export default function AdminClassesModulePage() {
     const end = currentWeekDays[6].fullDate.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" });
     return `${start} – ${end}`;
   }, [currentWeekDays]);
+
+  // ─── MOBILE DAY VIEW: single-day focus derived from week grid ─────────────
+  const mobileSelectedDay = useMemo(() => {
+    const days = currentWeekDays;
+    if (days.length === 0) return null;
+    const idx = Math.min(Math.max(mobileDayOffset, 0), 6);
+    return days[idx];
+  }, [currentWeekDays, mobileDayOffset]);
+
+  const mobileDayLabel = useMemo(() => {
+    if (!mobileSelectedDay) return "";
+    return mobileSelectedDay.fullDate.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+  }, [mobileSelectedDay]);
+
+  // ─── MONTH VIEW GRID ───────────────────────────────────────────────────────
+  const monthGridDays = useMemo(() => {
+    const base = new Date();
+    base.setDate(1);
+    base.setMonth(base.getMonth() + monthOffset);
+    const year = base.getFullYear();
+    const month = base.getMonth();
+    const firstOfMonth = new Date(year, month, 1);
+    // Monday-start week grid
+    const startOffset = (firstOfMonth.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const todayIso = getTodayIstString();
+
+    const cells: { isoDate: string; dayNum: number; inMonth: boolean; isToday: boolean }[] = [];
+    for (let i = 0; i < startOffset; i++) cells.push({ isoDate: "", dayNum: 0, inMonth: false, isToday: false });
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      cells.push({ isoDate: iso, dayNum: d, inMonth: true, isToday: iso === todayIso });
+    }
+    while (cells.length % 7 !== 0) cells.push({ isoDate: "", dayNum: 0, inMonth: false, isToday: false });
+    return { cells, label: base.toLocaleDateString("en-IN", { month: "long", year: "numeric" }) };
+  }, [monthOffset]);
+
+  const monthSessionCountMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const s of sessions) {
+      if (s.status === "cancelled") continue;
+      map[s.class_date] = (map[s.class_date] || 0) + 1;
+    }
+    return map;
+  }, [sessions]);
 
   // ─── LOAD DATA FROM SUPABASE ───────────────────────────────────────────────
   const fetchAllData = useCallback(async (silent = false) => {
@@ -1048,60 +1095,185 @@ export default function AdminClassesModulePage() {
       {activeTab === "schedule" && (
         <div className="space-y-6 animate-fade-in">
           {/* Calendar Toolbar Header */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-surface rounded-3xl border border-line p-5 gap-4 shadow-xs">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setWeekOffset((prev) => prev - 1)}
-                className="px-3.5 py-2 rounded-xl border border-line-2 bg-surface-2 hover:bg-accent/10 text-accent font-bold text-xs transition-colors"
-              >
-                &larr; Prev Week
-              </button>
-              <button
-                onClick={() => setWeekOffset(0)}
-                className="px-4 py-2 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-2 transition-colors shadow-xs"
-              >
-                Today
-              </button>
-              <button
-                onClick={() => setWeekOffset((prev) => prev + 1)}
-                className="px-3.5 py-2 rounded-xl border border-line-2 bg-surface-2 hover:bg-accent/10 text-accent font-bold text-xs transition-colors"
-              >
-                Next Week &rarr;
-              </button>
-              <span className="text-base font-extrabold text-fg ml-3">{weekHeaderDateRange}</span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 bg-surface-2 p-1.5 rounded-2xl border border-line">
-                {(["day", "week", "month"] as const).map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setCalendarView(v)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all ${
-                      calendarView === v
-                        ? "bg-accent text-white shadow-xs"
-                        : "text-fg-3 hover:text-fg"
-                    }`}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-
-              {hasPerm("classes.create") && (
+          <div className="bg-surface rounded-3xl border border-line p-4 sm:p-5 shadow-xs space-y-4">
+            {/* Row 1: navigation + range */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
                 <button
-                  onClick={() => setShowScheduleModal(true)}
-                  className="px-5 py-2.5 bg-accent text-white rounded-xl text-xs font-bold hover:bg-accent-2 shadow-xs"
+                  onClick={() => {
+                    if (calendarView === "month") setMonthOffset((p) => p - 1);
+                    else if (calendarView === "day") setMobileDayOffset((p) => Math.max(p - 1, 0));
+                    else setWeekOffset((prev) => prev - 1);
+                  }}
+                  className="px-3 py-2 rounded-xl border border-line-2 bg-surface-2 hover:bg-accent/10 text-accent font-bold text-xs transition-colors"
                 >
-                  + Add Session
+                  &larr;
                 </button>
-              )}
+                <button
+                  onClick={() => {
+                    if (calendarView === "month") setMonthOffset(0);
+                    else if (calendarView === "day") setMobileDayOffset(0);
+                    else setWeekOffset(0);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-2 transition-colors shadow-xs"
+                >
+                  Today
+                </button>
+                <button
+                  onClick={() => {
+                    if (calendarView === "month") setMonthOffset((p) => p + 1);
+                    else if (calendarView === "day") setMobileDayOffset((p) => Math.min(p + 1, 6));
+                    else setWeekOffset((prev) => prev + 1);
+                  }}
+                  className="px-3 py-2 rounded-xl border border-line-2 bg-surface-2 hover:bg-accent/10 text-accent font-bold text-xs transition-colors"
+                >
+                  &rarr;
+                </button>
+                <span className="text-sm sm:text-base font-extrabold text-fg ml-1 truncate">
+                  {calendarView === "month"
+                    ? monthGridDays.label
+                    : calendarView === "day"
+                    ? mobileDayLabel
+                    : weekHeaderDateRange}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-2xl border border-line">
+                  {(["day", "week", "month"] as const).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setCalendarView(v)}
+                      className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all ${
+                        calendarView === v
+                          ? "bg-accent text-white shadow-xs"
+                          : "text-fg-3 hover:text-fg"
+                      }`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+
+                {hasPerm("classes.create") && (
+                  <button
+                    onClick={() => setShowScheduleModal(true)}
+                    className="px-3.5 sm:px-5 py-2.5 bg-accent text-white rounded-xl text-xs font-bold hover:bg-accent-2 shadow-xs"
+                  >
+                    + Add Session
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Mobile day selector chips (day/week views) */}
+            {calendarView !== "month" && (
+              <div className="lg:hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1">
+                {currentWeekDays.map((day) => {
+                  const isSelected = mobileSelectedDay?.isoDate === day.isoDate;
+                  return (
+                    <button
+                      key={day.isoDate}
+                      onClick={() => setMobileDayOffset(currentWeekDays.indexOf(day))}
+                      className={`flex flex-col items-center px-3 py-2 rounded-2xl border text-[10px] font-bold whitespace-nowrap transition-all ${
+                        isSelected
+                          ? "bg-accent text-white border-accent shadow-sm"
+                          : day.isToday
+                          ? "bg-accent/10 text-accent border-accent/30"
+                          : "bg-surface-2 text-fg-3 border-line-2"
+                      }`}
+                    >
+                      <span>{day.dayName}</span>
+                      <span className="text-sm font-black mt-0.5">{day.dayNum}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {/* ── GOOGLE CALENDAR WEEKLY TIME GRID ── */}
-          <div className="bg-surface rounded-3xl border border-line shadow-md overflow-x-auto">
-            <div className="min-w-[700px] lg:min-w-[950px]">
+          {/* ── MOBILE / DAY VIEW: single-day session list ── */}
+          <div className={`${calendarView === "day" ? "block" : calendarView === "week" ? "lg:hidden" : "hidden"} bg-surface rounded-3xl border border-line shadow-md p-4 sm:p-5 space-y-4`}>
+              {mobileSelectedDay && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-extrabold text-fg uppercase tracking-wider">{mobileDayLabel}</p>
+                    <span className="text-[10px] font-bold text-fg-4">
+                      {sessions.filter((s) => s.class_date === mobileSelectedDay.isoDate && s.status !== "cancelled").length} sessions
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {sessions
+                      .filter((s) => s.class_date === mobileSelectedDay.isoDate)
+                      .sort((a, b) => a.class_time.localeCompare(b.class_time))
+                      .map((s) => {
+                        const booked = sessionBookingCountMap[s.id] || 0;
+                        const isFull = booked >= s.max_capacity;
+                        return (
+                          <div
+                            key={s.id}
+                            onClick={() => handleOpenSessionDetail(s)}
+                            className={`p-4 rounded-2xl border shadow-xs cursor-pointer transition-all active:scale-[0.99] ${
+                              s.status === "cancelled"
+                                ? "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-500/30 opacity-80"
+                                : isFull
+                                ? "bg-surface-2 border-line-2"
+                                : "bg-surface border-accent/25 hover:border-accent/50"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className={`font-extrabold text-sm ${s.status === "cancelled" ? "line-through text-red-500" : "text-fg"}`}>
+                                  {s.title}
+                                </p>
+                                <p className="text-xs text-fg-3 mt-0.5 font-semibold">
+                                  {formatTime(s.class_time)} &bull; {s.instructor}
+                                </p>
+                                <p className="text-[11px] text-fg-4 mt-0.5">{s.location_room}</p>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className={`text-xs font-extrabold ${booked >= s.max_capacity ? "text-amber-500" : "text-accent"}`}>
+                                  {booked}/{s.max_capacity}
+                                </p>
+                                <span
+                                  className={`inline-block mt-1 text-[9px] font-bold px-2 py-0.5 rounded-md ${
+                                    s.status === "cancelled"
+                                      ? "bg-red-500/10 text-red-500"
+                                      : isFull
+                                      ? "bg-amber-500/10 text-amber-500"
+                                      : "bg-emerald-500/10 text-emerald-500"
+                                  }`}
+                                >
+                                  {s.status === "cancelled" ? "CANCELLED" : isFull ? "FULL" : "OPEN"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    {sessions.filter((s) => s.class_date === mobileSelectedDay.isoDate).length === 0 && (
+                      <div className="py-10 text-center">
+                        <p className="text-sm font-bold text-fg-3">No sessions this day</p>
+                        {hasPerm("classes.create") && (
+                          <button
+                            onClick={() => {
+                              setSessDate(mobileSelectedDay.isoDate);
+                              setShowScheduleModal(true);
+                            }}
+                            className="mt-3 px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent-2"
+                          >
+                            + Add Session
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+          </div>
+
+          {/* ── DESKTOP WEEKLY TIME GRID (lg+ only; mobile uses the day list above) ── */}
+          <div className={`${calendarView === "week" ? "hidden lg:block" : "hidden"} bg-surface rounded-3xl border border-line shadow-md overflow-x-auto`}>
+            <div className="min-w-[950px]">
               {/* Day Columns Header Row */}
               <div className="grid grid-cols-[60px_repeat(7,1fr)] lg:grid-cols-[90px_repeat(7,1fr)] border-b border-line bg-surface-2 text-center sticky top-0 z-10">
                 <div className="p-4 text-xs font-bold text-fg-4 border-r border-line uppercase flex items-center justify-center">
@@ -1220,6 +1392,71 @@ export default function AdminClassesModulePage() {
               </div>
             </div>
           </div>
+
+          {/* ── MONTH VIEW ── */}
+          {calendarView === "month" && (
+            <div className="bg-surface rounded-3xl border border-line shadow-md p-4 sm:p-5">
+              <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-3">
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                  <p key={d} className="text-center text-[10px] sm:text-xs font-bold text-fg-4 uppercase tracking-wider">{d}</p>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                {monthGridDays.cells.map((cell, i) => {
+                  const count = cell.isoDate ? monthSessionCountMap[cell.isoDate] || 0 : 0;
+                  return (
+                    <button
+                      key={i}
+                      disabled={!cell.inMonth}
+                      onClick={() => {
+                        setMobileDayOffset(0);
+                        setSessDate(cell.isoDate);
+                        setCalendarView("day");
+                        // Re-anchor the mobile day view to the clicked date's week
+                        const target = new Date(cell.isoDate + "T00:00:00");
+                        const now = new Date();
+                        const nowMon = new Date(now);
+                        nowMon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+                        const targetMon = new Date(target);
+                        targetMon.setDate(target.getDate() - ((target.getDay() + 6) % 7));
+                        const weeks = Math.round((targetMon.getTime() - nowMon.getTime()) / (7 * 86400000));
+                        setWeekOffset(weeks);
+                        setMobileDayOffset((target.getDay() + 6) % 7);
+                      }}
+                      className={`min-h-[56px] sm:min-h-[88px] rounded-xl border p-1 sm:p-2 flex flex-col items-start text-left transition-all ${
+                        !cell.inMonth
+                          ? "bg-transparent border-transparent cursor-default"
+                          : cell.isToday
+                          ? "bg-accent/10 border-accent/40 hover:border-accent"
+                          : "bg-surface-2 border-line-2 hover:border-accent/40"
+                      }`}
+                    >
+                      {cell.inMonth && (
+                        <>
+                          <span className={`text-[11px] sm:text-xs font-bold ${cell.isToday ? "text-accent" : "text-fg"}`}>
+                            {cell.dayNum}
+                          </span>
+                          {count > 0 && (
+                            <span className="mt-auto w-full">
+                              <span className="block text-[9px] sm:text-[10px] font-bold text-fg-3 truncate">
+                                {count} session{count > 1 ? "s" : ""}
+                              </span>
+                              <span className="hidden sm:block mt-1 h-1 w-full rounded-full bg-surface overflow-hidden">
+                                <span
+                                  className={`block h-full rounded-full ${cell.isToday ? "bg-accent" : "bg-accent/60"}`}
+                                  style={{ width: `${Math.min(count * 20, 100)}%` }}
+                                />
+                              </span>
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1246,7 +1483,7 @@ export default function AdminClassesModulePage() {
               </button>
             </div>
           </div>
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-xs text-left">
               <thead className="bg-surface-2 border-b border-line text-fg-3 uppercase font-bold text-[10px]">
                 <tr>
@@ -1300,6 +1537,53 @@ export default function AdminClassesModulePage() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile session cards */}
+          <div className="md:hidden divide-y divide-line">
+            {sessions
+              .filter((s) => s.class_date === selectedSessionDate)
+              .map((s) => {
+                const booked = sessionBookingCountMap[s.id] || 0;
+                return (
+                  <div key={s.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-extrabold text-sm text-fg">{s.title}</p>
+                        <p className="text-xs text-fg-2 font-semibold mt-0.5">{s.instructor}</p>
+                        <p className="text-[11px] text-fg-3 mt-0.5">{formatDate(s.class_date)} @ {formatTime(s.class_time)}</p>
+                        <p className="text-[11px] text-fg-4">{s.location_room}</p>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase shrink-0 ${
+                        s.status === "cancelled" ? "bg-red-100 text-red-800" : "bg-emerald-100 text-emerald-800"
+                      }`}>
+                        {s.status}
+                      </span>
+                    </div>
+                    <p className="text-xs font-extrabold text-accent">{booked} / {s.max_capacity} booked</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleOpenAssignMember(s)}
+                        disabled={s.status === "cancelled"}
+                        className="flex-1 px-4 py-2.5 bg-accent text-white rounded-xl text-xs font-bold hover:bg-accent-2 disabled:opacity-50 shadow-xs"
+                      >
+                        Assign Member
+                      </button>
+                      {s.status !== "cancelled" && (
+                        <button
+                          onClick={() => handleCancelSession(s.id)}
+                          className="px-4 py-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold hover:bg-red-100 shadow-xs"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            {sessions.filter((s) => s.class_date === selectedSessionDate).length === 0 && (
+              <p className="p-8 text-center text-xs text-fg-4 font-semibold">No sessions for this date.</p>
+            )}
           </div>
         </div>
       )}
