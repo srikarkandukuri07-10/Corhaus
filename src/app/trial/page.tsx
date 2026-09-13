@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function TrialPage() {
+function EnquiryForm() {
+  const searchParams = useSearchParams();
+  const isInstagram = searchParams.get("source")?.toLowerCase() === "instagram";
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -79,6 +82,7 @@ export default function TrialPage() {
           <div className="text-center mb-8">
             <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Get in Touch</h2>
             <p className="text-sm text-white/60 mt-2">Have a question or interested in Corhaus? Fill out the form and our team will get back to you.</p>
+            {isInstagram && <span className="inline-block mt-3 text-xs bg-white/10 text-white px-3 py-1 rounded-full">Via Instagram</span>}
           </div>
 
           <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl">
@@ -117,5 +121,13 @@ export default function TrialPage() {
 
       <footer className="py-6 text-center text-xs text-white/30">© 2026 Corhaus Pilates — pilates for everyone</footer>
     </div>
+  );
+}
+
+export default function TrialPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4"><div className="text-white text-sm">Loading...</div></div>}>
+      <EnquiryForm />
+    </Suspense>
   );
 }
