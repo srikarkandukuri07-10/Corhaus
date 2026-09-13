@@ -187,7 +187,6 @@ export default function LeadsPage() {
   const [fSource, setFSource] = useState("all");
   const [fFollowup, setFFollowup] = useState("all");
   const [fConvert, setFConvert] = useState("all");
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showPipelineInfo, setShowPipelineInfo] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -471,7 +470,6 @@ export default function LeadsPage() {
       if (!res.ok) throw new Error(json.error || "Delete failed");
       setLeads((prev) => prev.filter((l) => l.id !== id));
       if (detailId === id) setDetailId(null);
-      setOpenMenu(null);
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : "Delete failed");
     }
@@ -664,6 +662,10 @@ export default function LeadsPage() {
                         <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${convertBadge(l.convertibility)}`}>{l.convertibility}</span>
                         <span className="text-[11px] text-fg-4 px-1 py-0.5">{l.source}</span>
                       </div>
+                      <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+                        <button className={btnPrimary + " flex-1 !py-1.5 !px-2 !text-[11px]"} onClick={() => handleConvert(l.id)}>Convert to Member</button>
+                        <button className={btnGhost + " !py-1.5 !px-2 !text-[11px]"} onClick={() => { setDetailId(l.id); setTimeout(openEditFromDetail, 0); }}>Edit</button>
+                      </div>
                     </div>
                   ))}
                   {cards.length === 0 && <p className="text-xs text-fg-5 text-center py-6">No leads</p>}
@@ -695,7 +697,7 @@ export default function LeadsPage() {
                     <th className="text-left p-3 font-semibold">Convertibility</th>
                     <th className="text-left p-3 font-semibold">Follow-up</th>
                     <th className="text-left p-3 font-semibold">Created</th>
-                    <th className="p-3 w-12"></th>
+                    <th className="text-right p-3 font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -739,16 +741,11 @@ export default function LeadsPage() {
                         )}
                       </td>
                       <td className="p-3 text-fg-3 text-xs whitespace-nowrap">{fmtDate(l.created_at)}</td>
-                      <td className="p-3 relative" onClick={(e) => e.stopPropagation()}>
-                        <button className="px-2 py-1 rounded-lg hover:bg-surface-2 text-fg-3 font-bold" onClick={() => setOpenMenu(openMenu === l.id ? null : l.id)}>...</button>
-                        {openMenu === l.id && (
-                          <div className="absolute right-2 top-9 w-44 bg-surface border border-line rounded-xl shadow-xl p-1 z-40">
-                            <button className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-fg hover:bg-hover" onClick={() => { setOpenMenu(null); setDetailId(l.id); }}>View Details</button>
-                            <button className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-fg hover:bg-hover" onClick={() => { setOpenMenu(null); setDetailId(l.id); setTimeout(openEditFromDetail, 0); }}>Edit</button>
-                            <button className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-fg hover:bg-hover" onClick={() => { setOpenMenu(null); handleConvert(l.id); }}>Convert to Member</button>
-                            <button className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-500/10" onClick={() => handleDelete(l.id)}>Delete</button>
-                          </div>
-                        )}
+                      <td className="p-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-2 justify-end">
+                          <button className={btnPrimary + " !py-1.5 !px-3 !text-xs"} onClick={() => handleConvert(l.id)}>Convert to Member</button>
+                          <button className={btnGhost + " !py-1.5 !px-3 !text-xs"} onClick={() => { setDetailId(l.id); setTimeout(openEditFromDetail, 0); }}>Edit</button>
+                        </div>
                       </td>
                     </tr>
                   ))}
