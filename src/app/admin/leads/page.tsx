@@ -67,21 +67,6 @@ function toDateTimeLocal(v: string | null | undefined): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function stageBadge(stage: string): string {
-  switch (stage) {
-    case "New":
-      return "bg-amber-500/10 text-amber-600 border border-amber-500/25";
-    case "Trial booked":
-      return "bg-sky-500/10 text-sky-600 border border-sky-500/25";
-    case "Trial attended":
-      return "bg-violet-500/10 text-violet-600 border border-violet-500/25";
-    case "Converted":
-      return "bg-emerald-500/10 text-emerald-600 border border-emerald-500/25";
-    default:
-      return "bg-surface-2 text-fg-3 border border-line";
-  }
-}
-
 function convertBadge(c: string): string {
   switch (c) {
     case "Hot":
@@ -715,8 +700,14 @@ export default function LeadsPage() {
                       <td className="p-3">
                         <span className="text-xs font-semibold px-2 py-1 rounded-full bg-surface-2 border border-line text-fg-3">{l.source}</span>
                       </td>
-                      <td className="p-3">
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${stageBadge(l.pipeline_stage)}`}>{l.pipeline_stage}</span>
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          className={selectCls + " text-xs py-1"}
+                          value={l.pipeline_stage}
+                          onChange={(e) => inlineUpdate(l.id, { pipeline_stage: e.target.value })}
+                        >
+                          {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
                       </td>
                       <td className="p-3" onClick={(e) => e.stopPropagation()}>
                         <select
