@@ -107,6 +107,7 @@ const ENQUIRY_LINKS = [
 
 function EnquiryLinks() {
   const [copied, setCopied] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   async function copyLink(path: string) {
     const url = `${window.location.origin}${path}`;
@@ -125,24 +126,31 @@ function EnquiryLinks() {
   }
 
   return (
-    <div className="bg-surface border border-line rounded-2xl p-4 sm:p-5">
-      <h2 className="text-base font-bold text-fg">Enquiry Links</h2>
-      <p className="text-xs text-fg-4 mt-0.5">Share these links to collect enquiries. Every submission appears in Leads below.</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-        {ENQUIRY_LINKS.map((l) => (
-          <div key={l.label} className="border border-line rounded-xl p-3.5 bg-surface-2/40">
-            <p className="text-sm font-bold text-fg">{l.label}</p>
-            <p className="text-xs text-fg-4 mt-0.5">{l.desc}</p>
-            <p className="text-xs font-mono text-fg-3 mt-2 truncate">{`${typeof window !== "undefined" ? window.location.origin : ""}${l.path}`}</p>
-            <button
-              onClick={() => copyLink(l.path)}
-              className="mt-2.5 px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-colors"
-            >
-              {copied === l.path ? "Copied!" : "Copy Link"}
-            </button>
-          </div>
-        ))}
-      </div>
+    <div className="bg-surface border border-line rounded-2xl">
+      <button className="w-full flex items-center justify-between gap-3 p-4 sm:p-5 text-left" onClick={() => setOpen(!open)}>
+        <span>
+          <span className="text-base font-bold text-fg">Enquiry Links</span>
+          <span className="block text-xs text-fg-4 mt-0.5">Share these links to collect enquiries. Every submission appears in Leads below.</span>
+        </span>
+        <span className={`text-fg-3 text-sm transition-transform ${open ? "rotate-180" : ""}`}>▼</span>
+      </button>
+      {open && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-4 pb-4 sm:px-5 sm:pb-5">
+          {ENQUIRY_LINKS.map((l) => (
+            <div key={l.label} className="border border-line rounded-xl p-3.5 bg-surface-2/40">
+              <p className="text-sm font-bold text-fg">{l.label}</p>
+              <p className="text-xs text-fg-4 mt-0.5">{l.desc}</p>
+              <p className="text-xs font-mono text-fg-3 mt-2 truncate">{`${typeof window !== "undefined" ? window.location.origin : ""}${l.path}`}</p>
+              <button
+                onClick={() => copyLink(l.path)}
+                className="mt-2.5 px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-colors"
+              >
+                {copied === l.path ? "Copied!" : "Copy Link"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
