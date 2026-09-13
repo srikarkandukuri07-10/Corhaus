@@ -305,8 +305,10 @@ export default function TrialMembersPage() {
     }
   };
 
-  // Quick Action: Update Status (Attended / No Show)
-  const handleUpdateStatus = async (trialId: string, status: "Attended" | "No Show" | "Scheduled") => {
+  // Quick Action: Update Status (Attended / No Show) with confirmation
+  const handleUpdateStatus = async (trialId: string, status: "Attended" | "No Show" | "Scheduled", memberName?: string) => {
+    const label = memberName ? `"${memberName}"` : "this trial member";
+    if (!confirm(`Are you sure that ${label} is ${status === "Attended" ? "attended" : "a no show"}?`)) return;
     try {
       const res = await fetch(`/api/admin/trial-members/${trialId}`, {
         method: "PUT",
@@ -661,7 +663,7 @@ export default function TrialMembersPage() {
                           <>
                             {/* Convert to Member */}
                             <button
-                              onClick={() => handleConvertToMember(item)}
+                              onClick={(e) => { e.stopPropagation(); handleConvertToMember(item); }}
                               title="Convert to regular member"
                               className="px-2.5 py-1 rounded-xl bg-purple-600 text-white font-bold text-[11px] hover:bg-purple-700 transition-colors shadow-xs"
                             >
@@ -672,14 +674,14 @@ export default function TrialMembersPage() {
                             {item.status === "Scheduled" && (
                               <>
                                 <button
-                                  onClick={() => handleUpdateStatus(item.id, "Attended")}
+                                  onClick={(e) => { e.stopPropagation(); handleUpdateStatus(item.id, "Attended", item.full_name); }}
                                   title="Mark Attended"
                                   className="px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 font-bold text-[11px] hover:bg-emerald-500/20 transition-colors"
                                 >
                                   Attended
                                 </button>
                                 <button
-                                  onClick={() => handleUpdateStatus(item.id, "No Show")}
+                                  onClick={(e) => { e.stopPropagation(); handleUpdateStatus(item.id, "No Show", item.full_name); }}
                                   title="Mark No Show"
                                   className="px-2.5 py-1 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 font-bold text-[11px] hover:bg-red-500/20 transition-colors"
                                 >
@@ -691,7 +693,8 @@ export default function TrialMembersPage() {
 
                             {/* Reschedule */}
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setReschedulingTrial(item);
                                 setRescheduleDate(item.trial_date);
                                 setRescheduleTime(item.trial_time);
@@ -704,7 +707,7 @@ export default function TrialMembersPage() {
 
                             {/* Edit */}
                             <button
-                              onClick={() => setEditingTrial({ ...item })}
+                              onClick={(e) => { e.stopPropagation(); setEditingTrial({ ...item }); }}
                               title="Edit Trial Details"
                               className="px-2.5 py-1 rounded-xl bg-surface-2 border border-line-2 text-fg-3 hover:text-fg font-semibold text-[11px] hover:bg-hover transition-colors"
                             >
@@ -717,7 +720,7 @@ export default function TrialMembersPage() {
                               Converted Member
                             </span>
                             <button
-                              onClick={() => setEditingTrial({ ...item })}
+                              onClick={(e) => { e.stopPropagation(); setEditingTrial({ ...item }); }}
                               title="Edit Trial Record"
                               className="px-2.5 py-1 rounded-xl bg-surface-2 border border-line-2 text-fg-3 hover:text-fg font-semibold text-[11px]"
                             >
