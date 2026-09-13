@@ -172,6 +172,7 @@ function EnquiryLinks() {
 const btnPrimary = "px-4 py-2 rounded-xl bg-accent text-white text-sm font-semibold hover:bg-accent-dark transition-colors disabled:opacity-50";
 const btnGhost = "px-4 py-2 rounded-xl border border-line bg-surface text-fg text-sm font-semibold hover:bg-hover transition-colors";
 const selectCls = "px-3 py-2 rounded-xl border border-line bg-surface text-fg text-sm focus:outline-none focus:ring-2 focus:ring-accent/20";
+const selectStageCls = "px-3 py-2 rounded-xl border border-line bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-accent/20";
 
 const emptyForm = {
   full_name: "",
@@ -727,7 +728,7 @@ export default function LeadsPage() {
                       </td>
                       <td className="p-3" onClick={(e) => e.stopPropagation()}>
                         <select
-                          className={selectCls + " text-xs py-1 font-semibold " + stageColor(l.pipeline_stage)}
+                          className={selectStageCls + " text-xs py-1 font-semibold " + stageColor(l.pipeline_stage)}
                           value={l.pipeline_stage}
                           onChange={(e) => inlineUpdate(l.id, { pipeline_stage: e.target.value })}
                         >
@@ -811,7 +812,7 @@ export default function LeadsPage() {
             </div>
             <div className="space-y-2">
               <div className="flex gap-2">
-                <select className={selectCls + " flex-1 font-semibold " + stageColor(detail.pipeline_stage)} value={stageDraft} onChange={(e) => setStageDraft(e.target.value)}>
+                <select className={selectStageCls + " flex-1 font-semibold " + stageColor(detail.pipeline_stage)} value={stageDraft} onChange={(e) => setStageDraft(e.target.value)}>
                   {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <button className={btnPrimary} disabled={drawerSaving} onClick={() => drawerPatch({ pipeline_stage: stageDraft })}>Save Stage</button>
