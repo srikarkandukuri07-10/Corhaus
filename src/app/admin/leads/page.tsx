@@ -95,6 +95,21 @@ function convertBadge(c: string): string {
   }
 }
 
+function followUpLabel(v: string | null | undefined): { text: string; cls: string; full: string } {
+  if (!v) return { text: "-", cls: "text-fg-4", full: "No follow-up scheduled" };
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return { text: "-", cls: "text-fg-4", full: "No follow-up scheduled" };
+  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const diff = Math.round((day - today) / 86400000);
+  const full = fmtDateTime(v);
+  if (diff < 0) return { text: "Overdue", cls: "text-xs font-bold text-red-500 bg-red-500/10 border border-red-500/25 px-2 py-1 rounded-full", full };
+  if (diff === 0) return { text: "Today", cls: "text-xs font-bold text-amber-600 bg-amber-500/10 border border-amber-500/25 px-2 py-1 rounded-full", full };
+  if (diff === 1) return { text: "Tomorrow", cls: "text-xs font-bold text-sky-600 bg-sky-500/10 border border-sky-500/25 px-2 py-1 rounded-full", full };
+  return { text: fmtDate(v), cls: "text-fg-3 text-xs whitespace-nowrap", full };
+}
+
 const inputCls = "w-full px-3 py-2 rounded-xl border border-line bg-surface-2/50 text-fg text-sm placeholder:text-fg-5 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40";
 const labelCls = "block text-xs font-semibold text-fg-3 mb-1";
 
@@ -179,8 +194,6 @@ export default function LeadsPage() {
   const [fSource, setFSource] = useState("all");
   const [fFollowup, setFFollowup] = useState("all");
   const [fConvert, setFConvert] = useState("all");
-  const [fAssignee, setFAssignee] = useState("all");
-  const [selected, setSelected] = useState<string[]>([]);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showPipelineInfo, setShowPipelineInfo] = useState(false);
@@ -195,7 +208,6 @@ export default function LeadsPage() {
   const [editError, setEditError] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [stageDraft, setStageDraft] = useState("");
-  const [assignDraft, setAssignDraft] = useState("");
   const [noteDraft, setNoteDraft] = useState("");
   const [followDraft, setFollowDraft] = useState("");
   const [drawerSaving, setDrawerSaving] = useState(false);
@@ -282,11 +294,6 @@ export default function LeadsPage() {
       if (fStage !== "all" && l.pipeline_stage !== fStage) return false;
       if (fSource !== "all" && l.source !== fSource) return false;
       if (fConvert !== "all" && l.convertibility !== fConvert) return false;
-      if (fAssignee === "unassigned") {
-        if (l.assigned_to) return false;
-      } else if (fAssignee !== "all" && l.assigned_to !== fAssignee) {
-        return false;
-      }
       if (fFollowup === "has" && !l.follow_up_at) return false;
       if (fFollowup === "none" && l.follow_up_at) return false;
       if (fFollowup === "due") {
@@ -300,14 +307,13 @@ export default function LeadsPage() {
       }
       return true;
     });
-  }, [leads, tab, dateFilter, search, fStage, fSource, fConvert, fAssignee, fFollowup]);
+  }, [leads, tab, dateFilter, search, fStage, fSource, fConvert, fFollowup]);
 
   const detail = useMemo(() => leads.find((l) => l.id === detailId) || null, [leads, detailId]);
 
   useEffect(() => {
     if (detail) {
       setStageDraft(detail.pipeline_stage);
-      setAssignDraft(detail.assigned_to || "");
       setFollowDraft(toDateTimeLocal(detail.follow_up_at));
       setNoteDraft("");
       setDrawerError("");
@@ -527,15 +533,6 @@ export default function LeadsPage() {
     setShowExport(false);
   }
 
-  function toggleAll() {
-    if (selected.length === filtered.length && filtered.length > 0) setSelected([]);
-    else setSelected(filtered.map((l) => l.id));
-  }
-
-  function toggleOne(id: string) {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  }
-
   const kpiCards = [
     { label: "Total Leads", value: kpis.total, icon: "◉" },
     { label: "New This Week", value: kpis.newWeek, icon: "✦" },
@@ -629,11 +626,6 @@ export default function LeadsPage() {
             <option value="all">All Convertibility</option>
             {CONVERT_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          <select className={selectCls} value={fAssignee} onChange={(e) => setFAssignee(e.target.value)}>
-            <option value="all">All Assignees</option>
-            <option value="unassigned">Unassigned</option>
-            {staff.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
-          </select>
         </div>
       </div>
 
@@ -704,12 +696,10 @@ export default function LeadsPage() {
               <table className="w-full min-w-[1000px] text-sm">
                 <thead>
                   <tr className="bg-surface-2/60 border-b border-line text-[11px] uppercase tracking-wider text-fg-4">
-                    <th className="p-3 w-10"><input type="checkbox" checked={filtered.length > 0 && selected.length === filtered.length} onChange={toggleAll} /></th>
                     <th className="text-left p-3 font-semibold">Lead</th>
                     <th className="text-left p-3 font-semibold">Source</th>
                     <th className="text-left p-3 font-semibold">Status</th>
                     <th className="text-left p-3 font-semibold">Convertibility</th>
-                    <th className="text-left p-3 font-semibold">Assigned To</th>
                     <th className="text-left p-3 font-semibold">Follow-up</th>
                     <th className="text-left p-3 font-semibold">Created</th>
                     <th className="p-3 w-12"></th>
@@ -718,9 +708,6 @@ export default function LeadsPage() {
                 <tbody>
                   {filtered.map((l) => (
                     <tr key={l.id} className="border-b border-line last:border-0 hover:bg-surface-2/30 cursor-pointer" onClick={() => setDetailId(l.id)}>
-                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                        <input type="checkbox" checked={selected.includes(l.id)} onChange={() => toggleOne(l.id)} />
-                      </td>
                       <td className="p-3">
                         <p className="font-semibold text-fg">{l.full_name}</p>
                         <p className="text-xs text-fg-4">{l.phone_number}</p>
@@ -741,16 +728,17 @@ export default function LeadsPage() {
                         </select>
                       </td>
                       <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                        <select
-                          className={selectCls + " text-xs py-1 max-w-[150px]"}
-                          value={l.assigned_to || ""}
-                          onChange={(e) => inlineUpdate(l.id, { assigned_to: e.target.value || null })}
-                        >
-                          <option value="">Unassigned</option>
-                          {staff.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
-                        </select>
+                        {l.follow_up_at ? (
+                          <span className={followUpLabel(l.follow_up_at).cls} title={followUpLabel(l.follow_up_at).full}>{followUpLabel(l.follow_up_at).text}</span>
+                        ) : (
+                          <button
+                            className="text-xs font-bold text-accent bg-accent/10 border border-accent/25 px-2.5 py-1 rounded-full hover:bg-accent/20"
+                            onClick={() => setDetailId(l.id)}
+                          >
+                            + Schedule
+                          </button>
+                        )}
                       </td>
-                      <td className="p-3 text-fg-3 text-xs whitespace-nowrap">{l.follow_up_at ? fmtDateTime(l.follow_up_at) : "-"}</td>
                       <td className="p-3 text-fg-3 text-xs whitespace-nowrap">{fmtDate(l.created_at)}</td>
                       <td className="p-3 relative" onClick={(e) => e.stopPropagation()}>
                         <button className="px-2 py-1 rounded-lg hover:bg-surface-2 text-fg-3 font-bold" onClick={() => setOpenMenu(openMenu === l.id ? null : l.id)}>...</button>
@@ -799,8 +787,7 @@ export default function LeadsPage() {
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Interest</p><p className="font-semibold text-fg mt-0.5">{detail.interest || "-"}</p></div>
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Convertibility</p><p className="font-semibold text-fg mt-0.5">{detail.convertibility}</p></div>
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Status</p><p className="font-semibold text-fg mt-0.5">{detail.pipeline_stage}</p></div>
-                <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Assigned</p><p className="font-semibold text-fg mt-0.5">{staffName(detail.assigned_to)}</p></div>
-                <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Follow-up</p><p className="font-semibold text-fg mt-0.5">{detail.follow_up_at ? fmtDateTime(detail.follow_up_at) : "-"}</p></div>
+                <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Follow-up</p><p className="font-semibold text-fg mt-0.5" title={detail.follow_up_at ? fmtDateTime(detail.follow_up_at) : undefined}>{detail.follow_up_at ? followUpLabel(detail.follow_up_at).text : "-"}</p></div>
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Created</p><p className="font-semibold text-fg mt-0.5">{fmtDate(detail.created_at)}</p></div>
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Location</p><p className="font-semibold text-fg mt-0.5">{detail.primary_location || "-"}</p></div>
               </div>
@@ -819,13 +806,6 @@ export default function LeadsPage() {
                 <button className={btnPrimary} disabled={drawerSaving} onClick={() => drawerPatch({ pipeline_stage: stageDraft })}>Save Stage</button>
               </div>
               <div className="flex gap-2">
-                <select className={selectCls + " flex-1"} value={assignDraft} onChange={(e) => setAssignDraft(e.target.value)}>
-                  <option value="">Unassigned</option>
-                  {staff.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
-                </select>
-                <button className={btnPrimary} disabled={drawerSaving} onClick={() => drawerPatch({ assigned_to: assignDraft || null })}>Save Assign</button>
-              </div>
-              <div className="flex gap-2">
                 <input className={inputCls + " flex-1"} placeholder="Add a note..." value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} />
                 <button
                   className={btnPrimary}
@@ -833,28 +813,6 @@ export default function LeadsPage() {
                   onClick={() => drawerPatch({ notes: detail.notes ? `${detail.notes}\n${noteDraft.trim()}` : noteDraft.trim() }, () => setNoteDraft(""))}
                 >
                   Add Note
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  className={btnGhost + " flex-1"}
-                  disabled={drawerSaving}
-                  onClick={() => {
-                    const line = `[Call ${new Date().toLocaleString("en-IN")}] Called ${detail.full_name}`;
-                    drawerPatch({ notes: detail.notes ? `${line}\n${detail.notes}` : line });
-                  }}
-                >
-                  Log Call
-                </button>
-                <button
-                  className={btnGhost + " flex-1"}
-                  disabled={drawerSaving}
-                  onClick={() => {
-                    const line = `[Visit ${new Date().toLocaleString("en-IN")}] Visited: ${detail.full_name}`;
-                    drawerPatch({ notes: detail.notes ? `${line}\n${detail.notes}` : line });
-                  }}
-                >
-                  Log Visit
                 </button>
               </div>
               <div className="flex gap-2">
