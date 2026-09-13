@@ -952,6 +952,7 @@ function MembersPageContent() {
               <button
                 type="submit"
                 disabled={formLoading}
+                className="px-5 py-2.5 rounded-xl bg-accent text-white text-sm font-bold hover:bg-accent-2 disabled:opacity-50 shadow-xs transition-colors"
               >
                 {formLoading ? "Saving..." : "Add Member"}
               </button>
