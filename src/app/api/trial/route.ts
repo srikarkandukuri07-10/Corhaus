@@ -66,6 +66,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: result.error.message }, { status: 400 });
     }
 
+    // Notify admins about enquiries from social sources (Instagram/Facebook/WhatsApp)
+    if (finalSource !== "Website") {
+      try {
+        await serviceClient.from("admin_notifications").insert({
+          type: "new_lead",
+          email: emailTrimmed,
+          message: `New ${finalSource} enquiry from ${full_name.trim()} (${cleanPhone})`,
+          is_read: false,
+        });
+      } catch {
+        // Notification failure must not block the enquiry
+      }
+    }
+
     return NextResponse.json({ success: true, data: result.data });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });

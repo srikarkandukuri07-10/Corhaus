@@ -23,6 +23,7 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchNotifications() {
@@ -176,6 +177,32 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
                         setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
                       }}
                     />
+                  );
+                }
+                if (notif.type === "new_lead") {
+                  return (
+                    <div
+                      key={notif.id}
+                      className="px-4 py-3 border-b border-line hover:bg-surface-2/30 transition-colors last:border-0 cursor-pointer"
+                      onClick={() => {
+                        router.push("/admin/leads");
+                        setIsOpen(false);
+                      }}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/10 border border-accent/25">
+                          <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z" />
+                          </svg>
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm text-fg">{notif.message}</p>
+                          {notif.time && (
+                            <span className="text-xs text-fg-4 mt-1 block">{notif.time}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   );
                 }
                 return (
