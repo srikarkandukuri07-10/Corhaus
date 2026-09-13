@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { full_name, phone_number, email, interest, preferred_time, message } = body;
+    const { full_name, phone_number, email, message } = body;
 
     // Validation
     if (!full_name || typeof full_name !== "string" || !full_name.trim()) {
@@ -25,9 +25,8 @@ export async function POST(req: Request) {
     if (!emailRegex.test(emailTrimmed)) {
       return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
     }
-    if (!interest || typeof interest !== "string" || !interest.trim()) {
-      return NextResponse.json({ error: "Interest is required" }, { status: 400 });
-    }
+    // Message is optional
+    const messageText = typeof message === "string" ? message.trim() : "";
 
     // This is the public Instagram bio lead form. Source is enforced server-side
     // as Instagram regardless of any client-supplied value (cannot be manipulated).
@@ -41,37 +40,21 @@ export async function POST(req: Request) {
       email: emailTrimmed,
       source: finalSource,
       primary_location: "CorhausPilates - Main Branch",
-      interest: interest.trim(),
+      interest: null,
       convertibility: "Warm",
       pipeline_stage: "New",
-      preferred_time: preferred_time || null,
-      message: message ? message.trim() : null,
-      notes: message ? message.trim() : null,
+      preferred_time: null,
+      message: messageText || null,
+      notes: messageText || null,
     };
 
-    let result = await serviceClient.from("leads").insert(newRecord).select("*").single();
+    const result = await serviceClient.from("leads").insert(newRecord).select("*").single();
 
     if (result.error) {
-      // Fallback for old DB without leads table - try trial_members
+      // Never create a trial member from this enquiry form. If the leads
+      // table is missing, surface a clear error so the migration gets run.
       if (result.error.message?.includes("leads") || result.error.code === "PGRST204" || result.error.code === "42P01") {
-        const trialFallback: Record<string, unknown> = {
-          full_name: full_name.trim(),
-          phone_number: cleanPhone,
-          email: emailTrimmed,
-          trial_date: new Date().toISOString().split("T")[0],
-          trial_time: "09:00",
-          class_name: interest.trim(),
-          instructor_name: "Staff",
-          notes: message ? message.trim() : null,
-          status: "Scheduled",
-          source: finalSource,
-          interest: interest.trim(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        const retry = await serviceClient.from("trial_members").insert(trialFallback).select("*").single();
-        if (retry.error) return NextResponse.json({ error: retry.error.message }, { status: 400 });
-        return NextResponse.json({ success: true, data: retry.data, fallback: true });
+        return NextResponse.json({ error: "Enquiry system not ready. Please run 044_create_leads_table.sql in Supabase SQL Editor.", needsMigration: true }, { status: 503 });
       }
       return NextResponse.json({ error: result.error.message }, { status: 400 });
     }
