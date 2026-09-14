@@ -142,10 +142,21 @@ export default function MemberLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-canvas">
+      <div className="min-h-screen flex items-center justify-center bg-canvas p-4">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
           <p className="text-sm text-fg-4">Loading...</p>
+          <button
+            onClick={async () => {
+              try {
+                await fetch("/api/auth/signout", { method: "POST", cache: "no-store" });
+              } catch {}
+              window.location.replace("/auth/login");
+            }}
+            className="mt-4 px-4 py-2 rounded-xl border border-line bg-surface text-xs font-bold text-fg hover:bg-hover"
+          >
+            Sign Out
+          </button>
         </div>
       </div>
     );
@@ -156,7 +167,20 @@ export default function MemberLayout({
       <div className="min-h-screen flex items-center justify-center bg-canvas p-4">
         <div className="bg-surface rounded-2xl border border-line p-6 max-w-md w-full text-center space-y-4">
           <p className="text-sm font-semibold text-red-600">{loadError}</p>
-          <button onClick={() => window.location.reload()} className="px-5 py-2.5 rounded-xl bg-accent text-white text-sm font-bold">Retry</button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button onClick={() => window.location.reload()} className="px-5 py-2.5 rounded-xl bg-accent text-white text-sm font-bold">Retry</button>
+            <button
+              onClick={async () => {
+                try {
+                  await fetch("/api/auth/signout", { method: "POST", cache: "no-store" });
+                } catch {}
+                window.location.replace("/auth/login");
+              }}
+              className="px-5 py-2.5 rounded-xl border border-line bg-surface text-fg text-sm font-bold hover:bg-hover"
+            >
+              Sign Out
+            </button>
+          </div>
           <p className="text-xs text-fg-4">If this persists, please contact support.</p>
         </div>
       </div>
