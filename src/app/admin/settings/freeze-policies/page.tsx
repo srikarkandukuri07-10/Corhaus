@@ -183,19 +183,19 @@ export default function FreezePoliciesPage() {
       <SettingsSidebar />
 
       {/* Main Content Area */}
-      <main className="flex-1 space-y-6">
+      <main className="flex-1 space-y-6 min-w-0">
         {/* Top Header Row */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-fg">Freeze Policies</h1>
-            <p className="text-xs text-fg-4 mt-0.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-fg truncate">Freeze Policies</h1>
+            <p className="text-xs text-fg-4 mt-0.5 break-words">
               Configure membership freeze limits, duration rules, and allowed reasons
             </p>
           </div>
 
           <button
             onClick={handleOpenCreate}
-            className="px-4 py-2.5 rounded-xl bg-accent text-white font-bold text-xs shadow-md shadow-accent/20 hover:opacity-90 transition-all flex items-center gap-1.5"
+            className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl bg-accent text-white font-bold text-xs shadow-md shadow-accent/20 hover:opacity-90 transition-all flex items-center gap-1.5 shrink-0"
           >
             <span className="text-sm">+</span>
             <span>Create Policy</span>
@@ -234,30 +234,30 @@ export default function FreezePoliciesPage() {
             {policies.map((policy) => (
               <div
                 key={policy.id}
-                className="bg-surface rounded-2xl border border-line p-5 space-y-4 relative hover:border-accent/30 transition-all shadow-sm"
+                className="bg-surface rounded-2xl border border-line p-3 sm:p-5 space-y-4 relative hover:border-accent/30 transition-all shadow-sm"
               >
                 {/* Header Row */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="text-lg text-accent">❄</span>
-                    <h3 className="text-base font-bold text-fg truncate">{policy.name}</h3>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2.5 min-w-0 flex-1">
+                    <span className="text-lg text-accent shrink-0">❄</span>
+                    <h3 className="text-base font-bold text-fg truncate min-w-0">{policy.name}</h3>
                     {policy.is_default && (
-                      <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 text-[10px] font-bold uppercase tracking-wider">
+                      <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 text-[10px] font-bold uppercase tracking-wider shrink-0">
                         DEFAULT
                       </span>
                     )}
                     {policy.is_active && (
-                      <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-[10px] font-bold shrink-0">
                         Active
                       </span>
                     )}
                   </div>
 
                   {/* Actions Dropdown */}
-                  <div className="relative">
+                  <div className="relative shrink-0">
                     <button
                       onClick={() => setMenuOpenId(menuOpenId === policy.id ? null : policy.id)}
-                      className="p-1 rounded-lg text-fg-4 hover:text-fg hover:bg-surface-2 transition-all"
+                      className="p-1 rounded-lg text-fg-4 hover:text-fg hover:bg-surface-2 transition-all shrink-0"
                     >
                       ⋮
                     </button>
@@ -283,38 +283,38 @@ export default function FreezePoliciesPage() {
                 </div>
 
                 {/* Details Grid */}
-                <div className="grid grid-cols-2 gap-y-2.5 gap-x-4 text-xs text-fg-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-fg-4">🕒</span>
-                    <span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2.5 gap-x-4 text-xs text-fg-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-fg-4 shrink-0">🕒</span>
+                    <span className="truncate">
                       Duration: <strong className="text-fg font-bold">{policy.min_days} - {policy.max_days} days</strong>
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-fg-4">📅</span>
-                    <span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-fg-4 shrink-0">📅</span>
+                    <span className="truncate">
                       Max/Year: <strong className="text-fg font-bold">{policy.max_freezes_per_year} freezes</strong>
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-fg-4">💲</span>
-                    <span>
-                      Freeze Fee: <strong className="text-fg font-bold">{policy.fee_label || "Free"}</strong>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-fg-4 shrink-0">💲</span>
+                    <span className="truncate">
+                      Freeze Fee: <strong className="text-fg font-bold break-all">{policy.fee_label || "Free"}</strong>
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-fg-4">❄</span>
-                    <span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-fg-4 shrink-0">❄</span>
+                    <span className="truncate">
                       Max Total Days/Year: <strong className="text-fg font-bold">{policy.max_total_days_per_year} days</strong>
                     </span>
                   </div>
                 </div>
 
                 {/* Footer Note */}
-                <div className="border-t border-line pt-3 text-[11px] text-fg-5">
+                <div className="border-t border-line pt-3 text-[11px] text-fg-5 break-words">
                   {policy.applies_to || "Applies to all plans"}
                 </div>
               </div>
@@ -324,23 +324,23 @@ export default function FreezePoliciesPage() {
 
         {/* CREATE / EDIT DRAWER MODAL */}
         {showDrawer && (
-          <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs animate-fade-in">
-            <div className="w-full max-w-lg bg-surface border-l border-line h-full flex flex-col shadow-2xl overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs animate-fade-in p-3 sm:p-4">
+            <div className="w-full max-w-lg bg-surface border border-line sm:border-l rounded-2xl sm:rounded-none h-full flex flex-col shadow-2xl overflow-y-auto max-h-[85dvh] sm:max-h-full">
               {/* Drawer Header */}
-              <div className="px-6 py-5 border-b border-line flex items-center justify-between bg-surface-2/30">
-                <h3 className="text-lg font-bold text-fg">
+              <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-line flex items-center justify-between gap-2 bg-surface-2/30 shrink-0">
+                <h3 className="text-lg font-bold text-fg truncate min-w-0">
                   {editingPolicy ? "Edit Freeze Policy" : "Create Freeze Policy"}
                 </h3>
                 <button
                   onClick={() => setShowDrawer(false)}
-                  className="p-1.5 rounded-xl border border-line text-fg-4 hover:text-fg hover:bg-surface-2 transition-all"
+                  className="p-1.5 rounded-xl border border-line text-fg-4 hover:text-fg hover:bg-surface-2 transition-all shrink-0"
                 >
                   ✕
                 </button>
               </div>
 
               {/* Drawer Form Body */}
-              <form onSubmit={handleSavePolicy} className="p-6 space-y-6 flex-1">
+              <form onSubmit={handleSavePolicy} className="p-4 sm:p-6 space-y-6 flex-1 overflow-y-auto">
                 {/* Policy Name */}
                 <div>
                   <label className="block text-xs font-bold text-fg mb-1.5">
@@ -445,18 +445,18 @@ export default function FreezePoliciesPage() {
                 </div>
 
                 {/* Drawer Footer Actions */}
-                <div className="pt-4 border-t border-line flex items-center justify-end gap-3">
+                <div className="pt-4 border-t border-line flex flex-wrap items-center justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => setShowDrawer(false)}
-                    className="px-4 py-2.5 rounded-xl border border-line text-xs font-bold text-fg-4 hover:text-fg hover:bg-surface-2 transition-all"
+                    className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl border border-line text-xs font-bold text-fg-4 hover:text-fg hover:bg-surface-2 transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-6 py-2.5 rounded-xl bg-accent text-white text-xs font-bold shadow-md shadow-accent/20 hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
+                    className="w-full sm:w-auto justify-center px-6 py-2.5 rounded-xl bg-accent text-white text-xs font-bold shadow-md shadow-accent/20 hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
                   >
                     {saving ? (
                       <>

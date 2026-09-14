@@ -36,7 +36,7 @@ export default function ForgotCallbackPage() {
   }, [supabase, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-2">
+    <div className="min-h-screen flex items-center justify-center bg-surface-2 p-4">
       <div className="w-8 h-8 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
     </div>
   );

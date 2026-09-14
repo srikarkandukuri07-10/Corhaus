@@ -222,13 +222,15 @@ export default function BookingsPage() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-light text-fg">
-          My <span className="font-medium">Bookings</span>
-        </h1>
-        <p className="text-sm text-fg-4 mt-1">
-          Manage your class reservations
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-light text-fg truncate">
+            My <span className="font-medium">Bookings</span>
+          </h1>
+          <p className="text-sm text-fg-4 mt-1 break-words">
+            Manage your class reservations
+          </p>
+        </div>
       </div>
 
       {message && (
@@ -294,58 +296,58 @@ export default function BookingsPage() {
                 {upcomingBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="bg-surface rounded-2xl border border-line flex flex-col sm:flex-row sm:items-center gap-3 p-4 sm:p-5"
+                    className="bg-surface rounded-2xl border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 min-w-0"
                   >
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-medium text-fg">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-medium text-fg truncate min-w-0">
                           {booking.classes?.title}
                         </h3>
                         {booking.isPT && (
-                          <span className="text-[10px] font-bold text-green-600 bg-green-500/15 px-2.5 py-0.5 rounded-full">
+                          <span className="text-[10px] font-bold text-green-600 bg-green-500/15 px-2.5 py-0.5 rounded-full shrink-0">
                             PT Session
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-fg-4 mt-0.5">
+                      <p className="text-sm text-fg-4 mt-0.5 truncate">
                         {booking.classes?.instructor}
                       </p>
                       {booking.notes && (
-                        <div className="mt-1.5 text-[11px] font-semibold text-accent bg-accent/10 px-2.5 py-1 rounded-lg flex items-center gap-1.5 inline-flex">
+                        <div className="mt-1.5 text-[11px] font-semibold text-accent bg-accent/10 px-2.5 py-1 rounded-lg flex items-center gap-1.5 inline-flex break-words max-w-full">
                           {booking.notes}
                         </div>
                       )}
-                      <div className="flex items-center gap-4 mt-2 text-sm text-fg-3">
-                        <span>
+                      <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-fg-3">
+                        <span className="break-words">
                           {booking.classes?.class_date
                             ? formatDate(booking.classes.class_date)
                             : ""}
                         </span>
-                        <span>
+                        <span className="break-words">
                           {booking.classes?.class_time
                             ? formatTime(booking.classes.class_time)
                             : ""}
                         </span>
                       </div>
                     </div>
-                    <div>
+                    <div className="shrink-0 flex justify-start sm:justify-end">
                       {booking.isPT ? (
-                        <span className="text-xs text-fg-5 bg-hover px-3 py-1.5 rounded-full">
+                        <span className="text-xs text-fg-5 bg-hover px-3 py-1.5 rounded-full shrink-0">
                           PT Appointment
                         </span>
                       ) : canCancel(booking) ? (
                         <button
                           onClick={() => handleCancel(booking.id)}
                           disabled={cancellingId === booking.id}
-                          className="px-4 py-2 rounded-xl text-sm font-medium border border-red-400/30 text-red-500 hover:bg-red-500/5 transition-colors disabled:opacity-50"
+                          className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-medium border border-red-400/30 text-red-500 hover:bg-red-500/5 transition-colors disabled:opacity-50 shrink-0"
                         >
                           {cancellingId === booking.id
                             ? "Cancelling..."
                             : "Cancel"}
                         </button>
                       ) : (
-                        <span className="text-xs text-fg-5 bg-hover px-3 py-1.5 rounded-full">
-                          Within 6hr window
+                        <span className="text-xs text-fg-5 bg-hover px-3 py-1.5 rounded-full shrink-0">
+                          Within {policyLabel} window
                         </span>
                       )}
                     </div>
@@ -365,42 +367,42 @@ export default function BookingsPage() {
                 {cancelledBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="bg-surface rounded-2xl border border-line p-4 sm:p-5 opacity-60"
+                    className="bg-surface rounded-2xl border border-line p-4 sm:p-5 opacity-60 min-w-0"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-medium text-fg line-through">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-medium text-fg line-through truncate min-w-0">
                             {booking.classes?.title}
                           </h3>
                           {booking.isPT && (
-                            <span className="text-[10px] font-bold text-green-600 bg-green-500/15 px-2.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold text-green-600 bg-green-500/15 px-2.5 py-0.5 rounded-full shrink-0">
                               PT Session
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-fg-4 mt-0.5">
+                        <p className="text-sm text-fg-4 mt-0.5 truncate">
                           {booking.classes?.instructor}
                         </p>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-fg-3">
-                          <span>
+                        <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-fg-3">
+                          <span className="break-words">
                             {booking.classes?.class_date
                               ? formatDate(booking.classes.class_date)
                               : ""}
                           </span>
-                          <span>
+                          <span className="break-words">
                             {booking.classes?.class_time
                               ? formatTime(booking.classes.class_time)
                               : ""}
                           </span>
                         </div>
                       </div>
-                      <div className="text-right flex flex-col items-end">
-                        <span className="text-xs font-medium text-red-500 bg-red-500/10 px-2.5 py-1 rounded-full">
+                      <div className="text-right flex flex-col items-end shrink-0 gap-1">
+                        <span className="text-xs font-medium text-red-500 bg-red-500/10 px-2.5 py-1 rounded-full shrink-0">
                           Cancelled
                         </span>
                         {booking.cancelled_at && (
-                          <span className="text-[10px] text-fg-5 mt-1">
+                          <span className="text-[10px] text-fg-5 mt-1 break-words">
                             on {new Date(booking.cancelled_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                           </span>
                         )}
@@ -422,30 +424,30 @@ export default function BookingsPage() {
                 {pastBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="bg-surface rounded-2xl border border-line p-4 sm:p-5 opacity-50"
+                    className="bg-surface rounded-2xl border border-line p-4 sm:p-5 opacity-50 min-w-0"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-medium text-fg">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-medium text-fg truncate min-w-0">
                             {booking.classes?.title}
                           </h3>
                           {booking.isPT && (
-                            <span className="text-[10px] font-bold text-green-600 bg-green-500/15 px-2.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold text-green-600 bg-green-500/15 px-2.5 py-0.5 rounded-full shrink-0">
                               PT Session
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-fg-4 mt-0.5">
+                        <p className="text-sm text-fg-4 mt-0.5 truncate">
                           {booking.classes?.instructor}
                         </p>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-fg-3">
-                          <span>
+                        <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-fg-3">
+                          <span className="break-words">
                             {booking.classes?.class_date
                               ? formatDate(booking.classes.class_date)
                               : ""}
                           </span>
-                          <span>
+                          <span className="break-words">
                             {booking.classes?.class_time
                               ? formatTime(booking.classes.class_time)
                               : ""}
@@ -453,7 +455,7 @@ export default function BookingsPage() {
                         </div>
                       </div>
                       <span
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                        className={`text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 ${
                           booking.booking_status === "checked_in" || booking.booking_status === "attended" || booking.booking_status === "completed"
                             ? "text-green-600 bg-green-500/10 border-green-500/20"
                             : booking.booking_status === "no_show"

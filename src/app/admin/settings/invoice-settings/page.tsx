@@ -280,17 +280,17 @@ export default function InvoiceSettingsPage() {
       <SettingsSidebar />
 
       {/* Main Settings Panel */}
-      <main className="flex-1 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-fg">Invoice Settings</h1>
-            <p className="text-xs text-fg-4 mt-0.5">
+      <main className="flex-1 space-y-6 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-fg truncate">Invoice Settings</h1>
+            <p className="text-xs text-fg-4 mt-0.5 break-words">
               Configure GST, invoice numbering, payment terms, appearance, and discount policy
             </p>
           </div>
           <button
             type="button"
-            className="px-3.5 py-1.5 rounded-xl bg-accent/10 text-accent font-semibold text-xs flex items-center gap-1.5 hover:bg-accent/20 transition-all"
+            className="w-full sm:w-auto justify-center px-3.5 py-1.5 rounded-xl bg-accent/10 text-accent font-semibold text-xs flex items-center gap-1.5 hover:bg-accent/20 transition-all shrink-0"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -328,30 +328,30 @@ export default function InvoiceSettingsPage() {
         ) : (
           <form onSubmit={handleSave} className="space-y-6">
             {/* CARD 1: TAX INVOICE SETTINGS */}
-            <div className="bg-surface rounded-2xl border border-line p-6 space-y-6">
-              <div className="flex items-start gap-3">
+            <div className="bg-surface rounded-2xl border border-line p-3 sm:p-6 space-y-6">
+              <div className="flex items-start gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent flex-shrink-0 mt-0.5">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h6m-6 4h6m-6 4h6" />
                   </svg>
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-fg">Tax Invoice Settings</h3>
-                  <p className="text-xs text-fg-4 mt-0.5">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-fg truncate">Tax Invoice Settings</h3>
+                  <p className="text-xs text-fg-4 mt-0.5 break-words">
                     Enable this if your business is registered under GST
                   </p>
                 </div>
               </div>
 
               {/* Issue Tax Invoices Toggle */}
-              <div className="flex items-center justify-between p-4 rounded-xl bg-surface-2/40 border border-line">
-                <div>
-                  <p className="text-sm font-semibold text-fg">Issue Tax Invoices</p>
-                  <p className="text-xs text-fg-4 mt-0.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 p-4 rounded-xl bg-surface-2/40 border border-line">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-fg break-words">Issue Tax Invoices</p>
+                  <p className="text-xs text-fg-4 mt-0.5 break-words">
                     Toggle this if your business has a GST registration
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
                   <input
                     type="checkbox"
                     checked={form.issue_tax_invoices}
@@ -374,7 +374,7 @@ export default function InvoiceSettingsPage() {
                 <div className="grid grid-cols-1 gap-3">
                   {/* Inclusive Radio */}
                   <label
-                    className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                    className={`flex items-start gap-3 p-3 sm:p-4 rounded-xl border cursor-pointer transition-all min-w-0 ${
                       form.tax_pricing_mode === "inclusive"
                         ? "border-accent bg-accent/5 ring-1 ring-accent/30"
                         : "border-line bg-surface-2/20 hover:bg-surface-2/40"
@@ -388,16 +388,16 @@ export default function InvoiceSettingsPage() {
                       onChange={() =>
                         setForm((prev) => ({ ...prev, tax_pricing_mode: "inclusive" }))
                       }
-                      className="mt-1 text-accent focus:ring-accent"
+                      className="mt-1 text-accent focus:ring-accent shrink-0"
                     />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="text-sm font-bold text-fg">Inclusive of GST</span>
-                        <span className="px-2 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-bold">
+                        <span className="px-2 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-bold shrink-0">
                           Recommended
                         </span>
                       </div>
-                      <p className="text-xs text-fg-4 mt-1">
+                      <p className="text-xs text-fg-4 mt-1 break-words">
                         Prices include GST. e.g., ₹1,000 includes GST (extracted from the displayed total).
                       </p>
                     </div>
@@ -405,7 +405,7 @@ export default function InvoiceSettingsPage() {
 
                   {/* Exclusive Radio */}
                   <label
-                    className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                    className={`flex items-start gap-3 p-3 sm:p-4 rounded-xl border cursor-pointer transition-all min-w-0 ${
                       form.tax_pricing_mode === "exclusive"
                         ? "border-accent bg-accent/5 ring-1 ring-accent/30"
                         : "border-line bg-surface-2/20 hover:bg-surface-2/40"
@@ -419,11 +419,11 @@ export default function InvoiceSettingsPage() {
                       onChange={() =>
                         setForm((prev) => ({ ...prev, tax_pricing_mode: "exclusive" }))
                       }
-                      className="mt-1 text-accent focus:ring-accent"
+                      className="mt-1 text-accent focus:ring-accent shrink-0"
                     />
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <span className="text-sm font-bold text-fg">Exclusive of GST</span>
-                      <p className="text-xs text-fg-4 mt-1">
+                      <p className="text-xs text-fg-4 mt-1 break-words">
                         GST is added on top of the displayed price at checkout.
                       </p>
                     </div>
@@ -503,14 +503,14 @@ export default function InvoiceSettingsPage() {
             </div>
 
             {/* CARD 2: INVOICE NUMBERING */}
-            <div className="bg-surface rounded-2xl border border-line p-6 space-y-6">
-              <div className="flex items-start gap-3">
+            <div className="bg-surface rounded-2xl border border-line p-3 sm:p-6 space-y-6">
+              <div className="flex items-start gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-mono font-bold text-lg flex-shrink-0 mt-0.5">
                   #
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-fg">Invoice Numbering</h3>
-                  <p className="text-xs text-fg-4 mt-0.5">Configure how invoice numbers are generated</p>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-fg truncate">Invoice Numbering</h3>
+                  <p className="text-xs text-fg-4 mt-0.5 break-words">Configure how invoice numbers are generated</p>
                 </div>
               </div>
 
@@ -548,36 +548,36 @@ export default function InvoiceSettingsPage() {
               </div>
 
               {/* Preview Box */}
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-surface-2/30 border border-line">
-                <span className="px-2.5 py-1 rounded-md bg-surface border border-line text-[11px] font-bold text-fg">
+              <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-surface-2/30 border border-line">
+                <span className="px-2.5 py-1 rounded-md bg-surface border border-line text-[11px] font-bold text-fg shrink-0">
                   Preview
                 </span>
-                <span className="text-sm font-mono font-bold text-fg tracking-wider">
+                <span className="text-sm font-mono font-bold text-fg tracking-wider break-all min-w-0">
                   {previewInvoiceNumber}
                 </span>
               </div>
             </div>
 
             {/* CARD 3: PAYMENT TERMS */}
-            <div className="bg-surface rounded-2xl border border-line p-6 space-y-6">
-              <div className="flex items-start gap-3">
+            <div className="bg-surface rounded-2xl border border-line p-3 sm:p-6 space-y-6">
+              <div className="flex items-start gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent flex-shrink-0 mt-0.5">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-fg">Payment Terms</h3>
-                  <p className="text-xs text-fg-4 mt-0.5">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-fg truncate">Payment Terms</h3>
+                  <p className="text-xs text-fg-4 mt-0.5 break-words">
                     Default due date for new bills. You can still set a custom due date per bill at billing time.
                   </p>
                 </div>
               </div>
 
               <div className="p-4 rounded-xl bg-surface-2/40 border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                   <label className="block text-sm font-bold text-fg">Default Payment Due Days</label>
-                  <p className="text-xs text-fg-4 mt-0.5">
+                  <p className="text-xs text-fg-4 mt-0.5 break-words">
                     Bills are due this many days after creation (e.g. 15 = bill on Jan 1 → due Jan 16)
                   </p>
                 </div>
@@ -589,7 +589,7 @@ export default function InvoiceSettingsPage() {
                       default_payment_due_days: parseInt(e.target.value, 10) || 0,
                     }))
                   }
-                  className="px-4 py-2.5 rounded-xl border border-line bg-surface text-sm font-semibold text-fg focus:outline-none focus:ring-1 focus:ring-accent min-w-[140px]"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-line bg-surface text-sm font-semibold text-fg focus:outline-none focus:ring-1 focus:ring-accent min-w-[140px] shrink-0"
                 >
                   <option value={0}>0 days (Due on Receipt)</option>
                   <option value={7}>7 days</option>
@@ -602,16 +602,16 @@ export default function InvoiceSettingsPage() {
             </div>
 
             {/* CARD 4: INVOICE APPEARANCE */}
-            <div className="bg-surface rounded-2xl border border-line p-6 space-y-6">
-              <div className="flex items-start gap-3">
+            <div className="bg-surface rounded-2xl border border-line p-3 sm:p-6 space-y-6">
+              <div className="flex items-start gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent flex-shrink-0 mt-0.5">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                   </svg>
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-fg">Invoice Appearance</h3>
-                  <p className="text-xs text-fg-4 mt-0.5">Customize how your invoices look</p>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-fg truncate">Invoice Appearance</h3>
+                  <p className="text-xs text-fg-4 mt-0.5 break-words">Customize how your invoices look</p>
                 </div>
               </div>
 
@@ -648,14 +648,14 @@ export default function InvoiceSettingsPage() {
             </div>
 
             {/* CARD 5: BILLING DISCOUNT POLICY */}
-            <div className="bg-surface rounded-2xl border border-line p-6 space-y-6">
-              <div className="flex items-start gap-3">
+            <div className="bg-surface rounded-2xl border border-line p-3 sm:p-6 space-y-6">
+              <div className="flex items-start gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent font-bold text-base flex-shrink-0 mt-0.5">
                   %
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-fg">Billing Discount Policy</h3>
-                  <p className="text-xs text-fg-4 mt-0.5">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-fg truncate">Billing Discount Policy</h3>
+                  <p className="text-xs text-fg-4 mt-0.5 break-words">
                     Control whether staff can apply manual discounts at billing
                   </p>
                 </div>
@@ -663,14 +663,14 @@ export default function InvoiceSettingsPage() {
 
               <div className="space-y-4">
                 {/* Allow Flat Discount Toggle */}
-                <div className="flex items-center justify-between p-4 rounded-xl bg-surface-2/40 border border-line">
-                  <div>
-                    <p className="text-sm font-semibold text-fg">Allow Flat Discount During Billing</p>
-                    <p className="text-xs text-fg-4 mt-0.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 p-4 rounded-xl bg-surface-2/40 border border-line">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-fg break-words">Allow Flat Discount During Billing</p>
+                    <p className="text-xs text-fg-4 mt-0.5 break-words">
                       When enabled, staff can apply a % or ₹ discount manually during checkout without needing a coupon code.
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
                     <input
                       type="checkbox"
                       checked={form.allow_flat_discount}
@@ -713,11 +713,11 @@ export default function InvoiceSettingsPage() {
             </div>
 
             {/* SAVE BUTTON */}
-            <div className="flex justify-end pt-2">
+            <div className="flex flex-wrap justify-end pt-2 gap-2">
               <button
                 type="submit"
                 disabled={saving}
-                className="px-6 py-3 rounded-xl bg-accent text-white text-sm font-bold shadow-lg shadow-accent/20 hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
+                className="w-full sm:w-auto justify-center px-6 py-3 rounded-xl bg-accent text-white text-sm font-bold shadow-lg shadow-accent/20 hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
               >
                 {saving ? (
                   <>

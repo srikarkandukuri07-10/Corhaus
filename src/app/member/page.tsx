@@ -475,14 +475,14 @@ export default function MemberDashboard() {
           <div className="w-8 h-8 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
         </div>
       )}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-light text-fg">Available <span className="font-medium">Classes</span></h1>
-          <p className="text-sm text-fg-4 mt-1">Book your next Pilates session</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-light text-fg truncate">Available <span className="font-medium">Classes</span></h1>
+          <p className="text-sm text-fg-4 mt-1 break-words">Book your next Pilates session</p>
         </div>
         
         {!loading && (
-          <div className="w-full md:w-80 bg-gradient-to-br from-rail to-accent/90 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden flex-shrink-0">
+          <div className="w-full sm:w-80 bg-gradient-to-br from-rail to-accent/90 text-white rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden flex-shrink-0">
             <div className="absolute top-0 right-0 w-24 h-24 bg-accent/20 rounded-full blur-xl -mr-6 -mt-6" />
             <div className="flex items-center justify-between mb-3 relative z-10">
               <div>
@@ -571,17 +571,17 @@ export default function MemberDashboard() {
               const ongoing = isClassOngoing(cls, currentTime);
 
               return (
-                <div key={cls.id} className="bg-surface rounded-2xl border border-line p-5 hover:shadow-md transition-all flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-fg text-lg">{cls.title}</h3>
-                          {isPt && <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full uppercase tracking-wider">PT</span>}
+                <div key={cls.id} className="bg-surface rounded-2xl border border-line p-4 sm:p-5 hover:shadow-md transition-all flex flex-col justify-between min-w-0 overflow-hidden">
+                  <div className="min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-medium text-fg text-base sm:text-lg truncate min-w-0">{cls.title}</h3>
+                          {isPt && <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">PT</span>}
                         </div>
-                        <p className="text-sm text-fg-4 mt-1">{cls.instructor}</p>
+                        <p className="text-sm text-fg-4 mt-1 truncate">{cls.instructor}</p>
                         {classTypes[cls.title] && (
-                          <p className="text-xs text-fg-3 mt-2 italic leading-relaxed">
+                          <p className="text-xs text-fg-3 mt-2 italic leading-relaxed break-words">
                             "{classTypes[cls.title]}"
                           </p>
                         )}
@@ -598,29 +598,29 @@ export default function MemberDashboard() {
                         })()}
                       </div>
 
-                      <div className="flex-shrink-0 ml-2">
+                      <div className="flex-shrink-0 ml-2 flex flex-wrap gap-1.5 justify-end max-w-[110px] sm:max-w-none">
                         {isCheckedInOrAttended && (
-                          <span className="text-xs font-semibold text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/20">
+                          <span className="text-xs font-semibold text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/20 shrink-0">
                             ✓ Attended
                           </span>
                         )}
                         {isNoShow && (
-                          <span className="text-xs font-semibold text-red-600 bg-red-500/10 px-2.5 py-1 rounded-full border border-red-500/20">
+                          <span className="text-xs font-semibold text-red-600 bg-red-500/10 px-2.5 py-1 rounded-full border border-red-500/20 shrink-0">
                             ✕ No Show
                           </span>
                         )}
                         {isCancelled && (
-                          <span className="text-xs font-semibold text-amber-600 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                          <span className="text-xs font-semibold text-amber-600 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20 shrink-0">
                             ↩ Cancelled
                           </span>
                         )}
                         {!isCheckedInOrAttended && !isNoShow && !isCancelled && ongoing && booked && (
-                          <span className="text-xs font-medium text-text-gold bg-text-gold/10 px-2.5 py-1 rounded-full">
+                          <span className="text-xs font-medium text-text-gold bg-text-gold/10 px-2.5 py-1 rounded-full shrink-0">
                             Ongoing
                           </span>
                         )}
                         {!isCheckedInOrAttended && !isNoShow && !isCancelled && !ongoing && booked && (
-                          <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/20">
+                          <span className="text-xs font-medium text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/20 shrink-0">
                             Booked
                           </span>
                         )}
@@ -712,14 +712,14 @@ export default function MemberDashboard() {
       </div>
 
       {showBookConfirm && bookConfirmClass && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-surface rounded-2xl border border-line shadow-xl max-w-md w-[95vw] p-6 space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between border-b border-line pb-3">
-              <div>
-                <h3 className="text-lg font-bold text-fg">Confirm Booking</h3>
-                <p className="text-xs text-fg-3">You are about to book this class</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-3 sm:p-4">
+          <div className="bg-surface rounded-2xl border border-line shadow-xl w-full max-w-md mx-4 sm:mx-auto p-4 sm:p-6 space-y-5 animate-fade-in max-h-[85dvh] overflow-y-auto">
+            <div className="flex items-center justify-between gap-2 border-b border-line pb-3">
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold text-fg truncate">Confirm Booking</h3>
+                <p className="text-xs text-fg-3 break-words">You are about to book this class</p>
               </div>
-              <button onClick={() => { setShowBookConfirm(false); setBookConfirmClass(null); }} className="p-1.5 rounded-lg border border-line text-fg-3 hover:text-fg transition-colors">
+              <button onClick={() => { setShowBookConfirm(false); setBookConfirmClass(null); }} className="p-1.5 rounded-lg border border-line text-fg-3 hover:text-fg transition-colors shrink-0">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -741,13 +741,13 @@ export default function MemberDashboard() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-line">
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-3 border-t border-line">
               <button onClick={() => { setShowBookConfirm(false); setBookConfirmClass(null); }}
-                className="px-5 py-2.5 border border-line rounded-xl text-xs font-semibold text-fg hover:bg-surface-2 transition-colors">
+                className="w-full sm:w-auto justify-center px-5 py-2.5 border border-line rounded-xl text-xs font-semibold text-fg hover:bg-surface-2 transition-colors">
                 Cancel
               </button>
               <button onClick={confirmBook} disabled={bookingLoading === bookConfirmClass.id}
-                className="px-5 py-2.5 bg-rail text-white rounded-xl text-xs font-semibold hover:bg-rail/90 disabled:opacity-50 transition-colors">
+                className="w-full sm:w-auto justify-center px-5 py-2.5 bg-rail text-white rounded-xl text-xs font-semibold hover:bg-rail/90 disabled:opacity-50 transition-colors">
                 {bookingLoading === bookConfirmClass.id ? "Booking..." : "Confirm Booking"}
               </button>
             </div>

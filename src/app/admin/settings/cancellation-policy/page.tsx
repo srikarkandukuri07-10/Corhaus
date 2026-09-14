@@ -86,14 +86,14 @@ export default function CancellationPolicySettingsPage() {
   };
 
   return (
-    <div className="flex gap-8 items-start">
+    <div className="animate-fade-in flex flex-col md:flex-row gap-6 items-start">
       <SettingsSidebar />
 
-      <div className="flex-1 space-y-6 max-w-4xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-fg">Cancellation Policy Settings</h1>
-            <p className="text-xs text-fg-4 mt-1">
+      <div className="flex-1 space-y-6 max-w-4xl min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-fg truncate">Cancellation Policy Settings</h1>
+            <p className="text-xs text-fg-4 mt-1 break-words">
               Customize class and PT booking cancellation rules. Changes apply to all members immediately.
             </p>
           </div>
@@ -122,15 +122,15 @@ export default function CancellationPolicySettingsPage() {
         ) : (
           <form onSubmit={handleSave} className="space-y-6">
             {/* CARD 1: CANCELLATION TIME BUFFER */}
-            <div className="bg-surface rounded-2xl border border-line p-6 space-y-6 shadow-sm">
-              <div className="border-b border-line pb-4 flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold text-fg">Cancellation Time Window</h3>
-                  <p className="text-xs text-fg-4 mt-0.5">
+            <div className="bg-surface rounded-2xl border border-line p-3 sm:p-6 space-y-6 shadow-sm">
+              <div className="border-b border-line pb-4 flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base font-bold text-fg truncate">Cancellation Time Window</h3>
+                  <p className="text-xs text-fg-4 mt-0.5 break-words">
                     Define how far in advance a member must cancel before class start time.
                   </p>
                 </div>
-                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
+                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center text-accent shrink-0">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -212,17 +212,17 @@ export default function CancellationPolicySettingsPage() {
 
               {/* Policy Toggle */}
               <div className="space-y-4 pt-4 border-t border-line">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-fg">Enable Cancellation Policy Window</p>
-                    <p className="text-xs text-fg-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-fg break-words">Enable Cancellation Policy Window</p>
+                    <p className="text-xs text-fg-4 break-words">
                       When enabled, members cannot cancel bookings within the specified cutoff window.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsActive(!isActive)}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${
+                    className={`w-12 h-6 rounded-full transition-colors relative shrink-0 ${
                       isActive ? "bg-accent" : "bg-line"
                     }`}
                   >
@@ -251,7 +251,7 @@ export default function CancellationPolicySettingsPage() {
             </div>
 
             {/* CARD 2: LIVE MEMBER PREVIEW */}
-            <div className="bg-surface-2 rounded-2xl border border-line p-6 space-y-3">
+            <div className="bg-surface-2 rounded-2xl border border-line p-3 sm:p-6 space-y-3">
               <div className="flex items-center gap-2 text-fg">
                 <span className="text-lg">👁️</span>
                 <h4 className="text-sm font-bold uppercase tracking-wider">Member Experience Live Preview</h4>
@@ -266,9 +266,9 @@ export default function CancellationPolicySettingsPage() {
                   <strong className="underline">{formatDuration(hours, minutes)}</strong> before class start time. On-time cancellations return credit to member; late cancellations or no-shows forfeit credit.
                 </div>
 
-                <div className="pt-2 flex items-center justify-between text-xs text-fg-3 border-t border-line mt-2">
-                  <span>Example Class: Pilates Reformer (10:00 AM)</span>
-                  <span className="font-semibold text-red-500">
+                <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-fg-3 border-t border-line mt-2">
+                  <span className="min-w-0 break-words">Example Class: Pilates Reformer (10:00 AM)</span>
+                  <span className="font-semibold text-red-500 shrink-0 break-words">
                     Cancel Cutoff: {hours > 0 || minutes > 0 ? `${formatDuration(hours, minutes)} prior` : "Immediate"}
                   </span>
                 </div>
@@ -276,11 +276,11 @@ export default function CancellationPolicySettingsPage() {
             </div>
 
             {/* SAVE BUTTON */}
-            <div className="flex justify-end pt-2">
+            <div className="flex flex-wrap justify-end pt-2 gap-2">
               <button
                 type="submit"
                 disabled={saving}
-                className="px-6 py-3 rounded-xl bg-accent text-white font-semibold text-sm hover:bg-accent-dark transition-colors shadow-md shadow-accent/20 flex items-center gap-2 disabled:opacity-50"
+                className="w-full sm:w-auto justify-center px-6 py-3 rounded-xl bg-accent text-white font-semibold text-sm hover:bg-accent-dark transition-colors shadow-md shadow-accent/20 flex items-center gap-2 disabled:opacity-50"
               >
                 {saving ? (
                   <>

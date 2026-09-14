@@ -196,8 +196,8 @@ export default function BookTrialPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-3 sm:p-4">
+        <div className="bg-white rounded-3xl p-4 sm:p-8 max-w-md w-full mx-4 sm:mx-auto text-center space-y-4">
           <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">✓</div>
           <h2 className="text-2xl font-black">Trial Booked!</h2>
           <p className="text-sm text-gray-600">Your trial has been booked.</p>
@@ -209,18 +209,18 @@ export default function BookTrialPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
-      <header className="bg-black border-b border-white/10 py-4 px-6">
-        <div className="max-w-5xl mx-auto text-white">
-          <h1 className="text-2xl font-serif font-bold">Corhaus</h1>
-          <p className="text-xs tracking-[0.2em] text-white/70 -mt-1">pilates for everyone</p>
+      <header className="bg-black border-b border-white/10 py-4 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto text-white min-w-0">
+          <h1 className="text-xl sm:text-2xl font-serif font-bold truncate">Corhaus</h1>
+          <p className="text-xs tracking-[0.2em] text-white/70 -mt-1 truncate">pilates for everyone</p>
         </div>
       </header>
-      <div className="flex-1 py-8 px-4">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-black text-white text-center">Book Your Trial</h2>
-          <p className="text-sm text-white/60 text-center mt-2">Choose any upcoming date and a time slot — pay securely via Razorpay Test Mode</p>
+      <div className="flex-1 py-6 sm:py-8 px-4">
+        <div className="max-w-3xl mx-auto w-full">
+          <h2 className="text-2xl sm:text-3xl font-black text-white text-center break-words leading-tight">Book Your Trial</h2>
+          <p className="text-sm text-white/60 text-center mt-2 break-words px-2 sm:px-0">Choose any upcoming date and a time slot — pay securely via Razorpay Test Mode</p>
 
-          <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-6 sm:p-8 mt-8 space-y-6 shadow-2xl">
+          <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-4 sm:p-8 mt-6 sm:mt-8 space-y-6 shadow-2xl w-full">
             {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">{error}</div>}
             {loading ? <p className="text-xs text-gray-500 text-center">Loading availability...</p> : null}
 
@@ -241,9 +241,9 @@ export default function BookTrialPage() {
 
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">Select Date <span className="text-red-500">*</span></label>
-              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                {upcomingDates.map(d => (
-                  <button key={d.iso} type="button" onClick={() => setSelectedDate(d.iso)} className={`px-4 py-3 rounded-xl border-2 text-xs font-bold whitespace-nowrap ${selectedDate === d.iso ? "bg-black text-white border-black" : "bg-white text-gray-700 border-gray-200 hover:border-black"}`}>
+              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar flex-nowrap">
+                 {upcomingDates.map(d => (
+                  <button key={d.iso} type="button" onClick={() => setSelectedDate(d.iso)} className={`shrink-0 px-4 py-3 rounded-xl border-2 text-xs font-bold whitespace-nowrap ${selectedDate === d.iso ? "bg-black text-white border-black" : "bg-white text-gray-700 border-gray-200 hover:border-black"}`}>
                     {d.label}
                   </button>
                 ))}

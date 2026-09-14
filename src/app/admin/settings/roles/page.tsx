@@ -207,19 +207,19 @@ export default function RolesPermissionsPage() {
   return (
     <div className="animate-fade-in flex flex-col md:flex-row gap-6">
       <SettingsSidebar />
-      <main className="flex-1 space-y-6">
+      <main className="flex-1 space-y-6 min-w-0">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-5">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 bg-accent/10 text-accent rounded-xl">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="p-2 bg-accent/10 text-accent rounded-xl flex-shrink-0">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </span>
-              <h1 className="font-serif text-2xl font-bold text-fg">Role &amp; Permissions</h1>
+              <h1 className="font-serif text-xl sm:text-2xl font-bold text-fg truncate">Role &amp; Permissions</h1>
             </div>
-            <p className="text-xs text-fg-3 mt-1">
+            <p className="text-xs text-fg-3 mt-1 break-words">
               Central management for system roles and action-based module permissions across Corhaus Admin Dashboard.
             </p>
           </div>
@@ -244,8 +244,8 @@ export default function RolesPermissionsPage() {
       {/* OVERVIEW CARDS LIST OR EDITOR */}
       {!selectedRole ? (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-fg-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-fg-3 truncate min-w-0">
               System Roles ({roles.length})
             </h2>
           </div>
@@ -263,28 +263,28 @@ export default function RolesPermissionsPage() {
                 return (
                   <div
                     key={role.id}
-                    className="bg-surface border border-line rounded-2xl p-6 flex flex-col justify-between space-y-4 hover:border-accent/40 transition-all shadow-xs"
+                    className="bg-surface border border-line rounded-2xl p-3 sm:p-6 flex flex-col justify-between space-y-4 hover:border-accent/40 transition-all shadow-xs"
                   >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-serif text-lg font-bold text-fg flex items-center gap-2">
-                          {role.name}
+                    <div className="space-y-2 min-w-0">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3 className="font-serif text-lg font-bold text-fg flex flex-wrap items-center gap-2 min-w-0">
+                          <span className="truncate">{role.name}</span>
                           {isOwner && (
-                            <span className="px-2 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-extrabold uppercase">
+                            <span className="px-2 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-extrabold uppercase shrink-0">
                               All Permissions Enabled
                             </span>
                           )}
                         </h3>
-                        <span className="px-2.5 py-1 rounded-lg bg-surface-2 text-fg-3 text-xs font-semibold border border-line-2">
+                        <span className="px-2.5 py-1 rounded-lg bg-surface-2 text-fg-3 text-xs font-semibold border border-line-2 shrink-0">
                           {role.staff_count} Staff
                         </span>
                       </div>
-                      <p className="text-xs text-fg-3 leading-relaxed">
+                      <p className="text-xs text-fg-3 leading-relaxed break-words">
                         {role.description || "Default system role."}
                       </p>
                     </div>
 
-                    <div className="pt-4 border-t border-line flex items-center justify-between">
+                    <div className="pt-4 border-t border-line flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2 text-xs font-semibold text-fg-2">
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
                         <span>
@@ -308,19 +308,19 @@ export default function RolesPermissionsPage() {
         /* GRANULAR PERMISSION EDITOR SCREEN */
         <div className="space-y-6">
           {/* EDITOR BAR */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface p-5 rounded-2xl border border-line shadow-xs">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface p-4 sm:p-5 rounded-2xl border border-line shadow-xs">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
               <button
                 onClick={() => setSelectedRole(null)}
-                className="p-2 rounded-xl bg-surface-2 hover:bg-hover border border-line text-fg-3 hover:text-fg text-xs font-bold flex items-center gap-1"
+                className="p-2 rounded-xl bg-surface-2 hover:bg-hover border border-line text-fg-3 hover:text-fg text-xs font-bold flex items-center gap-1 shrink-0"
               >
                 ← Back to Roles
               </button>
-              <div>
-                <h2 className="font-serif text-xl font-bold text-fg">
+              <div className="min-w-0">
+                <h2 className="font-serif text-lg sm:text-xl font-bold text-fg truncate">
                   {selectedRole.name} Permissions
                 </h2>
-                <p className="text-xs text-fg-3">
+                <p className="text-xs text-fg-3 break-words">
                   {selectedRole.name === "Owner"
                     ? "Owner role automatically receives 100% full permissions."
                     : `${selectedPermIds.size} of ${permissions.length} permissions enabled.`}
@@ -329,7 +329,7 @@ export default function RolesPermissionsPage() {
             </div>
 
             {selectedRole.name !== "Owner" && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={handleSelectAllGlobal}
@@ -377,21 +377,21 @@ export default function RolesPermissionsPage() {
                     className="bg-surface border border-line rounded-2xl overflow-hidden shadow-xs transition-all"
                   >
                     {/* MODULE CARD HEADER */}
-                    <div className="p-4 bg-surface-2/50 flex items-center justify-between border-b border-line">
-                      <div className="flex items-center gap-3">
+                    <div className="p-3 sm:p-4 bg-surface-2/50 flex flex-wrap items-center justify-between gap-2 border-b border-line">
+                      <div className="flex items-center gap-3 min-w-0">
                         <input
                           type="checkbox"
                           disabled={selectedRole.name === "Owner"}
                           checked={isAllSelected}
                           onChange={() => toggleModuleAll(modName)}
-                          className="w-4 h-4 accent-accent rounded cursor-pointer disabled:opacity-50"
+                          className="w-4 h-4 accent-accent rounded cursor-pointer disabled:opacity-50 shrink-0"
                         />
-                        <h3 className="text-sm font-bold text-fg tracking-wide">
+                        <h3 className="text-sm font-bold text-fg tracking-wide truncate">
                           {modName}
                         </h3>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 shrink-0">
                         <span className="px-2.5 py-0.5 rounded-full bg-surface text-fg-3 text-[11px] font-bold border border-line">
                           {enabledInMod}/{modPerms.length}
                         </span>
@@ -452,15 +452,15 @@ export default function RolesPermissionsPage() {
 
           {/* STICKY BOTTOM SAVE ACTION BAR */}
           {selectedRole.name !== "Owner" && (
-            <div className="sticky bottom-4 z-40 bg-surface border border-line rounded-2xl p-4 shadow-xl flex items-center justify-between gap-4">
-              <span className="text-xs font-medium text-fg-3">
+            <div className="sticky bottom-4 z-40 bg-surface border border-line rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+              <span className="text-xs font-medium text-fg-3 break-words min-w-0">
                 Changes will take effect immediately upon saving.
               </span>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setSelectedRole(null)}
-                  className="px-4 py-2 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-fg hover:bg-hover"
+                  className="w-full sm:w-auto justify-center px-4 py-2 rounded-xl bg-surface-2 border border-line text-xs font-semibold text-fg hover:bg-hover flex items-center gap-1"
                 >
                   Cancel
                 </button>
@@ -468,7 +468,7 @@ export default function RolesPermissionsPage() {
                   type="button"
                   onClick={handleSaveChanges}
                   disabled={saving}
-                  className="px-6 py-2 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-2 disabled:opacity-50 shadow-md shadow-accent/20 flex items-center gap-2"
+                  className="w-full sm:w-auto justify-center px-6 py-2 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-2 disabled:opacity-50 shadow-md shadow-accent/20 flex items-center gap-2"
                 >
                   {saving ? (
                     <>

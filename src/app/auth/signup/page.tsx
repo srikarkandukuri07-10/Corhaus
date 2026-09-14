@@ -124,12 +124,12 @@ function SignupForm() {
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4 py-8">
-        <div className="w-full max-w-md animate-fade-in">
-          <div className="text-center mb-8 flex flex-col items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4 py-6 sm:py-8">
+        <div className="w-full max-w-md mx-auto animate-fade-in max-w-[95vw] sm:max-w-md">
+          <div className="text-center mb-6 sm:mb-8 flex flex-col items-center justify-center">
             <Logo href="/" variant="auto" size="lg" className="items-center text-center" />
           </div>
-          <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line text-center">
+          <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-4 sm:p-8 border border-line text-center w-full">
             <div className="w-16 h-16 mx-auto rounded-full bg-accent/10 flex items-center justify-center mb-4">
               <svg className="w-8 h-8 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -156,13 +156,13 @@ function SignupForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4 py-8">
-      <div className="w-full max-w-md animate-fade-in">
-        <div className="text-center mb-8 flex flex-col items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4 py-6 sm:py-8">
+      <div className="w-full max-w-md mx-auto animate-fade-in max-w-[95vw] sm:max-w-md">
+        <div className="text-center mb-6 sm:mb-8 flex flex-col items-center justify-center">
           <Logo href="/" variant="auto" size="lg" className="items-center text-center" />
         </div>
 
-        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line">
+        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-4 sm:p-8 border border-line w-full">
           <h2 className="text-xl font-medium text-fg mb-6">
             Create your account
           </h2>

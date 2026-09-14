@@ -57,8 +57,8 @@ function EnquiryForm() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-3 sm:p-4">
+        <div className="bg-white rounded-3xl p-4 sm:p-8 max-w-md w-full mx-4 sm:mx-auto text-center space-y-4">
           <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
             <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
           </div>
@@ -73,26 +73,26 @@ function EnquiryForm() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
       {/* Header */}
-      <header className="bg-black border-b border-white/10 py-4 px-6">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="text-white">
-            <h1 className="text-2xl font-serif font-bold tracking-tight">Corhaus</h1>
-            <p className="text-xs tracking-[0.2em] text-white/70 -mt-1">pilates for everyone</p>
+      <header className="bg-black border-b border-white/10 py-4 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
+          <div className="text-white min-w-0">
+            <h1 className="text-xl sm:text-2xl font-serif font-bold tracking-tight truncate">Corhaus</h1>
+            <p className="text-xs tracking-[0.2em] text-white/70 -mt-1 truncate">pilates for everyone</p>
           </div>
-          <span className="text-xs text-white/50 hidden sm:block">Enquiry</span>
+          <span className="text-xs text-white/50 hidden sm:block shrink-0">Enquiry</span>
         </div>
       </header>
 
       {/* Hero */}
-      <div className="flex-1 py-8 sm:py-12 px-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Get in Touch</h2>
-            <p className="text-sm text-white/60 mt-2">Have a question or interested in Corhaus? Fill out the form and our team will get back to you.</p>
+      <div className="flex-1 py-6 sm:py-12 px-4">
+        <div className="max-w-2xl mx-auto w-full">
+          <div className="text-center mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight break-words leading-tight">Get in Touch</h2>
+            <p className="text-sm text-white/60 mt-2 break-words px-2 sm:px-0">Have a question or interested in Corhaus? Fill out the form and our team will get back to you.</p>
             {sourceLabel && <span className="inline-block mt-3 text-xs bg-white/10 text-white px-3 py-1 rounded-full">Via {sourceLabel}</span>}
           </div>
 
-          <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl">
+          <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-4 sm:p-8 space-y-5 shadow-2xl w-full">
             {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">{error}</div>}
 
             <div>

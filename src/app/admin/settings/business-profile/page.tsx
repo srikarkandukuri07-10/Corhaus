@@ -106,13 +106,13 @@ function CardHeader({
   subtitle: string;
 }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-start gap-3 min-w-0">
       <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent flex-shrink-0 mt-0.5">
         {icon}
       </div>
-      <div>
-        <h3 className="text-base font-bold text-fg">{title}</h3>
-        <p className="text-xs text-fg-4 mt-0.5">{subtitle}</p>
+      <div className="min-w-0">
+        <h3 className="text-base font-bold text-fg truncate">{title}</h3>
+        <p className="text-xs text-fg-4 mt-0.5 break-words">{subtitle}</p>
       </div>
     </div>
   );
@@ -338,10 +338,10 @@ export default function BusinessProfilePage() {
       {/* Main Panel */}
       <main className="flex-1 space-y-6 min-w-0">
         {/* Page header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-fg">Business Profile</h1>
-            <p className="text-xs text-fg-4 mt-0.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-fg truncate">Business Profile</h1>
+            <p className="text-xs text-fg-4 mt-0.5 break-words">
               Manage your studio identity, address, billing details, and social links
             </p>
           </div>
@@ -362,7 +362,7 @@ export default function BusinessProfilePage() {
           <form onSubmit={handleSave} className="space-y-6">
 
             {/* ── CARD 1: BUSINESS INFORMATION ────────────────────────────── */}
-            <div className="bg-surface rounded-2xl border border-line p-6 space-y-6">
+            <div className="bg-surface rounded-2xl border border-line p-3 sm:p-6 space-y-6">
               <CardHeader
                 icon={
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -375,7 +375,7 @@ export default function BusinessProfilePage() {
               />
 
               {/* Logo upload */}
-              <div className="flex items-center gap-5">
+              <div className="flex flex-wrap items-center gap-5">
                 <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-line bg-surface-2/50 flex-shrink-0">
                   {form.logo_url ? (
                     <Image
@@ -491,7 +491,7 @@ export default function BusinessProfilePage() {
             </div>
 
             {/* ── CARD 2: ADDRESS INFORMATION ─────────────────────────────── */}
-            <div className="bg-surface rounded-2xl border border-line p-6 space-y-6">
+            <div className="bg-surface rounded-2xl border border-line p-3 sm:p-6 space-y-6">
               <CardHeader
                 icon={
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -557,7 +557,7 @@ export default function BusinessProfilePage() {
             </div>
 
             {/* ── CARD 3: BILLING PROFILE ─────────────────────────────────── */}
-            <div className="bg-surface rounded-2xl border border-line p-6 space-y-6">
+            <div className="bg-surface rounded-2xl border border-line p-3 sm:p-6 space-y-6">
               <CardHeader
                 icon={
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -672,12 +672,12 @@ export default function BusinessProfilePage() {
               </div>
 
               {/* Independent Save Billing Profile button */}
-              <div className="flex justify-end pt-2">
+              <div className="flex flex-wrap justify-end pt-2 gap-2">
                 <button
                   type="button"
                   disabled={savingBilling}
                   onClick={handleSaveBilling}
-                  className="px-5 py-2.5 rounded-xl bg-accent text-white text-xs font-bold shadow-md shadow-accent/20 hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
+                  className="w-full sm:w-auto justify-center px-5 py-2.5 rounded-xl bg-accent text-white text-xs font-bold shadow-md shadow-accent/20 hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
                 >
                   {savingBilling ? (
                     <>
@@ -692,7 +692,7 @@ export default function BusinessProfilePage() {
             </div>
 
             {/* ── CARD 4: BUSINESS DETAILS ─────────────────────────────────── */}
-            <div className="bg-surface rounded-2xl border border-line p-6 space-y-6">
+            <div className="bg-surface rounded-2xl border border-line p-3 sm:p-6 space-y-6">
               <CardHeader
                 icon={
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -726,7 +726,7 @@ export default function BusinessProfilePage() {
             </div>
 
             {/* ── CARD 5: SOCIAL MEDIA LINKS ───────────────────────────────── */}
-            <div className="bg-surface rounded-2xl border border-line p-6 space-y-6">
+            <div className="bg-surface rounded-2xl border border-line p-3 sm:p-6 space-y-6">
               <CardHeader
                 icon={
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -800,11 +800,11 @@ export default function BusinessProfilePage() {
             </div>
 
             {/* ── SAVE CHANGES (general) ───────────────────────────────────── */}
-            <div className="flex justify-end pt-1">
+            <div className="flex flex-wrap justify-end pt-1 gap-2">
               <button
                 type="submit"
                 disabled={saving}
-                className="px-6 py-3 rounded-xl bg-accent text-white text-sm font-bold shadow-lg shadow-accent/20 hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
+                className="w-full sm:w-auto justify-center px-6 py-3 rounded-xl bg-accent text-white text-sm font-bold shadow-lg shadow-accent/20 hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
               >
                 {saving ? (
                   <>

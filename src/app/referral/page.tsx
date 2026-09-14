@@ -90,13 +90,13 @@ export default function ReferralPage() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-md mx-auto px-4 sm:px-0">
       {step === 1 && (
-        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line animate-fade-in">
-          <h2 className="text-xl font-medium text-fg mb-2 text-center">
+        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-4 sm:p-8 border border-line animate-fade-in w-full">
+          <h2 className="text-xl font-medium text-fg mb-2 text-center break-words">
             Have a Referral Code?
           </h2>
-          <p className="text-sm text-fg-4 text-center mb-6">
+          <p className="text-sm text-fg-4 text-center mb-6 break-words">
             Enter your referral code to request membership.
           </p>
 
@@ -148,7 +148,7 @@ export default function ReferralPage() {
       )}
 
       {step === 2 && (
-        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line text-center animate-fade-in">
+        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-4 sm:p-8 border border-line text-center animate-fade-in w-full">
           <div className="mx-auto w-12 h-12 bg-green-500/10 text-green-600 rounded-full flex items-center justify-center mb-4">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -193,7 +193,7 @@ export default function ReferralPage() {
       )}
 
       {step === 3 && (
-        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line animate-fade-in">
+        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-4 sm:p-8 border border-line animate-fade-in w-full">
           <h2 className="text-xl font-medium text-fg mb-2 text-center">
             Membership Request
           </h2>
@@ -277,7 +277,7 @@ export default function ReferralPage() {
       )}
 
       {step === 4 && (
-        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line text-center animate-fade-in">
+        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-4 sm:p-8 border border-line text-center animate-fade-in w-full">
           <div className="mx-auto w-12 h-12 bg-green-500/10 text-green-600 rounded-full flex items-center justify-center mb-4">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

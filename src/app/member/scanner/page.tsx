@@ -87,9 +87,11 @@ function MemberScannerContent() {
   }, []);
 
   return (
-    <div className="space-y-6 p-4 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-fg">Scan Attendance QR</h1>
-      <p className="text-sm text-fg-3">Point your camera at the QR displayed at reception</p>
+    <div className="space-y-6 p-3 sm:p-4 max-w-lg mx-auto w-full">
+      <div className="min-w-0">
+        <h1 className="text-xl sm:text-2xl font-bold text-fg truncate">Scan Attendance QR</h1>
+        <p className="text-sm text-fg-3 break-words">Point your camera at the QR displayed at reception</p>
+      </div>
 
       <div id="member-qr-reader" className="w-full rounded-xl overflow-hidden border-2 border-line bg-black" />
 
@@ -106,19 +108,22 @@ function MemberScannerContent() {
       )}
 
       {showClassPicker && eligibleClasses.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-surface rounded-2xl p-6 max-w-md w-full space-y-4">
-            <h3 className="font-bold text-fg">Select Class</h3>
-            <p className="text-xs text-fg-3">Multiple eligible classes found. Choose the correct one:</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4">
+          <div className="bg-surface rounded-2xl p-4 sm:p-6 max-w-md w-full space-y-4 max-h-[85dvh] overflow-y-auto">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-bold text-fg truncate min-w-0">Select Class</h3>
+              <button onClick={() => { setShowClassPicker(false); setEligibleClasses([]); }} className="p-1.5 rounded-lg border border-line text-fg-4 hover:text-fg shrink-0">✕</button>
+            </div>
+            <p className="text-xs text-fg-3 break-words">Multiple eligible classes found. Choose the correct one:</p>
             <div className="space-y-2">
               {eligibleClasses.map((c: any) => (
-                <button key={c.id} onClick={() => handleClassSelect(c.id)} className="w-full p-3 rounded-xl border border-line text-left hover:bg-surface-2">
-                  <p className="font-bold text-sm text-fg">{c.title}</p>
-                  <p className="text-xs text-fg-3">{c.class_date} {c.class_time} • {c.instructor}</p>
+                <button key={c.id} onClick={() => handleClassSelect(c.id)} className="w-full p-3 rounded-xl border border-line text-left hover:bg-surface-2 min-w-0">
+                  <p className="font-bold text-sm text-fg truncate">{c.title}</p>
+                  <p className="text-xs text-fg-3 truncate">{c.class_date} {c.class_time} • {c.instructor}</p>
                 </button>
               ))}
             </div>
-            <button onClick={() => { setShowClassPicker(false); setEligibleClasses([]); }} className="w-full py-2 rounded-xl border border-line text-sm">Cancel</button>
+            <button onClick={() => { setShowClassPicker(false); setEligibleClasses([]); }} className="w-full py-2 rounded-xl border border-line text-sm hover:bg-surface-2">Cancel</button>
           </div>
         </div>
       )}

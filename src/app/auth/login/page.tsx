@@ -326,13 +326,13 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4">
-      <div className="w-full max-w-md animate-fade-in">
-        <div className="text-center mb-10 flex flex-col items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-surface-2 px-4 py-6">
+      <div className="w-full max-w-md mx-auto animate-fade-in max-w-[95vw] sm:max-w-md">
+        <div className="text-center mb-6 sm:mb-10 flex flex-col items-center justify-center">
           <Logo href="/" variant="auto" size="lg" className="items-center text-center" />
         </div>
 
-        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-8 border border-line">
+        <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-4 sm:p-8 border border-line w-full">
           <h2 className="text-xl font-medium text-fg mb-6">
             {step === "email"
               ? "Welcome back"
