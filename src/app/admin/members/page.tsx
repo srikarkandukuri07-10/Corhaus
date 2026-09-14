@@ -851,51 +851,51 @@ function MembersPageContent() {
       )}
 
       {/* Summary KPI Cards Top Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-surface rounded-2xl p-4 border border-border-input shadow-sm flex items-center justify-between">
-          <div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-surface rounded-2xl p-3 sm:p-4 border border-border-input shadow-sm flex items-center justify-between gap-2 min-w-0">
+          <div className="min-w-0">
             <p className="text-xs font-semibold text-text-secondary/50 uppercase tracking-wide">
               Active Subscriptions
             </p>
             <p className="text-2xl font-bold text-text-primary mt-1">{metrics.activeSubs}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-base">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-base flex-shrink-0">
             ✓
           </div>
         </div>
 
-        <div className="bg-surface rounded-2xl p-4 border border-border-input shadow-sm flex items-center justify-between">
-          <div>
+        <div className="bg-surface rounded-2xl p-3 sm:p-4 border border-border-input shadow-sm flex items-center justify-between gap-2 min-w-0">
+          <div className="min-w-0">
             <p className="text-xs font-semibold text-text-secondary/50 uppercase tracking-wide">
               Expiring This Week
             </p>
             <p className="text-2xl font-bold text-amber-700 mt-1">{metrics.expiringThisWeek}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-base">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-base flex-shrink-0">
             !
           </div>
         </div>
 
-        <div className="bg-surface rounded-2xl p-4 border border-border-input shadow-sm flex items-center justify-between">
-          <div>
+        <div className="bg-surface rounded-2xl p-3 sm:p-4 border border-border-input shadow-sm flex items-center justify-between gap-2 min-w-0">
+          <div className="min-w-0">
             <p className="text-xs font-semibold text-text-secondary/50 uppercase tracking-wide">
               Sessions Remaining
             </p>
             <p className="text-2xl font-bold text-indigo-700 mt-1">{metrics.sessionsRemainingTotal}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-base">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-base flex-shrink-0">
             ⌛
           </div>
         </div>
 
-        <div className="bg-surface rounded-2xl p-4 border border-border-input shadow-sm flex items-center justify-between">
-          <div>
+        <div className="bg-surface rounded-2xl p-3 sm:p-4 border border-border-input shadow-sm flex items-center justify-between gap-2 min-w-0">
+          <div className="min-w-0">
             <p className="text-xs font-semibold text-text-secondary/50 uppercase tracking-wide">
               Total Members
             </p>
             <p className="text-2xl font-bold text-text-primary mt-1">{metrics.totalMembers}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-surface-2 text-text-gold flex items-center justify-center font-bold text-base">
+          <div className="w-10 h-10 rounded-xl bg-surface-2 text-text-gold flex items-center justify-center font-bold text-base flex-shrink-0">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
@@ -905,7 +905,7 @@ function MembersPageContent() {
 
       {/* Add Member Form Collapsible */}
       {showForm && (
-        <div className="bg-surface rounded-2xl border border-border-input p-6 shadow-sm animate-slide-up max-w-xl">
+        <div className="bg-surface rounded-2xl border border-border-input p-4 sm:p-6 shadow-sm animate-slide-up max-w-xl w-full">
           <h3 className="text-base font-serif text-text-primary mb-4">Add New Member</h3>
           {formError && <p className="text-xs text-red-600 bg-red-50 p-2.5 rounded-lg mb-3">{formError}</p>}
           <form onSubmit={handleAddMember} className="space-y-4">
@@ -942,18 +942,18 @@ function MembersPageContent() {
                 className="w-full px-4 py-2.5 rounded-xl border border-border-input bg-surface-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-text-gold"
               />
             </div>
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-wrap gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-5 py-2.5 rounded-xl border border-border-input text-text-secondary/70 text-sm font-medium hover:bg-surface-2"
+                className="px-5 py-2.5 rounded-xl border border-border-input text-text-secondary/70 text-sm font-medium hover:bg-surface-2 flex-1 sm:flex-none"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={formLoading}
-                className="px-5 py-2.5 rounded-xl bg-accent text-white text-sm font-bold hover:bg-accent-2 disabled:opacity-50 shadow-xs transition-colors"
+                className="px-5 py-2.5 rounded-xl bg-accent text-white text-sm font-bold hover:bg-accent-2 disabled:opacity-50 shadow-xs transition-colors flex-1 sm:flex-none"
               >
                 {formLoading ? "Saving..." : "Add Member"}
               </button>
@@ -963,7 +963,7 @@ function MembersPageContent() {
       )}
 
       {/* Real-time Search & Status Filter Control Bar */}
-      <div className="bg-surface rounded-2xl border border-border-input p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="bg-surface rounded-2xl border border-border-input p-3 sm:p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1 w-full">
           <svg
             className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary/40"
@@ -1260,39 +1260,39 @@ function MembersPageContent() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-border-input pb-4">
-              <div>
-                <h2 className="text-base sm:text-lg font-serif text-text-primary">Member Details</h2>
-                <p className="text-xs text-text-secondary/50 font-mono">ID: {selectedMember.id.slice(0, 8)}</p>
+            <div className="flex items-center justify-between gap-2 border-b border-border-input pb-4">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base sm:text-lg font-serif text-text-primary truncate">Member Details</h2>
+                <p className="text-xs text-text-secondary/50 font-mono truncate">ID: {selectedMember.id.slice(0, 8)}</p>
               </div>
               <button
                 onClick={() => setSelectedMember(null)}
-                className="w-8 h-8 rounded-full bg-surface-2 text-text-secondary hover:bg-hover flex items-center justify-center font-bold"
+                className="w-8 h-8 rounded-full bg-surface-2 text-text-secondary hover:bg-hover flex items-center justify-center font-bold flex-shrink-0"
               >
                 ✕
               </button>
             </div>
 
             {/* Member Profile Hero */}
-            <div className="flex items-center gap-4 bg-surface-2 p-4 rounded-2xl border border-border-input">
-              <div className="w-12 h-12 rounded-full overflow-hidden border border-border-input bg-surface flex items-center justify-center font-bold text-lg text-text-secondary">
+            <div className="flex items-center gap-3 sm:gap-4 bg-surface-2 p-3 sm:p-4 rounded-2xl border border-border-input min-w-0">
+              <div className="w-12 h-12 rounded-full overflow-hidden border border-border-input bg-surface flex items-center justify-center font-bold text-lg text-text-secondary flex-shrink-0">
                 {selectedMember.avatar_url ? (
                   <img src={selectedMember.avatar_url} alt={selectedMember.full_name} className="w-full h-full object-cover" />
                 ) : (
                   selectedMember.full_name.charAt(0).toUpperCase()
                 )}
               </div>
-              <div>
-                <h3 className="font-semibold text-text-primary text-base">{selectedMember.full_name}</h3>
-                <p className="text-xs text-text-secondary/60">{selectedMember.phone_number}</p>
-                <p className="text-xs text-text-secondary/60">{selectedMember.email}</p>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-text-primary text-base truncate">{selectedMember.full_name}</h3>
+                <p className="text-xs text-text-secondary/60 truncate">{selectedMember.phone_number}</p>
+                <p className="text-xs text-text-secondary/60 truncate break-all">{selectedMember.email}</p>
               </div>
             </div>
 
             {/* Package Info Card */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider">Package Info</h4>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <div className="bg-surface-2 p-3 rounded-xl border border-border-input">
                   <span className="text-[10px] text-text-secondary/50 block">Package</span>
                   <span className="text-xs font-bold text-text-primary">
@@ -1321,7 +1321,7 @@ function MembersPageContent() {
             </div>
 
             {/* Validity Status Highlight */}
-            <div className={`p-3.5 rounded-2xl flex items-center justify-between border ${
+            <div className={`p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-2 border ${
               selectedMember.activePlan
                 ? "bg-emerald-500/10 border-emerald-500/20"
                 : "bg-surface-2 border-border-input"
@@ -1342,20 +1342,20 @@ function MembersPageContent() {
             {/* Active Member Discount Card */}
             {selectedMember.activeDiscount ? (
               <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-[11px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M17 17h.01M7 7l10 10M7 7a4 4 0 115.657 5.657M17 17a4 4 0 11-5.657-5.657" />
                     </svg>
                     Active Member Discount
                   </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-500 text-white shadow-xs">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-500 text-white shadow-xs flex-shrink-0">
                     {selectedMember.activeDiscount.discount_type === "percentage"
                       ? `${selectedMember.activeDiscount.discount_value}% OFF`
                       : `₹${selectedMember.activeDiscount.discount_value.toLocaleString("en-IN")} OFF`}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-xs pt-1">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-1">
                   <span className="text-text-secondary/70 font-medium">
                     Reason: <strong className="text-text-primary">{selectedMember.activeDiscount.reason}</strong> ({selectedMember.activeDiscount.source})
                   </span>
@@ -1397,14 +1397,14 @@ function MembersPageContent() {
                       className="p-3.5 rounded-xl bg-surface-2 border border-border-input hover:border-border-gold transition-all cursor-pointer space-y-2 group shadow-2xs"
                     >
                       {/* Row Header */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-text-primary group-hover:text-text-gold transition-colors">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                          <span className="font-mono text-xs font-bold text-text-primary group-hover:text-text-gold transition-colors truncate">
                             {inv.invoice_number}
                           </span>
                           <StatusBadge status={inv.payment_status} />
                         </div>
-                        <span className="text-[11px] text-text-secondary/50">
+                        <span className="text-[11px] text-text-secondary/50 flex-shrink-0">
                           {formatDate(inv.created_at)}
                         </span>
                       </div>
@@ -1413,8 +1413,8 @@ function MembersPageContent() {
                       <div className="space-y-1">
                         {inv.items && inv.items.length > 0 ? (
                           inv.items.map((it) => (
-                            <div key={it.id} className="flex items-center justify-between text-xs">
-                              <div className="flex items-center gap-2 truncate pr-2">
+                            <div key={it.id} className="flex flex-wrap items-center justify-between gap-1 text-xs">
+                              <div className="flex items-center gap-2 min-w-0 flex-1 truncate pr-2">
                                 <span className="font-medium text-text-primary truncate">{it.name}</span>
                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface text-text-gold border border-border-input font-semibold flex-shrink-0">
                                   {it.category}
@@ -1426,28 +1426,28 @@ function MembersPageContent() {
                             </div>
                           ))
                         ) : (
-                          <div className="flex items-center justify-between text-xs">
+                          <div className="flex flex-wrap items-center justify-between gap-1 text-xs">
                             <span className="font-medium text-text-primary">Pilates Plan</span>
                             <span className="font-semibold text-text-secondary">{fmt(inv.grand_total)}</span>
                           </div>
                         )}
 
                         {inv.discount_amount > 0 && (
-                          <div className="flex items-center justify-between text-xs text-emerald-500 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg mt-1">
-                            <span>Discount Applied ({inv.discount_type === "percentage" ? `${inv.discount_value}% OFF` : fmt(inv.discount_value)})</span>
-                            <span>− {fmt(inv.discount_amount)}</span>
+                          <div className="flex flex-wrap items-center justify-between gap-1 text-xs text-emerald-500 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg mt-1">
+                            <span className="min-w-0">Discount Applied ({inv.discount_type === "percentage" ? `${inv.discount_value}% OFF` : fmt(inv.discount_value)})</span>
+                            <span className="flex-shrink-0">− {fmt(inv.discount_amount)}</span>
                           </div>
                         )}
                       </div>
 
                       {/* Payment & Staff Info Footer */}
-                      <div className="flex items-center justify-between text-[11px] text-text-secondary/60 pt-1.5 border-t border-border-input/60">
-                        <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-text-secondary/60 pt-1.5 border-t border-border-input/60">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
                           <span>Paid via <strong className="text-text-primary">{inv.payment_method || "UPI"}</strong></span>
                           <span>•</span>
-                          <span>Staff: <strong className="text-text-primary">{inv.created_by_name}</strong></span>
+                          <span className="truncate">Staff: <strong className="text-text-primary">{inv.created_by_name}</strong></span>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex-shrink-0">
                           <span className="font-bold text-text-primary text-xs leading-none block">
                             {fmt(inv.grand_total)}
                           </span>
@@ -1529,29 +1529,29 @@ function MembersPageContent() {
           onClick={() => setSelectedInvoice(null)}
         >
           <div
-            className="bg-surface rounded-3xl p-6 max-w-lg w-full mx-4 sm:mx-auto space-y-5 shadow-2xl border border-border-input max-h-[85dvh] overflow-y-auto animate-slide-up"
+            className="bg-surface rounded-3xl p-4 sm:p-6 max-w-lg w-full space-y-5 shadow-2xl border border-border-input max-h-[85dvh] overflow-y-auto animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-border-input pb-4">
-              <div>
+            <div className="flex items-center justify-between gap-2 border-b border-border-input pb-4">
+              <div className="min-w-0 flex-1">
                 <span className="text-[10px] font-bold text-text-gold uppercase tracking-widest block">
                   Invoice Details
                 </span>
-                <h3 className="text-lg font-serif text-text-primary font-bold">
+                <h3 className="text-lg font-serif text-text-primary font-bold truncate">
                   {selectedInvoice.invoice_number}
                 </h3>
               </div>
               <button
                 onClick={() => setSelectedInvoice(null)}
-                className="w-8 h-8 rounded-full bg-surface-2 text-text-secondary hover:bg-hover flex items-center justify-center font-bold"
+                className="w-8 h-8 rounded-full bg-surface-2 text-text-secondary hover:bg-hover flex items-center justify-center font-bold flex-shrink-0"
               >
                 ✕
               </button>
             </div>
 
             {/* Invoice Meta Grid */}
-            <div className="grid grid-cols-2 gap-3 text-xs bg-surface-2 p-4 rounded-2xl border border-border-input">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-surface-2 p-3 sm:p-4 rounded-2xl border border-border-input">
               <div>
                 <span className="text-[10px] text-text-secondary/50 block font-medium">Bill Date &amp; Time</span>
                 <span className="font-semibold text-text-primary">
@@ -1579,8 +1579,9 @@ function MembersPageContent() {
               <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider">
                 Purchased Items ({selectedInvoice.items?.length || 0})
               </h4>
-              <div className="border border-border-input rounded-2xl overflow-hidden bg-surface">
-                <table className="w-full text-xs text-left">
+              {/* Desktop Table — hidden on mobile */}
+              <div className="hidden md:block border border-border-input rounded-2xl overflow-hidden bg-surface overflow-x-auto">
+                <table className="w-full text-xs text-left min-w-[460px]">
                   <thead>
                     <tr className="bg-surface-2 border-b border-border-input text-text-secondary/60 font-semibold uppercase tracking-wider">
                       <th className="py-2.5 px-3">Item Name</th>
@@ -1615,41 +1616,60 @@ function MembersPageContent() {
                   </tbody>
                 </table>
               </div>
+              {/* Mobile Cards — shown only on mobile */}
+              <div className="md:hidden space-y-2">
+                {selectedInvoice.items && selectedInvoice.items.length > 0 ? (
+                  selectedInvoice.items.map((it) => (
+                    <div key={it.id} className="p-3 rounded-xl bg-surface-2 border border-border-input space-y-1.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-semibold text-text-primary text-xs truncate min-w-0 flex-1">{it.name}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-surface text-text-gold font-medium text-[10px] border border-border-input flex-shrink-0">{it.category}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="text-text-secondary/70">Qty: <strong className="text-text-primary">{it.quantity}</strong> • Unit: {fmt(it.unit_price)}</span>
+                        <span className="font-bold text-text-primary">{fmt(it.total_price)}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-4 text-center text-text-secondary/50 text-xs bg-surface-2 rounded-xl border border-border-input">No line items found</div>
+                )}
+              </div>
             </div>
 
             {/* Payment Summary */}
-            <div className="space-y-2 bg-surface-2 p-4 rounded-2xl border border-border-input text-xs">
+            <div className="space-y-2 bg-surface-2 p-3 sm:p-4 rounded-2xl border border-border-input text-xs">
               <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
                 Payment Information
               </h4>
-              <div className="flex justify-between text-text-secondary/70">
+              <div className="flex flex-wrap justify-between gap-2 text-text-secondary/70">
                 <span>Subtotal</span>
                 <span className="font-semibold text-text-primary">{fmt(selectedInvoice.subtotal)}</span>
               </div>
               {selectedInvoice.discount_amount > 0 && (
-                <div className="flex justify-between text-emerald-700 font-semibold">
-                  <span>Discount ({selectedInvoice.discount_type === "percentage" ? `${selectedInvoice.discount_value}%` : fmt(selectedInvoice.discount_value)})</span>
-                  <span>− {fmt(selectedInvoice.discount_amount)}</span>
+                <div className="flex flex-wrap justify-between gap-2 text-emerald-700 font-semibold">
+                  <span className="min-w-0">Discount ({selectedInvoice.discount_type === "percentage" ? `${selectedInvoice.discount_value}%` : fmt(selectedInvoice.discount_value)})</span>
+                  <span className="flex-shrink-0">− {fmt(selectedInvoice.discount_amount)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-text-secondary/70">
+              <div className="flex flex-wrap justify-between gap-2 text-text-secondary/70">
                 <span>Tax / GST</span>
                 <span>₹0 (Included)</span>
               </div>
-              <div className="flex justify-between pt-2 border-t border-border-input font-bold text-sm text-text-primary">
+              <div className="flex flex-wrap justify-between gap-2 pt-2 border-t border-border-input font-bold text-sm text-text-primary">
                 <span>Grand Total Paid</span>
                 <span className="text-text-gold text-base">{fmt(selectedInvoice.grand_total)}</span>
               </div>
 
-              <div className="pt-2 border-t border-border-input grid grid-cols-2 gap-2 text-[11px]">
+              <div className="pt-2 border-t border-border-input grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
                 <div>
                   <span className="text-text-secondary/50 block">Payment Method</span>
                   <span className="font-semibold text-text-primary">{selectedInvoice.payment_method || "UPI"}</span>
                 </div>
                 {selectedInvoice.transaction_reference && (
-                  <div>
+                  <div className="min-w-0">
                     <span className="text-text-secondary/50 block">Transaction Ref / UTR</span>
-                    <span className="font-mono font-semibold text-text-primary">{selectedInvoice.transaction_reference}</span>
+                    <span className="font-mono font-semibold text-text-primary break-all">{selectedInvoice.transaction_reference}</span>
                   </div>
                 )}
               </div>
@@ -1678,10 +1698,10 @@ function MembersPageContent() {
       {/* Confirm Delete Modal */}
       {deletingMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-surface rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+          <div className="bg-surface rounded-2xl p-4 sm:p-6 max-w-sm w-full space-y-4 shadow-2xl border border-border-input max-h-[85dvh] overflow-y-auto">
             <h3 className="text-base font-bold text-red-700">Delete Member?</h3>
-            <p className="text-xs text-text-secondary/70">
-              Type <span className="font-semibold">{deletingMember.email}</span> to confirm permanent deletion.
+            <p className="text-xs text-text-secondary/70 break-all">
+              Type <span className="font-semibold break-all">{deletingMember.email}</span> to confirm permanent deletion.
             </p>
             <input
               type="text"
@@ -1753,19 +1773,19 @@ function MembersPageContent() {
       {/* Member Check-in History Modal */}
       {historyMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-surface border border-line-2 rounded-2xl max-w-4xl w-[95vw] p-4 sm:p-6 space-y-5 max-h-[90vh] flex flex-col shadow-2xl">
+          <div className="bg-surface border border-line-2 rounded-2xl max-w-4xl w-[95vw] max-w-[95vw] p-3 sm:p-6 space-y-5 max-h-[85dvh] flex flex-col shadow-2xl overflow-hidden">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-line-2 pb-4">
-              <div>
-                <h3 className="text-lg font-serif font-bold text-fg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line-2 pb-4">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-lg font-serif font-bold text-fg truncate">
                   Check-in History: {historyMember.full_name}
                 </h3>
-                <p className="text-xs text-fg-3 mt-0.5">
+                <p className="text-xs text-fg-3 mt-0.5 break-all">
                   Phone: <span className="font-semibold text-fg-2">{historyMember.phone_number}</span> | Email:{" "}
-                  <span className="font-semibold text-fg-2">{historyMember.email}</span>
+                  <span className="font-semibold text-fg-2 break-all">{historyMember.email}</span>
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                 <Link
                   href={`/admin/members/${historyMember.id}/history`}
                   className="px-3 py-1.5 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-colors shadow-xs"
@@ -1882,26 +1902,54 @@ function MembersPageContent() {
                   }
 
                   return (
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-line-2 bg-surface-2/60 text-fg-3 uppercase font-bold text-[10px] tracking-wider sticky top-0 bg-surface-2">
-                          <th className="py-2.5 px-3">Date</th>
-                          <th className="py-2.5 px-3">Check-in Time</th>
-                          <th className="py-2.5 px-3">Class Name</th>
-                          <th className="py-2.5 px-3">Instructor</th>
-                          <th className="py-2.5 px-3 text-right">Attendance Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-line-2 text-fg">
+                    <>
+                      {/* Desktop Table — hidden on mobile */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse min-w-[600px]">
+                          <thead>
+                            <tr className="border-b border-line-2 bg-surface-2/60 text-fg-3 uppercase font-bold text-[10px] tracking-wider sticky top-0 bg-surface-2">
+                              <th className="py-2.5 px-3">Date</th>
+                              <th className="py-2.5 px-3">Check-in Time</th>
+                              <th className="py-2.5 px-3">Class Name</th>
+                              <th className="py-2.5 px-3">Instructor</th>
+                              <th className="py-2.5 px-3 text-right">Attendance Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-line-2 text-fg">
+                            {filtered.map((row) => (
+                              <tr key={row.id} className="hover:bg-hover/50 transition-colors">
+                                <td className="py-2.5 px-3 font-semibold text-fg">{row.date}</td>
+                                <td className="py-2.5 px-3 text-fg-2">{row.time}</td>
+                                <td className="py-2.5 px-3 font-bold text-fg">{row.className}</td>
+                                <td className="py-2.5 px-3 text-fg-2">{row.instructor}</td>
+                                <td className="py-2.5 px-3 text-right">
+                                  <span
+                                    className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                      row.status === "Attended"
+                                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                        : row.status === "Cancelled"
+                                        ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                        : row.status === "Booked"
+                                        ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                                        : "bg-red-500/10 text-red-500 border-red-500/20"
+                                    }`}
+                                  >
+                                    {row.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {/* Mobile Cards — shown only on mobile */}
+                      <div className="md:hidden divide-y divide-line-2">
                         {filtered.map((row) => (
-                          <tr key={row.id} className="hover:bg-hover/50 transition-colors">
-                            <td className="py-2.5 px-3 font-semibold text-fg">{row.date}</td>
-                            <td className="py-2.5 px-3 text-fg-2">{row.time}</td>
-                            <td className="py-2.5 px-3 font-bold text-fg">{row.className}</td>
-                            <td className="py-2.5 px-3 text-fg-2">{row.instructor}</td>
-                            <td className="py-2.5 px-3 text-right">
+                          <div key={row.id} className="p-3 space-y-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="font-bold text-fg text-xs truncate min-w-0 flex-1">{row.className}</span>
                               <span
-                                className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex-shrink-0 ${
                                   row.status === "Attended"
                                     ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                                     : row.status === "Cancelled"
@@ -1913,11 +1961,25 @@ function MembersPageContent() {
                               >
                                 {row.status}
                               </span>
-                            </td>
-                          </tr>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-[11px]">
+                              <div className="bg-surface-2 rounded-lg p-2 border border-line-2">
+                                <span className="text-[10px] text-fg-3 uppercase font-semibold block">Date</span>
+                                <span className="font-semibold text-fg">{row.date}</span>
+                              </div>
+                              <div className="bg-surface-2 rounded-lg p-2 border border-line-2">
+                                <span className="text-[10px] text-fg-3 uppercase font-semibold block">Time</span>
+                                <span className="font-semibold text-fg">{row.time}</span>
+                              </div>
+                              <div className="bg-surface-2 rounded-lg p-2 border border-line-2 col-span-2">
+                                <span className="text-[10px] text-fg-3 uppercase font-semibold block">Instructor</span>
+                                <span className="font-semibold text-fg truncate">{row.instructor || "—"}</span>
+                              </div>
+                            </div>
+                          </div>
                         ))}
-                      </tbody>
-                    </table>
+                      </div>
+                    </>
                   );
                 })()
               )}
@@ -1941,12 +2003,12 @@ function MembersPageContent() {
       {/* ========================================================================= */}
       {showBookingHistoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-surface rounded-2xl border border-line p-6 max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto space-y-5 shadow-2xl">
+          <div className="bg-surface rounded-2xl border border-line p-4 sm:p-6 max-w-5xl w-[95vw] max-h-[85dvh] overflow-y-auto space-y-5 shadow-2xl">
             {/* Header */}
-            <div className="flex items-start justify-between border-b border-line pb-4">
-              <div>
-                <h3 className="text-xl font-bold text-fg flex items-center gap-2">
-                  <span>📊</span> Class Booking & Attendance History
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-line pb-4">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg sm:text-xl font-bold text-fg flex items-center gap-2">
+                  <span>📊</span> <span className="truncate">Class Booking & Attendance History</span>
                 </h3>
                 <p className="text-xs text-fg-4 mt-0.5">
                   View full booking status, no-show credit deductions, cancellations, and QR check-ins per class.
@@ -1954,7 +2016,7 @@ function MembersPageContent() {
               </div>
               <button
                 onClick={() => setShowBookingHistoryModal(false)}
-                className="p-2 rounded-xl bg-surface-2 border border-line text-fg-3 hover:text-fg hover:bg-hover transition-colors"
+                className="p-2 rounded-xl bg-surface-2 border border-line text-fg-3 hover:text-fg hover:bg-hover transition-colors flex-shrink-0 self-start sm:self-auto"
               >
                 ✕
               </button>
@@ -2101,53 +2163,81 @@ function MembersPageContent() {
                             No booking records found for the selected criteria.
                           </div>
                         ) : (
-                          <div className="overflow-x-auto">
-                            <table className="min-w-[900px] w-full text-left text-xs">
-                            <thead className="bg-surface-2 text-fg-4 uppercase font-semibold border-b border-line">
-                              <tr>
-                                <th className="py-3 px-4">Member</th>
-                                <th className="py-3 px-4">Class Details</th>
-                                <th className="py-3 px-4 text-center">Attendance Status</th>
-                                <th className="py-3 px-4 text-center">Credit Impact</th>
-                                <th className="py-3 px-4 text-right">Date / Time</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-line text-fg">
-                              {finalBookings.map((bk) => (
-                                <tr key={bk.id} className="hover:bg-hover/50 transition-colors">
-                                  <td className="py-3 px-4 font-medium">
-                                    <div className="font-semibold text-fg">{bk.memberName}</div>
-                                    <div className="text-[11px] text-fg-4">{bk.memberEmail}</div>
-                                  </td>
-                                  <td className="py-3 px-4">
-                                    <div className="font-semibold text-fg">{bk.classes?.title || "Class Session"}</div>
-                                    <div className="text-[11px] text-fg-4">
-                                      {bk.classes?.instructor ? `with ${bk.classes.instructor}` : ""}
-                                    </div>
-                                  </td>
-                                  <td className="py-3 px-4 text-center">
-                                    <span
-                                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border ${bk.statusInfo.color}`}
-                                    >
-                                      <span>{bk.statusInfo.icon}</span>
-                                      <span>{bk.statusInfo.status}</span>
-                                    </span>
-                                  </td>
-                                  <td className="py-3 px-4 text-center">
-                                    <span
-                                      className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold ${bk.statusInfo.creditColor}`}
-                                    >
-                                      {bk.statusInfo.creditStatus}
-                                    </span>
-                                  </td>
-                                  <td className="py-3 px-4 text-right text-fg-3 font-mono text-[11px]">
-                                    {formatDate(bk.classes?.class_date || bk.created_at)} {formatTime(bk.classes?.class_time || bk.created_at)}
-                                  </td>
+                          <>
+                            {/* Desktop Table — hidden on mobile */}
+                            <div className="hidden md:block overflow-x-auto">
+                              <table className="min-w-[700px] w-full text-left text-xs">
+                              <thead className="bg-surface-2 text-fg-4 uppercase font-semibold border-b border-line">
+                                <tr>
+                                  <th className="py-3 px-4">Member</th>
+                                  <th className="py-3 px-4">Class Details</th>
+                                  <th className="py-3 px-4 text-center">Attendance Status</th>
+                                  <th className="py-3 px-4 text-center">Credit Impact</th>
+                                  <th className="py-3 px-4 text-right">Date / Time</th>
                                 </tr>
+                              </thead>
+                              <tbody className="divide-y divide-line text-fg">
+                                {finalBookings.map((bk) => (
+                                  <tr key={bk.id} className="hover:bg-hover/50 transition-colors">
+                                    <td className="py-3 px-4 font-medium">
+                                      <div className="font-semibold text-fg truncate max-w-[160px]">{bk.memberName}</div>
+                                      <div className="text-[11px] text-fg-4 truncate max-w-[160px] break-all">{bk.memberEmail}</div>
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      <div className="font-semibold text-fg">{bk.classes?.title || "Class Session"}</div>
+                                      <div className="text-[11px] text-fg-4">
+                                        {bk.classes?.instructor ? `with ${bk.classes.instructor}` : ""}
+                                      </div>
+                                    </td>
+                                    <td className="py-3 px-4 text-center">
+                                      <span
+                                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border ${bk.statusInfo.color}`}
+                                      >
+                                        <span>{bk.statusInfo.icon}</span>
+                                        <span>{bk.statusInfo.status}</span>
+                                      </span>
+                                    </td>
+                                    <td className="py-3 px-4 text-center">
+                                      <span
+                                        className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold ${bk.statusInfo.creditColor}`}
+                                      >
+                                        {bk.statusInfo.creditStatus}
+                                      </span>
+                                    </td>
+                                    <td className="py-3 px-4 text-right text-fg-3 font-mono text-[11px] whitespace-nowrap">
+                                      {formatDate(bk.classes?.class_date || bk.created_at)} {formatTime(bk.classes?.class_time || bk.created_at)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            </div>
+                            {/* Mobile Cards — shown only on mobile */}
+                            <div className="md:hidden divide-y divide-line">
+                              {finalBookings.map((bk) => (
+                                <div key={bk.id} className="p-3 space-y-2">
+                                  <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                      <div className="font-semibold text-fg text-xs truncate">{bk.memberName}</div>
+                                      <div className="text-[11px] text-fg-4 truncate break-all">{bk.memberEmail}</div>
+                                      <div className="text-xs font-medium text-fg mt-1">{bk.classes?.title || "Class Session"}</div>
+                                      <div className="text-[11px] text-fg-4">{bk.classes?.instructor ? `with ${bk.classes.instructor}` : ""}</div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${bk.statusInfo.color}`}>
+                                        <span>{bk.statusInfo.icon}</span>
+                                        <span>{bk.statusInfo.status}</span>
+                                      </span>
+                                      <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold ${bk.statusInfo.creditColor}`}>{bk.statusInfo.creditStatus}</span>
+                                    </div>
+                                  </div>
+                                  <div className="text-[11px] text-fg-3 font-mono bg-surface-2 rounded-lg px-2 py-1 text-center border border-line">
+                                    {formatDate(bk.classes?.class_date || bk.created_at)} {formatTime(bk.classes?.class_time || bk.created_at)}
+                                  </div>
+                                </div>
                               ))}
-                            </tbody>
-                          </table>
-                          </div>
+                            </div>
+                          </>
                         )}
                       </div>
                     </div>
