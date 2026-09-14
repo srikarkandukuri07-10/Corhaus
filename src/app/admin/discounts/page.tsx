@@ -242,7 +242,7 @@ export default function DiscountsPage() {
 
         <button
           onClick={() => handleOpenAddModal()}
-          className="px-5 py-2.5 rounded-2xl bg-accent text-white text-xs font-extrabold hover:bg-accent-2 shadow-md shadow-accent/20 flex items-center gap-2 transition-all"
+          className="px-5 py-2.5 rounded-2xl bg-accent text-white text-xs font-extrabold hover:bg-accent-2 shadow-md shadow-accent/20 flex items-center justify-center gap-2 transition-all w-full sm:w-auto"
         >
           <span className="text-base font-black">+</span>
           Add Discount
@@ -250,7 +250,7 @@ export default function DiscountsPage() {
       </div>
 
       {/* KPI Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-surface border border-line rounded-3xl p-5 shadow-2xs space-y-1">
           <p className="text-[11px] font-bold text-fg-4 uppercase tracking-wider">Registered Members</p>
           <p className="text-2xl font-black text-fg">{metrics.totalMembers}</p>
@@ -273,9 +273,9 @@ export default function DiscountsPage() {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface p-4 border border-line rounded-3xl shadow-2xs">
-        <div className="flex items-center gap-3 w-full sm:w-auto flex-1 max-w-md">
-          <div className="relative w-full">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface p-3 sm:p-4 border border-line rounded-3xl shadow-2xs flex-wrap">
+        <div className="flex items-center gap-3 w-full sm:w-auto flex-1 max-w-md min-w-0">
+          <div className="relative w-full min-w-0">
             <input
               type="text"
               placeholder="Search member by name, email, or phone..."
@@ -298,7 +298,7 @@ export default function DiscountsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-bold text-fg focus:outline-none focus:ring-1 focus:ring-accent"
+            className="p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-bold text-fg focus:outline-none focus:ring-1 focus:ring-accent w-full sm:w-auto min-w-0"
           >
             <option value="All">All Statuses</option>
             <option value="Active">Active Discount</option>
@@ -310,7 +310,7 @@ export default function DiscountsPage() {
           <select
             value={sourceFilter}
             onChange={(e) => setSourceFilter(e.target.value)}
-            className="p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-bold text-fg focus:outline-none focus:ring-1 focus:ring-accent"
+            className="p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-bold text-fg focus:outline-none focus:ring-1 focus:ring-accent w-full sm:w-auto min-w-0"
           >
             <option value="All Sources">All Sources</option>
             <option value="Manual">Manual Staff Discount</option>
@@ -480,14 +480,14 @@ export default function DiscountsPage() {
               const hasActive = !!activeDisc;
 
               return (
-                <div key={member.id} className="p-4 rounded-2xl bg-surface border border-line space-y-3 text-xs">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-extrabold text-sm text-fg">{member.full_name}</p>
-                      <p className="text-fg-4 text-[11px] mt-0.5">{member.phone_number || member.email}</p>
+                <div key={member.id} className="p-3 sm:p-4 rounded-2xl bg-surface border border-line space-y-3 text-xs min-w-0">
+                  <div className="flex items-start justify-between gap-2 min-w-0">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-extrabold text-sm text-fg break-words">{member.full_name}</p>
+                      <p className="text-fg-4 text-[11px] mt-0.5 break-all">{member.phone_number || member.email}</p>
                     </div>
                     {hasActive ? (
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0 break-all">
                         {activeDisc.discount_type === "percentage" ? `${activeDisc.discount_value}% OFF` : `₹${activeDisc.discount_value} OFF`}
                       </span>
                     ) : (
@@ -498,15 +498,15 @@ export default function DiscountsPage() {
                   </div>
 
                   {hasActive && (
-                    <div className="p-2.5 rounded-xl bg-surface-2 border border-line text-[11px] space-y-1">
-                      <p className="font-bold text-fg">Source: {activeDisc.source}</p>
-                      <p className="text-fg-3">Reason: {activeDisc.reason}</p>
+                    <div className="p-2.5 rounded-xl bg-surface-2 border border-line text-[11px] space-y-1 break-words">
+                      <p className="font-bold text-fg break-words">Source: {activeDisc.source}</p>
+                      <p className="text-fg-3 break-words">Reason: {activeDisc.reason}</p>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-2 border-t border-line">
-                    <span className="text-[11px] font-semibold text-fg-3">{member.current_package || "Standard Member"}</span>
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-line flex-wrap">
+                    <span className="text-[11px] font-semibold text-fg-3 truncate min-w-0">{member.current_package || "Standard Member"}</span>
+                    <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={() => handleOpenAddModal(member)}
                         className="px-3 py-1 bg-emerald-600/10 text-emerald-600 rounded-lg text-xs font-bold"
@@ -533,15 +533,15 @@ export default function DiscountsPage() {
 
       {/* Add / Edit Discount Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-line rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 max-h-[85dvh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-line pb-3">
-              <h3 className="text-lg font-extrabold text-fg">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-surface border border-line rounded-3xl p-3 sm:p-6 max-w-md w-full shadow-2xl space-y-5 max-h-[85dvh] overflow-y-auto">
+            <div className="flex items-center justify-between gap-2 border-b border-line pb-3">
+              <h3 className="text-lg font-extrabold text-fg truncate min-w-0">
                 {editingDiscount ? "Edit Member Discount" : "Add Discount to Member"}
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-fg-3 font-bold flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-fg-3 font-bold flex items-center justify-center flex-shrink-0"
               >
                 ✕
               </button>
@@ -570,7 +570,7 @@ export default function DiscountsPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-fg mb-1">Discount Type *</label>
                   <select
@@ -643,18 +643,18 @@ export default function DiscountsPage() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-line">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-3 border-t border-line">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-fg hover:bg-hover"
+                  className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-fg hover:bg-hover w-full sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-6 py-2.5 bg-emerald-600 text-white font-extrabold rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-600/20 disabled:opacity-50"
+                  className="px-6 py-2.5 bg-emerald-600 text-white font-extrabold rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-600/20 disabled:opacity-50 w-full sm:w-auto"
                 >
                   {submitting ? "Applying..." : editingDiscount ? "Update Discount" : "Apply Discount"}
                 </button>
@@ -666,24 +666,24 @@ export default function DiscountsPage() {
 
       {/* Discount History Modal */}
       {showHistoryModal && selectedMemberForHistory && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-line rounded-3xl p-6 max-w-xl w-full shadow-2xl space-y-5">
-            <div className="flex items-center justify-between border-b border-line pb-3">
-              <div>
-                <h3 className="text-lg font-extrabold text-fg">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-surface border border-line rounded-3xl p-3 sm:p-6 max-w-xl w-full shadow-2xl space-y-5 max-h-[85dvh] overflow-y-auto">
+            <div className="flex items-center justify-between gap-2 border-b border-line pb-3">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-extrabold text-fg truncate">
                   Discount History &bull; {selectedMemberForHistory.full_name}
                 </h3>
-                <p className="text-xs text-fg-3">{selectedMemberForHistory.email}</p>
+                <p className="text-xs text-fg-3 break-all">{selectedMemberForHistory.email}</p>
               </div>
               <button
                 onClick={() => setShowHistoryModal(false)}
-                className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-fg-3 font-bold flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-fg-3 font-bold flex items-center justify-center flex-shrink-0"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[60dvh] sm:max-h-96 overflow-y-auto pr-1">
               {!selectedMemberForHistory.discount_history ||
               selectedMemberForHistory.discount_history.length === 0 ? (
                 <p className="text-xs text-fg-4 text-center py-6">No discount history recorded for this member.</p>
@@ -691,32 +691,32 @@ export default function DiscountsPage() {
                 selectedMemberForHistory.discount_history.map((disc) => (
                   <div
                     key={disc.id}
-                    className="p-4 rounded-2xl border border-line bg-surface-2/40 flex items-start justify-between gap-4 text-xs"
+                    className="p-3 sm:p-4 rounded-2xl border border-line bg-surface-2/40 flex items-start justify-between gap-2 sm:gap-4 text-xs min-w-0"
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-fg">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-fg break-all">
                           {disc.discount_type === "percentage"
                             ? `${disc.discount_value}% OFF`
                             : `₹${disc.discount_value.toLocaleString("en-IN")} OFF`}
                         </span>
-                        <span className="px-2 py-0.5 rounded-md bg-surface border border-line text-[10px] font-bold text-fg-3">
+                        <span className="px-2 py-0.5 rounded-md bg-surface border border-line text-[10px] font-bold text-fg-3 break-all">
                           {disc.source}
                         </span>
                       </div>
-                      <p className="text-fg-3 font-medium">{disc.reason}</p>
-                      <p className="text-[10px] text-fg-4">
+                      <p className="text-fg-3 font-medium break-words">{disc.reason}</p>
+                      <p className="text-[10px] text-fg-4 break-words">
                         Created by {disc.created_by} on {new Date(disc.created_at).toLocaleDateString("en-IN")}
                       </p>
                       {disc.used_at && (
-                        <p className="text-[10px] text-emerald-500 font-bold">
+                        <p className="text-[10px] text-emerald-500 font-bold break-words">
                           Used on {new Date(disc.used_at).toLocaleDateString("en-IN")}
                         </p>
                       )}
                     </div>
 
                     <span
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border flex-shrink-0 ${
                         disc.status === "active"
                           ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                           : disc.status === "used"

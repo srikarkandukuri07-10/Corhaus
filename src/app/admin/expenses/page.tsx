@@ -365,17 +365,17 @@ export default function ExpensesPage() {
         </div>
 
         {/* Global Actions: Export Excel & Add Expense */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap w-full sm:w-auto">
           <button
             onClick={() => exportToExcel(filteredExpenses, `corhaus_expenses_${new Date().toISOString().split("T")[0]}`)}
-            className="px-3.5 py-2 rounded-xl bg-surface-2 border border-line-2 text-fg text-xs font-bold hover:bg-hover transition-colors shadow-xs flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-surface-2 border border-line-2 text-fg text-xs font-bold hover:bg-hover transition-colors shadow-xs flex items-center justify-center gap-1.5 w-full sm:w-auto"
           >
             <span>📊</span> Export to Excel
           </button>
           <button
             onClick={handleOpenAddModal}
             disabled={!hasPerm("expenses.create")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1.5 w-full sm:w-auto ${
               hasPerm("expenses.create")
                 ? "bg-accent text-white hover:bg-accent-2 cursor-pointer"
                 : "bg-accent/45 text-white/65 cursor-not-allowed opacity-60"
@@ -394,7 +394,7 @@ export default function ExpensesPage() {
       )}
 
       {/* Expenses Summary Dashboard Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {/* YTD Expenses */}
         <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
           <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Year-to-Date Expenses</p>
@@ -436,10 +436,10 @@ export default function ExpensesPage() {
       </div>
 
       {/* Expense Analytics: Category Breakdown Progress Bar */}
-      <div className="p-5 rounded-2xl bg-surface border border-line-2 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-fg">Category-wise Expense Breakdown</h3>
-          <span className="text-[11px] font-bold text-fg-3">Live Aggregation</span>
+      <div className="p-3 sm:p-5 rounded-2xl bg-surface border border-line-2 shadow-xs space-y-4">
+        <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1.5">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-fg min-w-0">Category-wise Expense Breakdown</h3>
+          <span className="text-[11px] font-bold text-fg-3 flex-shrink-0">Live Aggregation</span>
         </div>
 
         <div className="space-y-3">
@@ -450,9 +450,9 @@ export default function ExpensesPage() {
               const color = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
               return (
                 <div key={item.category} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-fg">{item.category}</span>
-                    <span className="text-fg-3 font-mono">
+                  <div className="flex items-center justify-between gap-2 text-xs font-semibold min-w-0">
+                    <span className="text-fg truncate min-w-0">{item.category}</span>
+                    <span className="text-fg-3 font-mono flex-shrink-0 break-all">
                       {fmt(item.totalSpent)} ({item.percentage}%)
                     </span>
                   </div>
@@ -470,10 +470,10 @@ export default function ExpensesPage() {
       </div>
 
       {/* Toolbar: Search & Multi-Filters */}
-      <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs space-y-3">
+      <div className="p-3 sm:p-4 rounded-2xl bg-surface border border-line-2 shadow-xs space-y-3">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Universal Search */}
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 w-full max-w-md min-w-0">
             <input
               type="text"
               placeholder="Search expense title, paid to, category..."
@@ -503,7 +503,7 @@ export default function ExpensesPage() {
               </button>
             ))}
 
-            <div className="flex items-center gap-1 border-l border-line-2 pl-2">
+            <div className="flex items-center gap-1 border-l border-line-2 pl-2 flex-wrap w-full sm:w-auto">
               <input
                 type="date"
                 value={startDate}
@@ -511,7 +511,7 @@ export default function ExpensesPage() {
                   setStartDate(e.target.value);
                   setDatePreset("custom");
                 }}
-                className="px-2 py-1 rounded-lg border border-line-2 bg-surface-2 text-fg text-xs outline-none"
+                className="px-2 py-1 rounded-lg border border-line-2 bg-surface-2 text-fg text-xs outline-none w-full sm:w-auto min-w-0"
               />
               <span className="text-fg-3">-</span>
               <input
@@ -521,21 +521,21 @@ export default function ExpensesPage() {
                   setEndDate(e.target.value);
                   setDatePreset("custom");
                 }}
-                className="px-2 py-1 rounded-lg border border-line-2 bg-surface-2 text-fg text-xs outline-none"
+                className="px-2 py-1 rounded-lg border border-line-2 bg-surface-2 text-fg text-xs outline-none w-full sm:w-auto min-w-0"
               />
             </div>
           </div>
         </div>
 
         {/* Dropdown Filters Row */}
-        <div className="flex items-center gap-3 flex-wrap text-xs border-t border-line-2 pt-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap text-xs border-t border-line-2 pt-3">
           {/* Category Filter */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-semibold text-fg-3">Category:</span>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-2.5 py-1 rounded-xl border border-line-2 bg-surface-2 text-fg outline-none font-semibold"
+              className="px-2.5 py-1 rounded-xl border border-line-2 bg-surface-2 text-fg outline-none font-semibold w-full sm:w-auto min-w-0"
             >
               <option value="All">All Categories</option>
               {categories.map((c) => (
@@ -547,12 +547,12 @@ export default function ExpensesPage() {
           </div>
 
           {/* Payment Method Filter */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-semibold text-fg-3">Method:</span>
             <select
               value={selectedPaymentMethod}
               onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-              className="px-2.5 py-1 rounded-xl border border-line-2 bg-surface-2 text-fg outline-none font-semibold"
+              className="px-2.5 py-1 rounded-xl border border-line-2 bg-surface-2 text-fg outline-none font-semibold w-full sm:w-auto min-w-0"
             >
               <option value="All">All Methods</option>
               {PAYMENT_METHODS.map((pm) => (
@@ -564,12 +564,12 @@ export default function ExpensesPage() {
           </div>
 
           {/* Recurring Filter */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-semibold text-fg-3">Recurring:</span>
             <select
               value={selectedRecurring}
               onChange={(e) => setSelectedRecurring(e.target.value)}
-              className="px-2.5 py-1 rounded-xl border border-line-2 bg-surface-2 text-fg outline-none font-semibold"
+              className="px-2.5 py-1 rounded-xl border border-line-2 bg-surface-2 text-fg outline-none font-semibold w-full sm:w-auto min-w-0"
             >
               <option value="All">All</option>
               <option value="Recurring">Recurring Only</option>
@@ -670,21 +670,21 @@ export default function ExpensesPage() {
           {/* Mobile Cards View */}
           <div className="md:hidden divide-y divide-line-2 p-3 space-y-3">
             {filteredExpenses.map((exp) => (
-              <div key={exp.id} className="p-4 rounded-xl bg-surface-2/60 border border-line-2 space-y-3 text-xs">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-bold text-sm text-fg">{exp.title}</p>
-                    <p className="text-fg-3 text-[11px] mt-0.5">{exp.category_name} {exp.paid_to ? `• Paid to: ${exp.paid_to}` : ""}</p>
+              <div key={exp.id} className="p-3 sm:p-4 rounded-xl bg-surface-2/60 border border-line-2 space-y-3 text-xs min-w-0">
+                <div className="flex items-start justify-between gap-2 min-w-0">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-sm text-fg break-words">{exp.title}</p>
+                    <p className="text-fg-3 text-[11px] mt-0.5 break-words">{exp.category_name} {exp.paid_to ? `• Paid to: ${exp.paid_to}` : ""}</p>
                   </div>
-                  <span className="font-bold text-red-500 text-sm shrink-0">
+                  <span className="font-bold text-red-500 text-sm shrink-0 break-all">
                     {fmt(exp.amount)}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] bg-surface p-2.5 rounded-lg border border-line-2/50">
-                  <div>
+                <div className="flex items-center justify-between gap-2 text-[11px] bg-surface p-2.5 rounded-lg border border-line-2/50 flex-wrap">
+                  <div className="min-w-0">
                     <span className="text-fg-4 font-medium block">Date & Method</span>
-                    <span className="font-semibold text-fg">{formatDateDisplay(exp.expense_date)} ({exp.payment_method})</span>
+                    <span className="font-semibold text-fg break-words">{formatDateDisplay(exp.expense_date)} ({exp.payment_method})</span>
                   </div>
                   {exp.is_recurring && (
                     <span className="inline-block px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold text-[10px]">
@@ -694,7 +694,7 @@ export default function ExpensesPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="pt-2 border-t border-line-2 flex items-center justify-end gap-1.5">
+                <div className="pt-2 border-t border-line-2 flex items-center justify-end gap-1.5 flex-wrap">
                   <button
                     onClick={() => setViewingExpense(exp)}
                     className="px-2.5 py-1 rounded-lg bg-surface border border-line-2 text-fg font-semibold text-[11px]"
@@ -727,21 +727,21 @@ export default function ExpensesPage() {
 
       {/* Add / Edit Expense Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-line-2 rounded-2xl w-full max-w-lg shadow-xl overflow-y-auto max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-line-2 bg-surface-2">
-              <h2 className="text-base font-serif font-bold text-fg">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-surface border border-line-2 rounded-2xl w-full max-w-lg shadow-xl overflow-y-auto max-h-[85dvh] animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between gap-2 px-4 sm:px-6 py-4 border-b border-line-2 bg-surface-2">
+              <h2 className="text-base font-serif font-bold text-fg truncate min-w-0">
                 {editingExpense ? "Edit Expense Record" : "Record New Expense"}
               </h2>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-fg-3 hover:bg-hover hover:text-fg"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-fg-3 hover:bg-hover hover:text-fg flex-shrink-0"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveExpense} className="p-6 space-y-4 text-xs">
+            <form onSubmit={handleSaveExpense} className="p-4 sm:p-6 space-y-4 text-xs">
               {formError && (
                 <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 font-semibold">
                   {formError}
@@ -879,18 +879,18 @@ export default function ExpensesPage() {
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-surface-2 border border-line-2 text-fg font-bold hover:bg-hover transition-colors"
+                  className="px-4 py-2.5 rounded-xl bg-surface-2 border border-line-2 text-fg font-bold hover:bg-hover transition-colors w-full sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="px-5 py-2.5 rounded-xl bg-accent text-white font-bold hover:bg-accent-2 transition-colors shadow-xs disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-accent text-white font-bold hover:bg-accent-2 transition-colors shadow-xs disabled:opacity-50 w-full sm:w-auto"
                 >
                   {formSubmitting ? "Saving..." : editingExpense ? "Update Expense" : "Save Expense"}
                 </button>
@@ -902,48 +902,48 @@ export default function ExpensesPage() {
 
       {/* View Expense Details Modal */}
       {viewingExpense && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-line-2 rounded-2xl w-full max-w-md shadow-xl overflow-hidden p-6 space-y-4 text-xs">
-            <div className="flex items-center justify-between border-b border-line-2 pb-3">
-              <h3 className="text-base font-serif font-bold text-fg">Expense Details</h3>
-              <button onClick={() => setViewingExpense(null)} className="text-fg-3 hover:text-fg">✕</button>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-surface border border-line-2 rounded-2xl w-full max-w-md shadow-xl overflow-hidden p-4 sm:p-6 space-y-4 text-xs max-h-[85dvh] overflow-y-auto">
+            <div className="flex items-center justify-between gap-2 border-b border-line-2 pb-3">
+              <h3 className="text-base font-serif font-bold text-fg truncate min-w-0">Expense Details</h3>
+              <button onClick={() => setViewingExpense(null)} className="text-fg-3 hover:text-fg flex-shrink-0">✕</button>
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between py-1 border-b border-line-2/50">
-                <span className="text-fg-3">Title</span>
-                <span className="font-bold text-fg">{viewingExpense.title}</span>
+              <div className="flex justify-between gap-2 py-1 border-b border-line-2/50 min-w-0">
+                <span className="text-fg-3 flex-shrink-0">Title</span>
+                <span className="font-bold text-fg truncate min-w-0 text-right">{viewingExpense.title}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-line-2/50">
-                <span className="text-fg-3">Category</span>
-                <span className="font-bold text-fg">{viewingExpense.category_name}</span>
+              <div className="flex justify-between gap-2 py-1 border-b border-line-2/50 min-w-0">
+                <span className="text-fg-3 flex-shrink-0">Category</span>
+                <span className="font-bold text-fg truncate min-w-0 text-right">{viewingExpense.category_name}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-line-2/50">
+              <div className="flex justify-between gap-2 py-1 border-b border-line-2/50">
                 <span className="text-fg-3">Amount</span>
-                <span className="font-bold text-red-500">{fmt(viewingExpense.amount)}</span>
+                <span className="font-bold text-red-500 break-all text-right">{fmt(viewingExpense.amount)}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-line-2/50">
-                <span className="text-fg-3">Payment Method</span>
-                <span className="font-semibold text-fg">{viewingExpense.payment_method}</span>
+              <div className="flex justify-between gap-2 py-1 border-b border-line-2/50 min-w-0">
+                <span className="text-fg-3 flex-shrink-0">Payment Method</span>
+                <span className="font-semibold text-fg truncate min-w-0 text-right">{viewingExpense.payment_method}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-line-2/50">
+              <div className="flex justify-between gap-2 py-1 border-b border-line-2/50">
                 <span className="text-fg-3">Expense Date</span>
-                <span className="font-semibold text-fg">{formatDateDisplay(viewingExpense.expense_date)}</span>
+                <span className="font-semibold text-fg text-right">{formatDateDisplay(viewingExpense.expense_date)}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-line-2/50">
-                <span className="text-fg-3">Paid To</span>
-                <span className="font-semibold text-fg">{viewingExpense.paid_to || "—"}</span>
+              <div className="flex justify-between gap-2 py-1 border-b border-line-2/50 min-w-0">
+                <span className="text-fg-3 flex-shrink-0">Paid To</span>
+                <span className="font-semibold text-fg truncate min-w-0 text-right">{viewingExpense.paid_to || "—"}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-line-2/50">
+              <div className="flex justify-between gap-2 py-1 border-b border-line-2/50">
                 <span className="text-fg-3">Recurring</span>
-                <span className="font-semibold text-fg">
+                <span className="font-semibold text-fg text-right">
                   {viewingExpense.is_recurring ? `Yes (${viewingExpense.recurring_frequency})` : "No"}
                 </span>
               </div>
               {viewingExpense.description && (
                 <div className="pt-2">
                   <span className="block text-fg-3 mb-0.5">Description</span>
-                  <p className="p-2.5 rounded-xl bg-surface-2 border border-line-2 text-fg text-xs">{viewingExpense.description}</p>
+                  <p className="p-2.5 rounded-xl bg-surface-2 border border-line-2 text-fg text-xs break-words">{viewingExpense.description}</p>
                 </div>
               )}
             </div>
@@ -951,7 +951,7 @@ export default function ExpensesPage() {
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setViewingExpense(null)}
-                className="px-4 py-2 rounded-xl bg-accent text-white font-bold"
+                className="px-4 py-2 rounded-xl bg-accent text-white font-bold w-full sm:w-auto"
               >
                 Close
               </button>
@@ -962,8 +962,8 @@ export default function ExpensesPage() {
 
       {/* Delete Confirmation Modal */}
       {deletingExpense && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-line-2 rounded-2xl w-full max-w-sm shadow-xl p-6 space-y-4 text-xs text-center">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-surface border border-line-2 rounded-2xl w-full max-w-sm shadow-xl p-4 sm:p-6 space-y-4 text-xs text-center max-h-[85dvh] overflow-y-auto">
             <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mx-auto text-xl font-bold">
               <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

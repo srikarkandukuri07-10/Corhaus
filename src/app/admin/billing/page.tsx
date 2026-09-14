@@ -71,7 +71,7 @@ function BillingSubNav() {
     { href: "/admin/billing/plan-items",  label: "Plan Catalogue",exact: false },
   ];
   return (
-    <div className="flex items-center gap-1.5 mb-6">
+    <div className="flex items-center gap-1.5 mb-6 flex-wrap">
       {subNav.map((item) => {
         const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
         return (
@@ -537,7 +537,7 @@ export default function CreateBillPage() {
 
       {/* Success banner */}
       {completedInvoice && (
-        <div className="mb-4 p-4 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-between animate-fade-in">
+        <div className="mb-4 p-4 rounded-2xl bg-green-500/10 border border-green-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -546,14 +546,14 @@ export default function CreateBillPage() {
             </div>
             <div>
               <p className="font-semibold text-green-600 text-sm">Bill completed!</p>
-              <p className="text-xs text-green-600/70">
-                Invoice <span className="font-mono font-bold">{completedInvoice}</span> generated
+              <p className="text-xs text-green-600/70 break-all">
+                Invoice <span className="font-mono font-bold break-all">{completedInvoice}</span> generated
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Link href="/admin/billing/invoices" className="text-xs text-green-600 underline">View Invoice</Link>
-            <button onClick={resetBill} className="px-4 py-2 rounded-xl bg-green-500 text-white text-sm font-semibold hover:bg-green-500/80 transition-colors">
+            <button onClick={resetBill} className="px-4 py-2 rounded-xl bg-green-500 text-white text-sm font-semibold hover:bg-green-500/80 transition-colors flex-shrink-0">
               New Bill
             </button>
           </div>
@@ -562,7 +562,7 @@ export default function CreateBillPage() {
 
       {/* Error banner */}
       {error && (
-        <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-400/20 text-red-500 text-sm flex items-center gap-2">
+        <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-400/20 text-red-500 text-sm flex items-start sm:items-center gap-2 flex-wrap break-words">
           <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -702,10 +702,10 @@ export default function CreateBillPage() {
         {/* ── MIDDLE PANEL ─────────────────────────────────── */}
         <div className="flex-1 bg-surface rounded-2xl border border-line flex flex-col overflow-hidden min-w-0 shadow-sm">
           {/* Header */}
-          <div className="p-4 border-b border-line flex-shrink-0">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-fg">{CATEGORIES.find((c) => c.id === activeCategory)?.label}</h2>
-              <span className="text-xs text-fg-5">{filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}</span>
+          <div className="p-3 sm:p-4 border-b border-line flex-shrink-0">
+            <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1 mb-3">
+              <h2 className="font-semibold text-fg truncate min-w-0">{CATEGORIES.find((c) => c.id === activeCategory)?.label}</h2>
+              <span className="text-xs text-fg-5 flex-shrink-0">{filteredItems.length} item{filteredItems.length !== 1 ? "s" : ""}</span>
             </div>
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -732,7 +732,7 @@ export default function CreateBillPage() {
           </div>
 
           {/* Items grid */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4">
             {itemsLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-2">
@@ -755,7 +755,7 @@ export default function CreateBillPage() {
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {filteredItems.map((item) => (
                   <PlanItemCard
                     key={item.id}
@@ -781,11 +781,11 @@ export default function CreateBillPage() {
         </div>
 
         {/* ── RIGHT PANEL ──────────────────────────────────── */}
-        <div className="w-full lg:w-[360px] flex-shrink-0 bg-surface rounded-2xl border border-line flex flex-col overflow-hidden shadow-sm h-full">
+        <div className="w-full lg:w-[360px] flex-shrink-0 bg-surface rounded-2xl border border-line flex flex-col overflow-hidden shadow-sm h-auto lg:h-full min-h-0">
 
           {/* Header — shows who the bill is for */}
-          <div className="p-4 border-b border-line flex-shrink-0 bg-surface">
-            <div className="flex items-center justify-between">
+          <div className="p-3 sm:p-4 border-b border-line flex-shrink-0 bg-surface">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-fg-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -800,25 +800,25 @@ export default function CreateBillPage() {
             </div>
             {/* Customer indicator & Discount Status text */}
             {customerLabel && (
-              <div className="mt-2 space-y-1.5">
-                <div className="flex items-center gap-1.5 text-xs text-fg-4">
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="mt-2 space-y-1.5 min-w-0">
+                <div className="flex items-center gap-1.5 text-xs text-fg-4 min-w-0">
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  <span>Bill for <span className="font-semibold text-fg">{customerLabel}</span></span>
+                  <span className="truncate min-w-0">Bill for <span className="font-semibold text-fg">{customerLabel}</span></span>
                 </div>
 
                 {/* Member Discount Status Text */}
                 {selectedMember && (
                   appliedDiscountId ? (
-                    <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-600 font-bold flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-600 font-bold flex items-center justify-between gap-2 flex-wrap min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <svg className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M17 17h.01M7 7l10 10M7 7a4 4 0 115.657 5.657M17 17a4 4 0 11-5.657-5.657" />
                         </svg>
-                        <span>Discount: {discountType === "percentage" ? `${discountValue}% OFF` : `₹${parseFloat(discountValue || "0").toLocaleString("en-IN")} OFF`}</span>
+                        <span className="truncate">Discount: {discountType === "percentage" ? `${discountValue}% OFF` : `₹${parseFloat(discountValue || "0").toLocaleString("en-IN")} OFF`}</span>
                       </div>
-                      {discountAmount > 0 && <span className="font-black text-emerald-600">−{fmt(discountAmount)}</span>}
+                      {discountAmount > 0 && <span className="font-black text-emerald-600 flex-shrink-0">−{fmt(discountAmount)}</span>}
                     </div>
                   ) : (
                     <div className="text-[11px] font-medium text-fg-4 px-1">
@@ -860,7 +860,7 @@ export default function CreateBillPage() {
                           className="w-6 h-6 rounded-lg bg-line/60 text-fg text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">+</button>
                       </div>
                       <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                        <span className="text-xs font-bold text-fg">{fmt(item.unit_price * item.quantity)}</span>
+                        <span className="text-xs font-bold text-fg break-all">{fmt(item.unit_price * item.quantity)}</span>
                         <button onClick={() => removeFromCart(item.cartId)} className="text-red-500/40 hover:text-red-500 transition-colors">
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -877,7 +877,7 @@ export default function CreateBillPage() {
             <div className="border-t border-line pt-3 space-y-3">
               {/* Apply Discount Box */}
               <div className="p-2.5 rounded-xl bg-surface-2/60 border border-line space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={() => {
@@ -894,14 +894,14 @@ export default function CreateBillPage() {
                     <span>{showDiscount ? "Remove Discount" : "+ Apply Manual Discount"}</span>
                   </button>
                   {showDiscount && discountValue && (
-                    <span className="text-[10px] text-emerald-500 font-bold">
+                    <span className="text-[10px] text-emerald-500 font-bold break-all">
                       {discountType === "percentage" ? `${discountValue}% OFF` : `₹${discountValue} OFF`}
                     </span>
                   )}
                 </div>
 
                 {showDiscount && (
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
                     <select
                       value={discountType}
                       onChange={(e) => setDiscountType(e.target.value as any)}
@@ -924,19 +924,19 @@ export default function CreateBillPage() {
 
               {/* Totals */}
               <div className="space-y-1.5 px-1">
-                <div className="flex items-center justify-between text-xs text-fg-4">
-                  <span>Subtotal</span><span>{fmt(subtotal)}</span>
+                <div className="flex items-center justify-between gap-2 text-xs text-fg-4">
+                  <span>Subtotal</span><span className="break-all">{fmt(subtotal)}</span>
                 </div>
 
                 {discountAmount > 0 && (
-                  <div className="flex items-center justify-between text-xs text-emerald-600 font-bold">
-                    <span>Member Discount ({discountType === "percentage" ? discountValue + "% OFF" : fmt(parseFloat(discountValue))})</span>
-                    <span>− {fmt(discountAmount)}</span>
+                  <div className="flex items-center justify-between gap-2 flex-wrap text-xs text-emerald-600 font-bold">
+                    <span className="min-w-0 break-words">Member Discount ({discountType === "percentage" ? discountValue + "% OFF" : fmt(parseFloat(discountValue))})</span>
+                    <span className="flex-shrink-0">− {fmt(discountAmount)}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between pt-2 border-t border-line">
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-line">
                   <span className="font-bold text-fg text-sm">Grand Total</span>
-                  <span className="font-bold text-accent text-lg">{fmt(grandTotal)}</span>
+                  <span className="font-bold text-accent text-lg break-all">{fmt(grandTotal)}</span>
                 </div>
               </div>
 
@@ -955,8 +955,8 @@ export default function CreateBillPage() {
 
                 {paymentStatus === "paid" && (
                   <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <div className="flex-1 relative">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex-1 relative min-w-0">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-fg-5 font-semibold">₹</span>
                         <input type="number" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)}
                           placeholder="0"
@@ -964,7 +964,7 @@ export default function CreateBillPage() {
                         />
                       </div>
                       <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-                        className="flex-1 px-2 py-2 rounded-xl border border-line bg-surface-2/50 text-xs text-fg font-medium focus:outline-none focus:ring-1 focus:ring-accent"
+                        className="flex-1 min-w-0 w-full sm:w-auto px-2 py-2 rounded-xl border border-line bg-surface-2/50 text-xs text-fg font-medium focus:outline-none focus:ring-1 focus:ring-accent"
                       >
                         <option>Cash</option>
                         <option>UPI</option>
@@ -974,7 +974,7 @@ export default function CreateBillPage() {
                     </div>
 
                     {/* Quick chips */}
-                    <div className="flex gap-1.5">
+                    <div className="flex gap-1.5 flex-wrap">
                       {[500, 1000].map((amt) => (
                         <button key={amt} onClick={() => setAmountPaid(amt.toString())}
                           className="flex-1 py-1.5 rounded-lg border border-line/60 text-xs text-fg-3 hover:bg-hover transition-colors font-medium">
@@ -1003,8 +1003,8 @@ export default function CreateBillPage() {
                       <span className="text-[10px] text-fg-4 font-semibold">Enter paid vs due</span>
                     </div>
 
-                    <div className="flex gap-2">
-                      <div className="flex-1 relative">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex-1 relative min-w-0">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-fg-5 font-semibold">₹</span>
                         <input
                           type="number"
@@ -1020,7 +1020,7 @@ export default function CreateBillPage() {
                       <select
                         value={paymentMethod}
                         onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-                        className="flex-1 px-2 py-2 rounded-xl border border-line bg-surface text-xs text-fg font-medium focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        className="flex-1 min-w-0 w-full sm:w-auto px-2 py-2 rounded-xl border border-line bg-surface text-xs text-fg font-medium focus:outline-none focus:ring-1 focus:ring-amber-500"
                       >
                         <option>Cash</option>
                         <option>UPI</option>
@@ -1030,7 +1030,7 @@ export default function CreateBillPage() {
                     </div>
 
                     {/* Quick presets for partial payment */}
-                    <div className="flex gap-1.5">
+                    <div className="flex gap-1.5 flex-wrap">
                       <button
                         type="button"
                         onClick={() => setAmountPaid("0")}
@@ -1059,13 +1059,13 @@ export default function CreateBillPage() {
 
                     {/* Due Amount Breakdown Box */}
                     <div className="p-2.5 rounded-xl bg-surface border border-line space-y-1 text-xs">
-                      <div className="flex items-center justify-between text-fg-4 font-medium">
+                      <div className="flex items-center justify-between gap-2 text-fg-4 font-medium">
                         <span>Paid Today:</span>
-                        <span className="font-bold text-fg">₹{(parseFloat(amountPaid) || 0).toLocaleString("en-IN")}</span>
+                        <span className="font-bold text-fg break-all">₹{(parseFloat(amountPaid) || 0).toLocaleString("en-IN")}</span>
                       </div>
-                      <div className="flex items-center justify-between pt-1 border-t border-line font-black">
+                      <div className="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-line font-black">
                         <span className="text-amber-600">Remaining Balance Due:</span>
-                        <span className="text-amber-600 text-sm">
+                        <span className="text-amber-600 text-sm break-all">
                           ₹{Math.max(0, grandTotal - (parseFloat(amountPaid) || 0)).toLocaleString("en-IN")}
                         </span>
                       </div>
@@ -1087,11 +1087,11 @@ export default function CreateBillPage() {
           </div>
 
           {/* Sticky Bottom Action Bar (Complete Bill Button - ALWAYS VISIBLE!) */}
-          <div className="p-3 border-t border-line bg-surface flex-shrink-0 shadow-lg">
+          <div className="p-3 sm:p-3 border-t border-line bg-surface flex-shrink-0 shadow-lg">
             <button
               onClick={handleCompleteBill}
               disabled={completing || !!completedInvoice || !hasPerm("billing.create")}
-              className={`w-full py-3.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-md ${
+              className={`w-full py-3 sm:py-3.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 flex-wrap shadow-md ${
                 hasPerm("billing.create")
                   ? "bg-accent text-white hover:bg-accent-2 shadow-accent/20"
                   : "bg-accent/40 text-white/60 cursor-not-allowed opacity-50"
@@ -1155,12 +1155,12 @@ function PlanItemCard({
       </div>
 
       {/* Name + Price */}
-      <div>
-        <h3 className="text-sm font-bold text-fg leading-tight">{item.name}</h3>
-        <div className="flex items-baseline gap-1.5 mt-0.5">
-          <span className="text-base font-bold text-accent">{fmt(item.price)}</span>
+      <div className="min-w-0">
+        <h3 className="text-sm font-bold text-fg leading-tight break-words">{item.name}</h3>
+        <div className="flex items-baseline gap-1.5 mt-0.5 flex-wrap">
+          <span className="text-base font-bold text-accent break-all">{fmt(item.price)}</span>
           {item.original_price && (
-            <span className="text-xs text-fg/25 line-through">{fmt(item.original_price)}</span>
+            <span className="text-xs text-fg/25 line-through break-all">{fmt(item.original_price)}</span>
           )}
         </div>
         {item.stock_quantity !== null && item.stock_quantity !== undefined && (
