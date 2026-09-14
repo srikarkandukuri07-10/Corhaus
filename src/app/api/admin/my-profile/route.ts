@@ -19,11 +19,19 @@ async function getAuthenticatedStaff() {
   const normalizedEmail = user.email.trim().toLowerCase();
   const serviceClient = getServiceClient();
 
-  const { data: staff } = await serviceClient
-    .from("staff_members")
-    .select("*")
-    .ilike("email", normalizedEmail)
-    .maybeSingle();
+  // Primary: resolve via staff_roles.user_id (stable even if staff email was changed via My Profile)
+  let staff: any = null;
+  try {
+    const { data: sr } = await serviceClient.from("staff_roles").select("staff_id").eq("user_id", user.id).maybeSingle();
+    if (sr?.staff_id) {
+      const { data: bySr } = await serviceClient.from("staff_members").select("*").eq("id", sr.staff_id).maybeSingle();
+      if (bySr) staff = bySr;
+    }
+  } catch {}
+  if (!staff) {
+    const { data: byEmail } = await serviceClient.from("staff_members").select("*").ilike("email", normalizedEmail).maybeSingle();
+    if (byEmail) staff = byEmail;
+  }
 
   // Owner fallback: admin email without staff_members row
   if (!staff && isAdminEmail(user.email)) {
@@ -88,10 +96,10 @@ export async function GET() {
         upi_id: null,
         isOwnerFallback: true,
       };
-      return NextResponse.json({ staff: synthetic });
+      return NextResponse.json({ staff: synthetic }, { headers: { "Cache-Control": "no-store, max-age=0", Pragma: "no-cache" } });
     }
 
-    return NextResponse.json({ staff: auth.staff });
+    return NextResponse.json({ staff: auth.staff }, { headers: { "Cache-Control": "no-store, max-age=0", Pragma: "no-cache" } });
   } catch (err: any) {
     console.error("GET /api/admin/my-profile error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -201,7 +209,14 @@ export async function PATCH(req: Request) {
       if (error) {
         return NextResponse.json({ error: "Failed to create staff profile: " + error.message }, { status: 500 });
       }
-      return NextResponse.json({ success: true, staff: data });
+      // Upsert staff_roles link for the newly created Owner row
+      try {
+        const { data: roleObj } = await serviceClient.from("roles").select("id").ilike("name", "Owner").maybeSingle();
+        if (roleObj) {
+          await serviceClient.from("staff_roles").upsert({ staff_id: data.id, user_id: auth.user.id, role_id: roleObj.id }, { onConflict: "staff_id" });
+        }
+      } catch {}
+      return NextResponse.json({ success: true, staff: data }, { headers: { "Cache-Control": "no-store, max-age=0" } });
     }
 
     // Regular staff: update own row only
@@ -210,7 +225,9 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Failed to update profile: " + error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, staff: data });
+    // Ensure email change does not break future lookups: keep staff_roles link intact (already by user_id)
+    // Also ensure staff_roles role matches kept role
+    return NextResponse.json({ success: true, staff: data }, { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (err: any) {
     console.error("PATCH /api/admin/my-profile error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

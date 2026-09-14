@@ -56,7 +56,7 @@ export default function MyProfilePage() {
   async function fetchProfile() {
     setError(null);
     try {
-      const res = await fetch("/api/admin/my-profile", { cache: "no-store" });
+      const res = await fetch(`/api/admin/my-profile?t=${Date.now()}`, { cache: "no-store", headers: { "Cache-Control": "no-cache" } as any });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "Failed to load profile");
       setProfile(j.staff);
@@ -142,11 +142,21 @@ export default function MyProfilePage() {
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "Failed to update profile");
 
+      // Trust server response but also re-fetch to guarantee DB truth (bust any cache)
       setProfile(j.staff);
       setForm(j.staff);
       setSuccess("Profile updated successfully.");
       // Notify admin layout to refresh header
       window.dispatchEvent(new CustomEvent("corhaus:profile-updated"));
+      // Force fresh read from DB to ensure UI matches persisted data
+      try {
+        const verifyRes = await fetch(`/api/admin/my-profile?t=${Date.now()}`, { cache: "no-store", headers: { "Cache-Control": "no-cache" } as any });
+        const vj = await verifyRes.json();
+        if (verifyRes.ok && vj.staff) {
+          setProfile(vj.staff);
+          setForm(vj.staff);
+        }
+      } catch {}
       // Also refresh via API so header reflects immediately
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {

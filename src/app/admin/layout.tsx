@@ -50,7 +50,7 @@ export default function AdminLayout({
           setLoading(false);
           // Fetch actual staff profile for dynamic header (name/role/initial)
           try {
-            const profRes = await fetch("/api/admin/my-profile", { cache: "no-store" });
+            const profRes = await fetch(`/api/admin/my-profile?t=${Date.now()}`, { cache: "no-store", headers: { "Cache-Control": "no-cache" } as any });
             if (profRes.ok) {
               const pj = await profRes.json();
               if (pj.staff) setStaffProfile(pj.staff);
@@ -83,7 +83,7 @@ export default function AdminLayout({
     }
     async function refreshProfile() {
       try {
-        const pr = await fetch("/api/admin/my-profile", { cache: "no-store" });
+        const pr = await fetch(`/api/admin/my-profile?t=${Date.now()}`, { cache: "no-store", headers: { "Cache-Control": "no-cache" } as any });
         if (pr.ok) {
           const pj = await pr.json();
           if (pj.staff) setStaffProfile(pj.staff);
