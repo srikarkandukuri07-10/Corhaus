@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
     // ─── 1. DEVELOPER / SUPPORT IDENTITY ──────────────────────────────────────
     if (isDeveloperEmail(normalizedEmail)) {
-      const { data: usersData } = await serviceClient.auth.admin.listUsers();
+      const { data: usersData } = await serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
       let devUser = (usersData?.users || []).find(
         (u) => u.email?.trim().toLowerCase() === normalizedEmail
       );
@@ -153,7 +153,7 @@ export async function POST(request: Request) {
 
       const staffRole = staff?.role || (isAdminEmail(normalizedEmail) ? "Manager" : "Staff");
 
-      const { data: usersData } = await serviceClient.auth.admin.listUsers();
+      const { data: usersData } = await serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
       let staffUser = (usersData?.users || []).find(
         (u) => u.email?.trim().toLowerCase() === normalizedEmail
       );
@@ -262,7 +262,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const { data: usersData } = await serviceClient.auth.admin.listUsers();
+    const { data: usersData } = await serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
     let memberUser = (usersData?.users || []).find(
       (u) => u.email?.trim().toLowerCase() === normalizedEmail
     );
@@ -345,3 +345,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     if (isDeveloperEmail(normalizedEmail)) {
       let hasPassword = false;
       try {
-        const { data: usersData } = await serviceClient.auth.admin.listUsers();
+        const { data: usersData } = await serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
         const existingUser = (usersData?.users || []).find(
           (u) => u.email?.trim().toLowerCase() === normalizedEmail
         );
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       // Check if user has established a password in Supabase Auth
       let hasPassword = false;
       try {
-        const { data: usersData } = await serviceClient.auth.admin.listUsers();
+        const { data: usersData } = await serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
         const existingUser = (usersData?.users || []).find(
           (u) => u.email?.trim().toLowerCase() === normalizedEmail
         );
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     if (member && member.membership_status === "active") {
       let hasPassword = false;
       try {
-        const { data: usersData } = await serviceClient.auth.admin.listUsers();
+        const { data: usersData } = await serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
         const existingUser = (usersData?.users || []).find(
           (u) => u.email?.trim().toLowerCase() === normalizedEmail
         );
@@ -143,7 +143,7 @@ export async function POST(request: Request) {
       );
       let hasPassword = false;
       try {
-        const { data: usersData } = await serviceClient.auth.admin.listUsers();
+        const { data: usersData } = await serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
         const existingUser = (usersData?.users || []).find(
           (u) => u.email?.trim().toLowerCase() === normalizedEmail
         );
@@ -175,3 +175,4 @@ export async function POST(request: Request) {
     }, { status: 500 });
   }
 }
+

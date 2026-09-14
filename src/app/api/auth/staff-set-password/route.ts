@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     const accountType = isDev ? "developer" : isStaff ? "staff" : "member";
 
     // Find or create user in Supabase Auth and set password
-    const { data: usersData } = await serviceClient.auth.admin.listUsers();
+    const { data: usersData } = await serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
     let authUser = (usersData?.users || []).find(
       (u) => u.email?.trim().toLowerCase() === normalizedEmail
     );
@@ -190,3 +190,4 @@ export async function POST(request: Request) {
     );
   }
 }
+
