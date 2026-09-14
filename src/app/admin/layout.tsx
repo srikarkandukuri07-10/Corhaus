@@ -467,7 +467,7 @@ export default function AdminLayout({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="font-bold text-sm tracking-[0.18em] text-white truncate">CORHAUS</span>
+          <Logo size="sm" />
         </div>
         <div className="flex items-center gap-1 flex-shrink-0 relative">
           <ThemeToggle />
