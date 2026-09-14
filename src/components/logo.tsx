@@ -63,61 +63,51 @@ export default function Logo({
     return <span className={`inline-flex items-center ${className}`}>{imageEl}</span>;
   }
 
-  const titleSizeClass =
-    size === "lg" ? "text-3xl" : size === "sm" ? "text-xl" : "text-2xl";
-  const taglineSizeClass =
-    size === "lg" ? "text-[11px]" : size === "sm" ? "text-[9px]" : "text-[10px]";
-
-  const mainTextColor =
-    variant === "white"
-      ? "text-white"
-      : variant === "gold"
-      ? "text-amber-400"
-      : variant === "dark"
-      ? "text-fg"
-      : "text-fg dark:text-white";
-
-  const tagtextColor =
-    variant === "white"
-      ? "text-white/85"
-      : variant === "gold"
-      ? "text-amber-300/90"
-      : variant === "dark"
-      ? "text-fg-3"
-      : "text-fg-3 dark:text-white/85";
-
-  const content = (
-    <div className={`inline-flex flex-col text-left leading-none select-none ${className}`}>
-      <div className={`flex items-baseline ${mainTextColor}`}>
-        <span
-          className={`${titleSizeClass} font-normal tracking-tight`}
-          style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }}
-        >
-          Cor
-        </span>
-        <span
-          className={`${titleSizeClass} font-extralight tracking-tight`}
-          style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif", fontWeight: 300 }}
-        >
-          haus
-        </span>
-      </div>
-      <p
-        className={`${taglineSizeClass} tracking-[0.14em] font-serif lowercase mt-0.5 ${tagtextColor}`}
-        style={{ fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif" }}
+  // Fallback: cream square with brown text — matches the 2nd photo (Corhaus pilates for everyone)
+  // Somewhat rounded (10px), not too rounded (not full, not 3xl)
+  const fallbackCream = (
+    <div
+      className={`flex flex-col items-center justify-center text-center leading-none select-none shrink-0 ${className}`}
+      style={{
+        width: imgSize,
+        height: imgSize,
+        background: "#F6EFE6",
+        borderRadius: "10px",
+        border: "1px solid rgba(107, 68, 42, 0.08)",
+      }}
+    >
+      <span
+        className="font-normal tracking-tight"
+        style={{
+          fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif",
+          fontSize: size === "lg" ? "13px" : size === "sm" ? "10px" : "11.5px",
+          color: "#6B3A26",
+          lineHeight: 1,
+        }}
       >
-        Pilates for everyone
-      </p>
+        Corhaus
+      </span>
+      <span
+        className="tracking-[0.14em] lowercase"
+        style={{
+          fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif",
+          fontSize: size === "lg" ? "5.5px" : size === "sm" ? "4px" : "4.8px",
+          color: "#8B6A4F",
+          marginTop: "1px",
+        }}
+      >
+        pilates for everyone
+      </span>
     </div>
   );
 
   if (href) {
     return (
-      <Link href={href} className="inline-block hover:opacity-90 transition-opacity">
-        {content}
+      <Link href={href} className="inline-flex items-center hover:opacity-90 transition-opacity">
+        {fallbackCream}
       </Link>
     );
   }
 
-  return content;
+  return fallbackCream;
 }
