@@ -115,10 +115,11 @@ export default function Logo({
           }}
         >
           <span
-            className="font-normal tracking-tight"
+            className="tracking-tight"
             style={{
               fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif",
-              fontSize: "20px",
+              fontSize: "22px",
+              fontWeight: 700,
               color: "#6B3A26",
               lineHeight: 1,
               letterSpacing: "-0.02em",
@@ -130,8 +131,9 @@ export default function Logo({
             className="tracking-[0.14em] lowercase"
             style={{
               fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif",
-              fontSize: "8.5px",
-              color: "#8B6A4F",
+              fontSize: "9px",
+              fontWeight: 600,
+              color: "#6B3A26",
               marginTop: "2px",
             }}
           >
