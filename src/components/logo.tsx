@@ -38,9 +38,9 @@ export default function Logo({
   const logoUrl = logoUrlProp !== undefined ? logoUrlProp : fetchedLogoUrl;
 
   // Square logo image — somewhat rounded, not too rounded
-  // banner = rectangle that fills header (e.g. sidebar top), height ~40, width auto, object-contain
+  // banner = rectangle that fills header, taller for clear text (increased per feedback)
   const isBanner = size === "banner";
-  const imgSize = isBanner ? 40 : size === "lg" ? 44 : size === "sm" ? 32 : 38;
+  const imgSize = isBanner ? 52 : size === "lg" ? 44 : size === "sm" ? 32 : 38;
 
   if (logoUrl) {
     // Use object-contain so rectangular logos fully fit without stretching text
@@ -107,7 +107,7 @@ export default function Logo({
         <div
           className={`flex flex-col items-center justify-center text-center leading-none select-none w-full ${className}`}
           style={{
-            height: 40,
+            height: 52,
             background: "#F6EFE6",
             borderRadius: "10px",
             border: "1px solid rgba(107, 68, 42, 0.08)",
@@ -117,7 +117,7 @@ export default function Logo({
             className="font-normal tracking-tight"
             style={{
               fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif",
-              fontSize: "14px",
+              fontSize: "17px",
               color: "#6B3A26",
               lineHeight: 1,
             }}
@@ -128,9 +128,9 @@ export default function Logo({
             className="tracking-[0.14em] lowercase"
             style={{
               fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif",
-              fontSize: "6px",
+              fontSize: "7px",
               color: "#8B6A4F",
-              marginTop: "1px",
+              marginTop: "2px",
             }}
           >
             pilates for everyone
