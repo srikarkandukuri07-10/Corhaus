@@ -111,6 +111,19 @@ export default function AdminLayout({
   const displayInitial = displayName ? displayName.trim().charAt(0).toUpperCase() : (role ? role.charAt(0).toUpperCase() : "A");
   const displayRole = (staffProfile?.role || role || "Staff").trim() || "Staff";
 
+  // Robust sign out — works from drawer (which has overlay) and top bar; always hard-navigates
+  const handleSignOut = useCallback(async () => {
+    setMobileOpen(false);
+    setProfileMenuOpen(false);
+    setMobileProfileMenuOpen(false);
+    try {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {}
+    window.location.href = "/auth/login";
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-canvas">
@@ -446,9 +459,10 @@ export default function AdminLayout({
                   <svg className="w-4 h-4 text-fg-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                   My Profile
                 </Link>
-                <div className="px-2 py-1">
-                  <LogoutButton />
-                </div>
+                <button type="button" onClick={handleSignOut} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 text-left touch-manipulation">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  Sign Out
+                </button>
               </div>
             </>
           )}
@@ -476,12 +490,7 @@ export default function AdminLayout({
             <LogoutButton />
           </div>
           <button
-            onClick={async () => {
-              const { createClient } = await import("@/lib/supabase/client");
-              const supabase = createClient();
-              try { await supabase.auth.signOut(); } catch {}
-              window.location.href = "/auth/login";
-            }}
+            onClick={handleSignOut}
             className="sm:hidden p-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 shrink-0 touch-manipulation"
             aria-label="Sign out"
             title="Sign Out"
@@ -511,9 +520,10 @@ export default function AdminLayout({
                   <svg className="w-4 h-4 text-fg-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                   My Profile
                 </Link>
-                <div className="px-2 py-1">
-                  <LogoutButton />
-                </div>
+                <button type="button" onClick={handleSignOut} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 text-left touch-manipulation">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  Sign Out
+                </button>
               </div>
             </>
           )}
@@ -603,12 +613,19 @@ export default function AdminLayout({
             </nav>
 
             {/* Drawer Footer — My Profile + Sign Out */}
-            <div className="p-4 border-t border-white/10 flex-shrink-0 space-y-2">
-              <Link href="/admin/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 transition-colors">
+            <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-white/10 flex-shrink-0 space-y-2">
+              <Link href="/admin/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5 w-full px-3 py-3 rounded-xl text-sm font-semibold text-white hover:bg-white/10 transition-colors touch-manipulation">
                 <svg className="w-4 h-4 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                 My Profile
               </Link>
-              <LogoutButton />
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-white/90 bg-white/10 hover:bg-white/15 border border-white/15 transition-colors touch-manipulation"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                Sign Out
+              </button>
             </div>
           </aside>
         </div>
