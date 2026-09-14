@@ -374,9 +374,12 @@ export default function BusinessProfilePage() {
                 subtitle="Public-facing studio identity and contact details"
               />
 
-              {/* Logo upload */}
+              {/* Logo upload — square with somewhat rounded corners */}
               <div className="flex flex-wrap items-center gap-5">
-                <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-line bg-surface-2/50 flex-shrink-0">
+                <div
+                  className="relative w-20 h-20 overflow-hidden border-2 border-line bg-surface-2/50 flex-shrink-0"
+                  style={{ borderRadius: "12px" }}
+                >
                   {form.logo_url ? (
                     <Image
                       src={form.logo_url}
@@ -386,7 +389,7 @@ export default function BusinessProfilePage() {
                       unoptimized
                     />
                   ) : (
-                    /* Default Corhaus circular logo fallback */
+                    /* Default Corhaus logo fallback — square, not circular */
                     <Image
                       src="/icon-192.jpg"
                       alt="Default logo"
@@ -396,7 +399,7 @@ export default function BusinessProfilePage() {
                     />
                   )}
                   {uploadingLogo && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center" style={{ borderRadius: "12px" }}>
                       <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                     </div>
                   )}
