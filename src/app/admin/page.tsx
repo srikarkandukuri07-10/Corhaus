@@ -506,120 +506,164 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* 4 Premium Metric KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      {/* 4 Premium Metric KPI Cards — compact horizontal on mobile */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {/* Today's Classes */}
-        <div className="admin-card admin-card-hover p-5 flex flex-col justify-between group">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-fg-3 uppercase tracking-[0.08em]">
-              Today&apos;s Classes
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center group-hover:scale-105 transition-transform">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="admin-card admin-card-hover p-3 sm:p-5 flex flex-row sm:flex-col sm:justify-between items-center sm:items-stretch gap-3 group relative">
+          <div className="flex sm:items-center sm:justify-between gap-2.5 flex-1 sm:flex-none min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
+            <div className="min-w-0">
+              <span className="block text-[10px] sm:text-[11px] font-semibold text-fg-3 uppercase tracking-[0.08em] leading-tight truncate">
+                Today&apos;s Classes
+              </span>
+              <div className="sm:hidden">
+                {loading ? (
+                  <div className="h-5 w-10 bg-line/40 animate-pulse rounded mt-1" />
+                ) : (
+                  <div className="text-xl font-bold text-fg leading-none mt-0.5">{todaysClassesCount}</div>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="mt-4">
+          <div className="flex flex-col items-end sm:items-stretch sm:mt-4 shrink-0 sm:shrink text-right sm:text-left">
             {loading ? (
-              <div className="h-8 w-16 bg-line/40 animate-pulse rounded-md" />
+              <div className="hidden sm:block h-8 w-16 bg-line/40 animate-pulse rounded-md" />
             ) : (
-              <div className="text-[32px] font-semibold text-fg tracking-tight leading-none">
+              <div className="hidden sm:block text-[32px] font-semibold text-fg tracking-tight leading-none">
                 {todaysClassesCount}
               </div>
             )}
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-line/70">
+            {!loading && <div className="sm:hidden text-[10px] font-bold text-accent leading-none">View &rarr;</div>}
+            <div className="hidden sm:flex items-center justify-between mt-4 pt-3 border-t border-line/70">
               <span className="text-[11px] text-fg-4 font-medium">Scheduled Sessions</span>
               <Link href="/admin/classes" className="text-xs font-bold text-accent hover:underline flex items-center gap-1">
                 View &rarr;
               </Link>
             </div>
           </div>
+          <Link href="/admin/classes" className="absolute inset-0 sm:hidden" aria-label="View schedule" />
         </div>
 
         {/* Total Members */}
-        <div className="admin-card admin-card-hover p-5 flex flex-col justify-between group">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-fg-3 uppercase tracking-[0.08em]">
-              Approved Members
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="admin-card admin-card-hover p-3 sm:p-5 flex flex-row sm:flex-col sm:justify-between items-center sm:items-stretch gap-3 group relative">
+          <div className="flex sm:items-center sm:justify-between gap-2.5 flex-1 sm:flex-none min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
+            <div className="min-w-0">
+              <span className="block text-[10px] sm:text-[11px] font-semibold text-fg-3 uppercase tracking-[0.08em] leading-tight truncate">
+                Approved Members
+              </span>
+              <div className="sm:hidden">
+                {loading ? (
+                  <div className="h-5 w-10 bg-line/40 animate-pulse rounded mt-1" />
+                ) : (
+                  <div className="text-xl font-bold text-fg leading-none mt-0.5">{totalMembersCount}</div>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="mt-4">
+          <div className="flex flex-col items-end sm:items-stretch sm:mt-4 shrink-0 sm:shrink text-right sm:text-left">
             {loading ? (
-              <div className="h-8 w-16 bg-line/40 animate-pulse rounded-md" />
+              <div className="hidden sm:block h-8 w-16 bg-line/40 animate-pulse rounded-md" />
             ) : (
-              <div className="text-[32px] font-semibold text-fg tracking-tight leading-none">
+              <div className="hidden sm:block text-[32px] font-semibold text-fg tracking-tight leading-none">
                 {totalMembersCount}
               </div>
             )}
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-line/70">
+            {!loading && <div className="sm:hidden text-[10px] font-bold text-blue-500 leading-none">Directory &rarr;</div>}
+            <div className="hidden sm:flex items-center justify-between mt-4 pt-3 border-t border-line/70">
               <span className="text-[11px] text-fg-4 font-medium">Active Studio Roster</span>
               <Link href="/admin/members" className="text-xs font-bold text-blue-500 hover:underline flex items-center gap-1">
                 Directory &rarr;
               </Link>
             </div>
           </div>
+          <Link href="/admin/members" className="absolute inset-0 sm:hidden" aria-label="View members" />
         </div>
 
         {/* This Month's Revenue */}
-        <div className="admin-card admin-card-hover p-5 flex flex-col justify-between group">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-fg-3 uppercase tracking-[0.08em]">
-              Monthly Revenue
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-gold/10 text-gold font-bold text-base flex items-center justify-center group-hover:scale-105 transition-transform">
+        <div className="admin-card admin-card-hover p-3 sm:p-5 flex flex-row sm:flex-col sm:justify-between items-center sm:items-stretch gap-3 group relative">
+          <div className="flex sm:items-center sm:justify-between gap-2.5 flex-1 sm:flex-none min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gold/10 text-gold font-bold text-sm sm:text-base flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               &#8377;
             </div>
+            <div className="min-w-0">
+              <span className="block text-[10px] sm:text-[11px] font-semibold text-fg-3 uppercase tracking-[0.08em] leading-tight truncate">
+                Monthly Revenue
+              </span>
+              <div className="sm:hidden">
+                {loading ? (
+                  <div className="h-5 w-14 bg-line/40 animate-pulse rounded mt-1" />
+                ) : (
+                  <div className="text-xl font-bold text-fg leading-none mt-0.5 truncate">&#8377;{todaysRevenue.toLocaleString("en-IN")}</div>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="mt-4">
+          <div className="flex flex-col items-end sm:items-stretch sm:mt-4 shrink-0 sm:shrink text-right sm:text-left">
             {loading ? (
-              <div className="h-8 w-24 bg-line/40 animate-pulse rounded-md" />
+              <div className="hidden sm:block h-8 w-24 bg-line/40 animate-pulse rounded-md" />
             ) : (
-              <div className="text-[32px] font-semibold text-fg tracking-tight leading-none">
+              <div className="hidden sm:block text-[32px] font-semibold text-fg tracking-tight leading-none">
                 &#8377;{todaysRevenue.toLocaleString("en-IN")}
               </div>
             )}
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-line/70">
+            {!loading && <div className="sm:hidden text-[10px] font-bold text-gold leading-none">Invoices &rarr;</div>}
+            <div className="hidden sm:flex items-center justify-between mt-4 pt-3 border-t border-line/70">
               <span className="text-[11px] text-fg-4 font-medium">Paid Invoices</span>
               <Link href="/admin/billing/invoices" className="text-xs font-bold text-gold hover:underline flex items-center gap-1">
                 Invoices &rarr;
               </Link>
             </div>
           </div>
+          <Link href="/admin/billing/invoices" className="absolute inset-0 sm:hidden" aria-label="View invoices" />
         </div>
 
         {/* Check-ins Today */}
-        <div className="admin-card admin-card-hover p-5 flex flex-col justify-between group">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-fg-3 uppercase tracking-[0.08em]">
-              Check-ins Today
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="admin-card admin-card-hover p-3 sm:p-5 flex flex-row sm:flex-col sm:justify-between items-center sm:items-stretch gap-3 group relative">
+          <div className="flex sm:items-center sm:justify-between gap-2.5 flex-1 sm:flex-none min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
+            <div className="min-w-0">
+              <span className="block text-[10px] sm:text-[11px] font-semibold text-fg-3 uppercase tracking-[0.08em] leading-tight truncate">
+                Check-ins Today
+              </span>
+              <div className="sm:hidden">
+                {loading ? (
+                  <div className="h-5 w-10 bg-line/40 animate-pulse rounded mt-1" />
+                ) : (
+                  <div className="text-xl font-bold text-fg leading-none mt-0.5">{checkInsTodayCount}</div>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="mt-4">
+          <div className="flex flex-col items-end sm:items-stretch sm:mt-4 shrink-0 sm:shrink text-right sm:text-left">
             {loading ? (
-              <div className="h-8 w-16 bg-line/40 animate-pulse rounded-md" />
+              <div className="hidden sm:block h-8 w-16 bg-line/40 animate-pulse rounded-md" />
             ) : (
-              <div className="text-[32px] font-semibold text-fg tracking-tight leading-none">
+              <div className="hidden sm:block text-[32px] font-semibold text-fg tracking-tight leading-none">
                 {checkInsTodayCount}
               </div>
             )}
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-line/70">
+            {!loading && <div className="sm:hidden text-[10px] font-bold text-emerald-600 leading-none">Scanner &rarr;</div>}
+            <div className="hidden sm:flex items-center justify-between mt-4 pt-3 border-t border-line/70">
               <span className="text-[11px] text-fg-4 font-medium">Scanned Attendances</span>
               <Link href="/admin/scanner" className="text-xs font-bold text-green-500 hover:underline flex items-center gap-1">
                 Scanner &rarr;
               </Link>
             </div>
           </div>
+          <Link href="/admin/scanner" className="absolute inset-0 sm:hidden" aria-label="Open scanner" />
         </div>
       </div>
 
