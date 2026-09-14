@@ -195,20 +195,20 @@ export default function ReportsPage() {
     <div className="space-y-6">
       {/* Module Title Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line-2 pb-5">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs font-semibold text-fg-3 mb-1">
             <span>Analytics Hub</span>
             <span>/</span>
             <span className="text-fg font-bold">Reports &amp; Intelligence</span>
           </div>
-          <h1 className="text-2xl font-serif font-bold text-fg">Central Reports Dashboard</h1>
-          <p className="text-xs text-fg-3 mt-1">
+          <h1 className="text-2xl font-serif font-bold text-fg truncate">Central Reports Dashboard</h1>
+          <p className="text-xs text-fg-3 mt-1 break-words">
             Real-time business performance analytics, financial metrics, and operational reports.
           </p>
         </div>
 
         {/* Global Export Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => {
               let exportDataset = [];
@@ -297,7 +297,7 @@ export default function ReportsPage() {
               </button>
             ))}
 
-            <div className="flex items-center gap-1.5 border-l border-line-2 pl-2">
+            <div className="flex flex-wrap items-center gap-1.5 border-l border-line-2 pl-2">
               <input
                 type="date"
                 value={startDate}
@@ -305,7 +305,7 @@ export default function ReportsPage() {
                   setStartDate(e.target.value);
                   setDateRangePreset("custom");
                 }}
-                className="px-2 py-1.5 rounded-lg border border-line-2 bg-surface-2 text-fg text-xs outline-none"
+                className="px-2 py-1.5 rounded-lg border border-line-2 bg-surface-2 text-fg text-xs outline-none w-full sm:w-auto min-w-0"
               />
               <span className="text-fg-3">to</span>
               <input
@@ -315,7 +315,7 @@ export default function ReportsPage() {
                   setEndDate(e.target.value);
                   setDateRangePreset("custom");
                 }}
-                className="px-2 py-1.5 rounded-lg border border-line-2 bg-surface-2 text-fg text-xs outline-none"
+                className="px-2 py-1.5 rounded-lg border border-line-2 bg-surface-2 text-fg text-xs outline-none w-full sm:w-auto min-w-0"
               />
             </div>
           </div>
@@ -399,9 +399,9 @@ export default function ReportsPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Revenue Trend Chart */}
                 <div className="p-5 rounded-2xl bg-surface border border-line-2 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-fg">Revenue Trend (Last 6 Months)</h3>
-                    <span className="text-[11px] font-bold text-emerald-500">Live Supabase</span>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-fg min-w-0 truncate">Revenue Trend (Last 6 Months)</h3>
+                    <span className="text-[11px] font-bold text-emerald-500 shrink-0">Live Supabase</span>
                   </div>
                   <div className="h-48 flex items-end justify-between gap-3 pt-6 px-2 border-b border-line-2">
                     {(overview.revenueTrend || []).map((item: any) => {
@@ -425,9 +425,9 @@ export default function ReportsPage() {
 
                 {/* Member Growth Chart */}
                 <div className="p-5 rounded-2xl bg-surface border border-line-2 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-fg">Member Growth (Last 6 Months)</h3>
-                    <span className="text-[11px] font-bold text-indigo-400">Live Supabase</span>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-fg min-w-0 truncate">Member Growth (Last 6 Months)</h3>
+                    <span className="text-[11px] font-bold text-indigo-400 shrink-0">Live Supabase</span>
                   </div>
                   <div className="h-48 flex items-end justify-between gap-3 pt-6 px-2 border-b border-line-2">
                     {(overview.memberGrowth || []).map((item: any) => {
@@ -456,7 +456,7 @@ export default function ReportsPage() {
           {activeTab === "payments" && (
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 min-w-0">
                   <span className="text-xs font-bold uppercase text-fg-3">Payment Status:</span>
                   {["All", "paid", "due", "partial"].map((st) => (
                     <button
@@ -474,7 +474,7 @@ export default function ReportsPage() {
                 </div>
                 <Link
                   href="/admin/billing"
-                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 shadow-xs inline-flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 shadow-xs inline-flex items-center justify-center gap-1.5 w-full sm:w-auto"
                 >
                   <span>➕</span> Record Pending Payment
                 </Link>
@@ -722,43 +722,43 @@ export default function ReportsPage() {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Revenue Breakdown */}
-                <div className="p-5 rounded-2xl bg-surface border border-line-2 shadow-xs space-y-3">
+                <div className="p-5 rounded-2xl bg-surface border border-line-2 shadow-xs space-y-3 min-w-0">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-fg">Revenue Breakdown</h3>
                   <div className="space-y-2 text-xs">
-                    <div className="flex justify-between py-2 border-b border-line-2">
-                      <span className="text-fg-3">Membership Revenue</span>
-                      <span className="font-bold text-fg">{fmt(pnl.membershipRevenue)}</span>
+                    <div className="flex justify-between gap-2 py-2 border-b border-line-2">
+                      <span className="text-fg-3 min-w-0 truncate">Membership Revenue</span>
+                      <span className="font-bold text-fg shrink-0">{fmt(pnl.membershipRevenue)}</span>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-line-2">
-                      <span className="text-fg-3">Personal Training (PT) Revenue</span>
-                      <span className="font-bold text-fg">{fmt(pnl.ptRevenue)}</span>
+                    <div className="flex justify-between gap-2 py-2 border-b border-line-2">
+                      <span className="text-fg-3 min-w-0 truncate">Personal Training (PT) Revenue</span>
+                      <span className="font-bold text-fg shrink-0">{fmt(pnl.ptRevenue)}</span>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-line-2">
-                      <span className="text-fg-3">Group Classes Revenue</span>
-                      <span className="font-bold text-fg">{fmt(pnl.groupRevenue)}</span>
+                    <div className="flex justify-between gap-2 py-2 border-b border-line-2">
+                      <span className="text-fg-3 min-w-0 truncate">Group Classes Revenue</span>
+                      <span className="font-bold text-fg shrink-0">{fmt(pnl.groupRevenue)}</span>
                     </div>
-                    <div className="flex justify-between py-2">
-                      <span className="text-fg-3">Product Sales Revenue</span>
-                      <span className="font-bold text-fg">{fmt(pnl.productRevenue)}</span>
+                    <div className="flex justify-between gap-2 py-2">
+                      <span className="text-fg-3 min-w-0 truncate">Product Sales Revenue</span>
+                      <span className="font-bold text-fg shrink-0">{fmt(pnl.productRevenue)}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Expense Breakdown */}
-                <div className="p-5 rounded-2xl bg-surface border border-line-2 shadow-xs space-y-3">
+                <div className="p-5 rounded-2xl bg-surface border border-line-2 shadow-xs space-y-3 min-w-0">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-fg">Expense Breakdown</h3>
                   <div className="space-y-2 text-xs">
-                    <div className="flex justify-between py-2 border-b border-line-2">
-                      <span className="text-fg-3">Staff Monthly Salaries</span>
-                      <span className="font-bold text-red-400">{fmt(pnl.salaries)}</span>
+                    <div className="flex justify-between gap-2 py-2 border-b border-line-2">
+                      <span className="text-fg-3 min-w-0 truncate">Staff Monthly Salaries</span>
+                      <span className="font-bold text-red-400 shrink-0">{fmt(pnl.salaries)}</span>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-line-2">
-                      <span className="text-fg-3">Trainer Commissions Paid</span>
-                      <span className="font-bold text-red-400">{fmt(pnl.commissions)}</span>
+                    <div className="flex justify-between gap-2 py-2 border-b border-line-2">
+                      <span className="text-fg-3 min-w-0 truncate">Trainer Commissions Paid</span>
+                      <span className="font-bold text-red-400 shrink-0">{fmt(pnl.commissions)}</span>
                     </div>
-                    <div className="flex justify-between py-2">
-                      <span className="text-fg-3">Operational Expenses (Studio Utilities)</span>
-                      <span className="font-bold text-red-400">{fmt(pnl.operationalExpenses)}</span>
+                    <div className="flex justify-between gap-2 py-2">
+                      <span className="text-fg-3 min-w-0 truncate">Operational Expenses (Studio Utilities)</span>
+                      <span className="font-bold text-red-400 shrink-0">{fmt(pnl.operationalExpenses)}</span>
                     </div>
                   </div>
                 </div>
@@ -858,7 +858,7 @@ export default function ReportsPage() {
                     <tbody className="divide-y divide-line-2 text-fg">
                       {(referrals.codes || []).map((rf: any) => (
                         <tr key={rf.id} className="hover:bg-hover/50 transition-colors">
-                          <td className="py-3 px-3 font-bold text-fg">{rf.member_email}</td>
+                          <td className="py-3 px-3 font-bold text-fg break-all min-w-0">{rf.member_email}</td>
                           <td className="py-3 px-3 font-mono text-gold-fg">{rf.code}</td>
                           <td className="py-3 px-3 font-bold">{rf.successful_referrals || 0}</td>
                           <td className="py-3 px-3">
@@ -898,7 +898,7 @@ export default function ReportsPage() {
                     <tbody className="divide-y divide-line-2 text-fg">
                       {discounts.map((dc: any) => (
                         <tr key={dc.id} className="hover:bg-hover/50 transition-colors">
-                          <td className="py-3 px-3 font-bold text-fg">{dc.member_email}</td>
+                          <td className="py-3 px-3 font-bold text-fg break-all min-w-0">{dc.member_email}</td>
                           <td className="py-3 px-3 font-bold text-emerald-500">{dc.discount_percent}%</td>
                           <td className="py-3 px-3 font-bold text-gold-fg">{fmt(dc.discount_amount)}</td>
                           <td className="py-3 px-3 text-fg-2">{dc.reason || "Special Offer"}</td>

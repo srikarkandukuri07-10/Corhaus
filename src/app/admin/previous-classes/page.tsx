@@ -346,12 +346,12 @@ export default function PreviousClasses() {
 
   return (
     <div className="space-y-8 animate-fade-in font-sans">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-fg">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-fg truncate">
             Previous <span className="font-semibold text-accent">Classes</span>
           </h1>
-          <p className="text-sm text-fg-3 mt-1">
+          <p className="text-sm text-fg-3 mt-1 break-words">
             View completed classes and attendance records
           </p>
         </div>
@@ -459,17 +459,17 @@ export default function PreviousClasses() {
 
       {/* Enrolled Members Panel */}
       {selectedClass && selectedClassData && (
-        <div className="bg-surface rounded-3xl border border-line p-6 animate-slide-up shadow-md space-y-4">
-          <div className="flex items-center justify-between border-b border-line pb-4">
-            <div>
-              <h3 className="text-lg font-bold text-fg">
+        <div className="bg-surface rounded-3xl border border-line p-4 sm:p-6 animate-slide-up shadow-md space-y-4 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-4">
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold text-fg truncate">
                 Enrolled Members
               </h3>
-              <p className="text-xs text-fg-3 mt-0.5">
+              <p className="text-xs text-fg-3 mt-0.5 truncate">
                 {selectedClassData.title} &bull; {selectedClassData.instructor}
               </p>
             </div>
-            <span className="text-xs font-bold text-accent bg-surface-2 border border-accent/20 px-3 py-1 rounded-full">
+            <span className="text-xs font-bold text-accent bg-surface-2 border border-accent/20 px-3 py-1 rounded-full shrink-0 text-center">
               {bookings.filter((b) => b.booking_status === "booked").length} / {selectedClassData.max_capacity} spots filled
             </span>
           </div>
@@ -499,8 +499,8 @@ export default function PreviousClasses() {
                       .filter((b) => b.booking_status === "booked")
                       .map((booking) => (
                         <tr key={booking.id} className="hover:bg-surface-2/50 transition-colors">
-                          <td className="py-3 px-4 text-fg font-bold">
-                            <div className="flex items-center gap-2.5">
+                          <td className="py-3 px-4 text-fg font-bold min-w-0">
+                            <div className="flex items-center gap-2.5 min-w-0">
                               <div className="w-7 h-7 rounded-full overflow-hidden border border-line-2 bg-accent text-white flex-shrink-0 flex items-center justify-center font-bold text-xs">
                                 {booking.profiles?.avatar_url ? (
                                   <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
@@ -510,10 +510,10 @@ export default function PreviousClasses() {
                                   </span>
                                 )}
                               </div>
-                              <span>{booking.profiles?.full_name || "N/A"}</span>
+                              <span className="truncate">{booking.profiles?.full_name || "N/A"}</span>
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-fg-3 font-medium">
+                          <td className="py-3 px-4 text-fg-3 font-medium break-all min-w-0">
                             {booking.profiles?.email || "N/A"}
                           </td>
                           <td className="py-3 px-4 text-fg-3 font-medium">
@@ -575,8 +575,8 @@ export default function PreviousClasses() {
                       .filter((b) => b.booking_status === "cancelled")
                       .map((booking) => (
                         <tr key={booking.id} className="hover:bg-red-50/50 transition-colors">
-                          <td className="py-3 px-4 text-fg-3 font-semibold">
-                            <div className="flex items-center gap-2.5">
+                          <td className="py-3 px-4 text-fg-3 font-semibold min-w-0">
+                            <div className="flex items-center gap-2.5 min-w-0">
                               <div className="w-7 h-7 rounded-full overflow-hidden border border-line-2 bg-gray-200 text-gray-600 flex-shrink-0 flex items-center justify-center">
                                 {booking.profiles?.avatar_url ? (
                                   <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
@@ -586,10 +586,10 @@ export default function PreviousClasses() {
                                   </span>
                                 )}
                               </div>
-                              <span className="line-through">{booking.profiles?.full_name || "N/A"}</span>
+                              <span className="line-through truncate">{booking.profiles?.full_name || "N/A"}</span>
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-fg-5">
+                          <td className="py-3 px-4 text-fg-5 break-all min-w-0">
                             {booking.profiles?.email || "N/A"}
                           </td>
                           <td className="py-3 px-4 text-fg-5">
@@ -661,8 +661,8 @@ export default function PreviousClasses() {
                       <tbody className="divide-y divide-line">
                         {attended.map((a) => (
                           <tr key={a.id} className="hover:bg-emerald-50/40 transition-colors">
-                            <td className="py-3 px-4 text-fg font-bold">
-                              <div className="flex items-center gap-2.5">
+                            <td className="py-3 px-4 text-fg font-bold min-w-0">
+                              <div className="flex items-center gap-2.5 min-w-0">
                                 <div className="w-7 h-7 rounded-full overflow-hidden border border-emerald-300 bg-emerald-100 text-emerald-800 flex-shrink-0 flex items-center justify-center font-bold text-xs">
                                   {a.profiles?.avatar_url ? (
                                     <img src={a.profiles.avatar_url} alt={a.profiles.full_name} className="w-full h-full object-cover" />
@@ -672,10 +672,10 @@ export default function PreviousClasses() {
                                     </span>
                                   )}
                                 </div>
-                                <span>{a.profiles?.full_name || "N/A"}</span>
+                                <span className="truncate">{a.profiles?.full_name || "N/A"}</span>
                               </div>
                             </td>
-                            <td className="py-3 px-4 text-fg-3 font-medium">
+                            <td className="py-3 px-4 text-fg-3 font-medium break-all min-w-0">
                               {a.profiles?.email || "N/A"}
                             </td>
                             <td className="py-3 px-4 text-emerald-800 font-bold text-xs">

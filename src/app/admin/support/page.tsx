@@ -344,17 +344,17 @@ export default function SupportCenterPage() {
     <div className="h-[calc(100vh-6rem)] flex flex-col font-sans max-w-7xl mx-auto space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 flex-shrink-0">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-fg tracking-tight">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-fg tracking-tight truncate">
             Corhaus <span className="text-accent">Support Center</span>
           </h1>
-          <p className="text-xs text-fg-3 mt-1 font-medium">
+          <p className="text-xs text-fg-3 mt-1 font-medium break-words">
             Real-time developer chat, feature requests, and issue resolution
           </p>
         </div>
         <button
           onClick={() => setShowNewTicketModal(true)}
-          className="px-5 py-2.5 bg-accent text-white font-extrabold text-xs rounded-2xl hover:bg-accent-2 transition-all shadow-md shadow-accent/20 flex items-center gap-2"
+          className="px-5 py-2.5 bg-accent text-white font-extrabold text-xs rounded-2xl hover:bg-accent-2 transition-all shadow-md shadow-accent/20 flex items-center justify-center gap-2 w-full sm:w-auto shrink-0"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -422,24 +422,24 @@ export default function SupportCenterPage() {
                         : "hover:bg-surface-2/60"
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-extrabold text-xs text-accent tracking-wide">{t.ticket_number}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadgeClass(t.status)}`}>
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <span className="font-extrabold text-xs text-accent tracking-wide truncate min-w-0">{t.ticket_number}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${getStatusBadgeClass(t.status)}`}>
                         {t.status}
                       </span>
                     </div>
 
-                    <h4 className="font-bold text-xs text-fg line-clamp-1">{t.subject}</h4>
+                    <h4 className="font-bold text-xs text-fg line-clamp-1 break-all">{t.subject}</h4>
 
                     {t.last_message && (
-                      <p className="text-[11px] text-fg-3 line-clamp-1 font-medium">{t.last_message}</p>
+                      <p className="text-[11px] text-fg-3 line-clamp-1 font-medium break-all">{t.last_message}</p>
                     )}
 
-                    <div className="flex items-center justify-between text-[10px] text-fg-4 font-semibold pt-1">
-                      <span className={`px-1.5 py-0.5 rounded border ${getPriorityBadgeClass(t.priority)}`}>
+                    <div className="flex items-center justify-between gap-2 text-[10px] text-fg-4 font-semibold pt-1 min-w-0">
+                      <span className={`px-1.5 py-0.5 rounded border shrink-0 ${getPriorityBadgeClass(t.priority)}`}>
                         {t.priority}
                       </span>
-                      <span>
+                      <span className="truncate">
                         {t.last_message_at
                           ? new Date(t.last_message_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
                           : ""}
@@ -464,27 +464,27 @@ export default function SupportCenterPage() {
             <>
               {/* Ticket Header */}
               <div className="p-4 border-b border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-2/20 flex-shrink-0">
-                <div>
+                <div className="min-w-0 flex-1">
                   <button
                     onClick={() => setSelectedTicket(null)}
                     className="md:hidden text-xs font-bold text-accent mb-2 flex items-center gap-1"
                   >
                     &larr; Back to Tickets
                   </button>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-black text-accent tracking-wider">{selectedTicket.ticket_number}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadgeClass(selectedTicket.status)}`}>
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <span className="text-xs font-black text-accent tracking-wider truncate">{selectedTicket.ticket_number}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${getStatusBadgeClass(selectedTicket.status)}`}>
                       {selectedTicket.status}
                     </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getPriorityBadgeClass(selectedTicket.priority)}`}>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border shrink-0 ${getPriorityBadgeClass(selectedTicket.priority)}`}>
                       {selectedTicket.priority} Priority
                     </span>
-                    <span className="text-[10px] text-fg-4 font-medium">&bull; Category: {selectedTicket.category}</span>
+                    <span className="text-[10px] text-fg-4 font-medium truncate">&bull; Category: {selectedTicket.category}</span>
                   </div>
-                  <h2 className="text-base font-extrabold text-fg mt-1">{selectedTicket.subject}</h2>
+                  <h2 className="text-base font-extrabold text-fg mt-1 break-all">{selectedTicket.subject}</h2>
                 </div>
 
-                <div className="text-[11px] text-fg-4 font-semibold text-right">
+                <div className="text-[11px] text-fg-4 font-semibold sm:text-right shrink-0">
                   Created {new Date(selectedTicket.created_at).toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </div>
               </div>
@@ -492,22 +492,22 @@ export default function SupportCenterPage() {
               {/* Client Confirmation Action Banner (When status is Resolved) */}
               {selectedTicket.status === "Resolved" && (
                 <div className="p-4 bg-emerald-500/10 border-b border-emerald-500/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs flex-shrink-0">
-                  <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                  <div className="flex items-center gap-2 text-emerald-400 font-bold min-w-0">
                     <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>The developer marked this ticket as Resolved. Please confirm if the issue is resolved.</span>
+                    <span className="break-words">The developer marked this ticket as Resolved. Please confirm if the issue is resolved.</span>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 flex-shrink-0 w-full sm:w-auto">
                     <button
                       onClick={() => handleTicketAction("accept_resolution")}
-                      className="px-4 py-2 bg-emerald-600 text-white font-extrabold text-xs rounded-xl hover:bg-emerald-700 transition-all shadow-xs"
+                      className="px-4 py-2 bg-emerald-600 text-white font-extrabold text-xs rounded-xl hover:bg-emerald-700 transition-all shadow-xs flex-1 sm:flex-none"
                     >
                       ✓ Accept Resolution
                     </button>
                     <button
                       onClick={() => handleTicketAction("still_having_issue")}
-                      className="px-4 py-2 bg-rose-600/80 text-white font-extrabold text-xs rounded-xl hover:bg-rose-700 transition-all shadow-xs"
+                      className="px-4 py-2 bg-rose-600/80 text-white font-extrabold text-xs rounded-xl hover:bg-rose-700 transition-all shadow-xs flex-1 sm:flex-none"
                     >
                       ⚠️ Still Having Issue
                     </button>
@@ -544,13 +544,13 @@ export default function SupportCenterPage() {
                         </div>
 
                         <div
-                          className={`max-w-lg p-3.5 rounded-2xl text-xs space-y-2 shadow-xs ${
+                          className={`max-w-[85%] sm:max-w-lg p-3.5 rounded-2xl text-xs space-y-2 shadow-xs break-words min-w-0 ${
                             isClient
                               ? "bg-accent text-white rounded-tr-xs"
                               : "bg-surface-2 border border-line text-fg rounded-tl-xs"
                           }`}
                         >
-                          <p className="whitespace-pre-wrap leading-relaxed">{m.message}</p>
+                          <p className="whitespace-pre-wrap leading-relaxed break-all">{m.message}</p>
 
                           {/* Attachment Rendering */}
                           {m.attachment_url && (
@@ -599,24 +599,24 @@ export default function SupportCenterPage() {
                 <form onSubmit={handleSendMessage} className="p-3 border-t border-line bg-surface-2/30 flex flex-col gap-2 flex-shrink-0">
                   {/* Selected Attachment Preview */}
                   {chatAttachment && (
-                    <div className="flex items-center justify-between p-2 bg-surface border border-line rounded-xl text-xs text-fg">
-                      <span className="font-semibold truncate flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="flex items-center justify-between gap-2 p-2 bg-surface border border-line rounded-xl text-xs text-fg min-w-0">
+                      <span className="font-semibold truncate flex items-center gap-1.5 min-w-0">
+                        <svg className="w-3.5 h-3.5 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                         </svg>
-                        {chatAttachment.name}
+                        <span className="truncate">{chatAttachment.name}</span>
                       </span>
                       <button
                         type="button"
                         onClick={() => setChatAttachment(null)}
-                        className="text-fg-4 hover:text-red-400 font-bold ml-2"
+                        className="text-fg-4 hover:text-red-400 font-bold ml-2 shrink-0"
                       >
                         ✕
                       </button>
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
@@ -641,13 +641,13 @@ export default function SupportCenterPage() {
                       placeholder="Type a reply..."
                       value={inputMessage}
                       onChange={(e) => setInputMessage(e.target.value)}
-                      className="flex-1 p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs text-fg placeholder:text-fg-4 focus:outline-none focus:ring-1 focus:ring-accent"
+                      className="flex-1 min-w-0 p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs text-fg placeholder:text-fg-4 focus:outline-none focus:ring-1 focus:ring-accent"
                     />
 
                     <button
                       type="submit"
                       disabled={sendingMessage || (!inputMessage.trim() && !chatAttachment)}
-                      className="px-4 py-2.5 bg-accent text-white font-extrabold text-xs rounded-xl hover:bg-accent-2 transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-4 py-2.5 bg-accent text-white font-extrabold text-xs rounded-xl hover:bg-accent-2 transition-all shadow-xs disabled:opacity-50 flex items-center gap-1.5 shrink-0"
                     >
                       <span>Send</span>
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -676,13 +676,13 @@ export default function SupportCenterPage() {
 
       {/* New Ticket Modal */}
       {showNewTicketModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-line rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 max-h-[85dvh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-line pb-3">
-              <h3 className="text-lg font-extrabold text-fg">Raise Support Ticket</h3>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-surface border border-line rounded-3xl p-4 sm:p-6 max-w-lg w-full shadow-2xl space-y-5 max-h-[85dvh] overflow-y-auto">
+            <div className="flex items-center justify-between gap-2 border-b border-line pb-3 min-w-0">
+              <h3 className="text-lg font-extrabold text-fg truncate">Raise Support Ticket</h3>
               <button
                 onClick={() => setShowNewTicketModal(false)}
-                className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-fg-3 font-bold flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-fg-3 font-bold flex items-center justify-center shrink-0"
               >
                 ✕
               </button>
@@ -707,8 +707,8 @@ export default function SupportCenterPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="min-w-0">
                   <label className="block font-bold text-fg mb-1">Category *</label>
                   <select
                     value={newCategory}
@@ -723,7 +723,7 @@ export default function SupportCenterPage() {
                   </select>
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <label className="block font-bold text-fg mb-1">Priority *</label>
                   <select
                     value={newPriority}
@@ -777,18 +777,18 @@ export default function SupportCenterPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-line">
+              <div className="flex flex-wrap items-center justify-end gap-3 pt-3 border-t border-line">
                 <button
                   type="button"
                   onClick={() => setShowNewTicketModal(false)}
-                  className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-fg hover:bg-hover"
+                  className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-fg hover:bg-hover w-full sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creatingTicket}
-                  className="px-6 py-2.5 bg-accent text-white font-extrabold rounded-xl hover:bg-accent-2 shadow-md shadow-accent/20 disabled:opacity-50"
+                  className="px-6 py-2.5 bg-accent text-white font-extrabold rounded-xl hover:bg-accent-2 shadow-md shadow-accent/20 disabled:opacity-50 w-full sm:w-auto"
                 >
                   {creatingTicket ? "Raising Ticket..." : "Raise Ticket"}
                 </button>

@@ -358,14 +358,14 @@ export default function StaffPage() {
     <div className="space-y-6 animate-fade-in pb-12">
       {/* ─── PAGE HEADER & ADD STAFF BUTTON ────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-line pb-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-fg tracking-tight">Staff &amp; Trainers Management</h1>
-          <p className="text-xs text-fg-3 mt-1">Manage internal studio staff, trainer specializations, compensation &amp; profiles</p>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-extrabold text-fg tracking-tight truncate">Staff &amp; Trainers Management</h1>
+          <p className="text-xs text-fg-3 mt-1 break-words">Manage internal studio staff, trainer specializations, compensation &amp; profiles</p>
         </div>
 
         <button
           onClick={handleOpenAddStaff}
-          className="flex items-center justify-center gap-2 px-6 py-3 bg-accent hover:bg-accent-2 text-white font-extrabold text-xs rounded-2xl transition-all shadow-lg shadow-accent/25 flex-shrink-0"
+          className="flex items-center justify-center gap-2 px-6 py-3 bg-accent hover:bg-accent-2 text-white font-extrabold text-xs rounded-2xl transition-all shadow-lg shadow-accent/25 flex-shrink-0 w-full sm:w-auto"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -454,12 +454,12 @@ export default function StaffPage() {
           </div>
 
           {/* Filter Controls */}
-          <div className="flex items-center gap-2 flex-wrap text-xs">
-            <div>
+          <div className="flex items-center gap-2 flex-wrap text-xs w-full lg:w-auto">
+            <div className="w-full sm:w-auto min-w-0">
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="p-2.5 rounded-xl border border-line-2 bg-surface-2 font-bold text-fg focus:outline-none"
+                className="p-2.5 rounded-xl border border-line-2 bg-surface-2 font-bold text-fg focus:outline-none w-full sm:w-auto min-w-0"
               >
                 <option value="All">All Roles</option>
                 {ROLES.map((r) => (
@@ -468,11 +468,11 @@ export default function StaffPage() {
               </select>
             </div>
 
-            <div>
+            <div className="w-full sm:w-auto min-w-0">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="p-2.5 rounded-xl border border-line-2 bg-surface-2 font-bold text-fg focus:outline-none"
+                className="p-2.5 rounded-xl border border-line-2 bg-surface-2 font-bold text-fg focus:outline-none w-full sm:w-auto min-w-0"
               >
                 <option value="All">All Statuses</option>
                 <option value="Active">Active Only</option>
@@ -480,11 +480,11 @@ export default function StaffPage() {
               </select>
             </div>
 
-            <div>
+            <div className="w-full sm:w-auto min-w-0">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="p-2.5 rounded-xl border border-line-2 bg-surface-2 font-bold text-fg focus:outline-none"
+                className="p-2.5 rounded-xl border border-line-2 bg-surface-2 font-bold text-fg focus:outline-none w-full sm:w-auto min-w-0"
               >
                 <option value="name">Sort by Name</option>
                 <option value="joinDate">Sort by Join Date</option>
@@ -535,9 +535,9 @@ export default function StaffPage() {
                           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent to-accent-3 text-white font-extrabold flex items-center justify-center text-sm shadow-sm flex-shrink-0">
                             {staff.full_name ? staff.full_name.charAt(0).toUpperCase() : "S"}
                           </div>
-                          <div>
-                            <p className="font-extrabold text-sm text-fg">{staff.full_name}</p>
-                            <p className="text-[11px] text-fg-4">{staff.email || "No Email"}</p>
+                          <div className="min-w-0">
+                            <p className="font-extrabold text-sm text-fg truncate">{staff.full_name}</p>
+                            <p className="text-[11px] text-fg-4 break-all truncate">{staff.email || "No Email"}</p>
                           </div>
                         </div>
                       </td>
@@ -686,20 +686,20 @@ export default function StaffPage() {
       {showFormModal && (
         <Modal>
           <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-3 sm:p-5">
-            <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-2xl w-full p-6 flex flex-col animate-fade-in space-y-4 max-h-[90vh] overflow-hidden">
+            <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-2xl w-full p-4 sm:p-6 flex flex-col animate-fade-in space-y-4 max-h-[85dvh] overflow-y-auto">
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-line pb-3 flex-shrink-0">
-                <div>
-                  <h3 className="text-xl font-extrabold text-fg">
+              <div className="flex items-center justify-between gap-2 border-b border-line pb-3 flex-shrink-0 min-w-0">
+                <div className="min-w-0">
+                  <h3 className="text-xl font-extrabold text-fg truncate">
                     {editingStaff ? "Edit Staff Member" : "Add New Staff Member"}
                   </h3>
-                  <p className="text-[11px] text-fg-3 mt-0.5">
+                  <p className="text-[11px] text-fg-3 mt-0.5 truncate">
                     Step {formStep} of {formData.role === "Trainer" ? 4 : 3}: Fill required staff details below
                   </p>
                 </div>
                 <button
                   onClick={() => setShowFormModal(false)}
-                  className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-xs font-bold text-fg-3 flex items-center justify-center transition-colors"
+                  className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-xs font-bold text-fg-3 flex items-center justify-center transition-colors shrink-0"
                 >
                   ✕
                 </button>
@@ -883,25 +883,25 @@ export default function StaffPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 pt-2">
-                      <label className="flex items-center gap-2 p-3 bg-surface-2 rounded-xl border border-line cursor-pointer">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                      <label className="flex items-center gap-2 p-3 bg-surface-2 rounded-xl border border-line cursor-pointer min-w-0">
                         <input
                           type="checkbox"
                           checked={formData.pt_available}
                           onChange={(e) => setFormData({ ...formData, pt_available: e.target.checked })}
-                          className="w-4 h-4 accent-accent rounded-md"
+                          className="w-4 h-4 accent-accent rounded-md shrink-0"
                         />
-                        <span className="font-extrabold text-fg text-xs">Available for 1-on-1 PT</span>
+                        <span className="font-extrabold text-fg text-xs truncate">Available for 1-on-1 PT</span>
                       </label>
 
-                      <label className="flex items-center gap-2 p-3 bg-surface-2 rounded-xl border border-line cursor-pointer">
+                      <label className="flex items-center gap-2 p-3 bg-surface-2 rounded-xl border border-line cursor-pointer min-w-0">
                         <input
                           type="checkbox"
                           checked={formData.group_class_available}
                           onChange={(e) => setFormData({ ...formData, group_class_available: e.target.checked })}
-                          className="w-4 h-4 accent-accent rounded-md"
+                          className="w-4 h-4 accent-accent rounded-md shrink-0"
                         />
-                        <span className="font-extrabold text-fg text-xs">Available for Group Classes</span>
+                        <span className="font-extrabold text-fg text-xs truncate">Available for Group Classes</span>
                       </label>
                     </div>
                   </div>
@@ -1092,7 +1092,7 @@ export default function StaffPage() {
               </form>
 
               {/* Form Navigation Action Buttons */}
-              <div className="flex items-center justify-between pt-3 border-t border-line flex-shrink-0">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-line flex-shrink-0">
                 <button
                   type="button"
                   onClick={handlePrevStep}
@@ -1102,7 +1102,7 @@ export default function StaffPage() {
                   ← Back
                 </button>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setShowFormModal(false)}
@@ -1139,33 +1139,33 @@ export default function StaffPage() {
       {/* ─── VIEW STAFF PROFILE DRAWER / MODAL ──────────────────────────────── */}
       {selectedStaffProfile && (
         <Modal>
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-            <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-2xl w-full p-6 flex flex-col animate-fade-in space-y-5 max-h-[90vh] overflow-hidden">
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-3 sm:p-6">
+            <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-2xl w-full p-4 sm:p-6 flex flex-col animate-fade-in space-y-5 max-h-[85dvh] overflow-y-auto">
               {/* Profile Header Card */}
-              <div className="flex items-start justify-between border-b border-line pb-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-accent-3 text-white font-black text-2xl flex items-center justify-center shadow-md">
+              <div className="flex items-start justify-between gap-2 border-b border-line pb-4 min-w-0">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-accent-3 text-white font-black text-2xl flex items-center justify-center shadow-md shrink-0">
                     {selectedStaffProfile.full_name.charAt(0).toUpperCase()}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-extrabold text-fg">{selectedStaffProfile.full_name}</h3>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 min-w-0">
+                      <h3 className="text-xl font-extrabold text-fg truncate min-w-0">{selectedStaffProfile.full_name}</h3>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shrink-0 ${
                         selectedStaffProfile.employment_status === "Active" ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-700"
                       }`}>
                         {selectedStaffProfile.employment_status}
                       </span>
                     </div>
-                    <p className="text-xs font-semibold text-fg-2 mt-0.5">
+                    <p className="text-xs font-semibold text-fg-2 mt-0.5 truncate">
                       {selectedStaffProfile.designation} &bull; <span className="text-accent font-bold">{selectedStaffProfile.role}</span>
                     </p>
-                    <p className="text-[11px] text-fg-4 mt-1">📍 {selectedStaffProfile.location} &bull; 📞 {selectedStaffProfile.phone_number}</p>
+                    <p className="text-[11px] text-fg-4 mt-1 break-all">📍 {selectedStaffProfile.location} &bull; 📞 {selectedStaffProfile.phone_number}</p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setSelectedStaffProfile(null)}
-                  className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-xs font-bold text-fg-3 flex items-center justify-center transition-colors"
+                  className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-xs font-bold text-fg-3 flex items-center justify-center transition-colors shrink-0"
                 >
                   ✕
                 </button>
@@ -1174,20 +1174,20 @@ export default function StaffPage() {
               {/* Profile Details Content */}
               <div className="flex-1 overflow-y-auto pr-1 space-y-5 text-xs min-h-0">
                 {/* Basic Info */}
-                <div className="bg-surface-2 p-4 rounded-2xl border border-line space-y-2">
+                <div className="bg-surface-2 p-4 rounded-2xl border border-line space-y-2 min-w-0">
                   <h4 className="font-extrabold text-xs text-fg uppercase tracking-wider text-accent">Basic Information</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
-                    <div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div className="min-w-0">
                       <span className="text-[10px] text-fg-4 block font-semibold">Email</span>
-                      <span className="font-bold text-fg">{selectedStaffProfile.email || "N/A"}</span>
+                      <span className="font-bold text-fg break-all">{selectedStaffProfile.email || "N/A"}</span>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <span className="text-[10px] text-fg-4 block font-semibold">Phone</span>
-                      <span className="font-mono font-bold text-fg">{selectedStaffProfile.phone_number}</span>
+                      <span className="font-mono font-bold text-fg break-all">{selectedStaffProfile.phone_number}</span>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <span className="text-[10px] text-fg-4 block font-semibold">Date of Joining</span>
-                      <span className="font-bold text-fg">
+                      <span className="font-bold text-fg break-words">
                         {selectedStaffProfile.joining_date ? new Date(selectedStaffProfile.joining_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "N/A"}
                       </span>
                     </div>
@@ -1196,9 +1196,9 @@ export default function StaffPage() {
 
                 {/* Trainer Info (Trainer Only) */}
                 {selectedStaffProfile.role === "Trainer" && (
-                  <div className="bg-surface-2 p-4 rounded-2xl border border-line space-y-2">
+                  <div className="bg-surface-2 p-4 rounded-2xl border border-line space-y-2 min-w-0">
                     <h4 className="font-extrabold text-xs text-fg uppercase tracking-wider text-accent">Trainer Specifications</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                       <div>
                         <span className="text-[10px] text-fg-4 block font-semibold">Specialization</span>
                         <span className="font-bold text-fg">{selectedStaffProfile.specialization || "Pilates"}</span>
@@ -1228,7 +1228,7 @@ export default function StaffPage() {
                 )}
 
                 {/* Compensation */}
-                <div className="bg-surface-2 p-4 rounded-2xl border border-line space-y-2">
+                <div className="bg-surface-2 p-4 rounded-2xl border border-line space-y-2 min-w-0">
                   <h4 className="font-extrabold text-xs text-fg uppercase tracking-wider text-accent">Compensation &amp; Payroll</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
                     <div>
@@ -1251,9 +1251,9 @@ export default function StaffPage() {
                 </div>
 
                 {/* Personal & Emergency Info */}
-                <div className="bg-surface-2 p-4 rounded-2xl border border-line space-y-2">
+                <div className="bg-surface-2 p-4 rounded-2xl border border-line space-y-2 min-w-0">
                   <h4 className="font-extrabold text-xs text-fg uppercase tracking-wider text-accent">Personal &amp; Emergency Details</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                     <div>
                       <span className="text-[10px] text-fg-4 block font-semibold">Gender</span>
                       <span className="font-bold text-fg">{selectedStaffProfile.gender || "N/A"}</span>
@@ -1270,17 +1270,17 @@ export default function StaffPage() {
                         {selectedStaffProfile.emergency_contact_name ? `${selectedStaffProfile.emergency_contact_name} (${selectedStaffProfile.emergency_contact_number || "N/A"})` : "N/A"}
                       </span>
                     </div>
-                    <div className="sm:col-span-3">
+                    <div className="sm:col-span-3 min-w-0">
                       <span className="text-[10px] text-fg-4 block font-semibold">Address</span>
-                      <span className="font-bold text-fg">{selectedStaffProfile.address || "N/A"}</span>
+                      <span className="font-bold text-fg break-all">{selectedStaffProfile.address || "N/A"}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Bank Information */}
-                <div className="bg-surface-2 p-4 rounded-2xl border border-line space-y-2">
+                <div className="bg-surface-2 p-4 rounded-2xl border border-line space-y-2 min-w-0">
                   <h4 className="font-extrabold text-xs text-fg uppercase tracking-wider text-accent">Bank Payout Details</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-1">
                     <div>
                       <span className="text-[10px] text-fg-4 block font-semibold">Account Holder</span>
                       <span className="font-bold text-fg">{selectedStaffProfile.account_holder_name || "N/A"}</span>
@@ -1302,21 +1302,21 @@ export default function StaffPage() {
               </div>
 
               {/* Profile Footer Actions */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-line">
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-line">
                 <button
                   onClick={() => {
                     const st = selectedStaffProfile;
                     setSelectedStaffProfile(null);
                     handleOpenEditStaff(st);
                   }}
-                  className="px-5 py-2.5 bg-accent text-white font-extrabold text-xs rounded-xl hover:bg-accent-2 transition-all"
+                  className="px-5 py-2.5 bg-accent text-white font-extrabold text-xs rounded-xl hover:bg-accent-2 transition-all w-full sm:w-auto"
                 >
                   ✏️ Edit Profile
                 </button>
                 {selectedStaffProfile.employment_status === "Active" && (
                   <button
                     onClick={() => setDeactivatingStaff(selectedStaffProfile)}
-                    className="px-5 py-2.5 border border-red-200 bg-red-50 text-red-700 font-extrabold text-xs rounded-xl hover:bg-red-100 transition-all"
+                    className="px-5 py-2.5 border border-red-200 bg-red-50 text-red-700 font-extrabold text-xs rounded-xl hover:bg-red-100 transition-all w-full sm:w-auto"
                   >
                     🚫 Deactivate Staff
                   </button>
@@ -1330,8 +1330,8 @@ export default function StaffPage() {
       {/* ─── DEACTIVATE STAFF CONFIRMATION DIALOG ──────────────────────────── */}
       {deactivatingStaff && (
         <Modal>
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-            <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-md w-full p-6 flex flex-col animate-fade-in space-y-4 text-center">
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-3 sm:p-6">
+            <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-md w-full p-4 sm:p-6 flex flex-col animate-fade-in space-y-4 text-center max-h-[85dvh] overflow-y-auto">
               <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -1348,17 +1348,17 @@ export default function StaffPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-center gap-3 pt-2">
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <button
                   onClick={() => setDeactivatingStaff(null)}
-                  className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-xs text-fg hover:bg-black/5 transition-all"
+                  className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-xs text-fg hover:bg-black/5 transition-all w-full sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmDeactivate}
                   disabled={actionLoading}
-                  className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-xl transition-all shadow-md shadow-red-600/20 disabled:opacity-50"
+                  className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-xl transition-all shadow-md shadow-red-600/20 disabled:opacity-50 w-full sm:w-auto"
                 >
                   {actionLoading ? "Deactivating..." : "Yes, Deactivate Staff"}
                 </button>
