@@ -13,7 +13,11 @@ export async function updateSession(request: NextRequest) {
   if (
     pathname.startsWith("/api/trial") ||
     pathname.startsWith("/api/webhooks/razorpay") ||
-    pathname.startsWith("/book-trial")
+    pathname.startsWith("/book-trial") ||
+    pathname.startsWith("/api/auth/signout") ||
+    pathname.startsWith("/api/auth/check-email") ||
+    pathname.startsWith("/api/auth/login") ||
+    pathname.startsWith("/api/auth/staff-set-password")
   ) {
     return supabaseResponse;
   }

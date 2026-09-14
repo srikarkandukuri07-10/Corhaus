@@ -7,6 +7,9 @@ export default function LogoutButton() {
 
   async function handleLogout() {
     try {
+      await fetch("/api/auth/signout", { method: "POST", cache: "no-store" });
+    } catch {}
+    try {
       await supabase.auth.signOut();
       try {
         localStorage.removeItem("sb-zmzevqorbdogwishiahw-auth-token");
@@ -15,7 +18,7 @@ export default function LogoutButton() {
         });
       } catch {}
     } catch {}
-    setTimeout(() => window.location.replace("/auth/login"), 100);
+    window.location.replace("/auth/login");
   }
 
   return (
