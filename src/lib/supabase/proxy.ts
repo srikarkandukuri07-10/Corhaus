@@ -379,30 +379,6 @@ export async function updateSession(request: NextRequest) {
       });
       return redirectRes;
     }
-
-    // Member required forms gate — must complete active required forms before dashboard
-    if (userRole === "member" && pathname.startsWith("/member") && !pathname.startsWith("/member/required-forms") && !pathname.startsWith("/member/forms") && !pathname.startsWith("/member/my-forms")) {
-      try {
-        const { data: activeRequired } = await serviceClient.from("forms").select("id").eq("is_active", true).eq("is_required", true);
-        if (activeRequired && activeRequired.length > 0) {
-          const { data: subs } = await serviceClient.from("form_submissions").select("form_id").eq("member_id", user.id);
-          const subIds = new Set((subs || []).map((s: any) => s.form_id));
-          const pending = activeRequired.filter((f: any) => !subIds.has(f.id));
-          if (pending.length > 0) {
-            devLog("DECISION: member has pending required forms -> redirect to /member/required-forms");
-            const url = request.nextUrl.clone();
-            url.pathname = "/member/required-forms";
-            const redirectRes = NextResponse.redirect(url);
-            supabaseResponse.cookies.getAll().forEach((c) => {
-              redirectRes.cookies.set(c.name, c.value);
-            });
-            return redirectRes;
-          }
-        }
-      } catch (e) {
-        devLog("REQUIRED FORMS GATE ERROR", e);
-      }
-    }
   }
 
   // Protected routes that require authentication (when not logged in)
