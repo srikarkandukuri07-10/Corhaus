@@ -436,8 +436,8 @@ export default function AdminLayout({
           </div>
           {profileMenuOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} aria-hidden />
-              <div className="absolute bottom-full left-3 right-3 mb-2 bg-surface border border-line rounded-2xl shadow-xl overflow-hidden z-50 py-1 animate-fade-in">
+              <div className="fixed inset-0 z-30" onClick={() => setProfileMenuOpen(false)} aria-hidden />
+              <div className="absolute bottom-full left-3 right-3 mb-2 bg-surface border border-line rounded-2xl shadow-xl overflow-hidden z-50 py-1 animate-fade-in max-h-[60vh] overflow-y-auto">
                 <div className="px-4 py-3 border-b border-line">
                   <p className="text-sm font-bold text-fg truncate">{displayName}</p>
                   <p className="text-xs text-fg-3">{displayRole}</p>
@@ -472,9 +472,25 @@ export default function AdminLayout({
         <div className="flex items-center gap-1 flex-shrink-0 relative">
           <ThemeToggle />
           <NotificationsButton role="admin" />
+          <div className="hidden sm:flex items-center">
+            <LogoutButton />
+          </div>
+          <button
+            onClick={async () => {
+              const { createClient } = await import("@/lib/supabase/client");
+              const supabase = createClient();
+              try { await supabase.auth.signOut(); } catch {}
+              window.location.href = "/auth/login";
+            }}
+            className="sm:hidden p-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 shrink-0 touch-manipulation"
+            aria-label="Sign out"
+            title="Sign Out"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+          </button>
           <button
             onClick={() => setMobileProfileMenuOpen((v) => !v)}
-            className="flex items-center gap-1.5 p-1 pr-2 rounded-full hover:bg-white/10 transition-colors"
+            className="flex items-center gap-1.5 p-1 pr-2 rounded-full hover:bg-white/10 transition-colors touch-manipulation"
             aria-label="Open profile menu"
             aria-expanded={mobileProfileMenuOpen}
           >
@@ -485,8 +501,8 @@ export default function AdminLayout({
           </button>
           {mobileProfileMenuOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setMobileProfileMenuOpen(false)} aria-hidden />
-              <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-line rounded-2xl shadow-xl overflow-hidden z-50 py-1 animate-fade-in">
+              <div className="fixed inset-0 z-30" onClick={() => setMobileProfileMenuOpen(false)} aria-hidden />
+              <div className="fixed right-3 top-[60px] w-64 max-w-[85vw] bg-surface border border-line rounded-2xl shadow-xl overflow-hidden z-50 py-1 animate-fade-in">
                 <div className="px-4 py-3 border-b border-line">
                   <p className="text-sm font-bold text-fg truncate">{displayName}</p>
                   <p className="text-xs text-fg-3">{displayRole}</p>

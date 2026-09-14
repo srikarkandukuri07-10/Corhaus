@@ -8,8 +8,21 @@ export default function LogoutButton() {
   const supabase = createClient();
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    router.push("/auth/login");
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    // Use hard navigation for reliability on mobile (router.push can be swallowed by overlays)
+    try {
+      router.push("/auth/login");
+      // Fallback hard redirect after a tick if still on admin page
+      setTimeout(() => {
+        if (window.location.pathname.startsWith("/admin")) {
+          window.location.href = "/auth/login";
+        }
+      }, 300);
+    } catch {
+      window.location.href = "/auth/login";
+    }
   }
 
   return (
