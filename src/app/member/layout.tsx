@@ -21,19 +21,25 @@ export default function MemberLayout({
   const [profileOpen, setProfileOpen] = useState(false);
   const [needsPassword, setNeedsPassword] = useState(false);
   const [showPasswordBanner, setShowPasswordBanner] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
 
   useEffect(() => {
     let activeChannel: any = null;
+    let timeoutId: any = null;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error("Loading timed out. Please refresh.")), 8000);
+    });
 
     async function checkAuth() {
       try {
+        const userPromise = supabase.auth.getUser();
         const {
           data: { user },
           error: userError,
-        } = await supabase.auth.getUser();
+        } = (await Promise.race([userPromise, timeoutPromise])) as any;
 
         if (userError || !user) {
           router.push("/auth/login");
@@ -45,11 +51,13 @@ export default function MemberLayout({
           setNeedsPassword(true);
         }
 
-        const { data: profile, error: profileError } = await supabase
+        const profilePromise = supabase
           .from("profiles")
           .select("role, phone_number")
           .eq("id", user.id)
           .maybeSingle();
+
+        const { data: profile, error: profileError } = (await Promise.race([profilePromise, timeoutPromise])) as any;
 
         if (profileError) {
           await supabase.auth.signOut();
@@ -64,12 +72,14 @@ export default function MemberLayout({
 
         const userEmail = (user.email || "").trim().toLowerCase();
 
-        const { data: memberRecord } = await supabase
+        const memberPromise = supabase
           .from("approved_members")
           .select("id, membership_status")
           .ilike("email", userEmail)
           .limit(1)
           .maybeSingle();
+
+        const { data: memberRecord } = (await Promise.race([memberPromise, timeoutPromise])) as any;
 
         const isActiveStatus = memberRecord && (memberRecord.membership_status || "").toLowerCase() === "active";
         const hasMemberProfile = profile?.role === "member";
@@ -82,6 +92,7 @@ export default function MemberLayout({
 
         setIsMember(true);
         setLoading(false);
+        if (timeoutId) clearTimeout(timeoutId);
 
         if (memberRecord?.id) {
           activeChannel = supabase
@@ -104,9 +115,19 @@ export default function MemberLayout({
             )
             .subscribe();
         }
-      } catch (err) {
-        await supabase.auth.signOut();
-        router.push("/auth/login");
+      } catch (err: any) {
+        if (timeoutId) clearTimeout(timeoutId);
+        console.error("member layout checkAuth error", err);
+        setLoadError(err.message || "Failed to load. Please refresh.");
+        setLoading(false);
+        // Only sign out on auth errors, not timeout
+        if (err.message !== "Loading timed out. Please refresh.") {
+          // Don't auto sign out on timeout — let user retry
+          if (!err.message.includes("timed out")) {
+            await supabase.auth.signOut();
+            router.push("/auth/login");
+          }
+        }
       }
     }
 
@@ -125,6 +146,18 @@ export default function MemberLayout({
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
           <p className="text-sm text-fg-4">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-canvas p-4">
+        <div className="bg-surface rounded-2xl border border-line p-6 max-w-md w-full text-center space-y-4">
+          <p className="text-sm font-semibold text-red-600">{loadError}</p>
+          <button onClick={() => window.location.reload()} className="px-5 py-2.5 rounded-xl bg-accent text-white text-sm font-bold">Retry</button>
+          <p className="text-xs text-fg-4">If this persists, please contact support.</p>
         </div>
       </div>
     );
