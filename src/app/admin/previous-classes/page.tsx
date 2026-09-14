@@ -345,7 +345,7 @@ export default function PreviousClasses() {
   const selectedClassData = classes.find((c) => c.id === selectedClass);
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans">
+    <div className="space-y-8 animate-fade-in font-sans min-w-0 max-w-full overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold text-fg truncate">

@@ -542,7 +542,7 @@ export default function PtSchedulerPage() {
   }, [members]);
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans pb-12">
+    <div className="space-y-8 animate-fade-in font-sans pb-12 min-w-0 max-w-full overflow-hidden">
       {/* Header Bar */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>

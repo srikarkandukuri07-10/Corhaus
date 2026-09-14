@@ -245,7 +245,7 @@ export default function AdminFreezeManagementPage() {
   const requestsPendingCount = members.filter((m) => m.current_status === "Freeze Requested").length;
 
   return (
-    <div className="space-y-6 animate-fade-in font-sans">
+    <div className="space-y-6 animate-fade-in font-sans min-w-0 max-w-full overflow-hidden">
       {/* Top Banner Header */}
       <div className="bg-surface rounded-3xl p-6 border border-line shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>

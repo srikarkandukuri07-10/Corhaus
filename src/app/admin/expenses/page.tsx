@@ -349,7 +349,7 @@ export default function ExpensesPage() {
   }, [expenses, searchQuery]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 max-w-full overflow-hidden">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line-2 pb-5">
         <div>

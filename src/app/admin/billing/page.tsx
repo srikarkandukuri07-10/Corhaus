@@ -522,7 +522,7 @@ export default function CreateBillPage() {
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in min-w-0 max-w-full overflow-hidden">
       {/* Page title */}
       <div className="mb-1">
         <h1 className="text-2xl font-light text-fg">

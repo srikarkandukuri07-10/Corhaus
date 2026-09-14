@@ -230,7 +230,7 @@ export default function DiscountsPage() {
   }, [members]);
 
   return (
-    <div className="space-y-6 font-sans pb-12">
+    <div className="space-y-6 font-sans pb-12 min-w-0 max-w-full overflow-hidden">
       {/* Top Banner Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>

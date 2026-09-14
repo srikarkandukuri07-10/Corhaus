@@ -456,7 +456,7 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in font-sans pb-12">
+    <div className="space-y-6 animate-fade-in font-sans pb-12 min-w-0 max-w-full overflow-hidden">
       {/* Top Header & Quick Action Bar */}
       <div className="admin-card flex flex-col md:flex-row md:items-center justify-between gap-5 p-5 sm:p-6">
         <div className="max-w-2xl">

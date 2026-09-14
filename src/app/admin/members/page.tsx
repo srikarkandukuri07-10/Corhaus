@@ -809,7 +809,7 @@ function MembersPageContent() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in font-sans">
+    <div className="space-y-6 animate-fade-in font-sans min-w-0 max-w-full overflow-hidden">
       {/* Top Title & Add Member Trigger */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">

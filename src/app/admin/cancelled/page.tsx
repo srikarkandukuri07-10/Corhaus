@@ -72,7 +72,7 @@ export default function CancelledBookingsPage() {
 
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in min-w-0 max-w-full overflow-hidden">
       <div>
         <h1 className="text-2xl font-light text-fg">
           Cancelled <span className="font-medium">Bookings</span>

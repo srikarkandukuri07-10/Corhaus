@@ -355,7 +355,7 @@ export default function StaffPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="space-y-6 animate-fade-in pb-12 min-w-0 max-w-full overflow-hidden">
       {/* ─── PAGE HEADER & ADD STAFF BUTTON ────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-line pb-4">
         <div className="min-w-0">

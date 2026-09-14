@@ -24,7 +24,7 @@ export default function ScannerPage() {
   }, []);
 
   return (
-    <div className="space-y-6 animate-fade-in font-sans">
+    <div className="space-y-6 animate-fade-in font-sans min-w-0 max-w-full overflow-hidden">
       <div>
         <h1 className="text-2xl font-bold text-fg">
           Attendance <span className="font-semibold text-accent">Scanner</span>

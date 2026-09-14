@@ -881,26 +881,26 @@ export default function AdminClassesModulePage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans pb-12">
+    <div className="space-y-6 sm:space-y-8 animate-fade-in font-sans pb-12 min-w-0 max-w-full overflow-hidden">
       {/* Top Banner Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-fg tracking-tight">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 min-w-0 overflow-hidden">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-fg tracking-tight break-words leading-tight">
             Classes &amp; Studio <span className="text-accent">Management</span>
           </h1>
-          <p className="text-sm text-fg-3 mt-1.5 font-medium">
+          <p className="text-sm text-fg-3 mt-1.5 font-medium break-words">
             Manage class types, calendar schedule board, session bookings, and studio check-ins
           </p>
         </div>
         {hasPerm("classes.create") && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => {
                 setSessClassTypeId("");
                 setSessTitle("");
                 setShowScheduleModal(true);
               }}
-              className="px-6 py-3 rounded-2xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-all shadow-md shadow-accent/25 flex items-center gap-2"
+              className="px-6 py-3 rounded-2xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-all shadow-md shadow-accent/25 flex items-center gap-2 shrink-0"
             >
               <span className="text-base font-extrabold">+</span> Schedule Session
             </button>
@@ -922,45 +922,45 @@ export default function AdminClassesModulePage() {
         </div>
       )}
 
-      {/* 4 REAL-TIME KPI SUMMARY CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-surface rounded-3xl p-6 border border-line shadow-xs hover:shadow-md transition-all flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-fg-4 uppercase tracking-wider">Active Class Types</p>
-            <p className="text-3xl font-black text-fg mt-1.5">{loading ? "..." : kpiMetrics.activeClassTypes}</p>
+      {/* 4 REAL-TIME KPI SUMMARY CARDS — 2-col compact on mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        <div className="bg-surface rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-line shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-2 min-w-0 overflow-hidden">
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-xs font-bold text-fg-4 uppercase tracking-wider break-words leading-tight">Active Class Types</p>
+            <p className="text-2xl sm:text-3xl font-black text-fg mt-1 sm:mt-1.5">{loading ? "..." : kpiMetrics.activeClassTypes}</p>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center shadow-xs">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" /></svg>
-          </div>
-        </div>
-
-        <div className="bg-surface rounded-3xl p-6 border border-line shadow-xs hover:shadow-md transition-all flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-fg-4 uppercase tracking-wider">Today&apos;s Sessions</p>
-            <p className="text-3xl font-black text-fg mt-1.5">{loading ? "..." : kpiMetrics.todaySessionsCount}</p>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shadow-xs">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-accent/10 text-accent flex items-center justify-center shadow-xs shrink-0">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" /></svg>
           </div>
         </div>
 
-        <div className="bg-surface rounded-3xl p-6 border border-line shadow-xs hover:shadow-md transition-all flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-fg-4 uppercase tracking-wider">Total Active Bookings</p>
-            <p className="text-3xl font-black text-fg mt-1.5">{loading ? "..." : kpiMetrics.totalActiveBookings}</p>
+        <div className="bg-surface rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-line shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-2 min-w-0 overflow-hidden">
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-xs font-bold text-fg-4 uppercase tracking-wider break-words leading-tight">Today&apos;s Sessions</p>
+            <p className="text-2xl sm:text-3xl font-black text-fg mt-1 sm:mt-1.5">{loading ? "..." : kpiMetrics.todaySessionsCount}</p>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center shadow-xs">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shadow-xs shrink-0">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
           </div>
         </div>
 
-        <div className="bg-surface rounded-3xl p-6 border border-line shadow-xs hover:shadow-md transition-all flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-fg-4 uppercase tracking-wider">Attendance Rate</p>
-            <p className="text-3xl font-black text-fg mt-1.5">{loading ? "..." : `${kpiMetrics.avgAttendancePercent}%`}</p>
+        <div className="bg-surface rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-line shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-2 min-w-0 overflow-hidden">
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-xs font-bold text-fg-4 uppercase tracking-wider break-words leading-tight">Total Active Bookings</p>
+            <p className="text-2xl sm:text-3xl font-black text-fg mt-1 sm:mt-1.5">{loading ? "..." : kpiMetrics.totalActiveBookings}</p>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-xs">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center shadow-xs shrink-0">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+          </div>
+        </div>
+
+        <div className="bg-surface rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-line shadow-xs hover:shadow-md transition-all flex items-center justify-between gap-2 min-w-0 overflow-hidden">
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-xs font-bold text-fg-4 uppercase tracking-wider break-words leading-tight">Attendance Rate</p>
+            <p className="text-2xl sm:text-3xl font-black text-fg mt-1 sm:mt-1.5">{loading ? "..." : `${kpiMetrics.avgAttendancePercent}%`}</p>
+          </div>
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-xs shrink-0">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
         </div>
       </div>

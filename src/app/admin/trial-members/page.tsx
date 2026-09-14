@@ -406,17 +406,17 @@ export default function TrialMembersPage() {
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 max-w-full overflow-hidden">
       {/* Top Header Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line-2 pb-5">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-fg-3 mb-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line-2 pb-5 min-w-0 overflow-hidden">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-xs font-semibold text-fg-3 mb-1 flex-wrap">
             <span>People &amp; Classes</span>
             <span>/</span>
-            <span className="text-fg font-bold">Trial Members</span>
+            <span className="text-fg font-bold truncate">Trial Members</span>
           </div>
-          <h1 className="text-2xl font-serif font-bold text-fg">Trial Members Management</h1>
-          <p className="text-xs text-fg-3 mt-1">
+          <h1 className="text-xl sm:text-2xl font-serif font-bold text-fg break-words leading-tight">Trial Members Management</h1>
+          <p className="text-xs text-fg-3 mt-1 break-words">
             Track prospective client trial bookings, attendance, and member conversions.
           </p>
         </div>
@@ -426,7 +426,7 @@ export default function TrialMembersPage() {
             resetCreateForm();
             setShowCreateModal(true);
           }}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-all shadow-md shadow-accent/20"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-all shadow-md shadow-accent/20 w-full sm:w-auto shrink-0"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -436,16 +436,16 @@ export default function TrialMembersPage() {
       </div>
 
       {/* Public Trial Booking Link Card */}
-      <div className="bg-surface border border-line rounded-3xl p-5 space-y-3">
-        <div>
+      <div className="bg-surface border border-line rounded-3xl p-4 sm:p-5 space-y-3 min-w-0 overflow-hidden">
+        <div className="min-w-0">
           <h3 className="text-sm font-bold text-fg">Public Trial Booking Link</h3>
-          <p className="text-xs text-fg-3 mt-1">share this link to the trail member to book their trail session</p>
+          <p className="text-xs text-fg-3 mt-1 break-words">share this link to the trail member to book their trail session</p>
         </div>
-        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 min-w-0">
           <a
             href="/book-trial"
             target="_blank"
-            className="text-xs bg-surface-2 border border-line-2 px-3 py-2.5 rounded-xl block min-w-0 sm:max-w-xs truncate text-accent font-mono hover:bg-hover"
+            className="text-xs bg-surface-2 border border-line-2 px-3 py-2.5 rounded-xl block w-full sm:w-auto sm:max-w-xs max-w-full overflow-hidden truncate text-accent font-mono hover:bg-hover"
           >
             {typeof window !== "undefined" ? window.location.origin : ""}/book-trial
           </a>
@@ -508,10 +508,10 @@ export default function TrialMembersPage() {
       </div>
 
       {/* Navigation Tabs & Search Toolbar */}
-      <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line-2 pb-3">
+      <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs space-y-4 min-w-0 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line-2 pb-3 min-w-0">
           {/* View Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar shrink-0">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar shrink-0 max-w-full">
             <button
               onClick={() => setViewTab("active")}
               className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${

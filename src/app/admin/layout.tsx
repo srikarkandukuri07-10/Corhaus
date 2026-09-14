@@ -507,7 +507,7 @@ export default function AdminLayout({
       )}
 
       {/* ──────────────────────────────────────────────────────────── */}
-      <main className="flex-1 lg:pl-[272px] flex flex-col min-h-screen pt-14 lg:pt-0">
+      <main className="flex-1 lg:pl-[272px] flex flex-col min-h-screen pt-14 lg:pt-0 min-w-0 max-w-full overflow-x-hidden">
         {/* Top Header Bar — desktop only version (hidden on mobile, which has its own header above) */}
         <header className="hidden lg:flex bg-bar/90 backdrop-blur-md border-b border-line-bar px-4 xl:px-6 py-3 items-center justify-between gap-3 sticky top-0 z-30">
           <div className="relative flex-1 max-w-lg min-w-0">
@@ -586,7 +586,7 @@ export default function AdminLayout({
         </header>
 
         {/* Page Content Body */}
-        <div className="p-3 sm:p-5 lg:p-8 flex-1 max-w-[1440px] w-full mx-auto min-w-0">{children}</div>
+        <div className="p-3 sm:p-5 lg:p-8 flex-1 max-w-[1440px] w-full mx-auto min-w-0 max-w-full overflow-x-hidden">{children}</div>
       </main>
     </div>
   );
