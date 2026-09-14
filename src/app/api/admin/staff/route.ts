@@ -368,3 +368,43 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const { verifyApiPermission } = await import("@/lib/rbac");
+    const check = await verifyApiPermission("staff.edit");
+    if (!check.authorized) return check.response!;
+
+    const auth = await getAdminClient();
+    if ("error" in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+    const { serviceClient } = auth;
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id") || (await req.json().catch(() => ({})))?.id;
+    if (!id) {
+      return NextResponse.json({ error: "Staff ID is required." }, { status: 400 });
+    }
+
+    // Prevent deleting the last Active Owner
+    const { data: target } = await serviceClient.from("staff_members").select("role, employment_status").eq("id", id).maybeSingle();
+    if (target?.role === "Owner" && target?.employment_status === "Active") {
+      const { count } = await serviceClient.from("staff_members").select("id", { count: "exact", head: true }).eq("role", "Owner").eq("employment_status", "Active");
+      if ((count || 0) <= 1) {
+        return NextResponse.json({ error: "Cannot delete the last Active Owner. Assign another Owner first." }, { status: 400 });
+      }
+    }
+
+    // Clean staff_roles first (FK)
+    await serviceClient.from("staff_roles").delete().eq("staff_id", id);
+    const { error } = await serviceClient.from("staff_members").delete().eq("id", id);
+    if (error) {
+      return NextResponse.json({ error: "Failed to delete staff: " + error.message }, { status: 500 });
+    }
+    return NextResponse.json({ success: true, message: "Staff member deleted permanently." });
+  } catch (err: any) {
+    console.error("DELETE /api/admin/staff error:", err);
+    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+  }
+}

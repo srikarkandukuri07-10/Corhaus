@@ -72,6 +72,7 @@ export default function StaffPage() {
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
   const [selectedStaffProfile, setSelectedStaffProfile] = useState<StaffMember | null>(null);
   const [deactivatingStaff, setDeactivatingStaff] = useState<StaffMember | null>(null);
+  const [deletingStaff, setDeletingStaff] = useState<StaffMember | null>(null);
 
   // Form Wizard State (1: Basic, 2: Trainer (if trainer), 3: Compensation/Personal, 4: Bank)
   const [formStep, setFormStep] = useState(1);
@@ -346,6 +347,29 @@ export default function StaffPage() {
     }
   };
 
+  // Handle Permanent Delete Staff
+  const handleConfirmDelete = async () => {
+    if (!deletingStaff) return;
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/admin/staff?id=${encodeURIComponent(deletingStaff.id)}`, { method: "DELETE" });
+      const data = await res.json();
+      setActionLoading(false);
+      if (!res.ok || data.error) {
+        setActionError(data.error || "Failed to delete staff.");
+      } else {
+        setActionSuccess(`Staff member ${deletingStaff.full_name} deleted permanently.`);
+        setDeletingStaff(null);
+        if (selectedStaffProfile?.id === deletingStaff.id) setSelectedStaffProfile(null);
+        fetchStaffData();
+      }
+    } catch (err: any) {
+      setActionLoading(false);
+      setActionError("Delete failed: " + (err.message || "Network error"));
+    }
+  };
+
   // Mask Account Number for security
   const formatMaskedAccount = (num?: string | null) => {
     if (!num) return "N/A";
@@ -599,11 +623,18 @@ export default function StaffPage() {
                             <button
                               onClick={() => setDeactivatingStaff(staff)}
                               title="Deactivate Staff"
-                              className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+                              className="p-1.5 rounded-lg text-amber-600 hover:text-amber-700 hover:bg-amber-50 transition-colors"
                             >
                               🚫 Deactivate
                             </button>
                           )}
+                          <button
+                            onClick={() => setDeletingStaff(staff)}
+                            title="Delete Staff permanently"
+                            className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+                          >
+                            🗑️ Delete
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -669,11 +700,17 @@ export default function StaffPage() {
                     {staff.employment_status === "Active" && (
                       <button
                         onClick={() => setDeactivatingStaff(staff)}
-                        className="px-3 py-1.5 rounded-xl bg-red-50 text-red-600 font-bold text-xs"
+                        className="px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 font-bold text-xs border border-amber-200"
                       >
                         Deactivate
                       </button>
                     )}
+                    <button
+                      onClick={() => setDeletingStaff(staff)}
+                      className="px-3 py-1.5 rounded-xl bg-red-50 text-red-600 font-bold text-xs border border-red-200"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}
@@ -1358,9 +1395,49 @@ export default function StaffPage() {
                 <button
                   onClick={handleConfirmDeactivate}
                   disabled={actionLoading}
-                  className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-xl transition-all shadow-md shadow-red-600/20 disabled:opacity-50 w-full sm:w-auto"
+                  className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl transition-all shadow-md shadow-amber-600/20 disabled:opacity-50 w-full sm:w-auto"
                 >
                   {actionLoading ? "Deactivating..." : "Yes, Deactivate Staff"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ─── DELETE STAFF CONFIRMATION DIALOG (hard delete) ────────────────────── */}
+      {deletingStaff && (
+        <Modal>
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-3 sm:p-6">
+            <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-md w-full p-4 sm:p-6 flex flex-col animate-fade-in space-y-4 text-center max-h-[85dvh] overflow-y-auto">
+              <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-8-6-8 6v16h16V7z M10 11v6M14 11v6" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-fg">Delete Staff Permanently?</h3>
+                <p className="text-xs text-fg-3 mt-1">
+                  Are you sure you want to <strong className="text-red-600">permanently delete</strong>{" "}
+                  <strong className="text-fg">{deletingStaff.full_name}</strong> ({deletingStaff.email || deletingStaff.phone_number})?
+                </p>
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-800 text-[11px] font-semibold rounded-xl text-left">
+                  ⚠️ This will permanently remove the staff record from Supabase. Use <strong>Deactivate</strong> if you only want to mark as inactive.
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={() => setDeletingStaff(null)}
+                  className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-xs text-fg hover:bg-black/5 transition-all w-full sm:w-auto"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={actionLoading}
+                  className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-xl transition-all shadow-md shadow-red-600/20 disabled:opacity-50 w-full sm:w-auto"
+                >
+                  {actionLoading ? "Deleting..." : "Yes, Delete Permanently"}
                 </button>
               </div>
             </div>
