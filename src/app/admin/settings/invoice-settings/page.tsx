@@ -83,6 +83,7 @@ export function SettingsSidebar() {
       items: [
         { label: "Business Profile", href: "/admin/settings/business-profile", active: pathname.includes("business-profile") || pathname === "/admin/settings" },
         { label: "Invoice Settings", href: "/admin/settings/invoice-settings", active: pathname.includes("invoice-settings") },
+        { label: "Forms & Waivers", href: "/admin/settings/forms", active: pathname.includes("/forms") },
       ],
     },
     {
