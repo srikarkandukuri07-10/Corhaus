@@ -208,9 +208,9 @@ export default function AdminLayout({
     <div className="min-h-screen admin-shell flex font-sans">
       {/* ─── SIDEBAR ────────────────────────────────────────────────────────── */}
       <aside className="hidden lg:flex w-[272px] bg-rail text-white flex-col fixed inset-y-0 left-0 z-50 border-r border-line-rail">
-        {/* Logo Header */}
-        <div className="px-6 py-5 border-b border-white/10 flex items-center justify-start">
-          <Logo href="/admin" variant="white" size="lg" />
+        {/* Logo Header — rectangle that fills header, image not stretched */}
+        <div className="px-3 py-3 border-b border-white/10">
+          <Logo href="/admin" variant="white" size="banner" />
         </div>
 
         {/* Sidebar Navigation */}
@@ -492,7 +492,9 @@ export default function AdminLayout({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <Logo size="sm" />
+          <div className="flex-1 min-w-0">
+            <Logo size="banner" />
+          </div>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0 relative">
           <ThemeToggle />
@@ -546,9 +548,11 @@ export default function AdminLayout({
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
           <aside className="w-[280px] max-w-[88vw] bg-rail text-white flex flex-col relative z-10 h-full overflow-y-auto shadow-2xl">
-            {/* Drawer Header */}
-            <div className="flex justify-between items-center px-4 py-4 border-b border-white/10 flex-shrink-0">
-              <Logo href="/admin" variant="white" size="sm" />
+            {/* Drawer Header — rectangle logo fills width */}
+            <div className="flex items-center gap-3 px-3 py-3 border-b border-white/10 flex-shrink-0">
+              <div className="flex-1 min-w-0">
+                <Logo href="/admin" variant="white" size="banner" />
+              </div>
               <button
                 onClick={() => setMobileOpen(false)}
                 className="w-8 h-8 rounded-xl text-white hover:bg-rail-hover flex items-center justify-center flex-shrink-0"

@@ -374,10 +374,10 @@ export default function BusinessProfilePage() {
                 subtitle="Public-facing studio identity and contact details"
               />
 
-              {/* Logo upload — square with somewhat rounded corners */}
+              {/* Logo upload — square with somewhat rounded corners, image fully fits without stretching */}
               <div className="flex flex-wrap items-center gap-5">
                 <div
-                  className="relative w-20 h-20 overflow-hidden border-2 border-line bg-surface-2/50 flex-shrink-0"
+                  className="relative w-20 h-20 overflow-hidden border-2 border-line bg-surface-2/50 flex-shrink-0 flex items-center justify-center"
                   style={{ borderRadius: "12px" }}
                 >
                   {form.logo_url ? (
@@ -385,7 +385,7 @@ export default function BusinessProfilePage() {
                       src={form.logo_url}
                       alt="Business logo"
                       fill
-                      className="object-cover"
+                      className="object-contain p-1"
                       unoptimized
                     />
                   ) : (
@@ -394,7 +394,7 @@ export default function BusinessProfilePage() {
                       src="/icon-192.jpg"
                       alt="Default logo"
                       fill
-                      className="object-cover"
+                      className="object-contain p-1"
                       unoptimized
                     />
                   )}
