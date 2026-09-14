@@ -19,6 +19,9 @@ export default function AdminLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [role, setRole] = useState<string>("");
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [staffProfile, setStaffProfile] = useState<any>(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [mobileProfileMenuOpen, setMobileProfileMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   useEffect(() => {
@@ -45,6 +48,14 @@ export default function AdminLayout({
             setPermissions(permData.permissions);
           }
           setLoading(false);
+          // Fetch actual staff profile for dynamic header (name/role/initial)
+          try {
+            const profRes = await fetch("/api/admin/my-profile", { cache: "no-store" });
+            if (profRes.ok) {
+              const pj = await profRes.json();
+              if (pj.staff) setStaffProfile(pj.staff);
+            }
+          } catch {}
         } else {
           router.push("/auth/login");
         }
@@ -56,7 +67,7 @@ export default function AdminLayout({
     checkAuth();
   }, [router]);
 
-  // Listen for permission updates
+  // Listen for permission updates + profile refresh (after My Profile save)
   useEffect(() => {
     async function refreshPermissions() {
       try {
@@ -70,12 +81,35 @@ export default function AdminLayout({
         }
       } catch (_) {}
     }
+    async function refreshProfile() {
+      try {
+        const pr = await fetch("/api/admin/my-profile", { cache: "no-store" });
+        if (pr.ok) {
+          const pj = await pr.json();
+          if (pj.staff) setStaffProfile(pj.staff);
+        }
+      } catch {}
+    }
 
+    const onProfileUpdated = () => refreshProfile();
     window.addEventListener(PERMISSIONS_REFRESH_EVENT, refreshPermissions);
+    window.addEventListener("corhaus:profile-updated", onProfileUpdated);
     return () => {
       window.removeEventListener(PERMISSIONS_REFRESH_EVENT, refreshPermissions);
+      window.removeEventListener("corhaus:profile-updated", onProfileUpdated);
     };
   }, []);
+
+  // Close profile menus on route change or outside click
+  useEffect(() => {
+    setProfileMenuOpen(false);
+    setMobileProfileMenuOpen(false);
+  }, [pathname]);
+
+  const displayName = (staffProfile?.full_name || "").trim() || (role ? role : "Admin");
+  // Preserve single-initial visual style but make it dynamic from actual name
+  const displayInitial = displayName ? displayName.trim().charAt(0).toUpperCase() : (role ? role.charAt(0).toUpperCase() : "A");
+  const displayRole = (staffProfile?.role || role || "Staff").trim() || "Staff";
 
   if (loading) {
     return (
@@ -375,18 +409,49 @@ export default function AdminLayout({
           )}
         </div>
 
-        {/* User Profile Footer */}
-        <div className="p-4 border-t border-white/10 flex items-center justify-between bg-black/20">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-accent text-white font-bold flex items-center justify-center text-sm ring-1 ring-accent/30">
-              {role ? role.charAt(0).toUpperCase() : "A"}
-            </div>
-            <div className="text-left">
-              <p className="text-xs font-bold text-white leading-tight">Admin</p>
-              <p className="text-[10px] text-on-rail-2">{role || "Super Admin"}</p>
-            </div>
+        {/* User Profile Footer — clickable, dynamic name/role/initial */}
+        <div className="p-4 border-t border-white/10 bg-black/20 relative">
+          <div className="flex items-center justify-between gap-2">
+            <Link
+              href="/admin/profile"
+              className="flex items-center gap-3 flex-1 min-w-0 rounded-xl p-1 -m-1 hover:bg-white/10 transition-colors group/profile text-left"
+              title="Open My Profile"
+            >
+              <div className="w-9 h-9 rounded-full bg-accent text-white font-bold flex items-center justify-center text-sm ring-1 ring-accent/30 shrink-0">
+                {displayInitial}
+              </div>
+              <div className="text-left min-w-0">
+                <p className="text-xs font-bold text-white leading-tight truncate group-hover/profile:text-white">{displayName}</p>
+                <p className="text-[10px] text-on-rail-2 truncate">{displayRole}</p>
+              </div>
+            </Link>
+            <button
+              onClick={() => setProfileMenuOpen((v) => !v)}
+              className="w-8 h-8 rounded-xl hover:bg-white/10 flex items-center justify-center text-on-rail-2 hover:text-white shrink-0"
+              aria-label="Profile menu"
+              aria-expanded={profileMenuOpen}
+            >
+              <svg className={`w-4 h-4 transition-transform ${profileMenuOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </button>
           </div>
-          <LogoutButton />
+          {profileMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} aria-hidden />
+              <div className="absolute bottom-full left-3 right-3 mb-2 bg-surface border border-line rounded-2xl shadow-xl overflow-hidden z-50 py-1 animate-fade-in">
+                <div className="px-4 py-3 border-b border-line">
+                  <p className="text-sm font-bold text-fg truncate">{displayName}</p>
+                  <p className="text-xs text-fg-3">{displayRole}</p>
+                </div>
+                <Link href="/admin/profile" onClick={() => setProfileMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-fg hover:bg-hover w-full text-left">
+                  <svg className="w-4 h-4 text-fg-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  My Profile
+                </Link>
+                <div className="px-2 py-1">
+                  <LogoutButton />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </aside>
 
@@ -404,13 +469,38 @@ export default function AdminLayout({
           </button>
           <span className="font-bold text-sm tracking-[0.18em] text-white truncate">CORHAUS</span>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0 relative">
           <ThemeToggle />
           <NotificationsButton role="admin" />
-          <div className="w-8 h-8 rounded-full bg-accent text-white font-bold flex items-center justify-center text-xs flex-shrink-0">
-            {role ? role.charAt(0).toUpperCase() : "A"}
-          </div>
-          <LogoutButton />
+          <button
+            onClick={() => setMobileProfileMenuOpen((v) => !v)}
+            className="flex items-center gap-1.5 p-1 pr-2 rounded-full hover:bg-white/10 transition-colors"
+            aria-label="Open profile menu"
+            aria-expanded={mobileProfileMenuOpen}
+          >
+            <div className="w-8 h-8 rounded-full bg-accent text-white font-bold flex items-center justify-center text-xs shrink-0">
+              {displayInitial}
+            </div>
+            <svg className={`w-3 h-3 text-white/80 hidden sm:block transition-transform ${mobileProfileMenuOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </button>
+          {mobileProfileMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setMobileProfileMenuOpen(false)} aria-hidden />
+              <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-line rounded-2xl shadow-xl overflow-hidden z-50 py-1 animate-fade-in">
+                <div className="px-4 py-3 border-b border-line">
+                  <p className="text-sm font-bold text-fg truncate">{displayName}</p>
+                  <p className="text-xs text-fg-3">{displayRole}</p>
+                </div>
+                <Link href="/admin/profile" onClick={() => setMobileProfileMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-fg hover:bg-hover w-full text-left">
+                  <svg className="w-4 h-4 text-fg-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  My Profile
+                </Link>
+                <div className="px-2 py-1">
+                  <LogoutButton />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -433,18 +523,16 @@ export default function AdminLayout({
               </button>
             </div>
 
-            {/* Role pill */}
-            <div className="px-4 py-3 border-b border-white/10 flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-accent text-white font-bold flex items-center justify-center text-sm ring-2 ring-accent/30">
-                  {role ? role.charAt(0).toUpperCase() : "A"}
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-white leading-tight">Admin Panel</p>
-                  <p className="text-[11px] text-on-rail-2">{role || "Super Admin"}</p>
-                </div>
+            {/* Role pill — clickable profile */}
+            <Link href="/admin/profile" onClick={() => setMobileOpen(false)} className="px-4 py-3 border-b border-white/10 flex-shrink-0 flex items-center gap-3 hover:bg-white/5 transition-colors">
+              <div className="w-9 h-9 rounded-full bg-accent text-white font-bold flex items-center justify-center text-sm ring-2 ring-accent/30 shrink-0">
+                {displayInitial}
               </div>
-            </div>
+              <div className="min-w-0 text-left">
+                <p className="text-xs font-bold text-white leading-tight truncate">{displayName}</p>
+                <p className="text-[11px] text-on-rail-2 truncate">{displayRole}</p>
+              </div>
+            </Link>
 
             {/* Nav Items */}
             <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" onClick={() => setMobileOpen(false)}>
@@ -498,8 +586,12 @@ export default function AdminLayout({
               )}
             </nav>
 
-            {/* Drawer Footer */}
-            <div className="p-4 border-t border-white/10 flex-shrink-0">
+            {/* Drawer Footer — My Profile + Sign Out */}
+            <div className="p-4 border-t border-white/10 flex-shrink-0 space-y-2">
+              <Link href="/admin/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm font-semibold text-white hover:bg-white/10 transition-colors">
+                <svg className="w-4 h-4 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                My Profile
+              </Link>
               <LogoutButton />
             </div>
           </aside>
@@ -576,11 +668,18 @@ export default function AdminLayout({
               </span>
             )}
             <NotificationsButton role="admin" />
-            <div className="flex items-center gap-2 bg-surface border border-line-2 px-3 py-1.5 rounded-full text-xs text-fg font-semibold">
-              <div className="w-6 h-6 rounded-full bg-accent text-white flex items-center justify-center font-bold text-[11px]">
-                {role ? role.charAt(0).toUpperCase() : "A"}
-              </div>
-              <span>{role || "Admin"}</span>
+            <div className="relative">
+              <Link
+                href="/admin/profile"
+                className="flex items-center gap-2 bg-surface border border-line-2 px-3 py-1.5 rounded-full text-xs text-fg font-semibold hover:bg-hover transition-colors group/profile"
+                title="Open My Profile"
+              >
+                <div className="w-6 h-6 rounded-full bg-accent text-white flex items-center justify-center font-bold text-[11px] shrink-0">
+                  {displayInitial}
+                </div>
+                <span className="truncate max-w-[120px]">{displayName}</span>
+                <span className="text-fg-3 hidden sm:inline">· {displayRole}</span>
+              </Link>
             </div>
           </div>
         </header>
