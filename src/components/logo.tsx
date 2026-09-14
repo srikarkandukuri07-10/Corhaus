@@ -111,15 +111,17 @@ export default function Logo({
             background: "#F6EFE6",
             borderRadius: "10px",
             border: "1px solid rgba(107, 68, 42, 0.08)",
+            padding: "6px 12px",
           }}
         >
           <span
             className="font-normal tracking-tight"
             style={{
               fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif",
-              fontSize: "17px",
+              fontSize: "20px",
               color: "#6B3A26",
               lineHeight: 1,
+              letterSpacing: "-0.02em",
             }}
           >
             Corhaus
@@ -128,7 +130,7 @@ export default function Logo({
             className="tracking-[0.14em] lowercase"
             style={{
               fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif",
-              fontSize: "7px",
+              fontSize: "8.5px",
               color: "#8B6A4F",
               marginTop: "2px",
             }}
