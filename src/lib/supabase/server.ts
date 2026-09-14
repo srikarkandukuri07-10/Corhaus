@@ -15,9 +15,10 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
+              const isDeletion = (options as any)?.maxAge === 0 || (options as any)?.maxAge < 0 || !value;
               const customizedOptions = {
                 ...options,
-                maxAge: 60 * 60 * 24 * 365, // 1 year session lifetime
+                ...(isDeletion ? {} : { maxAge: 60 * 60 * 24 * 365 }),
                 secure: true,
                 sameSite: "lax" as const,
                 httpOnly: true,

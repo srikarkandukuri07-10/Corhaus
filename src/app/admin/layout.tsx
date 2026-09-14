@@ -111,7 +111,7 @@ export default function AdminLayout({
   const displayInitial = displayName ? displayName.trim().charAt(0).toUpperCase() : (role ? role.charAt(0).toUpperCase() : "A");
   const displayRole = (staffProfile?.role || role || "Staff").trim() || "Staff";
 
-  // Robust sign out — works from drawer (which has overlay) and top bar; always hard-navigates
+  // Robust sign out — always hard-navigates after clearing session (proxy now respects deletions)
   const handleSignOut = useCallback(async () => {
     setMobileOpen(false);
     setProfileMenuOpen(false);
@@ -120,8 +120,19 @@ export default function AdminLayout({
       const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
       await supabase.auth.signOut();
+      // Ensure local storage is cleared (some Supabase versions keep it)
+      try {
+        localStorage.removeItem("sb-zmzevqorbdogwishiahw-auth-token");
+        // Clear all sb-* keys as fallback
+        Object.keys(localStorage).forEach((k) => {
+          if (k.startsWith("sb-")) localStorage.removeItem(k);
+        });
+      } catch {}
     } catch {}
-    window.location.href = "/auth/login";
+    // Small delay to let Set-Cookie headers flush, then hard replace (no history)
+    setTimeout(() => {
+      window.location.replace("/auth/login");
+    }, 100);
   }, []);
 
   if (loading) {

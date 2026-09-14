@@ -1,28 +1,21 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 
 export default function LogoutButton() {
-  const router = useRouter();
   const supabase = createClient();
 
   async function handleLogout() {
     try {
       await supabase.auth.signOut();
+      try {
+        localStorage.removeItem("sb-zmzevqorbdogwishiahw-auth-token");
+        Object.keys(localStorage).forEach((k) => {
+          if (k.startsWith("sb-")) localStorage.removeItem(k);
+        });
+      } catch {}
     } catch {}
-    // Use hard navigation for reliability on mobile (router.push can be swallowed by overlays)
-    try {
-      router.push("/auth/login");
-      // Fallback hard redirect after a tick if still on admin page
-      setTimeout(() => {
-        if (window.location.pathname.startsWith("/admin")) {
-          window.location.href = "/auth/login";
-        }
-      }, 300);
-    } catch {
-      window.location.href = "/auth/login";
-    }
+    setTimeout(() => window.location.replace("/auth/login"), 100);
   }
 
   return (
