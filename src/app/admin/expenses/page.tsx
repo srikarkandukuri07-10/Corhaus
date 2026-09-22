@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { createClient } from "@/lib/supabase/client";
 import { usePermissions } from "@/lib/usePermissions";
 
@@ -128,6 +129,9 @@ export default function ExpensesPage() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [viewingExpense, setViewingExpense] = useState<Expense | null>(null);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+
+  // Lock background scroll while any dialog is open
+  useLockBody(isAddModalOpen || !!editingExpense || !!viewingExpense || !!deletingExpense);
 
   // Form State
   const [formTitle, setFormTitle] = useState("");

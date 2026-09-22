@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { useLockBody } from "@/lib/useLockBody";
 import { InvoiceSettingsData, DEFAULT_INVOICE_SETTINGS } from "@/app/api/admin/settings/invoice/route";
 
 interface InvoiceItem {
@@ -56,6 +57,7 @@ export default function InvoicePrintModal({ invoice, onClose }: Props) {
   const [settings, setSettings] = useState<InvoiceSettingsData>(DEFAULT_INVOICE_SETTINGS);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  useLockBody(true);
 
   useEffect(() => {
     async function loadSettings() {
@@ -261,9 +263,9 @@ export default function InvoicePrintModal({ invoice, onClose }: Props) {
         }
       `}</style>
 
-      <div className="m-auto bg-surface border border-line rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl">
+      <div className="m-auto bg-surface border border-line rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl max-h-[92dvh] flex flex-col">
         {/* Modal Toolbar (hidden in print) */}
-        <div className="no-print flex items-center justify-between gap-2 px-4 sm:px-6 py-3 sm:py-4 border-b border-line bg-surface-2/40">
+        <div className="no-print flex flex-shrink-0 items-center justify-between gap-2 px-4 sm:px-6 py-3 sm:py-4 border-b border-line bg-surface-2/40">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0" />
             <h3 className="text-[13px] sm:text-sm font-bold text-fg truncate">Tax Invoice Preview &amp; Download</h3>
@@ -289,7 +291,7 @@ export default function InvoicePrintModal({ invoice, onClose }: Props) {
         </div>
 
         {/* Printable Area */}
-        <div id="printable-invoice-area" className="p-8 bg-white text-gray-900 space-y-6">
+        <div id="printable-invoice-area" className="p-8 bg-white text-gray-900 space-y-6 overflow-y-auto min-h-0">
           {/* Header row */}
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 border-b border-gray-200 pb-6">
             <div>

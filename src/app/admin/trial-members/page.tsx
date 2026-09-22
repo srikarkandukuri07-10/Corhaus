@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { createClient } from "@/lib/supabase/client";
 import Pagination, { usePagination } from "@/components/pagination";
 import { formatDate, formatTime } from "@/lib/date-utils";
@@ -124,6 +125,9 @@ export default function TrialMembersPage() {
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTime, setRescheduleTime] = useState("09:00");
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
+
+  // Lock background scroll while any dialog is open
+  useLockBody(showCreateModal || !!editingTrial || !!reschedulingTrial);
 
   // Fetch trial members and dropdown master data
   const fetchTrialMembers = useCallback(async () => {
@@ -1259,7 +1263,7 @@ export default function TrialMembersPage() {
       {/* RESCHEDULE TRIAL MODAL */}
       {reschedulingTrial && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-surface border border-line-2 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-surface border border-line-2 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line-2 pb-3">
               <div>
                 <h3 className="text-lg font-serif font-bold text-fg">Reschedule Trial</h3>

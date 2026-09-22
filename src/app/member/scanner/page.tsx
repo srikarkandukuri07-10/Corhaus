@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, Suspense } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { Html5Qrcode } from "html5-qrcode";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -13,6 +14,9 @@ function MemberScannerContent() {
   const [eligibleClasses, setEligibleClasses] = useState<any[]>([]);
   const [showClassPicker, setShowClassPicker] = useState(false);
   const [pendingQrData, setPendingQrData] = useState<string | null>(null);
+
+  // Lock background scroll while the dialog is open
+  useLockBody(showClassPicker);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isRunningRef = useRef(false);
 

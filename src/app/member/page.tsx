@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -100,6 +101,9 @@ export default function MemberDashboard() {
   const [usedCredits, setUsedCredits] = useState(0);
   const [classTypes, setClassTypes] = useState<Record<string, string>>({});
   const [showBookConfirm, setShowBookConfirm] = useState(false);
+
+  // Lock background scroll while the dialog is open
+  useLockBody(showBookConfirm);
   const [bookConfirmClass, setBookConfirmClass] = useState<ClassData | null>(null);
 
   const LOCAL_STORAGE_KEY = "corhaus_booked_ids";

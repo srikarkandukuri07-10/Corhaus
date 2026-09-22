@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { createClient } from "@/lib/supabase/client";
 
 interface PlanItem {
@@ -80,6 +81,9 @@ export default function PackagesAndPlansPage() {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPlan, setEditingPlan] = useState<PlanItem | null>(null);
+
+  // Lock background scroll while any dialog is open
+  useLockBody(showCreateModal || !!editingPlan);
 
   // Form State
   const [formCategory, setFormCategory] = useState<string>("Class Packages");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useTransition, useRef } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -155,6 +156,16 @@ export default function AdminClassesModulePage() {
   // Session Detail Modal State
   const [showSessionDetailModal, setShowSessionDetailModal] = useState(false);
   const [selectedSessionForDetail, setSelectedSessionForDetail] = useState<ScheduledSession | null>(null);
+
+  // Lock background scroll while any dialog is open
+  useLockBody(
+    showCreateClassTypeModal ||
+      !!editingClassType ||
+      showScheduleModal ||
+      !!editingSession ||
+      showAssignMemberModal ||
+      showSessionDetailModal
+  );
 
   // Class Type Form state
   const [ctName, setCtName] = useState("");

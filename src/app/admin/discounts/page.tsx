@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { createClient } from "@/lib/supabase/client";
 
 interface MemberDiscount {
@@ -50,6 +51,9 @@ export default function DiscountsPage() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedMemberForHistory, setSelectedMemberForHistory] = useState<MemberRecord | null>(null);
   const [editingDiscount, setEditingDiscount] = useState<MemberDiscount | null>(null);
+
+  // Lock background scroll while any dialog is open
+  useLockBody(showAddModal || showHistoryModal || !!selectedMemberForHistory || !!editingDiscount);
 
   // Form State
   const [formMemberId, setFormMemberId] = useState("");

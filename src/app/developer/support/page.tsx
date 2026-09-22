@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { createClient } from "@/lib/supabase/client";
 
 interface Ticket {
@@ -56,6 +57,10 @@ export default function DeveloperSupportDashboard() {
 
   // Resolution Modal State
   const [showResolveModal, setShowResolveModal] = useState(false);
+
+  // Lock background scroll while the dialog is open
+  // (selectedTicket renders inline in the split view — not a modal)
+  useLockBody(showResolveModal);
   const [resolutionNote, setResolutionNote] = useState(
     "✔ Fixed issue\n✔ Verified functionality\n✔ Deployed update"
   );
@@ -653,7 +658,7 @@ export default function DeveloperSupportDashboard() {
       {/* Mark Resolved Modal */}
       {showResolveModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-surface border border-line rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+          <div className="bg-surface border border-line rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <h3 className="text-base font-extrabold text-fg">Mark Ticket as Resolved</h3>
               <button

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useTransition } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 
@@ -106,6 +107,9 @@ export default function PtSchedulerPage() {
   const [showBookModal, setShowBookModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showPtMembersModal, setShowPtMembersModal] = useState(false);
+
+  // Lock background scroll while any dialog is open
+  useLockBody(showAssignModal || showBookModal || showDetailModal || showPtMembersModal);
   const [selectedSession, setSelectedSession] = useState<PtSession | null>(null);
 
   // Assign Form state
@@ -822,7 +826,7 @@ export default function PtSchedulerPage() {
       {showBookModal && (
         <Modal>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-4">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-4 max-h-[85dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-4">
               <div>
                 <h3 className="text-xl font-extrabold text-fg">Book Individual Session</h3>

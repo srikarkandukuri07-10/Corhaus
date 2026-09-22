@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate } from "@/lib/date-utils";
 
@@ -44,6 +45,9 @@ export default function MembershipFreezeSection() {
   const [loading, setLoading] = useState(true);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+
+  // Lock background scroll while any dialog is open
+  useLockBody(showRequestModal || showHistoryModal);
 
   // Form state
   const [startDate, setStartDate] = useState<string>(new Date().toISOString().split("T")[0]);
@@ -426,7 +430,7 @@ export default function MembershipFreezeSection() {
       {/* ─── FREEZE HISTORY MODAL ──────────────────────────────────────────────── */}
       {showHistoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-surface rounded-2xl border border-line shadow-xl max-w-xl w-[95vw] p-6 space-y-4 max-h-[85vh] flex flex-col">
+          <div className="bg-surface rounded-2xl border border-line shadow-xl max-w-xl w-[95vw] p-6 space-y-4 max-h-[85vh] flex flex-col overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
                 <h3 className="font-serif text-lg font-bold text-fg">Freeze History</h3>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { createClient } from "@/lib/supabase/client";
 import Pagination, { usePagination } from "@/components/pagination";
 
@@ -72,6 +73,9 @@ export default function AdminFreezeManagementPage() {
   const [submittingResume, setSubmittingResume] = useState(false);
 
   const [historyModalMember, setHistoryModalMember] = useState<MemberFreezeData | null>(null);
+
+  // Lock background scroll while any dialog is open
+  useLockBody(!!freezeModalMember || !!resumeModalMember || !!historyModalMember);
 
   const supabase = createClient();
 
@@ -748,7 +752,7 @@ export default function AdminFreezeManagementPage() {
       {/* ─── RESUME CONFIRMATION MODAL ─────────────────────────────────────────── */}
       {resumeModalMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-md w-full p-6 space-y-4">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-md w-full p-6 space-y-4 max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-lg">
                 ✓
@@ -793,7 +797,7 @@ export default function AdminFreezeManagementPage() {
       {/* ─── FREEZE HISTORY MODAL ──────────────────────────────────────────────── */}
       {historyModalMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col">
+          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
                 <h3 className="text-base font-serif font-bold text-fg">

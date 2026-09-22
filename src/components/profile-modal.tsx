@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useLockBody } from "@/lib/useLockBody";
 
 interface ProfileData {
   id: string;
@@ -33,6 +34,9 @@ export default function ProfileModal({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const supabase = createClient();
+
+  // Lock background scroll while the dialog is open
+  useLockBody(open);
 
   useEffect(() => {
     if (!open) return;
@@ -168,7 +172,7 @@ export default function ProfileModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-surface rounded-2xl shadow-xl w-[95vw] max-w-md p-4 sm:p-6 animate-fade-in">
+      <div className="relative bg-surface rounded-2xl shadow-xl w-[95vw] max-w-md p-4 sm:p-6 animate-fade-in max-h-[90dvh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-medium text-fg">My Profile</h2>
           <button

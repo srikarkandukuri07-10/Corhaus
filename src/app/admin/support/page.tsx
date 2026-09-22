@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { createClient } from "@/lib/supabase/client";
 
 interface Ticket {
@@ -67,6 +68,10 @@ export default function SupportCenterPage() {
 
   // New Ticket Modal State
   const [showNewTicketModal, setShowNewTicketModal] = useState(false);
+
+  // Lock background scroll while the dialog is open
+  // (selectedTicket renders inline in the split view — not a modal)
+  useLockBody(showNewTicketModal);
   const [newSubject, setNewSubject] = useState("");
   const [newCategory, setNewCategory] = useState("Bug Report");
   const [newPriority, setNewPriority] = useState<"Low" | "Medium" | "High" | "Critical">("Medium");

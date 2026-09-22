@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Pagination, { usePagination } from "@/components/pagination";
@@ -225,6 +226,9 @@ export default function LeadsPage() {
   const [showExport, setShowExport] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [showEdit, setShowEdit] = useState(false);
+
+  // Lock background scroll while any dialog is open (detail drawer excluded)
+  useLockBody(showAdd || showEdit || showPipelineInfo || showHelp);
   const [form, setForm] = useState({ ...emptyForm });
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -1177,7 +1181,7 @@ export default function LeadsPage() {
       {showPipelineInfo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowPipelineInfo(false)} />
-          <div className="relative bg-surface border border-line rounded-2xl w-full max-w-sm p-5 space-y-3">
+          <div className="relative bg-surface border border-line rounded-2xl w-full max-w-sm max-h-[90dvh] overflow-y-auto p-5 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-fg">Pipeline Stages</h2>
               <button className="w-8 h-8 rounded-full bg-surface-2 text-fg-3 font-bold" onClick={() => setShowPipelineInfo(false)}>×</button>
@@ -1202,7 +1206,7 @@ export default function LeadsPage() {
       {showHelp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowHelp(false)} />
-          <div className="relative bg-surface border border-line rounded-2xl w-full max-w-md p-5 space-y-3">
+          <div className="relative bg-surface border border-line rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto p-5 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-fg">Leads Workflow</h2>
               <button className="w-8 h-8 rounded-full bg-surface-2 text-fg-3 font-bold" onClick={() => setShowHelp(false)}>×</button>

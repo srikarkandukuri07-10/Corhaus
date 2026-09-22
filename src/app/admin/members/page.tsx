@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useTransition, Suspense } from "react";
+import { useLockBody } from "@/lib/useLockBody";
 import { createClient } from "@/lib/supabase/client";
 import Pagination, { usePagination } from "@/components/pagination";
 import { useSearchParams } from "next/navigation";
@@ -413,6 +414,17 @@ function MembersPageContent() {
   const [selectedClassIdForHistory, setSelectedClassIdForHistory] = useState<string>("ALL");
   const [bookingHistorySearch, setBookingHistorySearch] = useState<string>("");
   const [bookingHistoryStatusFilter, setBookingHistoryStatusFilter] = useState<string>("ALL");
+
+  // Lock background scroll while any dialog/drawer is open
+  useLockBody(
+    showForm ||
+      !!selectedMember ||
+      !!selectedInvoice ||
+      !!historyMember ||
+      showBookingHistoryModal ||
+      !!selectedReferral ||
+      !!deletingMember
+  );
 
   const openBookingHistoryModal = async () => {
     setShowBookingHistoryModal(true);

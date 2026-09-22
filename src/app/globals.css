@@ -287,11 +287,18 @@ td {
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.28s cubic-bezier(0.2, 0, 0, 1) forwards;
+  /* NOTE: fill MUST stay `backwards` (never `forwards`/`both`).
+     A retained `transform: translateY(0)` makes the element a containing
+     block for `position: fixed` descendants — every modal rendered inside an
+     animated page root would then anchor to the scrolled page instead of the
+     viewport and open below the visible area. `backwards` keeps the identical
+     visual result with no leftover transform. */
+  animation: fadeIn 0.28s cubic-bezier(0.2, 0, 0, 1) backwards;
 }
 
 .animate-slide-up {
-  animation: slideUp 0.34s cubic-bezier(0.2, 0, 0, 1) forwards;
+  /* Same containing-block hazard as above — keep `backwards`. */
+  animation: slideUp 0.34s cubic-bezier(0.2, 0, 0, 1) backwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
