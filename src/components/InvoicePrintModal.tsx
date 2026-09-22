@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import { InvoiceSettingsData, DEFAULT_INVOICE_SETTINGS } from "@/app/api/admin/settings/invoice/route";
 
 interface InvoiceItem {
@@ -53,6 +55,7 @@ function calculateDueDate(iso: string, days: number) {
 export default function InvoicePrintModal({ invoice, onClose }: Props) {
   const [settings, setSettings] = useState<InvoiceSettingsData>(DEFAULT_INVOICE_SETTINGS);
   const [loadingSettings, setLoadingSettings] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     async function loadSettings() {
@@ -71,8 +74,144 @@ export default function InvoicePrintModal({ invoice, onClose }: Props) {
     loadSettings();
   }, []);
 
-  function handlePrint() {
-    window.print();
+  // jsPDF's built-in fonts have no ₹ glyph — use Rs. in the PDF only.
+  function rs(n: number) {
+    return "Rs. " + (n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function totals() {
+    const taxableAmount = Math.max(0, invoice.subtotal - (invoice.discount_amount || 0));
+    let cgst = 0;
+    let sgst = 0;
+    let grand = invoice.grand_total;
+    if (settings.issue_tax_invoices) {
+      if (settings.tax_pricing_mode === "inclusive") {
+        const base = taxableAmount / 1.18;
+        const totalTax = taxableAmount - base;
+        cgst = totalTax / 2;
+        sgst = totalTax / 2;
+      } else {
+        cgst = taxableAmount * 0.09;
+        sgst = taxableAmount * 0.09;
+        grand = taxableAmount + cgst + sgst;
+      }
+    }
+    return { taxableAmount, cgst, sgst, grand };
+  }
+
+  async function handleDownload() {
+    setDownloading(true);
+    try {
+      const t = totals();
+      const doc = new jsPDF();
+      const pageW = doc.internal.pageSize.getWidth();
+      let y = 16;
+
+      // Business header
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text(settings.legal_business_name || "CORHAUS GYM & FITNESS", 14, y);
+      y += 6;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      if (settings.issue_tax_invoices) {
+        if (settings.gstin) { doc.text(`GSTIN: ${settings.gstin}`, 14, y); y += 4.5; }
+        if (settings.pan) { doc.text(`PAN: ${settings.pan}`, 14, y); y += 4.5; }
+        if (settings.state) { doc.text(`State: ${settings.state}`, 14, y); y += 4.5; }
+      }
+      doc.setTextColor(0);
+
+      // Invoice meta (right aligned)
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("TAX INVOICE", pageW - 14, 16, { align: "right" });
+      doc.setFontSize(10);
+      doc.text(invoice.invoice_number, pageW - 14, 22, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(`Date: ${formatDate(invoice.created_at)}`, pageW - 14, 27, { align: "right" });
+      doc.text(`Due Date: ${calculateDueDate(invoice.created_at, settings.default_payment_due_days)}`, pageW - 14, 31.5, { align: "right" });
+
+      y = Math.max(y + 4, 38);
+
+      // Billed-to / payment row
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text("Billed To", 14, y);
+      doc.text("Payment", pageW / 2 + 5, y);
+      doc.setFont("helvetica", "normal");
+      y += 5;
+      doc.text(invoice.customer_name, 14, y);
+      doc.text(`${invoice.payment_status}${invoice.payment_method ? ` via ${invoice.payment_method}` : ""}`, pageW / 2 + 5, y);
+      y += 5;
+      if (invoice.customer_phone) { doc.text(invoice.customer_phone, 14, y); y += 5; }
+      if (invoice.customer_email) { doc.text(invoice.customer_email, 14, y); y += 5; }
+      if (invoice.transaction_reference) {
+        doc.text(`Ref: ${invoice.transaction_reference}`, pageW / 2 + 5, y - (invoice.customer_phone || invoice.customer_email ? 0 : 5));
+        y += 5;
+      }
+      y += 2;
+
+      // Line items
+      autoTable(doc, {
+        startY: y,
+        head: [["Item Description", "Qty", "Unit Price", "Total"]],
+        body: (invoice.invoice_items || []).map((item) => [
+          item.category ? `${item.name}\n${item.category}` : item.name,
+          String(item.quantity),
+          rs(item.unit_price),
+          rs(item.total_price),
+        ]),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [240, 240, 240], textColor: [60, 60, 60] },
+        columnStyles: {
+          1: { halign: "center" },
+          2: { halign: "right" },
+          3: { halign: "right" },
+        },
+      });
+
+      let fy = (doc as any).lastAutoTable.finalY + 8;
+
+      // Totals
+      const rows: Array<[string, string]> = [["Subtotal:", rs(invoice.subtotal)]];
+      if (invoice.discount_amount > 0) rows.push(["Discount:", `- ${rs(invoice.discount_amount)}`]);
+      if (settings.issue_tax_invoices) {
+        rows.push(["CGST (9%):", rs(t.cgst)]);
+        rows.push(["SGST (9%):", rs(t.sgst)]);
+      }
+      rows.push(["Grand Total:", rs(t.grand)]);
+      autoTable(doc, {
+        startY: fy,
+        body: rows,
+        theme: "plain",
+        styles: { fontSize: 9, halign: "right" },
+        columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 60, fontStyle: "bold" } },
+        margin: { left: pageW - 14 - 180 },
+      });
+
+      fy = (doc as any).lastAutoTable.finalY + 10;
+      doc.setFontSize(9);
+      if (settings.terms_and_conditions) {
+        doc.setFont("helvetica", "bold");
+        doc.text("Terms & Conditions", 14, fy);
+        fy += 5;
+        doc.setFont("helvetica", "normal");
+        const terms = doc.splitTextToSize(settings.terms_and_conditions, pageW - 28);
+        doc.text(terms, 14, fy);
+        fy += terms.length * 4.5 + 4;
+      }
+      if (settings.footer_note) {
+        doc.setFont("helvetica", "italic");
+        doc.text(settings.footer_note, 14, fy);
+      }
+
+      const safeName = invoice.invoice_number.replace(/[^A-Za-z0-9-_]+/g, "_");
+      doc.save(`Invoice-${safeName}.pdf`);
+    } finally {
+      setDownloading(false);
+    }
   }
 
   // Calculate Tax breakdown
@@ -131,13 +270,14 @@ export default function InvoicePrintModal({ invoice, onClose }: Props) {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={handlePrint}
-              className="px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold shadow-md hover:opacity-90 transition-all flex items-center gap-1.5"
+              onClick={handleDownload}
+              disabled={downloading}
+              className="px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold shadow-md hover:opacity-90 transition-all flex items-center gap-1.5 disabled:opacity-50"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              Print / Download PDF
+              {downloading ? "Preparing…" : "Download PDF"}
             </button>
             <button
               onClick={onClose}
