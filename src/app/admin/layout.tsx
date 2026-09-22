@@ -16,6 +16,7 @@ export default function AdminLayout({
 }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [sessionBroken, setSessionBroken] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [role, setRole] = useState<string>("");
   const [permissions, setPermissions] = useState<string[]>([]);
@@ -47,6 +48,28 @@ export default function AdminLayout({
           if (Array.isArray(permData.permissions)) {
             setPermissions(permData.permissions);
           }
+          // ── Browser-session gate ──────────────────────────────────
+          // Server cookies alone are NOT enough: catalogue, invoices, member
+          // search, classes and other sections read Supabase directly from the
+          // browser, which needs its own session. Without it, RLS returns
+          // empty lists with no error (the "missing data" incident). Never
+          // render dashboard pages in that state — block loudly instead.
+          // getSession() reads local storage only, so a Supabase outage
+          // cannot false-trigger this.
+          try {
+            const { createClient } = await import("@/lib/supabase/client");
+            const browserClient = createClient();
+            const { data: { session: browserSession } } = await browserClient.auth.getSession();
+            if (!browserSession) {
+              setSessionBroken(true);
+              setLoading(false);
+              return;
+            }
+          } catch {
+            setSessionBroken(true);
+            setLoading(false);
+            return;
+          }
           setLoading(false);
           // Fetch actual staff profile for dynamic header (name/role/initial)
           try {
@@ -67,6 +90,26 @@ export default function AdminLayout({
     checkAuth();
   }, [router]);
 
+  // If the browser session is lost mid-use (revoked/expired refresh token),
+  // direct reads would silently go empty again — bounce to login instead.
+  useEffect(() => {
+    let sub: { unsubscribe: () => void } | null = null;
+    (async () => {
+      try {
+        const { createClient } = await import("@/lib/supabase/client");
+        const browserClient = createClient();
+        const { data } = browserClient.auth.onAuthStateChange((event) => {
+          if (event === "SIGNED_OUT") window.location.replace("/auth/login");
+        });
+        sub = data.subscription;
+      } catch {}
+    })();
+    return () => {
+      try {
+        sub?.unsubscribe();
+      } catch {}
+    };
+  }, []);
   // Listen for permission updates + profile refresh (after My Profile save)
   useEffect(() => {
     async function refreshPermissions() {
@@ -145,6 +188,27 @@ export default function AdminLayout({
   }
 
   if (!isAdmin) return null;
+
+  if (sessionBroken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-canvas p-4">
+        <div className="max-w-md w-full bg-surface border border-line rounded-2xl p-6 text-center space-y-3">
+          <p className="text-lg font-bold text-fg">Sign-in incomplete</p>
+          <p className="text-sm text-fg-3">
+            Your server sign-in is valid, but the browser session needed to load
+            dashboard data (members, catalogue, invoices, classes) is missing.
+            Pages would show empty lists, so they are blocked instead.
+          </p>
+          <button
+            onClick={handleSignOut}
+            className="px-4 py-2 rounded-xl bg-accent text-white text-sm font-semibold hover:bg-accent-dark transition-colors"
+          >
+            Sign in again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const hasPerm = (p: string) => {
     if (loading) return true;
