@@ -2007,13 +2007,13 @@ function MembersPageContent() {
       {/* ALL CLASSES BOOKING & ATTENDANCE HISTORY MODAL                            */}
       {/* ========================================================================= */}
       {showBookingHistoryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-surface rounded-2xl border border-line p-4 sm:p-6 max-w-5xl w-[95vw] max-h-[85dvh] overflow-y-auto space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex overflow-y-auto bg-black/50 backdrop-blur-xs p-3 sm:p-4 animate-fade-in">
+          <div className="m-auto bg-surface rounded-2xl border border-line p-4 sm:p-6 max-w-5xl w-full sm:w-[95vw] max-h-[85dvh] overflow-y-auto space-y-5 shadow-2xl">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-line pb-4">
+            <div className="flex flex-row items-start justify-between gap-2 sm:gap-3 border-b border-line pb-4">
               <div className="min-w-0 flex-1">
-                <h3 className="text-lg sm:text-xl font-bold text-fg flex items-center gap-2">
-                  <span>📊</span> <span className="truncate">Class Booking & Attendance History</span>
+                <h3 className="text-base sm:text-xl font-bold text-fg flex items-center gap-2">
+                  <span className="shrink-0">📊</span> <span className="truncate">Class Booking & Attendance History</span>
                 </h3>
                 <p className="text-xs text-fg-4 mt-0.5">
                   View full booking status, no-show credit deductions, cancellations, and QR check-ins per class.

@@ -237,7 +237,7 @@ export default function InvoicePrintModal({ invoice, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex overflow-y-auto p-3 sm:p-4 bg-black/70 backdrop-blur-sm">
       <style jsx global>{`
         @media print {
           body * {
@@ -261,18 +261,18 @@ export default function InvoicePrintModal({ invoice, onClose }: Props) {
         }
       `}</style>
 
-      <div className="bg-surface border border-line rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl my-8">
+      <div className="m-auto bg-surface border border-line rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl">
         {/* Modal Toolbar (hidden in print) */}
-        <div className="no-print flex items-center justify-between px-6 py-4 border-b border-line bg-surface-2/40">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-            <h3 className="text-sm font-bold text-fg">Tax Invoice Preview &amp; Download</h3>
+        <div className="no-print flex items-center justify-between gap-2 px-4 sm:px-6 py-3 sm:py-4 border-b border-line bg-surface-2/40">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0" />
+            <h3 className="text-[13px] sm:text-sm font-bold text-fg truncate">Tax Invoice Preview &amp; Download</h3>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className="px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold shadow-md hover:opacity-90 transition-all flex items-center gap-1.5 disabled:opacity-50"
+              className="px-3 sm:px-4 py-2 rounded-xl bg-accent text-white text-[11px] sm:text-xs font-bold shadow-md hover:opacity-90 transition-all flex items-center gap-1.5 disabled:opacity-50 whitespace-nowrap shrink-0"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -281,7 +281,7 @@ export default function InvoicePrintModal({ invoice, onClose }: Props) {
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl border border-line text-fg-4 hover:text-fg hover:bg-surface-2 transition-all"
+              className="p-2 rounded-xl border border-line text-fg-4 hover:text-fg hover:bg-surface-2 transition-all shrink-0"
             >
               ✕
             </button>

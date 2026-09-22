@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/logo";
-import LogoutButton from "@/components/logout-button";
 import NotificationsButton from "@/components/notifications-button";
 import ThemeToggle from "@/components/theme-toggle";
 import { PERMISSIONS_REFRESH_EVENT } from "@/lib/usePermissions";
@@ -561,17 +560,6 @@ export default function AdminLayout({
         <div className="flex items-center gap-1 flex-shrink-0 relative">
           <ThemeToggle />
           <NotificationsButton role="admin" />
-          <div className="hidden sm:flex items-center">
-            <LogoutButton />
-          </div>
-          <button
-            onClick={handleSignOut}
-            className="sm:hidden p-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 shrink-0 touch-manipulation"
-            aria-label="Sign out"
-            title="Sign Out"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-          </button>
           <button
             onClick={() => setMobileProfileMenuOpen((v) => !v)}
             className="flex items-center gap-1.5 p-1 pr-2 rounded-full hover:bg-white/10 transition-colors touch-manipulation"
