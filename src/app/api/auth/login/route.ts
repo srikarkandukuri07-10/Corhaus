@@ -104,7 +104,12 @@ export async function POST(request: Request) {
           );
         }
 
-        const response = NextResponse.json({ success: true, redirectUrl: "/developer/support", accountType: "developer" });
+        const { data: { session: freshSession } } = await ssrClient.auth.getSession();
+        const sessionTokens = freshSession
+          ? { access_token: freshSession.access_token, refresh_token: freshSession.refresh_token }
+          : null;
+
+        const response = NextResponse.json({ success: true, redirectUrl: "/developer/support", accountType: "developer", session: sessionTokens });
         cookieHeaderMap.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
         });
@@ -210,7 +215,12 @@ export async function POST(request: Request) {
           );
         }
 
-        const response = NextResponse.json({ success: true, redirectUrl: "/admin", accountType: "staff" });
+        const { data: { session: freshSession } } = await ssrClient.auth.getSession();
+        const sessionTokens = freshSession
+          ? { access_token: freshSession.access_token, refresh_token: freshSession.refresh_token }
+          : null;
+
+        const response = NextResponse.json({ success: true, redirectUrl: "/admin", accountType: "staff", session: sessionTokens });
         cookieHeaderMap.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
         });
@@ -309,7 +319,12 @@ export async function POST(request: Request) {
         );
       }
 
-      const response = NextResponse.json({ success: true, redirectUrl: "/member", accountType: "member" });
+      const { data: { session: freshSession } } = await ssrClient.auth.getSession();
+      const sessionTokens = freshSession
+        ? { access_token: freshSession.access_token, refresh_token: freshSession.refresh_token }
+        : null;
+
+      const response = NextResponse.json({ success: true, redirectUrl: "/member", accountType: "member", session: sessionTokens });
       cookieHeaderMap.forEach(({ name, value, options }) => {
         response.cookies.set(name, value, options);
       });

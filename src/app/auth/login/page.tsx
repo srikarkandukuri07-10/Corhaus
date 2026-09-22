@@ -191,6 +191,21 @@ function LoginForm() {
         return;
       }
 
+      // Sync the server-established session into the browser Supabase client.
+      // Without this, direct browser reads (billing catalogue, invoices, member
+      // search) go out unauthenticated and RLS returns empty lists.
+      if (data?.session?.access_token && data?.session?.refresh_token) {
+        const { error: sessErr } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+        if (sessErr) {
+          setError("Signed in, but the browser session could not be established. Please reload and sign in again.");
+          setLoading(false);
+          return;
+        }
+      }
+
       window.location.href = data.redirectUrl;
     } catch (err: any) {
       setError(safeErrorMessage(err));
@@ -227,6 +242,20 @@ function LoginForm() {
         setError(data?.error || "Failed to set password. Please try again.");
         setLoading(false);
         return;
+      }
+
+      // Sync the server-established session into the browser Supabase client
+      // (see handleStaffLoginWithPassword above for why this is required).
+      if (data?.session?.access_token && data?.session?.refresh_token) {
+        const { error: sessErr } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+        if (sessErr) {
+          setError("Password set, but the browser session could not be established. Please sign in with your new password.");
+          setLoading(false);
+          return;
+        }
       }
 
       window.location.href = data.redirectUrl;

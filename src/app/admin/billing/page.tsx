@@ -116,6 +116,7 @@ export default function CreateBillPage() {
   const [activeCategory, setActiveCategory]   = useState("Membership Plans");
   const [allItems,        setAllItems]        = useState<BillingPlanItem[]>([]);
   const [itemsLoading,    setItemsLoading]    = useState(true);
+  const [itemsError,      setItemsError]      = useState<string | null>(null);
   const [itemSearch,      setItemSearch]      = useState("");
   const [activeSubcat,    setActiveSubcat]    = useState("All");
 
@@ -145,12 +146,19 @@ export default function CreateBillPage() {
   useEffect(() => {
     async function fetchItems() {
       setItemsLoading(true);
-      const { data } = await supabase
+      setItemsError(null);
+      const { data, error: fetchError } = await supabase
         .from("billing_plan_items")
         .select("*")
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
-      setAllItems((data as BillingPlanItem[]) || []);
+      if (fetchError) {
+        console.error("Billing catalogue load error:", fetchError);
+        setItemsError("Couldn't load the plan catalogue. Check your connection and reload. If this persists, sign out and sign in again.");
+        setAllItems([]);
+      } else {
+        setAllItems((data as BillingPlanItem[]) || []);
+      }
       setItemsLoading(false);
     }
     fetchItems();
@@ -733,6 +741,9 @@ export default function CreateBillPage() {
 
           {/* Items grid */}
           <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+            {itemsError && (
+              <div className="mb-3 bg-red-500/10 border border-red-500/25 text-red-500 text-xs rounded-xl px-3 py-2">{itemsError}</div>
+            )}
             {itemsLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-2">

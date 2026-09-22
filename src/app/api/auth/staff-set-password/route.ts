@@ -174,10 +174,15 @@ export async function POST(request: Request) {
     }
 
     const redirectUrl = isDev ? "/developer/support" : isStaff ? "/admin" : "/member";
+    const { data: { session: freshSession } } = await ssrClient.auth.getSession();
+    const sessionTokens = freshSession
+      ? { access_token: freshSession.access_token, refresh_token: freshSession.refresh_token }
+      : null;
     const response = NextResponse.json({
       success: true,
       redirectUrl,
       message: "Password set successfully! Redirecting...",
+      session: sessionTokens,
     });
     cookieHeaderMap.forEach(({ name, value, options }) => {
       response.cookies.set(name, value, options);

@@ -101,15 +101,21 @@ export default function InvoicesPage() {
   const [itemsMap, setItemsMap] = useState<Record<string, InvoiceItem[]>>({});
   const [itemsLoading, setItemsLoading] = useState<string | null>(null);
   const [printInvoice, setPrintInvoice] = useState<Invoice | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     const { data, error } = await supabase
       .from("invoices")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (!error && data) {
+    if (error) {
+      console.error("Invoices load error:", error);
+      setLoadError("Couldn't load invoices. Check your connection and reload. If this persists, sign out and sign in again.");
+      setInvoices([]);
+    } else if (data) {
       setInvoices(data as Invoice[]);
     }
     setLoading(false);
@@ -173,6 +179,10 @@ export default function InvoicesPage() {
       </div>
 
       <BillingSubNav />
+
+      {loadError && (
+        <div className="mb-4 bg-red-500/10 border border-red-500/25 text-red-500 text-sm rounded-xl px-4 py-3">{loadError}</div>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
