@@ -81,7 +81,7 @@ async function ensureTrialInvoice(
     else {
       const { data: newCustomer } = await service
         .from("customers")
-        .insert({ name: args.fullName, email: args.email, phone: args.phone })
+        .insert({ full_name: args.fullName, email: args.email, phone_number: args.phone })
         .select("id")
         .maybeSingle();
       if (newCustomer) customerId = newCustomer.id;
