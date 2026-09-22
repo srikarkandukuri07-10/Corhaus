@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useTransition, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Pagination, { usePagination } from "@/components/pagination";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -563,6 +564,9 @@ function MembersPageContent() {
     });
   }, [members, statusFilter, searchQuery]);
 
+  // Paginate the filtered list (10 per page, reset on search/filter change)
+  const membersPage = usePagination(filteredMembers, `${searchQuery}|${statusFilter}`);
+
   // Summary Metrics Top Row
   const metrics = useMemo(() => {
     const activeSubs = members.filter((m) => m.computedStatus === "Active").length;
@@ -1076,7 +1080,7 @@ function MembersPageContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-input/50">
-                  {filteredMembers.map((m) => {
+                  {membersPage.pageItems.map((m) => {
                     const plan = m.activePlan;
 
                     return (
@@ -1182,7 +1186,7 @@ function MembersPageContent() {
 
             {/* ─── Mobile Cards — shown only on mobile ─── */}
             <div className="md:hidden divide-y divide-border-input/50">
-              {filteredMembers.map((m) => {
+              {membersPage.pageItems.map((m) => {
                 const plan = m.activePlan;
                 const sessInfo = plan ? formatSessionsDisplay(plan) : null;
                 return (
@@ -1244,6 +1248,7 @@ function MembersPageContent() {
                 );
               })}
             </div>
+            <Pagination page={membersPage.page} totalPages={membersPage.totalPages} onChange={membersPage.setPage} />
           </>
         )}
 

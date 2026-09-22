@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Pagination, { usePagination } from "@/components/pagination";
 import { formatDate, formatTime } from "@/lib/date-utils";
 
 import Link from "next/link";
@@ -185,6 +186,9 @@ export default function TrialMembersPage() {
       return true;
     });
   }, [trialMembers, viewTab, statusFilter, searchQuery]);
+
+  // Paginate the filtered list (10 per page, reset on search/filter change)
+  const trialsPage = usePagination(filteredTrialMembers, `${searchQuery}|${statusFilter}|${viewTab}`);
 
   // KPI Metrics
   const metrics = useMemo(() => {
@@ -610,7 +614,7 @@ export default function TrialMembersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line-2 text-fg">
-                  {filteredTrialMembers.map((item) => (
+                  {trialsPage.pageItems.map((item) => (
                     <tr key={item.id} onClick={() => setEditingTrial(item)} className="hover:bg-hover/50 transition-colors cursor-pointer">
                       <td className="py-3.5 px-4 font-bold text-fg">
                         {item.full_name}
@@ -729,7 +733,7 @@ export default function TrialMembersPage() {
 
             {/* Mobile Cards View */}
             <div className="md:hidden divide-y divide-line-2 p-3 space-y-3">
-              {filteredTrialMembers.map((item) => (
+              {trialsPage.pageItems.map((item) => (
                 <div
                   key={item.id}
                   onClick={() => setEditingTrial(item)}
@@ -824,6 +828,7 @@ export default function TrialMembersPage() {
                 </div>
               ))}
             </div>
+            <Pagination page={trialsPage.page} totalPages={trialsPage.totalPages} onChange={trialsPage.setPage} />
           </>
         )}
       </div>

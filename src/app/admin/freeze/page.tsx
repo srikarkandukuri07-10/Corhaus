@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Pagination, { usePagination } from "@/components/pagination";
 
 interface FreezeRecord {
   id: string;
@@ -113,6 +114,9 @@ export default function AdminFreezeManagementPage() {
       return true;
     });
   }, [members, filter, search]);
+
+  // Paginate the filtered list (10 per page, reset on search/filter change)
+  const freezePage = usePagination(filteredMembers, `${search}|${filter}`);
 
   const handleOpenFreeze = (member: MemberFreezeData) => {
     setFreezeModalMember(member);
@@ -351,7 +355,7 @@ export default function AdminFreezeManagementPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
-                  {filteredMembers.map((m) => (
+                  {freezePage.pageItems.map((m) => (
                     <tr key={m.id} className="hover:bg-surface-2/50 transition-colors">
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-fg">{m.member_name}</div>
@@ -470,7 +474,7 @@ export default function AdminFreezeManagementPage() {
 
             {/* Mobile Cards View */}
             <div className="md:hidden divide-y divide-line p-3 space-y-3">
-              {filteredMembers.map((m) => (
+              {freezePage.pageItems.map((m) => (
                 <div key={m.id} className="p-4 rounded-2xl bg-surface-2/60 border border-line space-y-3 text-xs">
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -568,6 +572,7 @@ export default function AdminFreezeManagementPage() {
                 </div>
               ))}
             </div>
+            <Pagination page={freezePage.page} totalPages={freezePage.totalPages} onChange={freezePage.setPage} />
           </>
         )}
       </div>

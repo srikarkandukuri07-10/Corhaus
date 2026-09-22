@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Pagination, { usePagination } from "@/components/pagination";
 
 interface Lead {
   id: string;
@@ -341,6 +342,10 @@ export default function LeadsPage() {
       return true;
     });
   }, [leads, tab, dateFilter, search, fStage, fSource, fConvert, fFollowup]);
+
+  // Paginate the list view (10 per page, reset on search/filter change).
+  // The pipeline kanban stays unpaginated so drag-drop across stages keeps working.
+  const leadsPage = usePagination(filtered, `${search}|${fStage}|${fSource}|${fConvert}|${fFollowup}|${tab}|${dateFilter}`);
 
   const detail = useMemo(() => leads.find((l) => l.id === detailId) || null, [leads, detailId]);
 
@@ -762,7 +767,7 @@ export default function LeadsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((l) => (
+                    {leadsPage.pageItems.map((l) => (
                       <tr key={l.id} className="border-b border-line last:border-0 hover:bg-surface-2/30 cursor-pointer" onClick={() => setDetailId(l.id)}>
                         <td className="p-3">
                           <p className="font-semibold text-fg">{l.full_name}</p>
@@ -857,7 +862,7 @@ export default function LeadsPage() {
 
               {/* Mobile Cards View */}
               <div className="md:hidden space-y-3 p-3">
-                {filtered.map((l) => (
+                {leadsPage.pageItems.map((l) => (
                   <div key={l.id} className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-3 text-xs" onClick={() => setDetailId(l.id)}>
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -891,6 +896,7 @@ export default function LeadsPage() {
                   </div>
                 ))}
               </div>
+              <Pagination page={leadsPage.page} totalPages={leadsPage.totalPages} onChange={leadsPage.setPage} />
             </>
           )}
         </div>
