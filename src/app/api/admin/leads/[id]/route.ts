@@ -58,13 +58,41 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       payload.pipeline_stage = body.pipeline_stage;
     }
     if (body.assigned_to !== undefined) payload.assigned_to = body.assigned_to;
-    if (body.follow_up_at !== undefined) payload.follow_up_at = body.follow_up_at;
+    if (body.follow_up_at !== undefined) {
+      payload.follow_up_at = body.follow_up_at;
+      // Scheduling (or clearing) a follow-up reopens the loop, unless completion
+      // is explicitly set in the same patch.
+      if (body.follow_up_outcome === undefined && body.follow_up_completed_at === undefined) {
+        payload.follow_up_outcome = null;
+        payload.follow_up_completed_at = null;
+      }
+    }
+    if (body.follow_up_outcome !== undefined) {
+      const allowed = ["Interested", "Not Interested", "No Response", "Asked to Call Later"];
+      if (body.follow_up_outcome !== null && !allowed.includes(body.follow_up_outcome)) {
+        return NextResponse.json({ error: "Invalid follow-up outcome" }, { status: 400 });
+      }
+      payload.follow_up_outcome = body.follow_up_outcome;
+      // Completing without an explicit timestamp stamps now server-side.
+      if (body.follow_up_outcome !== null && body.follow_up_completed_at === undefined) {
+        payload.follow_up_completed_at = new Date().toISOString();
+      }
+      if (body.follow_up_outcome === null && body.follow_up_completed_at === undefined) {
+        payload.follow_up_completed_at = null;
+      }
+    }
+    if (body.follow_up_completed_at !== undefined) payload.follow_up_completed_at = body.follow_up_completed_at;
     if (body.notes !== undefined) payload.notes = body.notes;
     if (body.preferred_time !== undefined) payload.preferred_time = body.preferred_time;
     if (body.message !== undefined) payload.message = body.message;
 
     const { data, error } = await auth.client.from("leads").update(payload).eq("id", id).select("*").single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error) {
+      if (error.message?.includes("follow_up_outcome") || error.message?.includes("follow_up_completed_at") || error.code === "PGRST204") {
+        return NextResponse.json({ error: "Follow-up completion is not ready. Please run 051_leads_followup_completion.sql in Supabase SQL Editor." }, { status: 503 });
+      }
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     return NextResponse.json({ data, success: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });

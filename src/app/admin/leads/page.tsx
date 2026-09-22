@@ -17,6 +17,8 @@ interface Lead {
   pipeline_stage: string;
   assigned_to: string | null;
   follow_up_at: string | null;
+  follow_up_outcome?: string | null;
+  follow_up_completed_at?: string | null;
   notes: string | null;
   preferred_time: string | null;
   message: string | null;
@@ -38,6 +40,7 @@ const STAGES = ["New", "Trial booked", "Trial attended", "Converted"] as const;
 const SOURCES = ["Walk-in", "Phone", "Instagram", "Website", "WhatsApp", "Referral", "Facebook", "Google", "Other"] as const;
 const INTERESTS = ["General Membership", "Personal Training", "Group Classes", "Yoga", "Zumba", "CrossFit", "Kickboxing/MMA", "Trial Class", "Just Enquiring", "Other", "Reformer Pilates", "Mat Pilates", "Private Session"] as const;
 const CONVERT_OPTIONS = ["Hot", "Warm", "Cold"] as const;
+const FOLLOW_UP_OUTCOMES = ["Interested", "Not Interested", "No Response", "Asked to Call Later"] as const;
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
@@ -108,6 +111,16 @@ function followUpLabel(v: string | null | undefined): { text: string; cls: strin
   if (diff === 0) return { text: "Today", cls: "text-xs font-bold text-amber-600 bg-amber-500/10 border border-amber-500/25 px-2 py-1 rounded-full", full };
   if (diff === 1) return { text: "Tomorrow", cls: "text-xs font-bold text-sky-600 bg-sky-500/10 border border-sky-500/25 px-2 py-1 rounded-full", full };
   return { text: fmtDate(v), cls: "text-fg-3 text-xs whitespace-nowrap", full };
+}
+
+function isOverdue(v: string | null | undefined): boolean {
+  if (!v) return false;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return false;
+  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return day < today;
 }
 
 const inputCls = "w-full px-3 py-2 rounded-xl border border-line bg-surface-2/50 text-fg text-sm placeholder:text-fg-5 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40";
@@ -221,6 +234,8 @@ export default function LeadsPage() {
   const [drawerSaving, setDrawerSaving] = useState(false);
   const [drawerError, setDrawerError] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
+  const [completeForId, setCompleteForId] = useState<string | null>(null);
+  const [completingId, setCompletingId] = useState<string | null>(null);
 
   const fetchLeads = useCallback(async () => {
     setLoading(true);
@@ -256,6 +271,16 @@ export default function LeadsPage() {
     fetchLeads();
     fetchStaff();
   }, [fetchLeads, fetchStaff]);
+
+  // Close the Complete popover on Escape
+  useEffect(() => {
+    if (!completeForId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCompleteForId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [completeForId]);
 
   const staffName = useCallback((id: string | null) => {
     if (!id) return "Unassigned";
@@ -340,6 +365,25 @@ export default function LeadsPage() {
       setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...json.data } : l)));
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : "Update failed");
+    }
+  }
+
+  async function handleCompleteFollowUp(id: string, outcome: string) {
+    setCompletingId(id);
+    try {
+      const res = await fetch(`/api/admin/leads/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ follow_up_outcome: outcome }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Update failed");
+      setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...json.data } : l)));
+      setCompleteForId(null);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Update failed");
+    } finally {
+      setCompletingId(null);
     }
   }
 
@@ -746,8 +790,49 @@ export default function LeadsPage() {
                           </select>
                         </td>
                         <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                          {l.follow_up_at ? (
-                            <span className={followUpLabel(l.follow_up_at).cls} title={followUpLabel(l.follow_up_at).full}>{followUpLabel(l.follow_up_at).text}</span>
+                          {l.follow_up_outcome ? (
+                            <span className="inline-flex flex-col gap-0.5">
+                              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">✓ Follow-up Completed</span>
+                              <span className="text-xs text-fg-3">{l.follow_up_outcome}</span>
+                              <span className="text-[11px] text-fg-4">{fmtDate(l.follow_up_at)}</span>
+                            </span>
+                          ) : l.follow_up_at ? (
+                            isOverdue(l.follow_up_at) ? (
+                              <span className="inline-flex flex-col gap-1">
+                                <span className="inline-flex items-center gap-1.5">
+                                  <span className={followUpLabel(l.follow_up_at).cls} title={followUpLabel(l.follow_up_at).full}>{followUpLabel(l.follow_up_at).text}</span>
+                                  <span className="relative">
+                                    <button
+                                      className="text-[11px] font-bold text-accent bg-accent/10 border border-accent/25 px-2 py-0.5 rounded-full hover:bg-accent/20"
+                                      onClick={() => setCompleteForId(completeForId === l.id ? null : l.id)}
+                                    >
+                                      Complete
+                                    </button>
+                                    {completeForId === l.id && (
+                                      <>
+                                        <span className="fixed inset-0 z-40" onClick={() => setCompleteForId(null)} />
+                                        <span className="absolute left-0 mt-1 w-44 bg-surface border border-line rounded-xl shadow-xl p-1.5 z-50">
+                                          <span className="block text-[11px] font-semibold text-fg-4 px-2 pt-1 pb-1.5">Follow-up outcome</span>
+                                          {FOLLOW_UP_OUTCOMES.map((o) => (
+                                            <button
+                                              key={o}
+                                              disabled={completingId === l.id}
+                                              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-fg hover:bg-hover disabled:opacity-50"
+                                              onClick={() => handleCompleteFollowUp(l.id, o)}
+                                            >
+                                              {completingId === l.id ? "Saving..." : o}
+                                            </button>
+                                          ))}
+                                        </span>
+                                      </>
+                                    )}
+                                  </span>
+                                </span>
+                                <span className="text-[11px] text-fg-4">{fmtDate(l.follow_up_at)}</span>
+                              </span>
+                            ) : (
+                              <span className={followUpLabel(l.follow_up_at).cls} title={followUpLabel(l.follow_up_at).full}>{followUpLabel(l.follow_up_at).text}</span>
+                            )
                           ) : (
                             <button
                               className="text-xs font-bold text-accent bg-accent/10 border border-accent/25 px-2.5 py-1 rounded-full hover:bg-accent/20"
@@ -838,7 +923,17 @@ export default function LeadsPage() {
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Interest</p><p className="font-semibold text-fg mt-0.5">{detail.interest || "-"}</p></div>
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Convertibility</p><p className="font-semibold text-fg mt-0.5">{detail.convertibility}</p></div>
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Status</p><p className={"font-semibold mt-0.5 " + stageColor(detail.pipeline_stage)}>{detail.pipeline_stage}</p></div>
-                <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Follow-up</p><p className="font-semibold text-fg mt-0.5" title={detail.follow_up_at ? fmtDateTime(detail.follow_up_at) : undefined}>{detail.follow_up_at ? followUpLabel(detail.follow_up_at).text : "-"}</p></div>
+                <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Follow-up</p>
+                  {detail.follow_up_outcome ? (
+                    <p className="font-semibold text-fg mt-0.5 text-xs leading-relaxed">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓ Follow-up Completed</span><br />
+                      {detail.follow_up_outcome}<br />
+                      <span className="text-fg-4 font-normal" title={detail.follow_up_at ? fmtDateTime(detail.follow_up_at) : undefined}>{fmtDate(detail.follow_up_at)}</span>
+                    </p>
+                  ) : (
+                    <p className="font-semibold text-fg mt-0.5" title={detail.follow_up_at ? fmtDateTime(detail.follow_up_at) : undefined}>{detail.follow_up_at ? followUpLabel(detail.follow_up_at).text : "-"}</p>
+                  )}
+                </div>
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Created</p><p className="font-semibold text-fg mt-0.5">{fmtDate(detail.created_at)}</p></div>
                 <div className="bg-surface-2/50 border border-line rounded-xl p-2.5"><p className="text-fg-5">Location</p><p className="font-semibold text-fg mt-0.5">{detail.primary_location || "-"}</p></div>
               </div>
