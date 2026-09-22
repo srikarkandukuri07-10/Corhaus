@@ -151,7 +151,7 @@ function EnquiryLinks() {
       document.body.removeChild(ta);
     }
     setCopied(path);
-    setTimeout(() => setCopied((c) => (c === path ? null : c)), 2000);
+    setTimeout(() => setCopied((c) => (c === path ? null : c)), 4000);
   }
 
   return (
@@ -172,9 +172,11 @@ function EnquiryLinks() {
               <p className="text-xs font-mono text-fg-3 mt-2 truncate">{`${typeof window !== "undefined" ? window.location.origin : ""}${l.path}`}</p>
               <button
                 onClick={() => copyLink(l.path)}
-                className="mt-2.5 px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-colors"
+                className={`mt-2.5 px-4 py-2 rounded-xl text-white text-xs font-bold transition-colors ${
+                  copied === l.path ? "bg-green-600 hover:bg-green-600" : "bg-accent hover:bg-accent-2"
+                }`}
               >
-                {copied === l.path ? "Copied!" : "Copy Link"}
+                {copied === l.path ? "Copied" : "Copy Link"}
               </button>
             </div>
           ))}
