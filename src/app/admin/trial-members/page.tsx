@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Pagination, { usePagination } from "@/components/pagination";
 import { formatDate, formatTime } from "@/lib/date-utils";
@@ -69,9 +69,35 @@ export default function TrialMembersPage() {
   const [statusFilter, setStatusFilter] = useState<string>("All Active");
   const [viewTab, setViewTab] = useState<"active" | "converted" | "all">("active");
 
+  // Trial booking link copy feedback (no alert popup)
+  const [linkCopied, setLinkCopied] = useState(false);
+  const copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeout.current) clearTimeout(copyTimeout.current);
+    };
+  }, []);
+
+  async function handleCopyTrialLink() {
+    const url = `${window.location.origin}/book-trial`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setLinkCopied(true);
+    if (copyTimeout.current) clearTimeout(copyTimeout.current);
+    copyTimeout.current = setTimeout(() => setLinkCopied(false), 4000);
+  }
+
   // Create Modal state
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createLoading, setCreateLoading] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);  const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formPhone, setFormPhone] = useState("");
@@ -468,15 +494,13 @@ export default function TrialMembersPage() {
           </a>
           <div className="flex gap-2">
             <button
-              onClick={() => {
-                const url = `${window.location.origin}/book-trial`;
-                navigator.clipboard.writeText(url);
-                alert("Link copied: " + url);
-              }}
+              onClick={handleCopyTrialLink}
               title="Copy link"
-              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-accent text-white text-xs font-bold hover:bg-accent-2 transition-colors"
+              className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-white text-xs font-bold transition-colors ${
+                linkCopied ? "bg-green-600 hover:bg-green-600" : "bg-accent hover:bg-accent-2"
+              }`}
             >
-              Copy
+              {linkCopied ? "Copied" : "Copy"}
             </button>
             <a
               href="/book-trial"
