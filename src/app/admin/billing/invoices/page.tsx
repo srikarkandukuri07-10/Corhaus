@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -102,6 +102,11 @@ export default function InvoicesPage() {
   const [itemsLoading, setItemsLoading] = useState<string | null>(null);
   const [printInvoice, setPrintInvoice] = useState<Invoice | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Deep-link from trial members ("View Invoice"): ?invoice=<id> highlights,
+  // expands and scrolls to that exact invoice.
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const highlightDone = useRef(false);
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
@@ -125,14 +130,8 @@ export default function InvoicesPage() {
     fetchInvoices();
   }, [fetchInvoices]);
 
-  async function handleExpand(invoiceId: string) {
-    if (expandedId === invoiceId) {
-      setExpandedId(null);
-      return;
-    }
-    setExpandedId(invoiceId);
+  async function fetchItemsFor(invoiceId: string) {
     if (itemsMap[invoiceId]) return;
-
     setItemsLoading(invoiceId);
     const { data } = await supabase
       .from("invoice_items")
@@ -143,6 +142,38 @@ export default function InvoicesPage() {
     setItemsMap((prev) => ({ ...prev, [invoiceId]: (data as InvoiceItem[]) || [] }));
     setItemsLoading(null);
   }
+
+  async function handleExpand(invoiceId: string) {
+    if (expandedId === invoiceId) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(invoiceId);
+    await fetchItemsFor(invoiceId);
+  }
+
+  // Pick up ?invoice=<id> deep-links (client-only read, no Suspense needed)
+  useEffect(() => {
+    try {
+      const id = new URLSearchParams(window.location.search).get("invoice");
+      if (id) {
+        setHighlightId(id);
+        setExpandedId(id);
+      }
+    } catch {}
+  }, []);
+
+  // Once the highlighted invoice is loaded, fetch its items and scroll to it
+  useEffect(() => {
+    if (highlightDone.current || !highlightId || invoices.length === 0) return;
+    if (!invoices.some((i) => i.id === highlightId)) return;
+    highlightDone.current = true;
+    fetchItemsFor(highlightId);
+    setTimeout(() => {
+      rowRefs.current[highlightId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 350);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightId, invoices]);
 
   // Filter + search
   const filtered = invoices.filter((inv) => {
@@ -293,7 +324,13 @@ export default function InvoicesPage() {
           {/* Rows */}
           <div className="divide-y divide-brand-sand/30">
             {filtered.map((inv) => (
-              <div key={inv.id}>
+              <div
+                key={inv.id}
+                ref={(el) => {
+                  rowRefs.current[inv.id] = el;
+                }}
+                className={highlightId === inv.id ? "rounded-xl ring-2 ring-green-500/70 bg-green-500/5" : undefined}
+              >
                 {/* Main row */}
                 <button
                   onClick={() => handleExpand(inv.id)}
@@ -478,7 +515,15 @@ export default function InvoicesPage() {
           {/* Mobile Cards View */}
           <div className="md:hidden divide-y divide-line p-3 space-y-3">
             {filtered.map((inv) => (
-              <div key={inv.id} className="p-4 rounded-2xl bg-surface-2/60 border border-line space-y-3 text-xs">
+              <div
+                key={inv.id}
+                ref={(el) => {
+                  if (!rowRefs.current[inv.id]) rowRefs.current[inv.id] = el;
+                }}
+                className={`p-4 rounded-2xl bg-surface-2/60 border space-y-3 text-xs ${
+                  highlightId === inv.id ? "border-green-500 ring-2 ring-green-500/60" : "border-line"
+                }`}
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-mono font-bold text-sm text-fg">{inv.invoice_number}</p>

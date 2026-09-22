@@ -23,6 +23,7 @@ interface TrialMember {
   notes: string | null;
   converted_member_id: string | null;
   converted_at: string | null;
+  invoice_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -36,6 +37,18 @@ interface ClassOption {
 interface StaffOption {
   id: string;
   full_name: string;
+}
+
+// Payment references now live in dedicated columns (razorpay_*, invoice_id).
+// Older rows stored "Razorpay: pay_… / order_…" inside notes — strip that
+// machine text at display time but keep any real staff notes.
+function displayTrialNotes(notes: string | null): string | null {
+  if (!notes) return null;
+  const cleaned = notes
+    .replace(/Razorpay:\s*pay_\S+\s*\/\s*order_\S+/g, "")
+    .replace(/Trial booked via Razorpay:\s*pay_\S+/g, "")
+    .trim();
+  return cleaned || null;
 }
 
 export default function TrialMembersPage() {
@@ -617,10 +630,21 @@ export default function TrialMembersPage() {
                   {trialsPage.pageItems.map((item) => (
                     <tr key={item.id} onClick={() => setEditingTrial(item)} className="hover:bg-hover/50 transition-colors cursor-pointer">
                       <td className="py-3.5 px-4 font-bold text-fg">
-                        {item.full_name}
-                        {item.notes && (
-                          <div className="text-[10px] text-fg-4 font-normal mt-0.5 max-w-xs truncate" title={item.notes}>
-                            Note: {item.notes}
+                        <span className="inline-flex items-center gap-2 flex-wrap">
+                          {item.full_name}
+                          {item.invoice_id && (
+                            <Link
+                              href={`/admin/billing/invoices?invoice=${item.invoice_id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-full border border-green-600/40 text-green-700 dark:text-green-400 text-[11px] font-bold hover:bg-green-500/10 transition-colors"
+                            >
+                              View Invoice
+                            </Link>
+                          )}
+                        </span>
+                        {displayTrialNotes(item.notes) && (
+                          <div className="text-[10px] text-fg-4 font-normal mt-0.5 max-w-xs truncate" title={displayTrialNotes(item.notes) || undefined}>
+                            Note: {displayTrialNotes(item.notes)}
                           </div>
                         )}
                       </td>
@@ -743,6 +767,15 @@ export default function TrialMembersPage() {
                     <div>
                       <p className="font-bold text-sm text-fg">{item.full_name}</p>
                       <p className="text-fg-3 text-[11px] mt-0.5">{item.phone_number} {item.email ? `• ${item.email}` : ""}</p>
+                      {item.invoice_id && (
+                        <Link
+                          href={`/admin/billing/invoices?invoice=${item.invoice_id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center mt-1.5 px-2.5 py-0.5 rounded-full border border-green-600/40 text-green-700 dark:text-green-400 text-[11px] font-bold"
+                        >
+                          View Invoice
+                        </Link>
+                      )}
                     </div>
                     <span
                       className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${
@@ -770,9 +803,9 @@ export default function TrialMembersPage() {
                     </div>
                   </div>
 
-                  {item.notes && (
+                  {displayTrialNotes(item.notes) && (
                     <p className="text-[11px] text-fg-3 bg-surface/30 p-2 rounded-lg italic">
-                      Note: {item.notes}
+                      Note: {displayTrialNotes(item.notes)}
                     </p>
                   )}
 

@@ -4,6 +4,144 @@ import crypto from "crypto";
 import Razorpay from "razorpay";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
+/**
+ * Guarantees the exact invoice for a paid trial exists in `invoices` and is
+ * linked on the trial row. Find-or-create by payment id, so retries and
+ * duplicate verify calls never produce duplicates or miss the invoice.
+ * Never throws — returns the invoice id or null (booking still succeeds).
+ */
+async function ensureTrialInvoice(
+  service: any,
+  args: {
+    trialId: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    classTitle?: string | null;
+    classDate?: string | null;
+    amountRupees?: number | null;
+    paymentId: string;
+    orderId: string;
+  }
+): Promise<string | null> {
+  try {
+    // 1. Already linked on the trial?
+    let trial: any = null;
+    try {
+      const r = await service
+        .from("trial_members")
+        .select("id, invoice_id, class_name, trial_date")
+        .eq("id", args.trialId)
+        .maybeSingle();
+      if (!r.error) trial = r.data;
+    } catch {
+      // invoice_id column may not exist pre-migration — fall through
+    }
+    if (trial?.invoice_id) {
+      const { data: inv } = await service.from("invoices").select("id").eq("id", trial.invoice_id).maybeSingle();
+      if (inv) return inv.id;
+    }
+
+    // 2. Invoice already created for this payment (e.g. first attempt succeeded)?
+    const { data: byRef } = await service
+      .from("invoices")
+      .select("id")
+      .eq("transaction_reference", args.paymentId)
+      .maybeSingle();
+    if (byRef) {
+      try {
+        await service.from("trial_members").update({ invoice_id: byRef.id }).eq("id", args.trialId);
+      } catch {}
+      return byRef.id;
+    }
+
+    // 3. Create a fresh invoice
+    let amount =
+      args.amountRupees && args.amountRupees > 0 ? Math.round(args.amountRupees) : null;
+    if (!amount) {
+      const { data: trialPlan } = await service
+        .from("billing_plan_items")
+        .select("price")
+        .ilike("name", "%Trial Session%")
+        .eq("is_active", true)
+        .maybeSingle();
+      amount = trialPlan?.price ? Number(trialPlan.price) : 500;
+    }
+    const classTitle = args.classTitle || trial?.class_name || "Trial Class";
+    const classDate = args.classDate || trial?.trial_date || new Date().toISOString().split("T")[0];
+    const invoiceNumber = `TRIAL-${Date.now()}-${args.phone.slice(-4)}`;
+
+    let customerId: string | null = null;
+    const { data: existingCustomer } = await service
+      .from("customers")
+      .select("id")
+      .ilike("email", args.email)
+      .maybeSingle();
+    if (existingCustomer) customerId = existingCustomer.id;
+    else {
+      const { data: newCustomer } = await service
+        .from("customers")
+        .insert({ name: args.fullName, email: args.email, phone: args.phone })
+        .select("id")
+        .maybeSingle();
+      if (newCustomer) customerId = newCustomer.id;
+    }
+    if (!customerId) {
+      console.error("Trial invoice: customer resolution failed for", args.email);
+      return null;
+    }
+
+    const base = {
+      invoice_number: invoiceNumber,
+      customer_id: customerId,
+      customer_name: args.fullName,
+      customer_email: args.email,
+      customer_phone: args.phone,
+      subtotal: amount,
+      grand_total: amount,
+      amount_paid: amount,
+      payment_status: "paid",
+      transaction_reference: args.paymentId,
+      notes: `Trial booking for ${classTitle} on ${classDate} (Order ${args.orderId})`,
+      created_at: new Date().toISOString(),
+    };
+    let invRes = await service.from("invoices").insert({ ...base, payment_method: "Razorpay" }).select("id").single();
+    if (invRes.error && /payment_method|check/i.test(invRes.error.message || "")) {
+      // Pre-migration DBs reject 'Razorpay' — fall back so the invoice still exists immediately
+      console.warn("Trial invoice: 'Razorpay' method rejected, retrying as UPI:", invRes.error.message);
+      invRes = await service.from("invoices").insert({ ...base, payment_method: "UPI" }).select("id").single();
+    }
+    if (invRes.error || !invRes.data) {
+      console.error("Trial invoice creation failed:", invRes.error);
+      return null;
+    }
+    const invoiceId = invRes.data.id as string;
+
+    try {
+      await service.from("invoice_items").insert({
+        invoice_id: invoiceId,
+        name: `${classTitle} (Trial)`,
+        category: "Services",
+        quantity: 1,
+        unit_price: amount,
+        total_price: amount,
+      });
+    } catch (itemErr) {
+      console.error("Trial invoice item creation failed:", itemErr);
+    }
+
+    try {
+      await service.from("trial_members").update({ invoice_id: invoiceId }).eq("id", args.trialId);
+    } catch {
+      // invoice_id column may not exist pre-migration — invoice itself still exists
+    }
+    return invoiceId;
+  } catch (e) {
+    console.error("ensureTrialInvoice failed:", e);
+    return null;
+  }
+}
+
 export async function POST(req: Request) {
   try {
     // Rate limit billable payment verification (Razorpay API call): 10/min per IP
@@ -56,7 +194,18 @@ export async function POST(req: Request) {
     // Idempotency: check if this payment already created a trial
     try {
       const { data: existingByPayment } = await service.from("trial_members").select("id").eq("razorpay_payment_id", razorpay_payment_id).maybeSingle();
-      if (existingByPayment) return NextResponse.json({ success: true, message: "Trial already booked", trialId: existingByPayment.id });
+      if (existingByPayment) {
+        // Trial exists — still guarantee its invoice exists (older rows predate invoicing)
+        const invoiceId = await ensureTrialInvoice(service, {
+          trialId: existingByPayment.id,
+          fullName: (full_name as string).trim(),
+          email: (email as string).trim().toLowerCase(),
+          phone: (phone_number as string).replace(/\D/g, ""),
+          paymentId: razorpay_payment_id,
+          orderId: razorpay_order_id,
+        });
+        return NextResponse.json({ success: true, message: "Trial already booked", trialId: existingByPayment.id, invoiceId });
+      }
     } catch {}
 
     // Check by razorpay_payment_id if we store it (we will store in notes or a separate field - for now check trial_members with same email+class)
@@ -68,7 +217,17 @@ export async function POST(req: Request) {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { data: recentTrial } = await service.from("trial_members").select("id").eq("email", emailLowerEarly).gte("created_at", oneHourAgo).maybeSingle();
     if (recentTrial) {
-      return NextResponse.json({ success: true, message: "Trial already booked", trialId: recentTrial.id });
+      const invoiceId = await ensureTrialInvoice(service, {
+        trialId: recentTrial.id,
+        fullName: (full_name as string).trim(),
+        email: emailLowerEarly,
+        phone: cleanPhoneEarly,
+        classTitle: (class_name as string) || null,
+        classDate: (trial_date as string) || null,
+        paymentId: razorpay_payment_id,
+        orderId: razorpay_order_id,
+      });
+      return NextResponse.json({ success: true, message: "Trial already booked", trialId: recentTrial.id, invoiceId });
     }
 
     // Resolve class: existing class_id OR date+time slot (new trial slots like Morning/Evening Reformer)
@@ -121,7 +280,7 @@ export async function POST(req: Request) {
       class_name: cls.title,
       instructor_id: staff?.id || null,
       instructor_name: cls.instructor,
-      notes: `Razorpay: ${razorpay_payment_id} / ${razorpay_order_id}`,
+      // Payment references live in razorpay_* columns — keep notes for real staff notes
       status: "Scheduled",
       source: "Website",
       interest: cls.title,
@@ -149,7 +308,6 @@ export async function POST(req: Request) {
           class_name: trialInsert.class_name,
           instructor_id: trialInsert.instructor_id,
           instructor_name: trialInsert.instructor_name,
-          notes: trialInsert.notes,
           status: trialInsert.status,
           created_at: trialInsert.created_at,
           updated_at: trialInsert.updated_at,
@@ -197,42 +355,19 @@ export async function POST(req: Request) {
       }
     }
 
-    // Create an invoice record for the trial payment (for reports)
-    try {
-      const { data: trialPlan } = await service.from("billing_plan_items").select("id, price").ilike("name", "%Trial Session%").eq("is_active", true).maybeSingle();
-      const amount = trialPlan?.price ? Number(trialPlan.price) : 500;
-      const invoiceNumber = `TRIAL-${Date.now()}-${cleanPhone.slice(-4)}`;
-      // Find or create a customer
-      let customerId: string | null = null;
-      const { data: existingCustomer } = await service.from("customers").select("id").ilike("email", emailLower).maybeSingle();
-      if (existingCustomer) customerId = existingCustomer.id;
-      else {
-        const { data: newCustomer } = await service.from("customers").insert({ name: full_name.trim(), email: emailLower, phone: cleanPhone }).select("id").maybeSingle();
-        if (newCustomer) customerId = newCustomer.id;
-      }
-      if (customerId) {
-        await service.from("invoices").insert({
-          invoice_number: invoiceNumber,
-          customer_id: customerId,
-          customer_name: full_name.trim(),
-          customer_email: emailLower,
-          customer_phone: cleanPhone,
-          subtotal: amount,
-          grand_total: amount,
-          amount_paid: amount,
-          payment_status: "paid",
-          payment_method: "Razorpay",
-          transaction_reference: razorpay_payment_id,
-          notes: `Trial booking for ${cls.title} on ${cls.class_date}`,
-          created_at: new Date().toISOString(),
-        });
-      }
-    } catch (e) {
-      console.error("Invoice creation failed:", e);
-      // Don't fail the whole request if invoice fails
-    }
+    // Create the exact invoice for this trial payment (find-or-create: immediate + idempotent)
+    const invoiceId = await ensureTrialInvoice(service, {
+      trialId: trialRes.data.id,
+      fullName: full_name.trim(),
+      email: emailLower,
+      phone: cleanPhone,
+      classTitle: cls.title,
+      classDate: cls.class_date,
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+    });
 
-    return NextResponse.json({ success: true, trialId: trialRes.data.id, message: "Trial booked successfully" });
+    return NextResponse.json({ success: true, trialId: trialRes.data.id, invoiceId, message: "Trial booked successfully" });
   } catch (err: any) {
     console.error("verify-payment error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

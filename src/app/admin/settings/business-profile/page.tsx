@@ -439,21 +439,16 @@ export default function BusinessProfilePage() {
                   placeholder="Corhaus Pilates"
                 />
 
-                {/* Member Portal URL — shown with Request Change hint */}
+                {/* Member Portal URL */}
                 <div>
                   <FieldLabel>Member Portal URL</FieldLabel>
-                  <div className="relative">
-                    <input
-                      type="url"
-                      value={form.member_portal_url}
-                      onChange={(e) => patch("member_portal_url", e.target.value)}
-                      placeholder="https://members.yourstudio.com"
-                      className="w-full px-3 py-2.5 pr-24 rounded-xl border border-line bg-surface-2/40 text-sm text-fg placeholder:text-fg-5/60 focus:outline-none focus:ring-1 focus:ring-accent transition-shadow"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-accent cursor-default select-none">
-                      Request Change
-                    </span>
-                  </div>
+                  <input
+                    type="url"
+                    value={form.member_portal_url}
+                    onChange={(e) => patch("member_portal_url", e.target.value)}
+                    placeholder="https://members.yourstudio.com"
+                    className="w-full px-3 py-2.5 rounded-xl border border-line bg-surface-2/40 text-sm text-fg placeholder:text-fg-5/60 focus:outline-none focus:ring-1 focus:ring-accent transition-shadow"
+                  />
                 </div>
 
                 <InputField
