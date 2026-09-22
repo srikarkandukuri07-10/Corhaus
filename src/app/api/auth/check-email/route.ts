@@ -168,10 +168,11 @@ export async function POST(request: Request) {
       error: "This email is not approved for access. Please contact Corhaus staff.",
     }, { status: 403 });
   } catch (err: any) {
+    console.error("POST /api/auth/check-email error:", err);
     return NextResponse.json({
       approved: false,
       accountType: "unrecognized",
-      error: err.message || "An unexpected error occurred while checking email.",
+      error: "An unexpected error occurred while checking email.",
     }, { status: 500 });
   }
 }

@@ -61,9 +61,10 @@ export async function POST(req: Request) {
       // Never create a trial member from this enquiry form. If the leads
       // table is missing, surface a clear error so the migration gets run.
       if (result.error.message?.includes("leads") || result.error.code === "PGRST204" || result.error.code === "42P01") {
-        return NextResponse.json({ error: "Enquiry system not ready. Please run 044_create_leads_table.sql in Supabase SQL Editor.", needsMigration: true }, { status: 503 });
+        return NextResponse.json({ error: "Enquiry system not ready. Please contact support.", needsMigration: true }, { status: 503 });
       }
-      return NextResponse.json({ error: result.error.message }, { status: 400 });
+      console.error("Trial enquiry insert error:", result.error);
+      return NextResponse.json({ error: "Failed to submit enquiry. Please try again." }, { status: 400 });
     }
 
     // Notify admins about enquiries from social sources (Instagram/Facebook/WhatsApp)
@@ -82,6 +83,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, data: result.data });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    console.error("Trial enquiry error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

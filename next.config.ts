@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Never ship source maps to production; they let anyone reconstruct
+  // original source including any inlined secrets.
+  productionBrowserSourceMaps: false,
   async headers() {
     return [
       {

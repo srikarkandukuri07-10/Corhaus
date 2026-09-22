@@ -102,7 +102,7 @@ export async function POST(req: Request) {
       }
 
       console.error("Booking lookup error:", bookingErr);
-      return NextResponse.json({ error: `Booking not found: ${bookingErr?.message || ""}` }, { status: 404 });
+      return NextResponse.json({ error: "Booking not found." }, { status: 404 });
     }
 
     // 5. Verify ownership — booking must belong to this member

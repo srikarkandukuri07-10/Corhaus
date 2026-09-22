@@ -74,10 +74,10 @@ export async function GET() {
           tickets: [],
           isDeveloper,
           needsMigration: true,
-          error: "Database tables not found. Please execute migration 031_support_system.sql in Supabase SQL Editor.",
+          error: "Support system is not ready. Please contact support.",
         });
       }
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "Failed to load tickets. Please try again." }, { status: 500 });
     }
 
     // Fetch profiles for created_by mapping
@@ -117,7 +117,7 @@ export async function GET() {
     return NextResponse.json({ tickets: enrichedTickets, isDeveloper });
   } catch (err: any) {
     console.error("GET /api/support/tickets caught error:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -160,8 +160,8 @@ export async function POST(req: Request) {
       const isMissingTable = ticketError?.message?.includes("schema cache") || ticketError?.message?.includes("does not exist");
       return NextResponse.json({
         error: isMissingTable
-          ? "Database tables missing. Please run migration 031_support_system.sql in Supabase SQL Editor."
-          : ticketError?.message || "Failed to create ticket"
+          ? "Support system is not ready. Please contact support."
+          : "Failed to create ticket. Please try again."
       }, { status: 500 });
     }
 
@@ -200,6 +200,6 @@ export async function POST(req: Request) {
     });
   } catch (err: any) {
     console.error("POST /api/support/tickets caught error:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

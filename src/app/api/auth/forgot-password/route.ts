@@ -86,17 +86,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to request code. Please try again." }, { status: 500 });
     }
 
-    // Add entry in admin_notifications so the admin can see it (simulates sending the code to the user)
+    // Notify admins that a reset was requested WITHOUT exposing the code.
+    // The code is delivered out-of-band (email/SMS provider); never log or
+    // persist it in plaintext. Only the SHA-256 hash is stored above.
     const name = staff?.full_name || member?.full_name || "Developer";
     await serviceClient.from("admin_notifications").insert({
       type: "forgot_password",
       email: normalizedEmail,
-      message: `Password reset request for ${name} (${normalizedEmail}). Code: ${code}`,
+      message: `Password reset request for ${name} (${normalizedEmail}). A verification code was sent to the user.`,
       is_read: false,
     });
-
-    // In development / testing, we print code to console so developer/user can find it easily
-    console.log(`[FORGOT PASSWORD] Generated code for ${normalizedEmail}: ${code}`);
 
     return NextResponse.json(genericResponse);
   } catch (err: any) {

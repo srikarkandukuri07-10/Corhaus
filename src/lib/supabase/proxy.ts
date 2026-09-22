@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAdminEmail } from "@/lib/constants";
+import "@/lib/env";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -382,7 +383,9 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Protected routes that require authentication (when not logged in)
-  const protectedRoutes = ["/admin", "/member", "/developer"];
+  // Includes API namespaces so new API routes are denied by default at the
+  // proxy layer; per-route getUser() checks remain the enforcement point.
+  const protectedRoutes = ["/admin", "/member", "/developer", "/api/admin", "/api/member", "/api/support", "/api/attendance"];
   const isProtectedRoute = protectedRoutes.some((route) =>
     pathname.startsWith(route)
   );

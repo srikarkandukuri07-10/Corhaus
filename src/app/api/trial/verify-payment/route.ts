@@ -2,9 +2,20 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 import Razorpay from "razorpay";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
   try {
+    // Rate limit billable payment verification (Razorpay API call): 10/min per IP
+    const ip = getClientIp(req);
+    const { success, retryAfter } = await rateLimit(ip, "trial_verify_payment", 10, 60 * 1000);
+    if (!success) {
+      return NextResponse.json(
+        { error: `Too many requests. Please try again after ${retryAfter} seconds.` },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
+      );
+    }
+
     const body = await req.json();
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature, full_name, phone_number, email, class_id, trial_date, trial_time, class_name } = body;
 
@@ -144,10 +155,14 @@ export async function POST(req: Request) {
           updated_at: trialInsert.updated_at,
         };
         const retry = await service.from("trial_members").insert(minimal).select("*").single();
-        if (retry.error) return NextResponse.json({ error: retry.error.message }, { status: 400 });
+        if (retry.error) {
+          console.error("Trial insert retry error:", retry.error);
+          return NextResponse.json({ error: "Failed to book trial. Please try again." }, { status: 400 });
+        }
         trialRes = retry;
       } else {
-        return NextResponse.json({ error: trialRes.error.message }, { status: 400 });
+        console.error("Trial insert error:", trialRes.error);
+        return NextResponse.json({ error: "Failed to book trial. Please try again." }, { status: 400 });
       }
     }
 
@@ -220,6 +235,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, trialId: trialRes.data.id, message: "Trial booked successfully" });
   } catch (err: any) {
     console.error("verify-payment error:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

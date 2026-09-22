@@ -340,7 +340,7 @@ export async function POST(request: Request) {
   } catch (err: any) {
     console.error("POST /api/auth/login error:", err);
     return NextResponse.json(
-      { error: err.message || "An unexpected authentication error occurred." },
+      { error: "An unexpected authentication error occurred." },
       { status: 500 }
     );
   }

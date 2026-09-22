@@ -362,7 +362,7 @@ export default function AdminClassesModulePage() {
         const bkJson = await bkRes.json();
         if (bkRes.ok && Array.isArray(bkJson.bookings)) {
           enrichedBookings = bkJson.bookings;
-          console.log("[Admin] Bookings loaded via API:", enrichedBookings.length);
+          if (process.env.NODE_ENV === "development") console.log("[Admin] Bookings loaded via API:", enrichedBookings.length);
         } else {
           // API failed — fall back to direct query
           console.warn("[Admin] API failed, falling back to direct query. Error:", bkJson?.error);
@@ -373,7 +373,7 @@ export default function AdminClassesModulePage() {
           const clsMap: Record<string, any> = {};
           (clsRes.data || []).forEach((c: any) => { clsMap[c.id] = c; });
           enrichedBookings = (bkRes.data || []).map((b: any) => enrichMember({ ...b, classes: clsMap[b.class_id] || null }));
-          console.log("[Admin] Bookings loaded via direct query:", enrichedBookings.length);
+          if (process.env.NODE_ENV === "development") console.log("[Admin] Bookings loaded via direct query:", enrichedBookings.length);
         }
       } catch (bkErr) {
         // Network error — fall back to direct query

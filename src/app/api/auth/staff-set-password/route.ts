@@ -184,8 +184,9 @@ export async function POST(request: Request) {
     });
     return response;
   } catch (err: any) {
+    console.error("POST /api/auth/staff-set-password error:", err);
     return NextResponse.json(
-      { error: err.message || "Failed to set password." },
+      { error: "Failed to set password." },
       { status: 500 }
     );
   }

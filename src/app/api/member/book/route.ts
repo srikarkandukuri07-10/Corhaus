@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     if (amError) {
       console.error("approved_members lookup error:", amError);
-      return NextResponse.json({ error: `Profile lookup failed: ${amError.message}` }, { status: 500 });
+      return NextResponse.json({ error: "Profile lookup failed. Please try again." }, { status: 500 });
     }
     if (!amData) {
       return NextResponse.json({ error: "No approved member profile found for your account. Please contact the studio." }, { status: 403 });
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 
     if (clsError) {
       console.error("Class fetch error:", clsError);
-      return NextResponse.json({ error: `Class lookup failed: ${clsError.message}` }, { status: 500 });
+      return NextResponse.json({ error: "Class lookup failed. Please try again." }, { status: 500 });
     }
     if (!cls) {
       return NextResponse.json({ error: "Class not found." }, { status: 404 });
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
 
     if (existingError) {
       console.error("Existing booking check error:", existingError);
-      return NextResponse.json({ error: `Booking check failed: ${existingError.message}` }, { status: 500 });
+      return NextResponse.json({ error: "Booking check failed. Please try again." }, { status: 500 });
     }
     if (existingBooking) {
       return NextResponse.json({ error: "You are already booked for this class.", bookingId: existingBooking.id }, { status: 409 });
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
 
     if (planError) {
       console.error("Plan lookup error:", planError);
-      return NextResponse.json({ error: `Plan lookup failed: ${planError.message}` }, { status: 500 });
+      return NextResponse.json({ error: "Plan lookup failed. Please try again." }, { status: 500 });
     }
 
     if (!plan) {
@@ -184,7 +184,7 @@ export async function POST(req: Request) {
 
     if (insertError || !newBooking) {
       console.error("Booking insert error:", insertError);
-      return NextResponse.json({ error: `Failed to create booking: ${insertError?.message || "unknown error"}` }, { status: 500 });
+      return NextResponse.json({ error: "Failed to create booking. Please try again." }, { status: 500 });
     }
 
     // 11. Deduct session credit for session-based plans
@@ -204,6 +204,6 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error("Book class error:", e);
-    return NextResponse.json({ error: `Internal server error: ${e instanceof Error ? e.message : String(e)}` }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -2,9 +2,21 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import { rateLimit } from "@/lib/rateLimit";
+import { getClientIp } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
   try {
+    // Rate limit billable Razorpay order creation: 5/min per IP
+    const ip = getClientIp(req);
+    const { success, retryAfter } = await rateLimit(ip, "trial_create_order", 5, 60 * 1000);
+    if (!success) {
+      return NextResponse.json(
+        { error: `Too many requests. Please try again after ${retryAfter} seconds.` },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
+      );
+    }
+
     const body = await req.json();
     const { full_name, phone_number, email, class_id, trial_date, trial_time, class_name } = body;
 
@@ -97,6 +109,6 @@ export async function POST(req: Request) {
     });
   } catch (err: any) {
     console.error("create-order error:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

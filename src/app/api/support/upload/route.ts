@@ -108,7 +108,7 @@ export async function POST(req: Request) {
 
     if (uploadError) {
       console.error("Attachment upload error:", uploadError);
-      return NextResponse.json({ error: uploadError.message }, { status: 500 });
+      return NextResponse.json({ error: "Failed to upload file. Please try again." }, { status: 500 });
     }
 
     // Return the storage path. Signed URLs must be retrieved via /api/support/attachment route.
@@ -119,6 +119,6 @@ export async function POST(req: Request) {
     });
   } catch (err: any) {
     console.error("POST /api/support/upload error:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

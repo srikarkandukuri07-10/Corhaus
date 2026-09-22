@@ -1,4 +1,8 @@
 // Reusable server-side in-memory rate limiting mechanism for Next.js
+// NOTE (serverless limitation): this Map is per-instance. On Vercel/edge
+// deployments each lambda has isolated state and it resets on cold start.
+// For distributed abuse protection, replace with Redis/Upstash backed store
+// (same `rateLimit(ip, route, limit, windowMs)` signature).
 
 type RateLimitRecord = {
   count: number;
@@ -18,6 +22,19 @@ if (typeof setInterval !== "undefined") {
       }
     }
   }, 60000); // every minute
+}
+
+/**
+ * Extract the real client IP, handling proxies correctly.
+ * Takes the first entry of x-forwarded-for (client), not the last (proxy).
+ */
+export function getClientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    const first = forwarded.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  return req.headers.get("x-real-ip")?.trim() || "127.0.0.1";
 }
 
 /**
