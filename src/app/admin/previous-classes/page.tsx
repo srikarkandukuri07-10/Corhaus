@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useTransition } from "react";
+import { useEffect, useState, useCallback, useTransition, Fragment } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate as fmtDate, formatTime as fmtTime } from "@/lib/date-utils";
 
@@ -48,8 +48,276 @@ function parseAsIst(dateStr: string, timeStr: string): number {
   return d.getTime() + (IST_OFFSET_MS - browserOffset);
 }
 
-export default function PreviousClasses() {
-  const [classes, setClasses] = useState<ClassData[]>([]);
+function ClassDetailsPanel({
+  classData,
+  bookings,
+  bookingsLoading,
+  attended,
+  attendanceLoading,
+}: {
+  classData: ClassData;
+  bookings: BookingWithProfile[];
+  bookingsLoading: boolean;
+  attended: AttendanceWithProfile[];
+  attendanceLoading: boolean;
+}) {
+  return (
+    <div className="bg-surface rounded-3xl border border-line p-4 sm:p-6 animate-slide-up shadow-md space-y-4 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-4">
+        <div className="min-w-0">
+          <h3 className="text-lg font-bold text-fg truncate">
+            Enrolled Members
+          </h3>
+          <p className="text-xs text-fg-3 mt-0.5 truncate">
+            {classData.title} &bull; {classData.instructor}
+          </p>
+        </div>
+        <span className="text-xs font-bold text-accent bg-surface-2 border border-accent/20 px-3 py-1 rounded-full shrink-0 text-center">
+          {bookings.filter((b) => b.booking_status === "booked").length} / {classData.max_capacity} spots filled
+        </span>
+      </div>
+
+      {bookingsLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+        </div>
+      ) : bookings.filter((b) => b.booking_status === "booked").length === 0 ? (
+        <p className="text-center py-8 text-fg-5 text-xs">
+          No active bookings yet
+        </p>
+      ) : (
+        <>
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-line bg-surface-2 text-fg-3 uppercase font-bold text-[10px]">
+                  <th className="text-left py-3 px-4">Name</th>
+                  <th className="text-left py-3 px-4">Email</th>
+                  <th className="text-left py-3 px-4">Phone</th>
+                  <th className="text-left py-3 px-4">Booked At</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {bookings
+                  .filter((b) => b.booking_status === "booked")
+                  .map((booking) => (
+                    <tr key={booking.id} className="hover:bg-surface-2/50 transition-colors">
+                      <td className="py-3 px-4 text-fg font-bold min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-full overflow-hidden border border-line-2 bg-accent text-white flex-shrink-0 flex items-center justify-center font-bold text-xs">
+                            {booking.profiles?.avatar_url ? (
+                              <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span>
+                                {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <span className="truncate">{booking.profiles?.full_name || "N/A"}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-fg-3 font-medium break-all min-w-0">
+                        {booking.profiles?.email || "N/A"}
+                      </td>
+                      <td className="py-3 px-4 text-fg-3 font-medium">
+                        {booking.profiles?.phone_number || "N/A"}
+                      </td>
+                      <td className="py-3 px-4 text-fg-4 text-xs">
+                        {new Date(booking.created_at).toLocaleString("en-IN")}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards View */}
+          <div className="md:hidden space-y-2.5">
+            {bookings
+              .filter((b) => b.booking_status === "booked")
+              .map((booking) => (
+                <div key={booking.id} className="p-3 rounded-xl bg-surface-2/50 border border-line flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full overflow-hidden border border-line-2 bg-accent text-white flex-shrink-0 flex items-center justify-center font-bold text-xs">
+                      {booking.profiles?.avatar_url ? (
+                        <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span>{(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <div className="truncate">
+                      <p className="font-bold text-fg truncate">{booking.profiles?.full_name || "N/A"}</p>
+                      <p className="text-[11px] text-fg-4 truncate">{booking.profiles?.phone_number || booking.profiles?.email || "N/A"}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-fg-5 shrink-0">
+                    {new Date(booking.created_at).toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ))}
+          </div>
+        </>
+      )}
+
+      {/* Cancelled Bookings list */}
+      {!bookingsLoading && bookings.filter((b) => b.booking_status === "cancelled").length > 0 && (
+        <div className="mt-6 pt-6 border-t border-line animate-fade-in">
+          <h4 className="text-sm font-bold text-fg mb-3">Cancelled Bookings</h4>
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-line bg-surface-2 text-fg-3 uppercase font-bold text-[10px]">
+                  <th className="text-left py-3 px-4">Name</th>
+                  <th className="text-left py-3 px-4">Email</th>
+                  <th className="text-left py-3 px-4">Phone</th>
+                  <th className="text-left py-3 px-4">Cancelled At</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {bookings
+                  .filter((b) => b.booking_status === "cancelled")
+                  .map((booking) => (
+                    <tr key={booking.id} className="hover:bg-red-50/50 transition-colors">
+                      <td className="py-3 px-4 text-fg-3 font-semibold min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-full overflow-hidden border border-line-2 bg-gray-200 text-gray-600 flex-shrink-0 flex items-center justify-center">
+                            {booking.profiles?.avatar_url ? (
+                              <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-[10px] font-bold">
+                                {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <span className="line-through truncate">{booking.profiles?.full_name || "N/A"}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-fg-5 break-all min-w-0">
+                        {booking.profiles?.email || "N/A"}
+                      </td>
+                      <td className="py-3 px-4 text-fg-5">
+                        {booking.profiles?.phone_number || "N/A"}
+                      </td>
+                      <td className="py-3 px-4 text-fg-5 text-xs">
+                        {booking.cancelled_at ? new Date(booking.cancelled_at).toLocaleString("en-IN") : new Date(booking.created_at).toLocaleString("en-IN")}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cancelled Cards View */}
+          <div className="md:hidden space-y-2">
+            {bookings
+              .filter((b) => b.booking_status === "cancelled")
+              .map((booking) => (
+                <div key={booking.id} className="p-3 rounded-xl bg-surface-2/40 border border-line flex items-center justify-between gap-3 text-xs opacity-75">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-full overflow-hidden border border-line-2 bg-surface-3 text-fg-4 flex-shrink-0 flex items-center justify-center font-bold text-xs">
+                      {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
+                    </div>
+                    <div className="truncate">
+                      <p className="font-semibold text-fg line-through truncate">{booking.profiles?.full_name || "N/A"}</p>
+                      <p className="text-[10px] text-fg-5 truncate">{booking.profiles?.phone_number || "N/A"}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-fg-5 shrink-0">Cancelled</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* Attended Members */}
+      <div className="mt-6 pt-6 border-t border-line">
+        <h4 className="text-sm font-bold text-fg mb-3">Attended Members</h4>
+        {(() => {
+          const classStart = new Date(`${classData.class_date}T${classData.class_time}`);
+          const now = new Date();
+          if (now < classStart) {
+            return (
+              <p className="text-center py-6 text-fg-5 text-xs font-medium">
+                Attendance records will be available when the class begins.
+              </p>
+            );
+          }
+          return attendanceLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+            </div>
+          ) : attended.length === 0 ? (
+            <p className="text-center py-6 text-fg-5 text-xs font-medium">
+              No attendance recorded yet
+            </p>
+          ) : (
+            <>
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-line bg-surface-2 text-fg-3 uppercase font-bold text-[10px]">
+                      <th className="text-left py-3 px-4">Name</th>
+                      <th className="text-left py-3 px-4">Email</th>
+                      <th className="text-left py-3 px-4">Check-in Time</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {attended.map((a) => (
+                      <tr key={a.id} className="hover:bg-emerald-50/40 transition-colors">
+                        <td className="py-3 px-4 text-fg font-bold min-w-0">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-7 h-7 rounded-full overflow-hidden border border-emerald-300 bg-emerald-100 text-emerald-800 flex-shrink-0 flex items-center justify-center font-bold text-xs">
+                              {a.profiles?.avatar_url ? (
+                                <img src={a.profiles.avatar_url} alt={a.profiles.full_name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span>
+                                  {(a.profiles?.full_name || "N").charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <span className="truncate">{a.profiles?.full_name || "N/A"}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-fg-3 font-medium break-all min-w-0">
+                          {a.profiles?.email || "N/A"}
+                        </td>
+                        <td className="py-3 px-4 text-emerald-800 font-bold text-xs">
+                          {a.scanned_at ? new Date(a.scanned_at).toLocaleString("en-IN") : "N/A"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Attended Cards */}
+              <div className="md:hidden space-y-2">
+                {attended.map((a) => (
+                  <div key={a.id} className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full overflow-hidden border border-emerald-500/30 bg-emerald-500/20 text-emerald-400 flex-shrink-0 flex items-center justify-center font-bold text-xs">
+                        {(a.profiles?.full_name || "N").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="truncate">
+                        <p className="font-bold text-fg truncate">{a.profiles?.full_name || "N/A"}</p>
+                        <p className="text-[10px] text-fg-4 truncate">{a.profiles?.email || "N/A"}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-500 shrink-0">
+                      {a.scanned_at ? new Date(a.scanned_at).toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit' }) : "Attended"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}
+
+export default function PreviousClasses() {  const [classes, setClasses] = useState<ClassData[]>([]);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [bookings, setBookings] = useState<BookingWithProfile[]>([]);
   const [attended, setAttended] = useState<AttendanceWithProfile[]>([]);
@@ -296,6 +564,13 @@ export default function PreviousClasses() {
   }, [supabase, loadClasses, loadBookings, loadAttendance, selectedClass]);
 
   function handleClassClick(classId: string) {
+    // Toggle: clicking the open card collapses it again
+    if (selectedClass === classId) {
+      setSelectedClass(null);
+      setBookings([]);
+      setAttended([]);
+      return;
+    }
     setSelectedClass(classId);
     loadBookings(classId);
     loadAttendance(classId);
@@ -341,9 +616,6 @@ export default function PreviousClasses() {
 
   const formatDate = (dStr: string) => fmtDate(dStr);
 
-
-  const selectedClassData = classes.find((c) => c.id === selectedClass);
-
   return (
     <div className="space-y-8 animate-fade-in font-sans min-w-0 max-w-full overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -373,8 +645,8 @@ export default function PreviousClasses() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {classes.map((cls) => (
+              <Fragment key={cls.id}>
               <div
-                key={cls.id}
                 className={`relative p-5 rounded-3xl border transition-all ${
                   selectedClass === cls.id
                     ? "bg-accent text-white border-accent shadow-lg shadow-accent/20"
@@ -421,7 +693,7 @@ export default function PreviousClasses() {
                     {formatTime(cls.class_time)}
                   </span>
                 </div>
-                <div className="mt-2">
+                <div className="mt-2 flex items-center justify-between gap-2">
                   <span
                     className={`text-xs px-2.5 py-1 rounded-full font-bold ${
                       selectedClass === cls.id
@@ -431,6 +703,14 @@ export default function PreviousClasses() {
                   >
                     Max {cls.max_capacity} spots
                   </span>
+                  <svg
+                    className={`w-4 h-4 shrink-0 transition-transform ${selectedClass === cls.id ? "rotate-180 text-white" : "text-fg-4"}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </div>
                 </button>
                 <button
@@ -452,266 +732,22 @@ export default function PreviousClasses() {
                   )}
                 </button>
               </div>
+              {selectedClass === cls.id && (
+                <div className="col-span-full">
+                  <ClassDetailsPanel
+                    classData={cls}
+                    bookings={bookings}
+                    bookingsLoading={bookingsLoading}
+                    attended={attended}
+                    attendanceLoading={attendanceLoading}
+                  />
+                </div>
+              )}
+              </Fragment>
             ))}
           </div>
         )}
       </div>
-
-      {/* Enrolled Members Panel */}
-      {selectedClass && selectedClassData && (
-        <div className="bg-surface rounded-3xl border border-line p-4 sm:p-6 animate-slide-up shadow-md space-y-4 min-w-0">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line pb-4">
-            <div className="min-w-0">
-              <h3 className="text-lg font-bold text-fg truncate">
-                Enrolled Members
-              </h3>
-              <p className="text-xs text-fg-3 mt-0.5 truncate">
-                {selectedClassData.title} &bull; {selectedClassData.instructor}
-              </p>
-            </div>
-            <span className="text-xs font-bold text-accent bg-surface-2 border border-accent/20 px-3 py-1 rounded-full shrink-0 text-center">
-              {bookings.filter((b) => b.booking_status === "booked").length} / {selectedClassData.max_capacity} spots filled
-            </span>
-          </div>
-
-          {bookingsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
-            </div>
-          ) : bookings.filter((b) => b.booking_status === "booked").length === 0 ? (
-            <p className="text-center py-8 text-fg-5 text-xs">
-              No active bookings yet
-            </p>
-          ) : (
-            <>
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-line bg-surface-2 text-fg-3 uppercase font-bold text-[10px]">
-                      <th className="text-left py-3 px-4">Name</th>
-                      <th className="text-left py-3 px-4">Email</th>
-                      <th className="text-left py-3 px-4">Phone</th>
-                      <th className="text-left py-3 px-4">Booked At</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line">
-                    {bookings
-                      .filter((b) => b.booking_status === "booked")
-                      .map((booking) => (
-                        <tr key={booking.id} className="hover:bg-surface-2/50 transition-colors">
-                          <td className="py-3 px-4 text-fg font-bold min-w-0">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-7 h-7 rounded-full overflow-hidden border border-line-2 bg-accent text-white flex-shrink-0 flex items-center justify-center font-bold text-xs">
-                                {booking.profiles?.avatar_url ? (
-                                  <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <span>
-                                    {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
-                                  </span>
-                                )}
-                              </div>
-                              <span className="truncate">{booking.profiles?.full_name || "N/A"}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-fg-3 font-medium break-all min-w-0">
-                            {booking.profiles?.email || "N/A"}
-                          </td>
-                          <td className="py-3 px-4 text-fg-3 font-medium">
-                            {booking.profiles?.phone_number || "N/A"}
-                          </td>
-                          <td className="py-3 px-4 text-fg-4 text-xs">
-                            {new Date(booking.created_at).toLocaleString("en-IN")}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile Cards View */}
-              <div className="md:hidden space-y-2.5">
-                {bookings
-                  .filter((b) => b.booking_status === "booked")
-                  .map((booking) => (
-                    <div key={booking.id} className="p-3 rounded-xl bg-surface-2/50 border border-line flex items-center justify-between gap-3 text-xs">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-full overflow-hidden border border-line-2 bg-accent text-white flex-shrink-0 flex items-center justify-center font-bold text-xs">
-                          {booking.profiles?.avatar_url ? (
-                            <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span>{(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}</span>
-                          )}
-                        </div>
-                        <div className="truncate">
-                          <p className="font-bold text-fg truncate">{booking.profiles?.full_name || "N/A"}</p>
-                          <p className="text-[11px] text-fg-4 truncate">{booking.profiles?.phone_number || booking.profiles?.email || "N/A"}</p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] text-fg-5 shrink-0">
-                        {new Date(booking.created_at).toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            </>
-          )}
-
-          {/* Cancelled Bookings list */}
-          {!bookingsLoading && bookings.filter((b) => b.booking_status === "cancelled").length > 0 && (
-            <div className="mt-6 pt-6 border-t border-line animate-fade-in">
-              <h4 className="text-sm font-bold text-fg mb-3">Cancelled Bookings</h4>
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-line bg-surface-2 text-fg-3 uppercase font-bold text-[10px]">
-                      <th className="text-left py-3 px-4">Name</th>
-                      <th className="text-left py-3 px-4">Email</th>
-                      <th className="text-left py-3 px-4">Phone</th>
-                      <th className="text-left py-3 px-4">Cancelled At</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line">
-                    {bookings
-                      .filter((b) => b.booking_status === "cancelled")
-                      .map((booking) => (
-                        <tr key={booking.id} className="hover:bg-red-50/50 transition-colors">
-                          <td className="py-3 px-4 text-fg-3 font-semibold min-w-0">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-7 h-7 rounded-full overflow-hidden border border-line-2 bg-gray-200 text-gray-600 flex-shrink-0 flex items-center justify-center">
-                                {booking.profiles?.avatar_url ? (
-                                  <img src={booking.profiles.avatar_url} alt={booking.profiles.full_name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="text-[10px] font-bold">
-                                    {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
-                                  </span>
-                                )}
-                              </div>
-                              <span className="line-through truncate">{booking.profiles?.full_name || "N/A"}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-fg-5 break-all min-w-0">
-                            {booking.profiles?.email || "N/A"}
-                          </td>
-                          <td className="py-3 px-4 text-fg-5">
-                            {booking.profiles?.phone_number || "N/A"}
-                          </td>
-                          <td className="py-3 px-4 text-fg-5 text-xs">
-                            {booking.cancelled_at ? new Date(booking.cancelled_at).toLocaleString("en-IN") : new Date(booking.created_at).toLocaleString("en-IN")}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile Cancelled Cards View */}
-              <div className="md:hidden space-y-2">
-                {bookings
-                  .filter((b) => b.booking_status === "cancelled")
-                  .map((booking) => (
-                    <div key={booking.id} className="p-3 rounded-xl bg-surface-2/40 border border-line flex items-center justify-between gap-3 text-xs opacity-75">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-7 h-7 rounded-full overflow-hidden border border-line-2 bg-surface-3 text-fg-4 flex-shrink-0 flex items-center justify-center font-bold text-xs">
-                          {(booking.profiles?.full_name || "N").charAt(0).toUpperCase()}
-                        </div>
-                        <div className="truncate">
-                          <p className="font-semibold text-fg line-through truncate">{booking.profiles?.full_name || "N/A"}</p>
-                          <p className="text-[10px] text-fg-5 truncate">{booking.profiles?.phone_number || "N/A"}</p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] text-fg-5 shrink-0">Cancelled</span>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Attended Members */}
-          <div className="mt-6 pt-6 border-t border-line">
-            <h4 className="text-sm font-bold text-fg mb-3">Attended Members</h4>
-            {(() => {
-              const classStart = new Date(`${selectedClassData.class_date}T${selectedClassData.class_time}`);
-              const now = new Date();
-              if (now < classStart) {
-                return (
-                  <p className="text-center py-6 text-fg-5 text-xs font-medium">
-                    Attendance records will be available when the class begins.
-                  </p>
-                );
-              }
-              return attendanceLoading ? (
-                <div className="flex items-center justify-center py-6">
-                  <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
-                </div>
-              ) : attended.length === 0 ? (
-                <p className="text-center py-6 text-fg-5 text-xs font-medium">
-                  No attendance recorded yet
-                </p>
-              ) : (
-                <>
-                  <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b border-line bg-surface-2 text-fg-3 uppercase font-bold text-[10px]">
-                          <th className="text-left py-3 px-4">Name</th>
-                          <th className="text-left py-3 px-4">Email</th>
-                          <th className="text-left py-3 px-4">Check-in Time</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-line">
-                        {attended.map((a) => (
-                          <tr key={a.id} className="hover:bg-emerald-50/40 transition-colors">
-                            <td className="py-3 px-4 text-fg font-bold min-w-0">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-7 h-7 rounded-full overflow-hidden border border-emerald-300 bg-emerald-100 text-emerald-800 flex-shrink-0 flex items-center justify-center font-bold text-xs">
-                                  {a.profiles?.avatar_url ? (
-                                    <img src={a.profiles.avatar_url} alt={a.profiles.full_name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <span>
-                                      {(a.profiles?.full_name || "N").charAt(0).toUpperCase()}
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="truncate">{a.profiles?.full_name || "N/A"}</span>
-                              </div>
-                            </td>
-                            <td className="py-3 px-4 text-fg-3 font-medium break-all min-w-0">
-                              {a.profiles?.email || "N/A"}
-                            </td>
-                            <td className="py-3 px-4 text-emerald-800 font-bold text-xs">
-                              {a.scanned_at ? new Date(a.scanned_at).toLocaleString("en-IN") : "N/A"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile Attended Cards */}
-                  <div className="md:hidden space-y-2">
-                    {attended.map((a) => (
-                      <div key={a.id} className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-full overflow-hidden border border-emerald-500/30 bg-emerald-500/20 text-emerald-400 flex-shrink-0 flex items-center justify-center font-bold text-xs">
-                            {(a.profiles?.full_name || "N").charAt(0).toUpperCase()}
-                          </div>
-                          <div className="truncate">
-                            <p className="font-bold text-fg truncate">{a.profiles?.full_name || "N/A"}</p>
-                            <p className="text-[10px] text-fg-4 truncate">{a.profiles?.email || "N/A"}</p>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-bold text-emerald-500 shrink-0">
-                          {a.scanned_at ? new Date(a.scanned_at).toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit' }) : "Attended"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
