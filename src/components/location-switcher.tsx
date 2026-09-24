@@ -38,20 +38,6 @@ export default function LocationSwitcher({
   }, [open ]);
 
   const active = locations.find((l) => l.id === activeLocationId) || null;
-  // Single authorized branch (typical member/single-branch staff): static label.
-  if (!loading && locations.length <= 1) {
-    return (
-      <span
-        title={active ? `Current branch: ${active.name}` : "Branch"}
-        className={`flex items-center gap-1.5 rounded-xl border border-line-2 bg-surface text-fg font-semibold ${
-          compact ? "px-2 py-1.5 text-[11px] max-w-[120px]" : "px-3 py-2 text-xs"
-        }`}
-      >
-        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-        <span className="truncate">{active?.name || "Branch"}</span>
-      </span>
-    );
-  }
 
   return (
     <div ref={boxRef} className="relative">
