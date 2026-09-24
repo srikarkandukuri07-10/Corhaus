@@ -646,36 +646,30 @@ CREATE POLICY "Users can view relevant messages" ON public.support_messages
     )
   );
 
--- waitlists (member-own via approved join + staff branch)
-SELECT public._drop_all_policies('waitlists');
-CREATE POLICY "Members can view own waitlist entries" ON public.waitlists
-  FOR SELECT TO authenticated USING (
-    member_id IN (
-      SELECT am.id FROM public.approved_members am
-      INNER JOIN public.profiles p ON lower(p.email) = lower(am.email)
-      WHERE p.id = auth.uid()
-    )
-  );
-CREATE POLICY "Members can join own waitlist" ON public.waitlists
-  FOR INSERT TO authenticated WITH CHECK (
-    member_id IN (
-      SELECT am.id FROM public.approved_members am
-      INNER JOIN public.profiles p ON lower(p.email) = lower(am.email)
-      WHERE p.id = auth.uid() AND am.location_id = waitlists.location_id
-    )
-    AND location_id IN (SELECT public.user_location_ids())
-  );
-CREATE POLICY "Admin can manage waitlists" ON public.waitlists
-  FOR ALL TO authenticated
-  USING (public.has_database_permission('classes.bookings') AND location_id IN (SELECT public.user_location_ids()))
-  WITH CHECK (public.has_database_permission('classes.bookings') AND location_id IN (SELECT public.user_location_ids()));
+-- waitlists (member-own via approved join + staff branch) — table is optional
+DO $$
+BEGIN
+  IF to_regclass('public.waitlists') IS NOT NULL THEN
+    PERFORM public._drop_all_policies('waitlists');
+    EXECUTE 'CREATE POLICY "Members can view own waitlist entries" ON public.waitlists FOR SELECT TO authenticated USING (member_id IN (SELECT am.id FROM public.approved_members am INNER JOIN public.profiles p ON lower(p.email) = lower(am.email) WHERE p.id = auth.uid()))';
+    EXECUTE 'CREATE POLICY "Members can join own waitlist" ON public.waitlists FOR INSERT TO authenticated WITH CHECK (member_id IN (SELECT am.id FROM public.approved_members am INNER JOIN public.profiles p ON lower(p.email) = lower(am.email) WHERE p.id = auth.uid() AND am.location_id = waitlists.location_id) AND location_id IN (SELECT public.user_location_ids()))';
+    EXECUTE 'CREATE POLICY "Admin can manage waitlists" ON public.waitlists FOR ALL TO authenticated USING (public.has_database_permission(''classes.bookings'') AND location_id IN (SELECT public.user_location_ids())) WITH CHECK (public.has_database_permission(''classes.bookings'') AND location_id IN (SELECT public.user_location_ids()))';
+  ELSE
+    RAISE NOTICE '054: public.waitlists missing — skipping branch RLS';
+  END IF;
+END $$;
 
--- booking_history
-SELECT public._drop_all_policies('booking_history');
-CREATE POLICY "Admin can view booking history" ON public.booking_history
-  FOR SELECT TO authenticated USING (public.has_database_permission('members.history') AND location_id IN (SELECT public.user_location_ids()));
-CREATE POLICY "Admin can insert booking history" ON public.booking_history
-  FOR INSERT TO authenticated WITH CHECK (public.has_database_permission('classes.bookings') AND location_id IN (SELECT public.user_location_ids()));
+-- booking_history — table is optional
+DO $$
+BEGIN
+  IF to_regclass('public.booking_history') IS NOT NULL THEN
+    PERFORM public._drop_all_policies('booking_history');
+    EXECUTE 'CREATE POLICY "Admin can view booking history" ON public.booking_history FOR SELECT TO authenticated USING (public.has_database_permission(''members.history'') AND location_id IN (SELECT public.user_location_ids()))';
+    EXECUTE 'CREATE POLICY "Admin can insert booking history" ON public.booking_history FOR INSERT TO authenticated WITH CHECK (public.has_database_permission(''classes.bookings'') AND location_id IN (SELECT public.user_location_ids()))';
+  ELSE
+    RAISE NOTICE '054: public.booking_history missing — skipping branch RLS';
+  END IF;
+END $$;
 
 -- staff_members (041 SELECT + self-row + branch; writes stay service-role only)
 SELECT public._drop_all_policies('staff_members');
