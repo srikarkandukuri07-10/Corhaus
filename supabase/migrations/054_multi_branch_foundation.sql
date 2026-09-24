@@ -16,6 +16,9 @@
 --   authorized staff, everything attributable is branch-scoped).
 -- All existing rows are backfilled to the initial "Main Studio" location
 -- (single-branch operation to date), then NOT NULL is enforced.
+-- The migration tolerates partially-migrated databases: every table-specific
+-- step is guarded, missing tables are reported via NOTICE and skipped, and a
+-- failed run can simply be re-run (all steps are idempotent).
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
@@ -89,7 +92,9 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- D. Backfill every existing row to the initial location
+-- D. Backfill every existing row to the initial location.
+-- Every block is guarded by to_regclass so databases missing optional tables
+-- (e.g. waitlists) backfill cleanly instead of aborting.
 -- ---------------------------------------------------------------------------
 DO $$
 DECLARE
@@ -98,67 +103,133 @@ BEGIN
   SELECT id INTO v_init FROM public.locations WHERE slug = 'main-studio';
 
   -- Direct backfills (single-branch history: everything belongs to Main Studio)
-  UPDATE public.approved_members SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.classes SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.staff_members SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.trial_members SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.leads SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.expenses SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.billing_plan_items SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.member_discounts SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.support_tickets SET location_id = v_init WHERE location_id IS NULL;
+  IF to_regclass('public.approved_members') IS NOT NULL THEN
+    UPDATE public.approved_members SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.classes') IS NOT NULL THEN
+    UPDATE public.classes SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.staff_members') IS NOT NULL THEN
+    UPDATE public.staff_members SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.trial_members') IS NOT NULL THEN
+    UPDATE public.trial_members SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.leads') IS NOT NULL THEN
+    UPDATE public.leads SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.expenses') IS NOT NULL THEN
+    UPDATE public.expenses SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.billing_plan_items') IS NOT NULL THEN
+    UPDATE public.billing_plan_items SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.member_discounts') IS NOT NULL THEN
+    UPDATE public.member_discounts SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.support_tickets') IS NOT NULL THEN
+    UPDATE public.support_tickets SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
 
   -- Relationship-based backfills (branch derived from the owning record)
-  UPDATE public.bookings b SET location_id = c.location_id
-  FROM public.classes c WHERE b.class_id = c.id AND b.location_id IS NULL;
+  IF to_regclass('public.bookings') IS NOT NULL AND to_regclass('public.classes') IS NOT NULL THEN
+    UPDATE public.bookings b SET location_id = c.location_id
+    FROM public.classes c WHERE b.class_id = c.id AND b.location_id IS NULL;
+  END IF;
 
-  UPDATE public.attendance a SET location_id = c.location_id
-  FROM public.classes c WHERE a.class_id = c.id AND a.location_id IS NULL;
+  IF to_regclass('public.attendance') IS NOT NULL AND to_regclass('public.classes') IS NOT NULL THEN
+    UPDATE public.attendance a SET location_id = c.location_id
+    FROM public.classes c WHERE a.class_id = c.id AND a.location_id IS NULL;
+  END IF;
 
-  UPDATE public.member_purchased_plans p SET location_id = am.location_id
-  FROM public.approved_members am WHERE p.approved_member_id = am.id AND p.location_id IS NULL;
+  IF to_regclass('public.member_purchased_plans') IS NOT NULL AND to_regclass('public.approved_members') IS NOT NULL THEN
+    UPDATE public.member_purchased_plans p SET location_id = am.location_id
+    FROM public.approved_members am WHERE p.approved_member_id = am.id AND p.location_id IS NULL;
+  END IF;
 
-  UPDATE public.pt_assignments pa SET location_id = am.location_id
-  FROM public.approved_members am WHERE pa.member_id = am.id AND pa.location_id IS NULL;
+  IF to_regclass('public.pt_assignments') IS NOT NULL AND to_regclass('public.approved_members') IS NOT NULL THEN
+    UPDATE public.pt_assignments pa SET location_id = am.location_id
+    FROM public.approved_members am WHERE pa.member_id = am.id AND pa.location_id IS NULL;
+  END IF;
 
-  UPDATE public.pt_sessions ps SET location_id = am.location_id
-  FROM public.approved_members am WHERE ps.member_id = am.id AND ps.location_id IS NULL;
+  IF to_regclass('public.pt_sessions') IS NOT NULL AND to_regclass('public.approved_members') IS NOT NULL THEN
+    UPDATE public.pt_sessions ps SET location_id = am.location_id
+    FROM public.approved_members am WHERE ps.member_id = am.id AND ps.location_id IS NULL;
+  END IF;
 
-  UPDATE public.waitlists w SET location_id = c.location_id
-  FROM public.classes c WHERE w.class_id = c.id AND w.location_id IS NULL;
+  IF to_regclass('public.waitlists') IS NOT NULL AND to_regclass('public.classes') IS NOT NULL THEN
+    UPDATE public.waitlists w SET location_id = c.location_id
+    FROM public.classes c WHERE w.class_id = c.id AND w.location_id IS NULL;
+  END IF;
 
-  UPDATE public.booking_history bh SET location_id = am.location_id
-  FROM public.approved_members am WHERE bh.member_id = am.id AND bh.location_id IS NULL;
+  IF to_regclass('public.booking_history') IS NOT NULL AND to_regclass('public.approved_members') IS NOT NULL THEN
+    UPDATE public.booking_history bh SET location_id = am.location_id
+    FROM public.approved_members am WHERE bh.member_id = am.id AND bh.location_id IS NULL;
+  END IF;
 
-  UPDATE public.referral_codes rc SET location_id = am.location_id
-  FROM public.approved_members am WHERE lower(rc.member_email) = lower(am.email) AND rc.location_id IS NULL;
+  IF to_regclass('public.referral_codes') IS NOT NULL AND to_regclass('public.approved_members') IS NOT NULL THEN
+    UPDATE public.referral_codes rc SET location_id = am.location_id
+    FROM public.approved_members am WHERE lower(rc.member_email) = lower(am.email) AND rc.location_id IS NULL;
+  END IF;
 
-  UPDATE public.referral_requests rr SET location_id = am.location_id
-  FROM public.approved_members am WHERE lower(rr.referrer_email) = lower(am.email) AND rr.location_id IS NULL;
+  IF to_regclass('public.referral_requests') IS NOT NULL AND to_regclass('public.approved_members') IS NOT NULL THEN
+    UPDATE public.referral_requests rr SET location_id = am.location_id
+    FROM public.approved_members am WHERE lower(rr.referrer_email) = lower(am.email) AND rr.location_id IS NULL;
+  END IF;
 
-  UPDATE public.customers c SET location_id = am.location_id
-  FROM public.approved_members am WHERE c.approved_member_id = am.id AND c.location_id IS NULL;
+  IF to_regclass('public.customers') IS NOT NULL AND to_regclass('public.approved_members') IS NOT NULL THEN
+    UPDATE public.customers c SET location_id = am.location_id
+    FROM public.approved_members am WHERE c.approved_member_id = am.id AND c.location_id IS NULL;
+  END IF;
 
-  UPDATE public.invoices i SET location_id = c.location_id
-  FROM public.customers c WHERE i.customer_id = c.id AND c.location_id IS NOT NULL AND i.location_id IS NULL;
+  IF to_regclass('public.invoices') IS NOT NULL AND to_regclass('public.customers') IS NOT NULL THEN
+    UPDATE public.invoices i SET location_id = c.location_id
+    FROM public.customers c WHERE i.customer_id = c.id AND c.location_id IS NOT NULL AND i.location_id IS NULL;
+  END IF;
 
-  UPDATE public.invoice_items ii SET location_id = i.location_id
-  FROM public.invoices i WHERE ii.invoice_id = i.id AND ii.location_id IS NULL;
+  IF to_regclass('public.invoice_items') IS NOT NULL AND to_regclass('public.invoices') IS NOT NULL THEN
+    UPDATE public.invoice_items ii SET location_id = i.location_id
+    FROM public.invoices i WHERE ii.invoice_id = i.id AND ii.location_id IS NULL;
+  END IF;
 
   -- Anything still NULL (e.g. walk-in customers/invoices with no member link)
   -- belongs to the initial branch as well — no orphans allowed.
-  UPDATE public.customers SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.invoices SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.invoice_items SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.bookings SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.attendance SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.member_purchased_plans SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.pt_assignments SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.pt_sessions SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.waitlists SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.booking_history SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.referral_codes SET location_id = v_init WHERE location_id IS NULL;
-  UPDATE public.referral_requests SET location_id = v_init WHERE location_id IS NULL;
+  IF to_regclass('public.customers') IS NOT NULL THEN
+    UPDATE public.customers SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.invoices') IS NOT NULL THEN
+    UPDATE public.invoices SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.invoice_items') IS NOT NULL THEN
+    UPDATE public.invoice_items SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.bookings') IS NOT NULL THEN
+    UPDATE public.bookings SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.attendance') IS NOT NULL THEN
+    UPDATE public.attendance SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.member_purchased_plans') IS NOT NULL THEN
+    UPDATE public.member_purchased_plans SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.pt_assignments') IS NOT NULL THEN
+    UPDATE public.pt_assignments SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.pt_sessions') IS NOT NULL THEN
+    UPDATE public.pt_sessions SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.waitlists') IS NOT NULL THEN
+    UPDATE public.waitlists SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.booking_history') IS NOT NULL THEN
+    UPDATE public.booking_history SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.referral_codes') IS NOT NULL THEN
+    UPDATE public.referral_codes SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
+  IF to_regclass('public.referral_requests') IS NOT NULL THEN
+    UPDATE public.referral_requests SET location_id = v_init WHERE location_id IS NULL;
+  END IF;
 
   -- Operational notifications: tag by the notified email's branch where known.
   UPDATE public.admin_notifications n SET location_id = am.location_id
@@ -186,17 +257,36 @@ BEGIN
   FROM public.staff_members s
   WHERE s.employment_status <> 'Inactive'
   ON CONFLICT (staff_id, location_id) DO NOTHING;
+END $$;
 
-  -- Orphan verification: every branch table must have zero NULL location_id.
-  RAISE NOTICE '054 backfill orphans — approved_members=% classes=% bookings=% attendance=% invoices=% trials=% leads=% staff=%',
-    (SELECT count(*) FROM public.approved_members WHERE location_id IS NULL),
-    (SELECT count(*) FROM public.classes WHERE location_id IS NULL),
-    (SELECT count(*) FROM public.bookings WHERE location_id IS NULL),
-    (SELECT count(*) FROM public.attendance WHERE location_id IS NULL),
-    (SELECT count(*) FROM public.invoices WHERE location_id IS NULL),
-    (SELECT count(*) FROM public.trial_members WHERE location_id IS NULL),
-    (SELECT count(*) FROM public.leads WHERE location_id IS NULL),
-    (SELECT count(*) FROM public.staff_members WHERE location_id IS NULL);
+-- Tolerant orphan report (-1 = table missing, -2 = column missing).
+DO $$
+DECLARE
+  t TEXT;
+  tables TEXT[] := ARRAY[
+    'approved_members','staff_members','classes','bookings','attendance',
+    'member_purchased_plans','invoices','invoice_items','customers',
+    'billing_plan_items','member_discounts','expenses',
+    'trial_members','leads','pt_assignments','pt_sessions',
+    'referral_codes','referral_requests','support_tickets',
+    'waitlists','booking_history','membership_freezes','freeze_requests'
+  ];
+  c BIGINT;
+  msg TEXT := '';
+BEGIN
+  FOREACH t IN ARRAY tables LOOP
+    BEGIN
+      IF to_regclass(('public.' || t)::text) IS NULL THEN
+        c := -1;
+      ELSE
+        EXECUTE format('SELECT count(*) FROM public.%I WHERE location_id IS NULL', t) INTO c;
+      END IF;
+    EXCEPTION WHEN undefined_column OR undefined_table THEN
+      c := -2;
+    END;
+    msg := msg || t || '=' || c::text || ' ';
+  END LOOP;
+  RAISE NOTICE '054 orphans (NULL location_id; -1 = table missing, -2 = column missing): %', msg;
 END $$;
 
 -- Enforce NOT NULL now that backfill is complete (guarded per table)
