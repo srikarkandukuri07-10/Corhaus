@@ -57,27 +57,33 @@ export async function POST(req: Request) {
     const body = await req.json();
     const name = (body?.name || "").trim();
     if (!name) return NextResponse.json({ error: "Name is required." }, { status: 400 });
-    const slug =
-      (body?.slug || "")
+    const rawSlug = (body?.slug || "").trim().toLowerCase();
+    const derivedSlug =
+      rawSlug.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") ||
+      name
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "") || null;
+        .replace(/^-+|-+$/g, "");
+    if (!derivedSlug) return NextResponse.json({ error: "Could not derive a valid location id from the name." }, { status: 400 });
 
     const payload: Record<string, unknown> = {
       name,
+      slug: derivedSlug,
       address: (body?.address || "").trim() || null,
       city: (body?.city || "").trim() || null,
       state: (body?.state || "").trim() || null,
       phone: (body?.phone || "").trim() || null,
       status: body?.status === "inactive" ? "inactive" : "active",
     };
-    if (slug) payload.slug = slug;
 
     const { data, error } = await service().from("locations").insert(payload).select("*").single();
     if (error) {
-      const msg = /duplicate|unique/i.test(error.message || "") ? "A location with this name or slug already exists." : "Failed to create location.";
-      return NextResponse.json({ error: msg }, { status: 400 });
+      console.error("POST /api/admin/locations error:", error);
+      if (/duplicate|unique/i.test(error.message || "")) {
+        return NextResponse.json({ error: "A location with this name or slug already exists." }, { status: 400 });
+      }
+      return NextResponse.json({ error: `Failed to create location: ${error.message}` }, { status: 400 });
     }
     return NextResponse.json({ success: true, location: data });
   } catch (err: any) {
