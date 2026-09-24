@@ -20,6 +20,8 @@ async function ensureTrialInvoice(
     classTitle?: string | null;
     classDate?: string | null;
     amountRupees?: number | null;
+    priceBranchId?: string | null;
+    branchId?: string | null;
     paymentId: string;
     orderId: string;
   }
@@ -30,12 +32,12 @@ async function ensureTrialInvoice(
     try {
       const r = await service
         .from("trial_members")
-        .select("id, invoice_id, class_name, trial_date")
+        .select("id, invoice_id, class_name, trial_date, location_id")
         .eq("id", args.trialId)
         .maybeSingle();
       if (!r.error) trial = r.data;
     } catch {
-      // invoice_id column may not exist pre-migration — fall through
+      // invoice_id/location_id columns may not exist pre-migration — fall through
     }
     if (trial?.invoice_id) {
       const { data: inv } = await service.from("invoices").select("id").eq("id", trial.invoice_id).maybeSingle();
@@ -59,12 +61,14 @@ async function ensureTrialInvoice(
     let amount =
       args.amountRupees && args.amountRupees > 0 ? Math.round(args.amountRupees) : null;
     if (!amount) {
-      const { data: trialPlan } = await service
+      let planQuery = service
         .from("billing_plan_items")
         .select("price")
         .ilike("name", "%Trial Session%")
-        .eq("is_active", true)
-        .maybeSingle();
+        .eq("is_active", true);
+      const priceBranch = args.priceBranchId || (trial as any)?.location_id || null;
+      if (priceBranch) planQuery = planQuery.eq("location_id", priceBranch);
+      const { data: trialPlan } = await planQuery.maybeSingle();
       amount = trialPlan?.price ? Number(trialPlan.price) : 500;
     }
     const classTitle = args.classTitle || trial?.class_name || "Trial Class";
@@ -91,7 +95,8 @@ async function ensureTrialInvoice(
       return null;
     }
 
-    const base = {
+    const invoiceBranch = (args.branchId || (trial as any)?.location_id || null) as string | null;
+    const base: Record<string, unknown> = {
       invoice_number: invoiceNumber,
       customer_id: customerId,
       customer_name: args.fullName,
@@ -104,6 +109,7 @@ async function ensureTrialInvoice(
       transaction_reference: args.paymentId,
       notes: `Trial booking for ${classTitle} on ${classDate} (Order ${args.orderId})`,
       created_at: new Date().toISOString(),
+      ...(invoiceBranch ? { location_id: invoiceBranch } : {}),
     };
     let invRes = await service.from("invoices").insert({ ...base, payment_method: "Razorpay" }).select("id").single();
     if (invRes.error && /payment_method|check/i.test(invRes.error.message || "")) {
@@ -125,6 +131,7 @@ async function ensureTrialInvoice(
         quantity: 1,
         unit_price: amount,
         total_price: amount,
+        ...(invoiceBranch ? { location_id: invoiceBranch } : {}),
       });
     } catch (itemErr) {
       console.error("Trial invoice item creation failed:", itemErr);
@@ -201,6 +208,7 @@ export async function POST(req: Request) {
           fullName: (full_name as string).trim(),
           email: (email as string).trim().toLowerCase(),
           phone: (phone_number as string).replace(/\D/g, ""),
+          amountRupees: payment.amount ? Number(payment.amount) / 100 : null,
           paymentId: razorpay_payment_id,
           orderId: razorpay_order_id,
         });
@@ -224,6 +232,7 @@ export async function POST(req: Request) {
         phone: cleanPhoneEarly,
         classTitle: (class_name as string) || null,
         classDate: (trial_date as string) || null,
+        amountRupees: payment.amount ? Number(payment.amount) / 100 : null,
         paymentId: razorpay_payment_id,
         orderId: razorpay_order_id,
       });
@@ -233,13 +242,13 @@ export async function POST(req: Request) {
     // Resolve class: existing class_id OR date+time slot (new trial slots like Morning/Evening Reformer)
     let cls: any = null;
     if (class_id) {
-      const { data } = await service.from("classes").select("id, title, instructor, class_date, class_time, max_capacity").eq("id", class_id).maybeSingle();
+      const { data } = await service.from("classes").select("id, title, instructor, class_date, class_time, max_capacity, location_id").eq("id", class_id).maybeSingle();
       if (!data) return NextResponse.json({ error: "Class not found" }, { status: 404 });
       cls = data;
     } else {
       // Slot flow: find existing class for that date+time, else build a virtual one
       const timeWithSecs = (trial_date as string) && (trial_time as string).length === 5 ? `${trial_time}:00` : trial_time;
-      const { data: slotClass } = await service.from("classes").select("id, title, instructor, class_date, class_time, max_capacity").eq("class_date", trial_date).eq("class_time", timeWithSecs).maybeSingle();
+      const { data: slotClass } = await service.from("classes").select("id, title, instructor, class_date, class_time, max_capacity, location_id").eq("class_date", trial_date).eq("class_time", timeWithSecs).maybeSingle();
       if (slotClass) {
         cls = slotClass;
       } else {
@@ -270,6 +279,24 @@ export async function POST(req: Request) {
       staff = data;
     }
 
+    // Branch attribution: the selected CLASS's branch is authoritative.
+    // Slot flow (no class row): validated ?branch slug, else Main branch.
+    // Pre-migration DBs (no locations table) resolve null and omit the column.
+    let trialBranchId: string | null = (cls as any)?.location_id || null;
+    if (!trialBranchId) {
+      try {
+        const slug = typeof body.branch === "string" ? body.branch.trim().toLowerCase() : "";
+        if (slug) {
+          const { data: loc } = await service.from("locations").select("id").eq("slug", slug).eq("status", "active").maybeSingle();
+          if (loc) trialBranchId = loc.id;
+        }
+        if (!trialBranchId) {
+          const { data: main } = await service.from("locations").select("id").eq("slug", "main-studio").maybeSingle();
+          if (main) trialBranchId = main.id;
+        }
+      } catch {}
+    }
+
     const trialInsert: Record<string, unknown> = {
       full_name: full_name.trim(),
       phone_number: cleanPhone,
@@ -292,6 +319,7 @@ export async function POST(req: Request) {
       razorpay_signature: razorpay_signature,
       payment_status: "paid",
       payment_amount: payment.amount,
+      ...(trialBranchId ? { location_id: trialBranchId } : {}),
     };
 
     let trialRes = await service.from("trial_members").insert(trialInsert).select("*").single();
@@ -363,6 +391,9 @@ export async function POST(req: Request) {
       phone: cleanPhone,
       classTitle: cls.title,
       classDate: cls.class_date,
+      amountRupees: payment.amount ? Number(payment.amount) / 100 : null,
+      priceBranchId: trialBranchId,
+      branchId: trialBranchId,
       paymentId: razorpay_payment_id,
       orderId: razorpay_order_id,
     });

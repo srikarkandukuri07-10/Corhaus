@@ -31,6 +31,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
     }
 
+    // Branch isolation: the scanned record must sit in a branch the scanner
+    // may access (verified server-side; QR tokens alone prove nothing).
+    const { getLocationAccess } = await import("@/lib/location");
+    const scanAccess = await getLocationAccess(authCheck.user);
+
     const { bookingId, token } = await req.json();
 
     if (!bookingId || !token) {
@@ -70,6 +75,12 @@ function parseClassTimeAsIst(dateStr: string, timeStr: string): number {
       .maybeSingle();
 
     if (findError || !record) {
+      return NextResponse.json({ error: "Invalid or expired QR code" }, { status: 404 });
+    }
+
+    // Branch isolation: reject records outside the scanner's access set.
+    // (Guessing another branch's bookingId+token pair must never succeed.)
+    if ((record as any).location_id && !scanAccess.locationIds.includes((record as any).location_id)) {
       return NextResponse.json({ error: "Invalid or expired QR code" }, { status: 404 });
     }
 

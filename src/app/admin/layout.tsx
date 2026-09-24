@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/logo";
 import NotificationsButton from "@/components/notifications-button";
+import LocationSwitcher from "@/components/location-switcher";
 import ThemeToggle from "@/components/theme-toggle";
 import { PERMISSIONS_REFRESH_EVENT } from "@/lib/usePermissions";
 
@@ -152,6 +153,7 @@ export default function AdminLayout({
   // Preserve single-initial visual style but make it dynamic from actual name
   const displayInitial = displayName ? displayName.trim().charAt(0).toUpperCase() : (role ? role.charAt(0).toUpperCase() : "A");
   const displayRole = (staffProfile?.role || role || "Staff").trim() || "Staff";
+  const isOwnerUser = role === "Owner" || permissions.includes("*");
 
   // Robust sign out — server clears httpOnly cookies, then hard-navigates
   const handleSignOut = useCallback(async () => {
@@ -559,6 +561,7 @@ export default function AdminLayout({
         </div>
         <div className="flex items-center gap-1 flex-shrink-0 relative">
           <ThemeToggle />
+          <LocationSwitcher compact showManage={isOwnerUser} />
           <NotificationsButton role="admin" />
           <button
             onClick={() => setMobileProfileMenuOpen((v) => !v)}
@@ -624,6 +627,12 @@ export default function AdminLayout({
                 <p className="text-[11px] text-on-rail-2 truncate">{displayRole}</p>
               </div>
             </Link>
+
+            {/* Branch switcher — full-width card for touch */}
+            <div className="px-4 py-3 border-b border-white/10 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] mb-2">Branch</p>
+              <LocationSwitcher showManage={isOwnerUser} />
+            </div>
 
             {/* Nav Items */}
             <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" onClick={() => setMobileOpen(false)}>
@@ -766,6 +775,7 @@ export default function AdminLayout({
               </span>
             )}
             <NotificationsButton role="admin" />
+            <LocationSwitcher showManage={isOwnerUser} />
             <div className="relative">
               <Link
                 href="/admin/profile"

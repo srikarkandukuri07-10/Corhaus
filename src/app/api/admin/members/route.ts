@@ -105,6 +105,12 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Branch isolation: verified active location (never trust client input).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     // 3. Create service role client (bypasses RLS)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -112,13 +118,13 @@ export async function GET(req: Request) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // 4. Fetch all necessary data concurrently
+    // 4. Fetch all necessary data concurrently (scoped to the active branch)
     const [approvedRes, profilesRes, plansRes, customersRes, invoicesRes] = await Promise.all([
-      supabase.from("approved_members").select("*").order("created_at", { ascending: false }),
+      supabase.from("approved_members").select("*").eq("location_id", locationId).order("created_at", { ascending: false }),
       supabase.from("profiles").select("email, avatar_url"),
-      supabase.from("member_purchased_plans").select("*").order("created_at", { ascending: false }),
-      supabase.from("customers").select("id, approved_member_id"),
-      supabase.from("invoices").select("*, invoice_items(*)").order("created_at", { ascending: false }),
+      supabase.from("member_purchased_plans").select("*").eq("location_id", locationId).order("created_at", { ascending: false }),
+      supabase.from("customers").select("id, approved_member_id").eq("location_id", locationId),
+      supabase.from("invoices").select("*, invoice_items(*)").eq("location_id", locationId).order("created_at", { ascending: false }),
     ]);
 
     if (approvedRes.error) {

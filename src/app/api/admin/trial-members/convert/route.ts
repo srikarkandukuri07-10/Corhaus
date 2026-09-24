@@ -47,6 +47,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing trial_id or member_id" }, { status: 400 });
     }
 
+    // Branch isolation + cross-branch validation: trial and member must both
+    // belong to the verified active branch (converting across branches rejected).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+    const [{ data: trialRow }, { data: memberRow }] = await Promise.all([
+      client.from("trial_members").select("id, location_id").eq("id", trial_id).maybeSingle(),
+      client.from("approved_members").select("id, location_id").eq("id", member_id).maybeSingle(),
+    ]);
+    if (!trialRow) {
+      return NextResponse.json({ error: "Trial record not found." }, { status: 404 });
+    }
+    if (!memberRow) {
+      return NextResponse.json({ error: "Member not found." }, { status: 404 });
+    }
+    if (trialRow.location_id !== locationId || memberRow.location_id !== locationId) {
+      return locationDenied("Trial and member must belong to the active location.");
+    }
+
     const { data, error } = await client
       .from("trial_members")
       .update({

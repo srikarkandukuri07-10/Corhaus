@@ -32,10 +32,25 @@ export async function PATCH(
       return NextResponse.json({ error: "Missing discount id" }, { status: 400 });
     }
 
+    // Branch isolation: the row must belong to the verified active branch.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     const body = await req.json();
     const { discount_type, discount_value, reason, status } = body;
 
     const supabase = getServiceRoleClient();
+
+    const { data: existing } = await supabase.from("member_discounts").select("location_id").eq("id", id).maybeSingle();
+    if (!existing) {
+      return NextResponse.json({ error: "Discount not found." }, { status: 404 });
+    }
+    if (existing.location_id !== locationId) {
+      return locationDenied("This discount belongs to another location.");
+    }
+    delete body.location_id;
 
     const updates: Record<string, any> = {};
 
@@ -106,7 +121,21 @@ export async function DELETE(
       return NextResponse.json({ error: "Missing discount id" }, { status: 400 });
     }
 
+    // Branch isolation: only delete rows in the verified active branch.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const delAccess = await getLocationAccess(user);
+    const delLocationId = resolveActiveLocation(delAccess, req);
+    if (!delLocationId) return locationDenied("No accessible location found for this account.");
+
     const supabase = getServiceRoleClient();
+
+    const { data: delTarget } = await supabase.from("member_discounts").select("location_id").eq("id", id).maybeSingle();
+    if (!delTarget) {
+      return NextResponse.json({ error: "Discount not found." }, { status: 404 });
+    }
+    if (delTarget.location_id !== delLocationId) {
+      return locationDenied("This discount belongs to another location.");
+    }
 
     const { error: delErr } = await supabase
       .from("member_discounts")

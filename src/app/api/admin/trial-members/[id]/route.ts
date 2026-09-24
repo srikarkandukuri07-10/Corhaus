@@ -48,6 +48,16 @@ export async function PUT(
       return NextResponse.json({ error: "Missing trial member ID" }, { status: 400 });
     }
 
+    // Branch isolation: the row must belong to the verified active branch;
+    // rows can never be moved across branches via edit.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+    const { data: existing } = await client.from("trial_members").select("location_id").eq("id", id).maybeSingle();
+    if (!existing) return NextResponse.json({ error: "Record not found." }, { status: 404 });
+    if (existing.location_id !== locationId) return locationDenied("This record belongs to another location.");
+
     const body = await req.json();
     const updatePayload: Record<string, any> = {
       updated_at: new Date().toISOString(),
@@ -71,7 +81,18 @@ export async function PUT(
     }
     if (body.trial_date !== undefined) updatePayload.trial_date = body.trial_date;
     if (body.trial_time !== undefined) updatePayload.trial_time = body.trial_time;
-    if (body.class_id !== undefined) updatePayload.class_id = isValidUUID(body.class_id) ? body.class_id : null;
+    if (body.class_id !== undefined) {
+      const nextClassId = isValidUUID(body.class_id) ? body.class_id : null;
+      // Reassigning to another branch's class would move the trial across branches.
+      if (nextClassId) {
+        const { data: clsRow } = await client.from("classes").select("id, location_id").eq("id", nextClassId).maybeSingle();
+        if (!clsRow) return NextResponse.json({ error: "Assigned class not found." }, { status: 404 });
+        if (clsRow.location_id !== locationId) {
+          return locationDenied("This class belongs to another location.");
+        }
+      }
+      updatePayload.class_id = nextClassId;
+    }
     if (body.class_name !== undefined) updatePayload.class_name = body.class_name;
     if (body.instructor_id !== undefined) updatePayload.instructor_id = isValidUUID(body.instructor_id) ? body.instructor_id : null;
     if (body.instructor_name !== undefined) updatePayload.instructor_name = body.instructor_name;
@@ -140,6 +161,15 @@ export async function DELETE(
     }
     const { client } = auth;
     const { id } = await params;
+
+    // Branch isolation: only delete rows in the verified active branch.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const delLocationId = resolveActiveLocation(locAccess, req);
+    if (!delLocationId) return locationDenied("No accessible location found for this account.");
+    const { data: delTarget } = await client.from("trial_members").select("location_id").eq("id", id).maybeSingle();
+    if (!delTarget) return NextResponse.json({ error: "Record not found." }, { status: 404 });
+    if (delTarget.location_id !== delLocationId) return locationDenied("This record belongs to another location.");
 
     const { error } = await client.from("trial_members").delete().eq("id", id);
     if (error) {

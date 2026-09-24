@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useActiveLocation } from "@/lib/useActiveLocation";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import InvoicePrintModal from "@/components/InvoicePrintModal";
@@ -92,6 +93,8 @@ function BillingSubNav() {
 
 export default function InvoicesPage() {
   const supabase = createClient();
+  // Active branch (server-verified): list scoped to it; RLS enforces server-side.
+  const { activeLocationId } = useActiveLocation();
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,10 +114,12 @@ export default function InvoicesPage() {
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
-    const { data, error } = await supabase
+    let query = supabase
       .from("invoices")
       .select("*")
       .order("created_at", { ascending: false });
+    if (activeLocationId) query = query.eq("location_id", activeLocationId);
+    const { data, error } = await query;
 
     if (error) {
       console.error("Invoices load error:", error);
@@ -124,7 +129,7 @@ export default function InvoicesPage() {
       setInvoices(data as Invoice[]);
     }
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, activeLocationId]);
 
   useEffect(() => {
     fetchInvoices();

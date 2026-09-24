@@ -101,6 +101,7 @@ export function SettingsSidebar() {
       title: "TEAM & ACCESS",
       items: [
         { label: "Roles & Permissions", href: "/admin/settings/roles", active: pathname.includes("roles") },
+        { label: "Locations", href: "/admin/settings/locations", active: pathname.includes("locations") },
       ],
     });
   }

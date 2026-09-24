@@ -64,14 +64,16 @@ export async function POST(req: Request) {
     const email = user.email?.toLowerCase();
     let memberId: string | null = null;
     let memberName: string | null = null;
+    let memberBranch: string | null = null;
     if (email) {
-      const { data: am } = await service.from("approved_members").select("id, full_name, membership_status").ilike("email", email).maybeSingle();
+      const { data: am } = await service.from("approved_members").select("id, full_name, membership_status, location_id").ilike("email", email).maybeSingle();
       if (am) {
         if (am.membership_status === "frozen" || am.membership_status === "cancelled") {
           return NextResponse.json({ error: "Your membership is currently not active." }, { status: 403 });
         }
         memberId = am.id;
         memberName = am.full_name;
+        memberBranch = (am as any).location_id || null;
       }
     }
     // Also consider auth uid as memberId for bookings that use profiles.id
@@ -85,7 +87,7 @@ export async function POST(req: Request) {
 
     // Find classes for those bookings
     const classIds = bookings.map(b => b.class_id);
-    const { data: classes } = await service.from("classes").select("id, title, class_date, class_time, instructor").in("id", classIds);
+    const { data: classes } = await service.from("classes").select("id, title, class_date, class_time, instructor, location_id").in("id", classIds);
     if (!classes || classes.length === 0) {
       return NextResponse.json({ error: "You do not have an eligible class booking for attendance at this time." }, { status: 404 });
     }
@@ -96,6 +98,8 @@ export async function POST(req: Request) {
     for (const booking of bookings) {
       const cls = classes.find(c => c.id === booking.class_id);
       if (!cls) continue;
+      // Branch isolation: members may only scan into own-branch classes.
+      if (memberBranch && (cls as any).location_id && (cls as any).location_id !== memberBranch) continue;
       const classStart = parseAsIst(cls.class_date, cls.class_time);
       const classExpiry = classStart + 60 * 60 * 1000; // 1 hour after start
       // Allow scanning right after booking — only block if already expired (1h after start)
@@ -135,6 +139,7 @@ export async function POST(req: Request) {
 
     // Mark attendance
     const token = chosen.booking.id + "_" + Date.now(); // For static QR, we generate a token based on booking
+    const scanBranch = ((chosen.cls as any).location_id || memberBranch || null) as string | null;
     const { error: insertError } = await service.from("attendance").insert({
       booking_id: chosen.booking.id,
       class_id: chosen.cls.id,
@@ -142,6 +147,7 @@ export async function POST(req: Request) {
       attendance_token: token,
       attendance_status: "attended",
       scanned_at: new Date().toISOString(),
+      ...(scanBranch ? { location_id: scanBranch } : {}),
     });
 
     if (insertError) {

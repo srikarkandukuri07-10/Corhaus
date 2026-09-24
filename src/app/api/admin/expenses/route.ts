@@ -40,6 +40,12 @@ export async function GET(req: Request) {
     }
     const { client } = auth;
 
+    // Branch isolation: verified active location (never trust client input).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     const url = new URL(req.url);
     const startDate = url.searchParams.get("startDate");
     const endDate = url.searchParams.get("endDate");
@@ -49,7 +55,7 @@ export async function GET(req: Request) {
     const month = url.searchParams.get("month");
     const year = url.searchParams.get("year");
 
-    let query = client.from("expenses").select("*").order("expense_date", { ascending: false });
+    let query = client.from("expenses").select("*").eq("location_id", locationId).order("expense_date", { ascending: false });
 
     if (startDate) query = query.gte("expense_date", startDate);
     if (endDate) query = query.lte("expense_date", endDate);
@@ -78,8 +84,8 @@ export async function GET(req: Request) {
       return true;
     });
 
-    // Compute Summary Dashboard Metrics from all records
-    const { data: allExpenses } = await client.from("expenses").select("*");
+    // Compute Summary Dashboard Metrics from branch-scoped records
+    const { data: allExpenses } = await client.from("expenses").select("*").eq("location_id", locationId);
     const all = allExpenses || [];
 
     const now = new Date();
@@ -180,6 +186,12 @@ export async function POST(req: Request) {
     }
     const { client, user, profile } = auth;
 
+    // Branch isolation: new expenses land in the verified active branch.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const postAccess = await getLocationAccess(user);
+    const postLocationId = resolveActiveLocation(postAccess, req);
+    if (!postLocationId) return locationDenied("No accessible location found for this account.");
+
     const body = await req.json();
     const {
       title,
@@ -219,6 +231,7 @@ export async function POST(req: Request) {
       title: title.trim(),
       category_name: category_name.trim(),
       category_id: category_id || null,
+      location_id: postLocationId,
       amount: numAmount,
       payment_method: payment_method.trim(),
       paid_to: paid_to ? paid_to.trim() : null,

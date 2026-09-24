@@ -199,25 +199,36 @@ export async function POST(request: Request) {
 
     const packageType = activePlan?.category || "Membership Plans";
 
-    // Insert request
+    // Insert request (branch-tagged from the member's own record)
     let reqRecord = null;
+    const freezeReqBase: Record<string, unknown> = {
+      member_id: member.id,
+      plan_id: activePlan?.id || null,
+      package_type: packageType,
+      requested_start_date: startDate,
+      requested_days: freezeDays,
+      reason: reason || "Member Requested",
+      status: "pending",
+    };
+    if ((member as any).location_id) freezeReqBase.location_id = (member as any).location_id;
     try {
       const { data: rRec } = await serviceClient
         .from("freeze_requests")
-        .insert({
-          member_id: member.id,
-          plan_id: activePlan?.id || null,
-          package_type: packageType,
-          requested_start_date: startDate,
-          requested_days: freezeDays,
-          reason: reason || "Member Requested",
-          status: "pending",
-        })
+        .insert(freezeReqBase)
         .select()
         .maybeSingle();
       reqRecord = rRec;
-    } catch (e) {
-      console.warn("Could not insert freeze_requests record:", e);
+    } catch (e: any) {
+      // Pre-migration DBs lack location_id — retry without it.
+      if (e?.code === "PGRST204" || /location_id/i.test(e?.message || "")) {
+        try {
+          delete freezeReqBase.location_id;
+          const { data: rRec } = await serviceClient.from("freeze_requests").insert(freezeReqBase).select().maybeSingle();
+          reqRecord = rRec;
+        } catch {}
+      } else {
+        console.warn("Could not insert freeze_requests record:", e);
+      }
     }
 
     // Update approved_members freeze_status
@@ -226,7 +237,7 @@ export async function POST(request: Request) {
       .update({ freeze_status: "freeze_requested" })
       .eq("id", member.id);
 
-    // Create notification in admin_notifications
+    // Create notification in admin_notifications (branch-tagged from the member)
     try {
       await serviceClient
         .from("admin_notifications")
@@ -235,6 +246,7 @@ export async function POST(request: Request) {
           email: member.email,
           message: `Freeze request from ${member.full_name} for ${activePlan?.plan_name || packageType} (${freezeDays} days from ${startDate})`,
           is_read: false,
+          ...((member as any).location_id ? { location_id: (member as any).location_id } : {}),
         });
     } catch (e) {}
 

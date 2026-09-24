@@ -62,6 +62,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Freeze request not found" }, { status: 404 });
     }
 
+    // Branch isolation: request, member and plan must all be in the active branch.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, request);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+    const reqBranch = (freezeReq as any).location_id || (freezeReq.approved_members as any)?.location_id || null;
+    if (reqBranch && reqBranch !== locationId) {
+      return locationDenied("This freeze request belongs to another location.");
+    }
+
     const memberId = freezeReq.member_id;
     const memberEmail = freezeReq.approved_members?.email;
 
@@ -102,7 +112,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Freeze duration must be between 2 and 15 days" }, { status: 400 });
     }
 
-    // Check plan & freezes used
+    // Check plan & freezes used (plan must be in the same branch)
     const { data: plans } = await serviceClient
       .from("member_purchased_plans")
       .select("*")
@@ -110,6 +120,10 @@ export async function POST(request: Request) {
       .order("created_at", { ascending: false });
 
     const activePlan = plans?.find((p) => p.id === freezeReq.plan_id) || plans?.[0] || null;
+    if (activePlan && (activePlan as any).location_id && (activePlan as any).location_id !== locationId) {
+      return locationDenied("This plan belongs to another location.");
+    }
+
     const currentUsed = activePlan?.freezes_used ?? freezeReq.approved_members?.freezes_used ?? 0;
 
     if (currentUsed >= 2) {
@@ -137,6 +151,7 @@ export async function POST(request: Request) {
           reason: freezeReq.reason || "Member Requested Freeze",
           status: "active",
           created_by: user.id,
+          location_id: locationId,
         })
         .select()
         .maybeSingle();

@@ -28,7 +28,7 @@ async function getAdminClient() {
   return { client: serviceClient, serviceClient, user, profile };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const { verifyApiPermission } = await import("@/lib/rbac");
     const check = await verifyApiPermission("members.edit");
@@ -40,10 +40,17 @@ export async function GET() {
     }
     const { serviceClient } = auth;
 
+    // Branch isolation: verified active location (never trust client input).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     // Fetch all members
     const { data: members, error: mErr } = await serviceClient
       .from("approved_members")
       .select("*")
+      .eq("location_id", locationId)
       .order("full_name", { ascending: true });
 
     if (mErr) {
@@ -55,15 +62,17 @@ export async function GET() {
     const { data: plans } = await serviceClient
       .from("member_purchased_plans")
       .select("*")
+      .eq("location_id", locationId)
       .order("created_at", { ascending: false });
 
     // Fetch customers mapping
     const { data: customers } = await serviceClient
       .from("customers")
-      .select("id, approved_member_id, email");
+      .select("id, approved_member_id, email")
+      .eq("location_id", locationId);
 
     const custToMemberMap = new Map<string, string>();
-    (customers || []).forEach((c) => {
+    (customers || []).forEach((c: any) => {
       if (c.approved_member_id) custToMemberMap.set(c.id, c.approved_member_id);
     });
 
@@ -71,14 +80,15 @@ export async function GET() {
     const { data: invoicesData } = await serviceClient
       .from("invoices")
       .select("*")
+      .eq("location_id", locationId)
       .order("created_at", { ascending: false });
 
     const invoiceByMemberMap = new Map<string, any>();
-    (invoicesData || []).forEach((inv) => {
+    (invoicesData || []).forEach((inv: any) => {
       let memberId: string | null = null;
       if (inv.customer_id) memberId = custToMemberMap.get(inv.customer_id) || null;
       if (!memberId && inv.customer_email) {
-        const match = (members || []).find((m) => m.email.toLowerCase() === inv.customer_email.toLowerCase());
+        const match = (members || []).find((m: any) => m.email.toLowerCase() === inv.customer_email.toLowerCase());
         if (match) memberId = match.id;
       }
       if (memberId && !invoiceByMemberMap.has(memberId)) {
@@ -105,6 +115,12 @@ export async function GET() {
     if (!fErr && freezeData) {
       freezes = freezeData;
     }
+
+    // Branch isolation for freeze tables (works with or without the
+    // location_id column): keep only rows whose member is in this branch.
+    const branchMemberIds = new Set((members || []).map((m: any) => m.id));
+    requests = requests.filter((r: any) => !r.member_id || branchMemberIds.has(r.member_id));
+    freezes = freezes.filter((f: any) => !f.member_id || branchMemberIds.has(f.member_id));
 
     const todayStr = new Date().toISOString().split("T")[0];
 
@@ -260,7 +276,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Freeze duration must be between 2 and 15 days" }, { status: 400 });
     }
 
-    // Check member & plan
+    // Check member & plan — both must belong to the verified active branch.
+    const { getLocationAccess: getPostAccess, resolveActiveLocation: resolvePostLoc, locationDenied: postDenied } = await import("@/lib/location");
+    const postAccess = await getPostAccess(auth.user);
+    const postLocationId = resolvePostLoc(postAccess, request);
+    if (!postLocationId) return postDenied("No accessible location found for this account.");
+
     const { data: member } = await serviceClient
       .from("approved_members")
       .select("*")
@@ -269,6 +290,9 @@ export async function POST(request: Request) {
 
     if (!member) {
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    }
+    if ((member as any).location_id && (member as any).location_id !== postLocationId) {
+      return postDenied("This member belongs to another location.");
     }
 
     let targetPlan = null;
@@ -289,6 +313,11 @@ export async function POST(request: Request) {
         .order("created_at", { ascending: false });
 
       targetPlan = plans?.[0] || null;
+    }
+
+    // Cross-branch validation: the plan must belong to the same branch.
+    if (targetPlan && (targetPlan as any).location_id && (targetPlan as any).location_id !== postLocationId) {
+      return postDenied("This plan belongs to another location.");
     }
 
     const currentUsed = targetPlan?.freezes_used ?? member.freezes_used ?? 0;
@@ -317,6 +346,7 @@ export async function POST(request: Request) {
           reason: reason || "Admin Direct Freeze",
           status: "active",
           created_by: user.id,
+          location_id: postLocationId,
         })
         .select()
         .maybeSingle();

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo, useTransition, Suspense } fr
 import { useLockBody } from "@/lib/useLockBody";
 import { createClient } from "@/lib/supabase/client";
 import Pagination, { usePagination } from "@/components/pagination";
+import { useActiveLocation } from "@/lib/useActiveLocation";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -234,6 +235,8 @@ function StatusBadge({ status }: { status: string }) {
 function MembersPageContent() {
   const supabase = createClient();
   const searchParams = useSearchParams();
+  // Active branch (server-verified): new members land here; RLS enforces reads.
+  const { activeLocationId } = useActiveLocation();
 
   // Data states
   const [members, setMembers] = useState<ApprovedMember[]>([]);
@@ -341,10 +344,14 @@ function MembersPageContent() {
     }
 
     try {
-      const { data: approvedData } = await supabase
+      // Fallback direct query (RLS already restricts to accessible branches;
+      // the active-branch filter below narrows it to the selected one).
+      let approvedQuery = supabase
         .from("approved_members")
         .select("*")
         .order("created_at", { ascending: false });
+      if (activeLocationId) approvedQuery = approvedQuery.eq("location_id", activeLocationId);
+      const { data: approvedData } = await approvedQuery;
 
       if (!approvedData) {
         setMembers([]);
@@ -361,10 +368,14 @@ function MembersPageContent() {
           .map((p) => [p.email.toLowerCase(), p.avatar_url]) || []
       );
 
-      const { data: plansData } = await supabase
-        .from("member_purchased_plans")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data: plansData } = await (async () => {
+        let q = supabase
+          .from("member_purchased_plans")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (activeLocationId) q = q.eq("location_id", activeLocationId);
+        return q;
+      })();
 
       const plansByMember = new Map<string, PurchasedPlan[]>();
       if (plansData) {
@@ -398,9 +409,9 @@ function MembersPageContent() {
       console.error("fetchMembers fallback error:", err);
       setLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, activeLocationId]);
 
-  // Initial load on mount
+  // Initial load on mount + refetch once the active branch resolves
   useEffect(() => {
     fetchMembers();
   }, [fetchMembers]);
@@ -631,6 +642,7 @@ function MembersPageContent() {
         phone_number: formPhone.replace(/\D/g, ""),
         membership_status: formStatus,
         membership_level: formLevel,
+        ...(activeLocationId ? { location_id: activeLocationId } : {}),
       })
       .select("id")
       .single();
@@ -669,10 +681,14 @@ function MembersPageContent() {
       freeze_status: newStatus === "frozen" ? "frozen" : "active",
     };
 
-    let { error } = await supabase
-      .from("approved_members")
-      .update({ ...updateObj, membership_status: newStatus })
-      .eq("id", member.id);
+    let { error } = await (async () => {
+      let q = supabase
+        .from("approved_members")
+        .update({ ...updateObj, membership_status: newStatus })
+        .eq("id", member.id);
+      if (activeLocationId) q = q.eq("location_id", activeLocationId);
+      return q;
+    })();
 
     if (error && error.message.includes("check constraint")) {
       // Fallback if legacy check constraint blocks setting membership_status to 'frozen'
@@ -1756,14 +1772,24 @@ function MembersPageContent() {
                     try { await supabase.from("freeze_requests").delete().or(`member_id.eq.${memId},member_email.ilike.${memEmail}`); } catch (e) {}
                     try { await supabase.from("bookings").delete().or(`member_id.eq.${memId},member_email.ilike.${memEmail}`); } catch (e) {}
                     try { await supabase.from("attendance").delete().or(`member_id.eq.${memId},email.ilike.${memEmail}`); } catch (e) {}
-                    try { await supabase.from("pt_sessions").delete().eq("member_id", memId); } catch (e) {}
-                    try { await supabase.from("pt_assignments").delete().eq("member_id", memId); } catch (e) {}
+                    try {
+                      let ptSessDel = supabase.from("pt_sessions").delete().eq("member_id", memId);
+                      if (activeLocationId) ptSessDel = ptSessDel.eq("location_id", activeLocationId);
+                      await ptSessDel;
+                    } catch (e) {}
+                    try {
+                      let ptAssignDel = supabase.from("pt_assignments").delete().eq("member_id", memId);
+                      if (activeLocationId) ptAssignDel = ptAssignDel.eq("location_id", activeLocationId);
+                      await ptAssignDel;
+                    } catch (e) {}
                     try { await supabase.from("referral_codes").delete().ilike("member_email", memEmail); } catch (e) {}
                     try { await supabase.from("referral_requests").delete().or(`referrer_email.ilike.${memEmail},referee_email.ilike.${memEmail}`); } catch (e) {}
                     try { await supabase.from("admin_notifications").delete().ilike("email", memEmail); } catch (e) {}
 
-                    // 2. Delete approved_members record
-                    const { error: deleteErr } = await supabase.from("approved_members").delete().eq("id", memId);
+                    // 2. Delete approved_members record (active-branch only)
+                    let memDel = supabase.from("approved_members").delete().eq("id", memId);
+                    if (activeLocationId) memDel = memDel.eq("location_id", activeLocationId);
+                    const { error: deleteErr } = await memDel;
                     if (deleteErr) {
                       await supabase.from("approved_members").delete().ilike("email", memEmail);
                     }

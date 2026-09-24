@@ -41,6 +41,22 @@ export async function POST(req: Request) {
 
     const serviceClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } });
 
+    // Public enquiries carry an optional validated branch slug (?branch= on the
+    // trial page); anything unknown falls back to the Main branch so the row
+    // always lands in exactly one authorized branch.
+    let leadBranchId: string | null = null;
+    try {
+      const slug = typeof (body as any)?.branch === "string" ? (body as any).branch.trim().toLowerCase() : "";
+      if (slug) {
+        const { data: loc } = await serviceClient.from("locations").select("id").eq("slug", slug).eq("status", "active").maybeSingle();
+        if (loc) leadBranchId = loc.id;
+      }
+      if (!leadBranchId) {
+        const { data: main } = await serviceClient.from("locations").select("id").eq("slug", "main-studio").maybeSingle();
+        if (main) leadBranchId = main.id;
+      }
+    } catch {}
+
     const newRecord: Record<string, unknown> = {
       full_name: full_name.trim(),
       phone_number: cleanPhone,
@@ -53,6 +69,7 @@ export async function POST(req: Request) {
       preferred_time: null,
       message: messageText || null,
       notes: messageText || null,
+      ...(leadBranchId ? { location_id: leadBranchId } : {}),
     };
 
     const result = await serviceClient.from("leads").insert(newRecord).select("*").single();

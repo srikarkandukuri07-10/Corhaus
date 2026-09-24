@@ -23,7 +23,7 @@ async function verifyAdmin() {
   return { user };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const authCheck = await verifyAdmin();
     if ("error" in authCheck) {
@@ -45,18 +45,30 @@ export async function GET() {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    // Branch isolation: the bell shows the verified ACTIVE branch plus
+    // unattributed operational notices (NULL branch). Nothing attributable
+    // from another branch is ever listed.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(authCheck.user);
+    const activeLoc = resolveActiveLocation(locAccess, req);
+    if (!activeLoc) return locationDenied("No accessible location found for this account.");
+
     const { data, error } = await serviceClient
       .from("admin_notifications")
-      .select("id, type, email, message, created_at, is_read")
+      .select("id, type, email, message, created_at, is_read, location_id")
       .eq("is_read", false)
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(50);
 
     if (error) {
       return NextResponse.json({ error: "Query failed" }, { status: 500 });
     }
 
-    return NextResponse.json({ notifications: data ?? [] });
+    const scoped = (data ?? []).filter(
+      (n: any) => !n.location_id || n.location_id === activeLoc
+    ).slice(0, 20);
+
+    return NextResponse.json({ notifications: scoped });
   } catch (e: any) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
@@ -84,10 +96,24 @@ export async function PATCH(request: Request) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // Branch isolation: only touch notifications in the verified active
+    // branch (or unattributed ones).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const patchAccess = await getLocationAccess(authCheck.user);
+    const patchLoc = resolveActiveLocation(patchAccess, request);
+    if (!patchLoc) return locationDenied("No accessible location found for this account.");
+    const { data: existing } = await serviceClient.from("admin_notifications").select("id, location_id").in("id", ids);
+    const allowedIds = (existing || [])
+      .filter((n: any) => !n.location_id || n.location_id === patchLoc)
+      .map((n: any) => n.id);
+    if (allowedIds.length === 0) {
+      return locationDenied("None of these notifications belong to the active location.");
+    }
+
     const { error } = await serviceClient
       .from("admin_notifications")
       .update({ is_read: true })
-      .in("id", ids);
+      .in("id", allowedIds);
 
     if (error) {
       return NextResponse.json({ error: "Failed to update notifications" }, { status: 500 });

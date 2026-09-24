@@ -28,7 +28,7 @@ async function getAdminClient() {
   return { client: serviceClient, serviceClient, user, profile };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const { verifyApiPermission } = await import("@/lib/rbac");
     const check = await verifyApiPermission("members.trial");
@@ -40,9 +40,16 @@ export async function GET() {
     }
     const { client } = auth;
 
+    // Branch isolation: verified active location (never trust client input).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     const { data, error } = await client
       .from("trial_members")
       .select("*")
+      .eq("location_id", locationId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -66,6 +73,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
     const { client } = auth;
+
+    // Branch isolation: verified active location (never trust client input).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const trialLocationId = resolveActiveLocation(locAccess, req);
+    if (!trialLocationId) return locationDenied("No accessible location found for this account.");
 
     const body = await req.json();
     const {
@@ -141,6 +154,18 @@ export async function POST(req: Request) {
     const allowedPipeline = ["New", "Qualified", "Follow-up", "Trial Booked", "Trial Attended", "Negotiating", "Converted", "Lost"];
     const finalPipelineStage = allowedPipeline.includes(pipeline_stage) ? pipeline_stage : "New";
 
+    // Cross-branch validation: an assigned class must belong to the active branch.
+    let resolvedTrialLocation = trialLocationId;
+    const finalClassId = isValidUUID(class_id) ? class_id : null;
+    if (finalClassId) {
+      const { data: clsRow } = await client.from("classes").select("id, location_id").eq("id", finalClassId).maybeSingle();
+      if (!clsRow) return NextResponse.json({ error: "Assigned class not found." }, { status: 404 });
+      if (clsRow.location_id !== trialLocationId) {
+        return locationDenied("This class belongs to another location.");
+      }
+      resolvedTrialLocation = clsRow.location_id;
+    }
+
     const newRecord: Record<string, unknown> = {
       full_name: full_name.trim(),
       phone_number: cleanPhone,
@@ -148,8 +173,7 @@ export async function POST(req: Request) {
       trial_date: finalTrialDate,
       trial_time: finalTrialTime,
       class_id: isValidUUID(class_id) ? class_id : null,
-      class_name: (class_name || interest || "General Enquiry").trim(),
-      instructor_id: isValidUUID(instructor_id) ? instructor_id : null,
+      class_name: (class_name || interest || "General Enquiry").trim(),      instructor_id: isValidUUID(instructor_id) ? instructor_id : null,
       instructor_name: (instructor_name || "Staff").trim(),
       notes: notes ? notes.trim() : (message ? message.trim() : null),
       status: "Scheduled",
@@ -162,6 +186,7 @@ export async function POST(req: Request) {
       primary_location: primary_location || "CorhausPilates - Main Branch",
       preferred_time: preferred_time || null,
       message: message ? message.trim() : null,
+      location_id: resolvedTrialLocation,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

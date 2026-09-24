@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const cleanEmail = (user.email || "").trim().toLowerCase();
     const { data: amData, error: amError } = await supabase
       .from("approved_members")
-      .select("id, membership_level, membership_status, freeze_status")
+      .select("id, membership_level, membership_status, freeze_status, location_id")
       .ilike("email", cleanEmail)
       .maybeSingle();
 
@@ -75,6 +75,16 @@ export async function POST(req: Request) {
     // Only block if explicitly set to false (null/undefined means active)
     if (cls.is_active === false) {
       return NextResponse.json({ error: "This class is currently inactive." }, { status: 400 });
+    }
+
+    // Branch isolation: members may only book classes in their own branch.
+    // (Member identity — and therefore branch — always comes from the session.)
+    const memberBranch = (amData as any).location_id || null;
+    if (!memberBranch) {
+      return NextResponse.json({ error: "Your account has no branch assigned. Please contact the studio." }, { status: 403 });
+    }
+    if ((cls as any).location_id && (cls as any).location_id !== memberBranch) {
+      return NextResponse.json({ error: "This class belongs to another branch." }, { status: 403 });
     }
 
     // 5. Check not already booked (check both auth UUID and approved_member UUID for robustness)
@@ -157,6 +167,7 @@ export async function POST(req: Request) {
         member_id: memberId,
         booking_status: bookingStatus,
         purchased_plan_id: plan.id,
+        location_id: memberBranch,
         created_at: new Date().toISOString(),
       })
       .select("id")
@@ -173,6 +184,7 @@ export async function POST(req: Request) {
           class_id: classId,
           member_id: memberId,
           booking_status: bookingStatus,
+          location_id: memberBranch,
           created_at: new Date().toISOString(),
         })
         .select("id")

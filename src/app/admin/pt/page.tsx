@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useTransition } from "react";
+import { useActiveLocation } from "@/lib/useActiveLocation";
 import { useLockBody } from "@/lib/useLockBody";
 import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
@@ -140,6 +141,8 @@ export default function PtSchedulerPage() {
 
   const supabase = createClient();
   const [isPending, startTransition] = useTransition();
+  // Active branch (server-verified): lists filter to it; new PT records inherit it.
+  const { activeLocationId } = useActiveLocation();
 
   // Scroll lock when modal is open
   const isAnyModalOpen = showAssignModal || showBookModal || showDetailModal || showPtMembersModal;
@@ -153,12 +156,21 @@ export default function PtSchedulerPage() {
     try {
       setLoading(true);
 
-      // Fetch approved members and plans
-      const { data: memData } = await supabase.from("approved_members").select("id, full_name, email, phone_number").order("full_name");
-      const { data: plansData } = await supabase.from("member_purchased_plans").select("id, approved_member_id, plan_name, sessions_remaining, sessions_total, status").eq("category", "PT Packages").eq("status", "active");
-      
-      const { data: assignData } = await supabase.from("pt_assignments").select("*");
-      const { data: sessData } = await supabase.from("pt_sessions").select("*").order("session_date").order("session_time");
+      // Fetch approved members and plans (active branch; RLS enforces server-side)
+      const loc = activeLocationId;
+      let memQ = supabase.from("approved_members").select("id, full_name, email, phone_number, location_id").order("full_name");
+      if (loc) memQ = memQ.eq("location_id", loc);
+      const { data: memData } = await memQ;
+      let plansQ = supabase.from("member_purchased_plans").select("id, approved_member_id, plan_name, sessions_remaining, sessions_total, status").eq("category", "PT Packages").eq("status", "active");
+      if (loc) plansQ = plansQ.eq("location_id", loc);
+      const { data: plansData } = await plansQ;
+
+      let assignQ = supabase.from("pt_assignments").select("*");
+      if (loc) assignQ = assignQ.eq("location_id", loc);
+      const { data: assignData } = await assignQ;
+      let sessQ = supabase.from("pt_sessions").select("*").order("session_date").order("session_time");
+      if (loc) sessQ = sessQ.eq("location_id", loc);
+      const { data: sessData } = await sessQ;
       const { data: profilesList } = await supabase.from("profiles").select("id, email");
       const { data: staffData } = await supabase
         .from("staff_members")
@@ -224,7 +236,7 @@ export default function PtSchedulerPage() {
       console.error("loadData error:", err);
       setLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, activeLocationId]);
 
   useEffect(() => {
     loadData();
@@ -299,6 +311,8 @@ export default function PtSchedulerPage() {
       setActionError("Selected member does not have an active PT Package.");
       return;
     }
+    // Branch-tag from the member's own record (members list is branch-filtered).
+    const assignBranch = (member as any)?.location_id || activeLocationId || null;
 
     setActionLoading(true);
     setActionError(null);
@@ -323,7 +337,8 @@ export default function PtSchedulerPage() {
           session_time: assignStartTime,
           duration_minutes: assignDuration,
           status: "scheduled",
-          purchased_plan_id: activePlan.id
+          purchased_plan_id: activePlan.id,
+          ...(assignBranch ? { location_id: assignBranch } : {}),
         });
       }
     });
@@ -342,7 +357,8 @@ export default function PtSchedulerPage() {
       start_date: assignStartDate,
       duration_minutes: assignDuration,
       start_time: assignStartTime,
-      recurring_days: assignDays
+      recurring_days: assignDays,
+      ...(assignBranch ? { location_id: assignBranch } : {}),
     });
 
     if (assignErr) {
@@ -394,6 +410,7 @@ export default function PtSchedulerPage() {
       setActionError("Member does not have an active PT Package or remaining sessions.");
       return;
     }
+    const bookBranch = (member as any)?.location_id || activeLocationId || null;
 
     setActionLoading(true);
     setActionError(null);
@@ -413,7 +430,8 @@ export default function PtSchedulerPage() {
         session_time: bookTime,
         duration_minutes: bookDuration,
         status: "scheduled",
-        purchased_plan_id: activePlan.id
+        purchased_plan_id: activePlan.id,
+        ...(bookBranch ? { location_id: bookBranch } : {}),
       });
     }
 

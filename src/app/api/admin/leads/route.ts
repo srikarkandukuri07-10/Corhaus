@@ -15,14 +15,19 @@ async function getAdminClient() {
   return { client: serviceClient, serviceClient, user };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const { verifyApiPermission } = await import("@/lib/rbac");
     const check = await verifyApiPermission("members.trial");
     if (!check.authorized) return check.response!;
     const auth = await getAdminClient();
     if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
-    const { data, error } = await auth.client.from("leads").select("*").order("created_at", { ascending: false });
+    // Branch isolation: verified active location (never trust client input).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+    const { data, error } = await auth.client.from("leads").select("*").eq("location_id", locationId).order("created_at", { ascending: false });
     if (error) {
       // Graceful handling for DBs where migration hasn't run yet
       if (error.code === "42P01" || error.message?.includes("leads") || error.code === "PGRST204") {
@@ -44,6 +49,12 @@ export async function POST(req: Request) {
     const auth = await getAdminClient();
     if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
+    // Branch isolation: verified active location (never trust client input).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const leadLocationId = resolveActiveLocation(locAccess, req);
+    if (!leadLocationId) return locationDenied("No accessible location found for this account.");
+
     const body = await req.json();
     const { full_name, phone_number, email, source, primary_location, interest, convertibility, pipeline_stage, assigned_to, follow_up_at, notes, preferred_time, message } = body;
 
@@ -64,6 +75,7 @@ export async function POST(req: Request) {
     if (!pipeline_stage || !allowedStage.includes(pipeline_stage)) return NextResponse.json({ error: "Status (New, Converted, Trial booked or Trial attended) is required" }, { status: 400 });
     if (interest && !allowedInterests.includes(interest)) return NextResponse.json({ error: "Invalid Interest" }, { status: 400 });
 
+    // New leads always land in the verified active branch.
     const record: Record<string, unknown> = {
       full_name: full_name.trim(),
       phone_number: cleanPhone,
@@ -78,6 +90,7 @@ export async function POST(req: Request) {
       notes: notes || null,
       preferred_time: preferred_time || null,
       message: message || null,
+      location_id: leadLocationId,
     };
 
     const { data, error } = await auth.client.from("leads").insert(record).select("*").single();

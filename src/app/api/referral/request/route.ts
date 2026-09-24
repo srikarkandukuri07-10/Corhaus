@@ -136,10 +136,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get referrer info from approved_members
+    // Get referrer info from approved_members (branch follows the referrer)
     const { data: referrer, error: referrerError } = await serviceClient
       .from("approved_members")
-      .select("full_name")
+      .select("full_name, location_id")
       .ilike("email", referralCode.member_email)
       .single();
 
@@ -150,7 +150,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Insert into referral_requests
+    // Insert into referral_requests (branch-tagged from the referrer)
     const { error: insertError } = await serviceClient
       .from("referral_requests")
       .insert({
@@ -161,6 +161,7 @@ export async function POST(request: Request) {
         applicant_email: trimmedEmail,
         applicant_phone: trimmedPhone,
         status: "pending",
+        ...((referrer as any).location_id ? { location_id: (referrer as any).location_id } : {}),
       });
 
     if (insertError) {
@@ -170,12 +171,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Insert admin notification
+    // Insert admin notification (branch-tagged from the referrer)
     await serviceClient.from("admin_notifications").insert({
       type: "referral_request",
       email: trimmedEmail,
       message: `New referral request from ${trimmedName} (referred by ${referrer.full_name})`,
       is_read: false,
+      ...((referrer as any).location_id ? { location_id: (referrer as any).location_id } : {}),
     });
 
     return NextResponse.json({ success: true }, { status: 201 });

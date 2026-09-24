@@ -50,7 +50,28 @@ export async function GET(req: Request) {
     let isAuthorized = false;
 
     if (hasSupportView) {
-      isAuthorized = true;
+      // Staff/developer path: the ticket must additionally sit in a branch
+      // the caller may access (developers resolve to all branches).
+      // Attachments are referenced from messages; resolve via the message row.
+      const { getLocationAccess } = await import("@/lib/location");
+      const attAccess = await getLocationAccess(user);
+      const { data: anyMsg } = await serviceClient
+        .from("support_messages")
+        .select("ticket_id")
+        .eq("attachment_url", filePath)
+        .maybeSingle();
+      let ticketBranch: string | null = null;
+      if (anyMsg) {
+        const { data: tRow } = await serviceClient
+          .from("support_tickets")
+          .select("location_id")
+          .eq("id", (anyMsg as any).ticket_id)
+          .maybeSingle();
+        ticketBranch = (tRow as any)?.location_id || null;
+      }
+      if (!ticketBranch || attAccess.locationIds.includes(ticketBranch)) {
+        isAuthorized = true;
+      }
     } else {
       // Find support ticket associated with this attachment path
       const { data: message } = await serviceClient

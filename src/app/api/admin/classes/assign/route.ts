@@ -40,12 +40,36 @@ export async function POST(req: Request) {
     }
     const { serviceClient } = auth;
 
+    // Branch isolation: verified active location (client values never trusted).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     const body = await req.json();
     // memberId here is the approved_members.id sent from the admin UI dropdown
     const { memberId: approvedMemberId, classId } = body;
 
     if (!approvedMemberId || !classId) {
       return NextResponse.json({ error: "memberId and classId are required." }, { status: 400 });
+    }
+
+    // 0. Cross-branch validation: class AND member must belong to the active branch.
+    const [{ data: clsRow }, { data: amBranch }] = await Promise.all([
+      serviceClient.from("classes").select("id, location_id").eq("id", classId).maybeSingle(),
+      serviceClient.from("approved_members").select("id, location_id").eq("id", approvedMemberId).maybeSingle(),
+    ]);
+    if (!clsRow) {
+      return NextResponse.json({ error: "Class not found." }, { status: 404 });
+    }
+    if (clsRow.location_id !== locationId) {
+      return locationDenied("This class belongs to another location.");
+    }
+    if (!amBranch) {
+      return NextResponse.json({ error: "Approved member not found." }, { status: 404 });
+    }
+    if (amBranch.location_id !== locationId) {
+      return locationDenied("This member belongs to another location.");
     }
 
     // 1. Look up the approved_member record (get email for profile lookup)
@@ -120,6 +144,7 @@ export async function POST(req: Request) {
       class_id: classId,
       booking_status: "booked",
       notes: "Corhaus invite u to this session",
+      location_id: locationId,
     };
 
     let { error: insertError } = await serviceClient

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useTransition, Fragment } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useActiveLocation } from "@/lib/useActiveLocation";
 import { formatDate as fmtDate, formatTime as fmtTime } from "@/lib/date-utils";
 
 
@@ -327,6 +328,8 @@ export default function PreviousClasses() {  const [classes, setClasses] = useSt
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const supabase = createClient();
   const [isPending, startTransition] = useTransition();
+  // Active branch (server-verified): direct-query fallback filters to it.
+  const { activeLocationId } = useActiveLocation();
 
   const loadClasses = useCallback(async () => {
     try {
@@ -345,12 +348,15 @@ export default function PreviousClasses() {  const [classes, setClasses] = useSt
           throw new Error("API failed");
         }
       } catch {
-        // Fallback to direct query
-        const { data: directData, error } = await supabase
+        // Fallback to direct query (RLS restricts to accessible branches;
+        // the active-branch filter below narrows it to the selected one)
+        let fallbackQuery = supabase
           .from("classes")
           .select("*")
           .order("class_date", { ascending: true })
           .order("class_time", { ascending: true });
+        if (activeLocationId) fallbackQuery = fallbackQuery.eq("location_id", activeLocationId);
+        const { data: directData, error } = await fallbackQuery;
         if (error) {
           console.error("Failed to load classes:", error);
           setLoading(false);
@@ -374,7 +380,7 @@ export default function PreviousClasses() {  const [classes, setClasses] = useSt
       console.error("loadClasses exception:", err);
       setLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, activeLocationId]);
 
   const loadBookings = useCallback(
     async (classId: string) => {

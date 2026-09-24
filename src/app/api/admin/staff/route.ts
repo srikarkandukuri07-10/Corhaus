@@ -40,6 +40,13 @@ export async function GET(req: Request) {
     }
     const { serviceClient } = auth;
 
+    // Branch isolation: directory scoped to the verified active branch
+    // (primary branch or explicit mapping). Metrics follow the same scope.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search")?.toLowerCase().trim() || "";
     const roleFilter = searchParams.get("role") || "All";
@@ -69,6 +76,18 @@ export async function GET(req: Request) {
 
     let staffList = allStaff || [];
 
+    // Branch scope: primary branch or explicit mapping to the active branch.
+    try {
+      const { data: mapped } = await serviceClient
+        .from("staff_locations")
+        .select("staff_id")
+        .eq("location_id", locationId);
+      const mappedIds = new Set((mapped || []).map((m: any) => m.staff_id));
+      staffList = staffList.filter((s: any) => s.location_id === locationId || mappedIds.has(s.id));
+    } catch {
+      staffList = staffList.filter((s: any) => !s.location_id || s.location_id === locationId);
+    }
+
     // Client-side search filtering
     if (search) {
       staffList = staffList.filter((s: any) =>
@@ -89,11 +108,11 @@ export async function GET(req: Request) {
       return (a.full_name || "").localeCompare(b.full_name || "");
     });
 
-    // Calculate Summary Metrics dynamically from all records
-    const totalStaff = (allStaff || []).length;
-    const totalTrainers = (allStaff || []).filter((s: any) => s.role === "Trainer").length;
-    const activeStaff = (allStaff || []).filter((s: any) => s.employment_status === "Active").length;
-    const monthlyPayroll = (allStaff || [])
+    // Calculate Summary Metrics dynamically from branch-scoped records
+    const totalStaff = staffList.length;
+    const totalTrainers = staffList.filter((s: any) => s.role === "Trainer").length;
+    const activeStaff = staffList.filter((s: any) => s.employment_status === "Active").length;
+    const monthlyPayroll = staffList
       .filter((s: any) => s.employment_status === "Active")
       .reduce((sum: number, s: any) => sum + (Number(s.monthly_salary) || 0), 0);
 
@@ -169,6 +188,27 @@ export async function POST(req: Request) {
     const groupClassCommission = isNaN(Number(body.group_class_commission)) ? 0 : Math.max(0, Number(body.group_class_commission));
     const experienceYears = isNaN(Number(body.experience_years)) ? 0 : Math.max(0, Number(body.experience_years));
 
+    // Branch isolation: primary branch defaults to the verified active branch;
+    // every requested branch must be within the creator's own access set
+    // (prevents privilege escalation into unauthorized branches).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const activeLocationId = resolveActiveLocation(locAccess, req);
+    if (!activeLocationId) return locationDenied("No accessible location found for this account.");
+    const requestedPrimary =
+      typeof body.location_id === "string" && body.location_id.trim() ? body.location_id.trim() : activeLocationId;
+    if (!locAccess.locationIds.includes(requestedPrimary)) {
+      return locationDenied("You cannot assign staff to a location outside your access.");
+    }
+    const extraIds: string[] = Array.isArray(body.location_ids)
+      ? [...new Set(body.location_ids.filter((v: any) => typeof v === "string" && v.trim()))] as string[]
+      : [];
+    for (const extra of extraIds) {
+      if (!locAccess.locationIds.includes(extra)) {
+        return locationDenied("You cannot grant access to a location outside your access.");
+      }
+    }
+
     const payload = {
       full_name: fullName,
       phone_number: phoneNumber,
@@ -176,6 +216,7 @@ export async function POST(req: Request) {
       role: role,
       designation: designation,
       location: (body.location || "Main Studio").trim(),
+      location_id: requestedPrimary,
       employment_status: body.employment_status || "Active",
       joining_date: body.joining_date || new Date().toISOString().split("T")[0],
       specialization: (body.specialization || "").trim() || null,
@@ -210,6 +251,12 @@ export async function POST(req: Request) {
     if (error) {
       return NextResponse.json({ error: "Failed to add staff: " + error.message }, { status: 500 });
     }
+
+    // Seed branch access: primary + any extra mapped branches.
+    try {
+      const mapRows = [requestedPrimary, ...extraIds].map((lid) => ({ staff_id: data.id, location_id: lid }));
+      await serviceClient.from("staff_locations").upsert(mapRows, { onConflict: "staff_id,location_id" });
+    } catch {}
 
     return NextResponse.json({ success: true, staff: data });
   } catch (err: any) {
@@ -278,13 +325,47 @@ export async function PUT(req: Request) {
     const groupClassCommission = isNaN(Number(body.group_class_commission)) ? 0 : Math.max(0, Number(body.group_class_commission));
     const experienceYears = isNaN(Number(body.experience_years)) ? 0 : Math.max(0, Number(body.experience_years));
 
-    const updatePayload = {
+    // Branch isolation: the row must be inside the updater's access set, and
+    // any newly assigned branch must be too (no cross-branch moves by edit).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const updaterActive = resolveActiveLocation(locAccess, req);
+    if (!updaterActive) return locationDenied("No accessible location found for this account.");
+    const { data: existingStaff } = await serviceClient
+      .from("staff_members")
+      .select("location_id")
+      .eq("id", body.id)
+      .maybeSingle();
+    if (!existingStaff) {
+      return NextResponse.json({ error: "Staff member not found." }, { status: 404 });
+    }
+    if (existingStaff.location_id && !locAccess.locationIds.includes(existingStaff.location_id)) {
+      return locationDenied("This staff member belongs to another location.");
+    }
+    const nextPrimary =
+      typeof body.location_id === "string" && body.location_id.trim() ? body.location_id.trim() : existingStaff.location_id;
+    if (nextPrimary && !locAccess.locationIds.includes(nextPrimary)) {
+      return locationDenied("You cannot move staff to a location outside your access.");
+    }
+    const extraIds: string[] | null = Array.isArray(body.location_ids)
+      ? ([...new Set(body.location_ids.filter((v: any) => typeof v === "string" && v.trim()))] as string[])
+      : null;
+    if (extraIds) {
+      for (const extra of extraIds) {
+        if (!locAccess.locationIds.includes(extra)) {
+          return locationDenied("You cannot grant access to a location outside your access.");
+        }
+      }
+    }
+
+    const updatePayload: Record<string, any> = {
       full_name: fullName,
       phone_number: phoneNumber,
       email: email || null,
       role: role,
       designation: designation,
       location: (body.location || "Main Studio").trim(),
+      ...(nextPrimary ? { location_id: nextPrimary } : {}),
       employment_status: body.employment_status || "Active",
       joining_date: body.joining_date || new Date().toISOString().split("T")[0],
       specialization: (body.specialization || "").trim() || null,
@@ -321,6 +402,20 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Failed to update staff: " + error.message }, { status: 500 });
     }
 
+    // Sync explicit branch mappings when provided.
+    if (extraIds && data?.id) {
+      try {
+        const keep = [...new Set([nextPrimary, ...extraIds].filter(Boolean))] as string[];
+        if (keep.length > 0) {
+          await serviceClient.from("staff_locations").delete().eq("staff_id", data.id).not("location_id", "in", `(${keep.join(",")})`);
+          await serviceClient.from("staff_locations").upsert(
+            keep.map((lid) => ({ staff_id: data.id, location_id: lid })),
+            { onConflict: "staff_id,location_id" }
+          );
+        }
+      } catch {}
+    }
+
     return NextResponse.json({ success: true, staff: data });
   } catch (err: any) {
     console.error("PUT /api/admin/staff error:", err);
@@ -345,6 +440,18 @@ export async function PATCH(req: Request) {
 
     if (!id) {
       return NextResponse.json({ error: "Staff ID is required." }, { status: 400 });
+    }
+
+    // Branch isolation: only touch staff inside the updater's access set.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const patchAccess = await getLocationAccess(auth.user);
+    if (!resolveActiveLocation(patchAccess, req)) return locationDenied("No accessible location found for this account.");
+    const { data: patchTarget } = await serviceClient.from("staff_members").select("location_id").eq("id", id).maybeSingle();
+    if (!patchTarget) {
+      return NextResponse.json({ error: "Staff member not found." }, { status: 404 });
+    }
+    if (patchTarget.location_id && !patchAccess.locationIds.includes(patchTarget.location_id)) {
+      return locationDenied("This staff member belongs to another location.");
     }
 
     // Deactivate staff member: mark employment status as Inactive, preserve all records
@@ -388,7 +495,17 @@ export async function DELETE(req: Request) {
     }
 
     // Prevent deleting the last Active Owner
-    const { data: target } = await serviceClient.from("staff_members").select("role, employment_status").eq("id", id).maybeSingle();
+    const { data: target } = await serviceClient.from("staff_members").select("role, employment_status, location_id").eq("id", id).maybeSingle();
+    if (!target) {
+      return NextResponse.json({ error: "Staff member not found." }, { status: 404 });
+    }
+    // Branch isolation: only delete staff inside the updater's access set.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const delAccess = await getLocationAccess(auth.user);
+    if (!resolveActiveLocation(delAccess, req)) return locationDenied("No accessible location found for this account.");
+    if (target.location_id && !delAccess.locationIds.includes(target.location_id)) {
+      return locationDenied("This staff member belongs to another location.");
+    }
     if (target?.role === "Owner" && target?.employment_status === "Active") {
       const { count } = await serviceClient.from("staff_members").select("id", { count: "exact", head: true }).eq("role", "Owner").eq("employment_status", "Active");
       if ((count || 0) <= 1) {

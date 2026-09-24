@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useActiveLocation } from "@/lib/useActiveLocation";
 import { useLockBody } from "@/lib/useLockBody";
 import { createClient } from "@/lib/supabase/client";
 
@@ -68,6 +69,8 @@ function TabIcon({ type }: { type: string }) {
 
 export default function PackagesAndPlansPage() {
   const supabase = createClient();
+  // Active branch (server-verified): new catalogue items are tagged with it.
+  const { activeLocationId } = useActiveLocation();
   const [plans, setPlans] = useState<PlanItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabCategory>("Class Packages");
@@ -165,13 +168,15 @@ export default function PackagesAndPlansPage() {
     setMenuOpenId(null);
   };
 
-  // Toggle Active Status
+  // Toggle Active Status (active-branch rows only)
   const handleToggleActive = async (plan: PlanItem) => {
     try {
-      const { error } = await supabase
+      let toggleQ = supabase
         .from("billing_plan_items")
         .update({ is_active: !plan.is_active })
         .eq("id", plan.id);
+      if (activeLocationId) toggleQ = toggleQ.eq("location_id", activeLocationId);
+      const { error } = await toggleQ;
 
       if (!error) {
         fetchPlans();
@@ -183,11 +188,13 @@ export default function PackagesAndPlansPage() {
     }
   };
 
-  // Delete Plan
+  // Delete Plan (active-branch rows only)
   const handleDeletePlan = async (planId: string) => {
     if (!confirm("Are you sure you want to delete this package/plan?")) return;
     try {
-      const { error } = await supabase.from("billing_plan_items").delete().eq("id", planId);
+      let delQ = supabase.from("billing_plan_items").delete().eq("id", planId);
+      if (activeLocationId) delQ = delQ.eq("location_id", activeLocationId);
+      const { error } = await delQ;
       if (!error) fetchPlans();
     } catch (err) {
       console.error("Failed to delete plan:", err);
@@ -216,11 +223,14 @@ export default function PackagesAndPlansPage() {
       subcategory: formSubcategory || null,
       is_active: formIsActive,
       grants_member_dashboard_access: true,
+      ...(activeLocationId ? { location_id: activeLocationId } : {}),
     };
 
     try {
       if (editingPlan) {
-        await supabase.from("billing_plan_items").update(payload).eq("id", editingPlan.id);
+        let updQ = supabase.from("billing_plan_items").update(payload).eq("id", editingPlan.id);
+        if (activeLocationId) updQ = updQ.eq("location_id", activeLocationId);
+        await updQ;
       } else {
         await supabase.from("billing_plan_items").insert(payload);
       }

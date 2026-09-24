@@ -40,6 +40,12 @@ export async function POST(req: Request) {
     }
     const { serviceClient } = auth;
 
+    // Branch isolation: verified active location (client values never trusted).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     const body = await req.json();
     const sessions = body.sessions;
 
@@ -47,7 +53,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No sessions provided for scheduling." }, { status: 400 });
     }
 
-    let currentInserts: any[] = JSON.parse(JSON.stringify(sessions));
+    // Force every new session into the active branch (ignore client location_id).
+    let currentInserts: any[] = JSON.parse(JSON.stringify(sessions)).map((s: any) => ({
+      ...s,
+      location_id: locationId,
+    }));
     let lastError: any = null;
 
     // Retry loop stripping un-cached schema columns if PostgREST cache has not reloaded
@@ -81,6 +91,7 @@ export async function POST(req: Request) {
           class_time,
           max_capacity: max_capacity || 10,
           is_active: is_active !== false,
+          location_id: locationId,
         }));
       }
     }
@@ -104,12 +115,27 @@ export async function PUT(req: Request) {
     }
     const { serviceClient } = auth;
 
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     const body = await req.json();
     const { id, ...updateFields } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Session ID is required." }, { status: 400 });
     }
+
+    // Verify the session belongs to the active branch; never allow moves.
+    const { data: target } = await serviceClient.from("classes").select("location_id").eq("id", id).maybeSingle();
+    if (!target) {
+      return NextResponse.json({ error: "Session not found." }, { status: 404 });
+    }
+    if (target.location_id !== locationId) {
+      return locationDenied("This session belongs to another location.");
+    }
+    delete (updateFields as any).location_id;
 
     let currentUpdate: any = JSON.parse(JSON.stringify(updateFields));
     let lastError: any = null;
@@ -159,11 +185,25 @@ export async function DELETE(req: Request) {
     }
     const { serviceClient } = auth;
 
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
     if (!id) {
       return NextResponse.json({ error: "Session ID parameter is required." }, { status: 400 });
+    }
+
+    // Verify the session belongs to the active branch before deleting.
+    const { data: target } = await serviceClient.from("classes").select("location_id").eq("id", id).maybeSingle();
+    if (!target) {
+      return NextResponse.json({ error: "Session not found." }, { status: 404 });
+    }
+    if (target.location_id !== locationId) {
+      return locationDenied("This session belongs to another location.");
     }
 
     const { error } = await serviceClient.from("classes").delete().eq("id", id);

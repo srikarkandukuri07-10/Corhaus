@@ -52,13 +52,24 @@ export async function GET(
     // Query member details
     const { data: member, error: memberErr } = await client
       .from("approved_members")
-      .select("id, full_name, email, phone_number")
+      .select("id, full_name, email, phone_number, location_id")
       .eq("id", memberId)
       .single();
 
     if (memberErr || !member) {
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
     }
+
+    // Branch isolation: history is only visible inside the member's own
+    // branch, which must equal the verified active branch (ID guessing rejected).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+    if ((member as any).location_id && (member as any).location_id !== locationId) {
+      return locationDenied("This member belongs to another location.");
+    }
+    const memberBranch = ((member as any).location_id || locationId) as string;
 
     // Resolve dual-identity memberIds and emails: bookings may be stored under
     // approved_members.id OR auth uid (profiles.id) OR member email/phone.
@@ -101,7 +112,7 @@ export async function GET(
       }
     }
 
-    // Query bookings with joined classes for ALL linked member ids
+    // Query bookings with joined classes for ALL linked member ids (branch-scoped)
     const { data: bookingsData, error: bookingsErr } = await client
       .from("bookings")
       .select(`
@@ -119,6 +130,7 @@ export async function GET(
         )
       `)
       .in("member_id", memberIds)
+      .eq("location_id", memberBranch)
       .order("created_at", { ascending: false });
 
     if (bookingsErr) {
@@ -129,7 +141,8 @@ export async function GET(
     const { data: attendanceData } = await client
       .from("attendance")
       .select("booking_id, attendance_status, scanned_at")
-      .in("member_id", memberIds);
+      .in("member_id", memberIds)
+      .eq("location_id", memberBranch);
 
     const attendanceMap = new Map<string, any>();
     (attendanceData || []).forEach((a: any) => {
@@ -143,6 +156,7 @@ export async function GET(
       .from("pt_sessions")
       .select("id, trainer_name, session_date, session_time, status")
       .in("member_id", memberIds)
+      .eq("location_id", memberBranch)
       .order("session_date", { ascending: false })
       .order("session_time", { ascending: false });
 

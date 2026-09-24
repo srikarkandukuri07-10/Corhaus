@@ -28,7 +28,7 @@ async function getAdminClient() {
   return { client: serviceClient, serviceClient, user, profile };
 }
 
-export async function GET(req: Request) {
+  export async function GET(req: Request) {
   try {
     const { verifyApiPermission } = await import("@/lib/rbac");
     const check = await verifyApiPermission("reports.view");
@@ -39,6 +39,12 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
     const { client } = auth;
+
+    // Branch isolation: every number below is computed from the active branch only.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
 
     // Parse query params for date filtering if provided
     const url = new URL(req.url);
@@ -65,25 +71,27 @@ export async function GET(req: Request) {
       trialsRes,
       ticketsRes,
       expensesRes,
+      staffLocRes,
     ] = await Promise.all([
-      client.from("invoices").select("*").order("created_at", { ascending: false }),
-      client.from("invoice_items").select("*"),
-      client.from("approved_members").select("*").order("created_at", { ascending: false }),
-      client.from("member_purchased_plans").select("*").order("created_at", { ascending: false }),
-      client.from("classes").select("*").order("class_date", { ascending: false }),
-      client.from("bookings").select("*").order("created_at", { ascending: false }),
-      client.from("attendance").select("*"),
+      client.from("invoices").select("*").eq("location_id", locationId).order("created_at", { ascending: false }),
+      client.from("invoice_items").select("*").eq("location_id", locationId),
+      client.from("approved_members").select("*").eq("location_id", locationId).order("created_at", { ascending: false }),
+      client.from("member_purchased_plans").select("*").eq("location_id", locationId).order("created_at", { ascending: false }),
+      client.from("classes").select("*").eq("location_id", locationId).order("class_date", { ascending: false }),
+      client.from("bookings").select("*").eq("location_id", locationId).order("created_at", { ascending: false }),
+      client.from("attendance").select("*").eq("location_id", locationId),
       client.from("staff_members").select("*"),
-      client.from("pt_sessions").select("*").order("session_date", { ascending: false }),
-      client.from("billing_plan_items").select("*"),
-      client.from("membership_freezes").select("*"),
-      client.from("freeze_requests").select("*"),
-      client.from("referral_codes").select("*"),
-      client.from("referral_requests").select("*"),
-      client.from("member_discounts").select("*"),
-      client.from("trial_members").select("*").order("created_at", { ascending: false }),
-      client.from("support_tickets").select("*").order("created_at", { ascending: false }),
-      client.from("expenses").select("*").order("expense_date", { ascending: false }),
+      client.from("pt_sessions").select("*").eq("location_id", locationId).order("session_date", { ascending: false }),
+      client.from("billing_plan_items").select("*").eq("location_id", locationId),
+      client.from("membership_freezes").select("*").eq("location_id", locationId),
+      client.from("freeze_requests").select("*").eq("location_id", locationId),
+      client.from("referral_codes").select("*").eq("location_id", locationId),
+      client.from("referral_requests").select("*").eq("location_id", locationId),
+      client.from("member_discounts").select("*").eq("location_id", locationId),
+      client.from("trial_members").select("*").eq("location_id", locationId).order("created_at", { ascending: false }),
+      client.from("support_tickets").select("*").eq("location_id", locationId).order("created_at", { ascending: false }),
+      client.from("expenses").select("*").eq("location_id", locationId).order("expense_date", { ascending: false }),
+      client.from("staff_locations").select("staff_id").eq("location_id", locationId),
     ]);
 
     const invoices = invoicesRes.data || [];
@@ -93,7 +101,13 @@ export async function GET(req: Request) {
     const classes = classesRes.data || [];
     const bookings = bookingsRes.data || [];
     const attendance = attendanceRes.data || [];
-    const staff = staffRes.data || [];
+    // Staff directory scoped to the active branch (primary or mapped).
+    // Sessions/classes are already branch-filtered, so cross-branch trainers
+    // can't leak in through performance calculations either.
+    const branchStaffIds = new Set((staffLocRes.data || []).map((s: any) => s.staff_id));
+    const staff = (staffRes.data || []).filter(
+      (tr: any) => tr.location_id === locationId || branchStaffIds.has(tr.id)
+    );
     const ptSessions = ptSessionsRes.data || [];
     const products = productsRes.data || [];
     const freezes = freezesRes.data || [];

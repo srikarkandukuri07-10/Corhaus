@@ -25,13 +25,14 @@ export async function POST(req: Request) {
     // 3. Look up approved_members ID from user email
     const { data: amData } = await supabase
       .from("approved_members")
-      .select("id")
+      .select("id, location_id")
       .eq("email", user.email || "")
       .maybeSingle();
 
     if (!amData) {
       return NextResponse.json({ error: "No approved member profile found." }, { status: 403 });
     }
+    const memberBranch = (amData as any).location_id || null;
     // bookings.member_id FK references profiles(id) = auth.uid()
     // Use user.id for ownership check; use amData.id for plan queries
     const memberId = user.id;           // auth UUID → used for ownership check
@@ -56,6 +57,11 @@ export async function POST(req: Request) {
         // Verify ownership (by approved_members ID or auth UID)
         if (ptSess.member_id !== approvedMemberId && ptSess.member_id !== memberId) {
           return NextResponse.json({ error: "Unauthorized: You can only cancel your own sessions." }, { status: 403 });
+        }
+
+        // Branch isolation: PT sessions live in the member's own branch.
+        if (memberBranch && (ptSess as any).location_id && (ptSess as any).location_id !== memberBranch) {
+          return NextResponse.json({ error: "This session belongs to another branch." }, { status: 403 });
         }
 
         // Check cancellation window dynamically
@@ -108,6 +114,11 @@ export async function POST(req: Request) {
     // 5. Verify ownership — booking must belong to this member
     if (booking.member_id !== memberId) {
       return NextResponse.json({ error: "Unauthorized: You can only cancel your own bookings." }, { status: 403 });
+    }
+
+    // Branch isolation: bookings live in the member's own branch.
+    if (memberBranch && (booking as any).location_id && (booking as any).location_id !== memberBranch) {
+      return NextResponse.json({ error: "This booking belongs to another branch." }, { status: 403 });
     }
 
     // 6. Check dynamic cancellation policy server-side

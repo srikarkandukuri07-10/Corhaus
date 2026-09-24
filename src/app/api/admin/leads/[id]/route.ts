@@ -24,6 +24,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
     const { id } = await params;
     const body = await req.json();
+
+    // Branch isolation: the row must belong to the verified active branch;
+    // rows can never be moved across branches via edit.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+    const { data: existing } = await auth.client.from("leads").select("location_id").eq("id", id).maybeSingle();
+    if (!existing) return NextResponse.json({ error: "Record not found." }, { status: 404 });
+    if (existing.location_id !== locationId) return locationDenied("This record belongs to another location.");
+    delete body.location_id;
+
     const payload: Record<string, any> = { updated_at: new Date().toISOString() };
     if (body.full_name !== undefined) payload.full_name = body.full_name;
     if (body.phone_number !== undefined) {
@@ -107,6 +119,16 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const auth = await getAdminClient();
     if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
     const { id } = await params;
+
+    // Branch isolation: only delete rows in the verified active branch.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const delLocationId = resolveActiveLocation(locAccess, req);
+    if (!delLocationId) return locationDenied("No accessible location found for this account.");
+    const { data: delTarget } = await auth.client.from("leads").select("location_id").eq("id", id).maybeSingle();
+    if (!delTarget) return NextResponse.json({ error: "Record not found." }, { status: 404 });
+    if (delTarget.location_id !== delLocationId) return locationDenied("This record belongs to another location.");
+
     const { error } = await auth.client.from("leads").delete().eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ success: true });

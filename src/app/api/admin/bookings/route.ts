@@ -72,11 +72,17 @@ export async function GET(req: Request) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // 3. Branch isolation: verified active location (never trust client input).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     // 4. Fetch ALL bookings, classes & attendances using service role (bypasses RLS entirely)
     const [bkRes, clsRes, attRes] = await Promise.all([
-      supabase.from("bookings").select("*").order("created_at", { ascending: false }),
-      supabase.from("classes").select("*"),
-      supabase.from("attendance").select("id, booking_id, class_id, member_id, attendance_status, scanned_at"),
+      supabase.from("bookings").select("*").eq("location_id", locationId).order("created_at", { ascending: false }),
+      supabase.from("classes").select("*").eq("location_id", locationId),
+      supabase.from("attendance").select("id, booking_id, class_id, member_id, attendance_status, scanned_at").eq("location_id", locationId),
     ]);
 
     if (bkRes.error) {
@@ -100,9 +106,9 @@ export async function GET(req: Request) {
       }
     });
 
-    // 5. Fetch members and profiles for enrichment
+    // 5. Fetch members and profiles for enrichment (branch-scoped)
     const [membersRes, profilesRes] = await Promise.all([
-      supabase.from("approved_members").select("id, full_name, email, phone_number").order("full_name"),
+      supabase.from("approved_members").select("id, full_name, email, phone_number").eq("location_id", locationId).order("full_name"),
       supabase.from("profiles").select("id, email, full_name, phone_number"),
     ]);
 

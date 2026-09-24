@@ -290,6 +290,7 @@ export async function updateSession(request: NextRequest) {
       "/admin/reports": "reports.view",
       "/admin/staff": "staff.view",
       "/admin/support": "support.view",
+      "/admin/settings/locations": "staff.manage_rbac",
     };
 
     const matchingRoute = Object.keys(routePermissionMap).find((route) => pathname.startsWith(route));

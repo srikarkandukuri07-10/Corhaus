@@ -48,3 +48,5 @@ next-env.d.ts
 # scratch test scripts
 scratch/
 
+.vercel
+.env*

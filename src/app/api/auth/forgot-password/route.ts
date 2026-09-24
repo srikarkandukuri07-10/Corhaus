@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     // 1. Check if staff email
     const { data: staff } = await serviceClient
       .from("staff_members")
-      .select("id, role, full_name, employment_status")
+      .select("id, role, full_name, employment_status, location_id")
       .ilike("email", normalizedEmail)
       .limit(1)
       .maybeSingle();
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     // 3. Check if approved member
     const { data: member } = await serviceClient
       .from("approved_members")
-      .select("id, full_name, membership_status")
+      .select("id, full_name, membership_status, location_id")
       .ilike("email", normalizedEmail)
       .limit(1)
       .maybeSingle();
@@ -90,11 +90,13 @@ export async function POST(request: Request) {
     // The code is delivered out-of-band (email/SMS provider); never log or
     // persist it in plaintext. Only the SHA-256 hash is stored above.
     const name = staff?.full_name || member?.full_name || "Developer";
+    const notifBranch = (staff as any)?.location_id || (member as any)?.location_id || null;
     await serviceClient.from("admin_notifications").insert({
       type: "forgot_password",
       email: normalizedEmail,
       message: `Password reset request for ${name} (${normalizedEmail}). A verification code was sent to the user.`,
       is_read: false,
+      ...(notifBranch ? { location_id: notifBranch } : {}),
     });
 
     return NextResponse.json(genericResponse);

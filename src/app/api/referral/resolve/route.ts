@@ -61,6 +61,15 @@ export async function POST(request: Request) {
       );
     }
 
+    // Branch isolation: the request must sit in a branch the admin may access.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(user);
+    const locationId = resolveActiveLocation(locAccess, request);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+    if ((referralRequest as any).location_id && (referralRequest as any).location_id !== locationId) {
+      return locationDenied("This referral request belongs to another location.");
+    }
+
     if (referralRequest.status !== "pending") {
       return NextResponse.json(
         { error: "This request has already been processed." },
@@ -147,6 +156,7 @@ export async function POST(request: Request) {
                 reason: "Referral Reward (3 Successful Referrals)",
                 status: "active",
                 created_by: "System (Automatic Referral Engine)",
+                location_id: locationId,
               });
 
               // Notify Member

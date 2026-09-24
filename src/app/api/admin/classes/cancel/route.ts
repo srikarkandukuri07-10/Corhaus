@@ -40,11 +40,26 @@ export async function POST(req: Request) {
     }
     const { serviceClient } = auth;
 
+    // Branch isolation: verified active location (client values never trusted).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     const body = await req.json();
     const { sessionId, action } = body;
 
     if (!sessionId) {
       return NextResponse.json({ error: "Session ID is required." }, { status: 400 });
+    }
+
+    // Verify the session belongs to the active branch before any mutation.
+    const { data: target } = await serviceClient.from("classes").select("location_id").eq("id", sessionId).maybeSingle();
+    if (!target) {
+      return NextResponse.json({ error: "Session not found." }, { status: 404 });
+    }
+    if (target.location_id !== locationId) {
+      return locationDenied("This session belongs to another location.");
     }
 
     if (action === "delete") {

@@ -137,6 +137,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Subject, category, and description are required." }, { status: 400 });
     }
 
+    // Branch-tag the ticket: member's own branch, else staff's verified
+    // active branch (developers are global and leave it NULL).
+    const { isDeveloperEmail: isDevEmail } = await import("@/lib/constants");
+    const creatorIsDev = isDevEmail(user.email);
+    let ticketBranch: string | null = null;
+    try {
+      // RLS self-read: members can read their own approved row.
+      const { data: am } = await supabaseServer
+        .from("approved_members")
+        .select("location_id")
+        .ilike("email", user.email || "")
+        .maybeSingle();
+      ticketBranch = (am as any)?.location_id || null;
+    } catch {}
+    if (!ticketBranch && !creatorIsDev) {
+      const { getLocationAccess, resolveActiveLocation } = await import("@/lib/location");
+      const creatorAccess = await getLocationAccess(user);
+      ticketBranch = resolveActiveLocation(creatorAccess, req);
+    }
+
     const supabase = getServiceSupabase();
     await ensureProfile(supabase, user);
 
@@ -151,6 +171,7 @@ export async function POST(req: Request) {
         created_by: user.id,
         created_at: new Date().toISOString(),
         last_updated_at: new Date().toISOString(),
+        ...(ticketBranch ? { location_id: ticketBranch } : {}),
       })
       .select("*")
       .single();

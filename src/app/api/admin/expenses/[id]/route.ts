@@ -48,7 +48,17 @@ export async function PUT(
       return NextResponse.json({ error: "Missing expense ID" }, { status: 400 });
     }
 
+    // Branch isolation: the row must belong to the verified active branch.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+    const { data: existing } = await client.from("expenses").select("location_id").eq("id", id).maybeSingle();
+    if (!existing) return NextResponse.json({ error: "Expense not found." }, { status: 404 });
+    if (existing.location_id !== locationId) return locationDenied("This expense belongs to another location.");
+
     const body = await req.json();
+    delete body.location_id;
     const {
       title,
       category_name,
@@ -129,6 +139,15 @@ export async function DELETE(
     if (!id) {
       return NextResponse.json({ error: "Missing expense ID" }, { status: 400 });
     }
+
+    // Branch isolation: only delete rows in the verified active branch.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const delAccess = await getLocationAccess(auth.user);
+    const delLocationId = resolveActiveLocation(delAccess, req);
+    if (!delLocationId) return locationDenied("No accessible location found for this account.");
+    const { data: delTarget } = await client.from("expenses").select("location_id").eq("id", id).maybeSingle();
+    if (!delTarget) return NextResponse.json({ error: "Expense not found." }, { status: 404 });
+    if (delTarget.location_id !== delLocationId) return locationDenied("This expense belongs to another location.");
 
     const { error: deleteErr } = await client
       .from("expenses")

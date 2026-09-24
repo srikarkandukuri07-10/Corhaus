@@ -42,12 +42,14 @@ export async function POST(req: Request) {
     );
 
     // Verify class timing (QR expires 1 hour after class start time)
+    let classBranch: string | null = null;
     if (!isPtSession) {
       const { data: clsData } = await supabaseService
         .from("classes")
-        .select("class_date, class_time")
+        .select("class_date, class_time, location_id")
         .eq("id", classId)
         .maybeSingle();
+      if (clsData) classBranch = (clsData as any).location_id || null;
 
       if (clsData?.class_date && clsData?.class_time) {
         const classStart = parseClassTimeAsIst(clsData.class_date, clsData.class_time);
@@ -63,12 +65,19 @@ export async function POST(req: Request) {
 
     if (isPtSession) {
       const token = crypto.randomUUID();
+      // Branch-tag from the PT session row when available.
+      let ptBranch: string | null = null;
+      try {
+        const { data: ptRow } = await supabaseService.from("pt_sessions").select("location_id").eq("id", bookingId).maybeSingle();
+        ptBranch = (ptRow as any)?.location_id || null;
+      } catch {}
       const { error } = await supabaseService.from("attendance").insert({
         booking_id: bookingId,
         class_id: classId,
         member_id: user.id,
         attendance_token: token,
         attendance_status: "pending",
+        ...(ptBranch ? { location_id: ptBranch } : {}),
       });
       if (error) {
         return NextResponse.json({ error: "Failed to generate attendance token" }, { status: 500 });
@@ -79,10 +88,13 @@ export async function POST(req: Request) {
     // Retrieve approved member ID for the current logged-in user
     const { data: amData } = await supabaseServer
       .from("approved_members")
-      .select("id")
+      .select("id, location_id")
       .eq("email", user.email || "")
       .maybeSingle();
     const approvedMemberId = amData?.id;
+
+    // Branch isolation: members may only generate tokens for own-branch classes.
+    const memberBranch = (amData as any)?.location_id || null;
 
     const { data: booking, error: bookingError } = await supabaseServer
       .from("bookings")
@@ -95,6 +107,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized booking access" }, { status: 403 });
     }
 
+    // Branch isolation: the booking's class must be in the member's own branch.
+    if (memberBranch && classBranch && classBranch !== memberBranch) {
+      return NextResponse.json({ error: "This class belongs to another branch." }, { status: 403 });
+    }
+
     const token = crypto.randomUUID();
 
     const { error } = await supabaseService.from("attendance").insert({
@@ -103,6 +120,7 @@ export async function POST(req: Request) {
       member_id: user.id,
       attendance_token: token,
       attendance_status: "pending",
+      ...(classBranch || memberBranch ? { location_id: (classBranch || memberBranch) as string } : {}),
     });
 
     if (error) {

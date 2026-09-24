@@ -47,6 +47,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "memberId is required" }, { status: 400 });
     }
 
+    // Branch isolation: the member must belong to the verified active branch.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(auth.user);
+    const locationId = resolveActiveLocation(locAccess, request);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+    const { data: resumeMember } = await serviceClient.from("approved_members").select("location_id").eq("id", memberId).maybeSingle();
+    if (!resumeMember) {
+      return NextResponse.json({ error: "Member not found." }, { status: 404 });
+    }
+    if ((resumeMember as any).location_id && (resumeMember as any).location_id !== locationId) {
+      return locationDenied("This member belongs to another location.");
+    }
+
     const nowIso = new Date().toISOString();
 
     // 1. Mark active freeze(s) as resumed

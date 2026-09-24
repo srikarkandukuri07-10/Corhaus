@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { usePermissions } from "@/lib/usePermissions";
+import { useActiveLocation } from "@/lib/useActiveLocation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -99,6 +100,9 @@ function fmt(n: number) {
 export default function CreateBillPage() {
   const supabase = createClient();
   const { hasPerm } = usePermissions();
+  // Active branch (server-verified): catalogue/searches filter to it and every
+  // record created here (customers, invoices, items, plans, members) is tagged.
+  const { activeLocationId } = useActiveLocation();
 
   // Customer
   const [customerSearch, setCustomerSearch]   = useState("");
@@ -142,16 +146,18 @@ export default function CreateBillPage() {
   const [completedInvoice, setCompletedInvoice] = useState<string | null>(null);
   const [error,            setError]            = useState<string | null>(null);
 
-  // ── Load plan items ─────────────────────────────────────
+  // ── Load plan items (active branch catalogue) ─────────────────────
   useEffect(() => {
     async function fetchItems() {
       setItemsLoading(true);
       setItemsError(null);
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from("billing_plan_items")
         .select("*")
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
+      if (activeLocationId) query = query.eq("location_id", activeLocationId);
+      const { data, error: fetchError } = await query;
       if (fetchError) {
         console.error("Billing catalogue load error:", fetchError);
         setItemsError("Couldn't load the plan catalogue. Check your connection and reload. If this persists, sign out and sign in again.");
@@ -162,9 +168,9 @@ export default function CreateBillPage() {
       setItemsLoading(false);
     }
     fetchItems();
-  }, [supabase]);
+  }, [supabase, activeLocationId]);
 
-  // ── Customer search (debounced) ─────────────────────────
+  // ── Customer search (debounced, active branch only) ─────────────────
   useEffect(() => {
     if (!customerSearch.trim() || customerSearch.length < 2) {
       setSearchResults([]); setShowDropdown(false); return;
@@ -172,17 +178,19 @@ export default function CreateBillPage() {
     const t = setTimeout(async () => {
       setSearchLoading(true);
       const q = customerSearch.trim();
-      const { data } = await supabase
+      let searchQuery = supabase
         .from("approved_members")
-        .select("id, full_name, email, phone_number, membership_status")
+        .select("id, full_name, email, phone_number, membership_status, location_id")
         .or(`full_name.ilike.%${q}%,email.ilike.%${q}%,phone_number.ilike.%${q}%`)
         .limit(8);
+      if (activeLocationId) searchQuery = searchQuery.eq("location_id", activeLocationId);
+      const { data } = await searchQuery;
       setSearchResults((data as ApprovedMember[]) || []);
       setShowDropdown(true);
       setSearchLoading(false);
     }, 300);
     return () => clearTimeout(t);
-  }, [customerSearch, supabase]);
+  }, [customerSearch, supabase, activeLocationId]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -335,6 +343,13 @@ export default function CreateBillPage() {
     if (isWalkin && !walkinName.trim())       { setError("Please enter the walk-in customer's name."); return; }
     if (cartItems.length === 0)              { setError("Please add at least one item to the bill."); return; }
     if (paymentStatus === "paid" && !amountPaid) { setError("Please enter the amount paid."); return; }
+    // Branch gate: every record below is tagged with the active branch.
+    if (!activeLocationId) { setError("Branch not resolved yet. Please wait a moment and try again."); return; }
+    // Cross-branch guard: the selected member must belong to the active branch.
+    if (selectedMember && (selectedMember as any).location_id && (selectedMember as any).location_id !== activeLocationId) {
+      setError("The selected member belongs to another branch. Switch branch first.");
+      return;
+    }
 
     setCompleting(true);
     try {
@@ -353,6 +368,7 @@ export default function CreateBillPage() {
             full_name: selectedMember.full_name, email: selectedMember.email,
             phone_number: selectedMember.phone_number, is_walkin: false,
             approved_member_id: selectedMember.id,
+            location_id: activeLocationId,
           }).select("id").single();
           if (ce) throw new Error("Failed to create customer: " + ce.message);
           customerId = nc!.id;
@@ -361,6 +377,7 @@ export default function CreateBillPage() {
         const { data: nc, error: ce } = await supabase.from("customers").insert({
           full_name: walkinName.trim(), email: walkinEmail.trim() || null,
           phone_number: walkinPhone.trim() || null, is_walkin: true, approved_member_id: null,
+          location_id: activeLocationId,
         }).select("id").single();
         if (ce) throw new Error("Failed to create customer: " + ce.message);
         customerId = nc!.id;
@@ -398,13 +415,14 @@ export default function CreateBillPage() {
         invNum = rpcNum || `INV-${Date.now()}`;
       }
 
-      // 3. Create invoice
+      // 3. Create invoice (tagged to the active branch)
       const { data: invoice, error: invErr } = await supabase.from("invoices").insert({
         invoice_number: invNum,
         customer_id: customerId,
         customer_name: selectedMember?.full_name || walkinName.trim(),
         customer_email: selectedMember?.email || walkinEmail.trim() || null,
         customer_phone: selectedMember?.phone_number || walkinPhone.trim() || null,
+        location_id: activeLocationId,
         subtotal,
         discount_type:   showDiscount && discountValue ? discountType : null,
         discount_value:  showDiscount && discountValue ? parseFloat(discountValue) : 0,
@@ -419,9 +437,9 @@ export default function CreateBillPage() {
       }).select("id").single();
       const invoiceId = invoice!.id;
 
-      // Mark applied member discount as used
+      // Mark applied member discount as used (active-branch row only)
       if (appliedDiscountId && showDiscount && discountAmount > 0) {
-        await supabase
+        let discQ = supabase
           .from("member_discounts")
           .update({
             status: "used",
@@ -429,9 +447,11 @@ export default function CreateBillPage() {
             invoice_id: invoiceId,
           })
           .eq("id", appliedDiscountId);
+        if (activeLocationId) discQ = discQ.eq("location_id", activeLocationId);
+        await discQ;
       }
 
-      // 4. Invoice items
+      // 4. Invoice items (tagged to the active branch)
       const { error: ie } = await supabase.from("invoice_items").insert(
         cartItems.map((item) => ({
           invoice_id: invoiceId, billing_plan_item_id: item.id,
@@ -439,16 +459,19 @@ export default function CreateBillPage() {
           unit_price: item.unit_price, total_price: item.unit_price * item.quantity,
           grants_member_dashboard_access: item.grants_member_dashboard_access,
           validity_days: item.validity_days || null, sessions: item.sessions || null,
+          location_id: activeLocationId,
         }))
       );
       if (ie) throw new Error("Items save failed: " + ie.message);
 
-      // 5. Decrement product stock
+      // 5. Decrement product stock (active-branch catalogue rows only)
       for (const item of cartItems) {
         if (item.stock_quantity !== null && item.stock_quantity !== undefined) {
-          await supabase.from("billing_plan_items")
+          let stockQ = supabase.from("billing_plan_items")
             .update({ stock_quantity: Math.max(0, item.stock_quantity - item.quantity) })
             .eq("id", item.id);
+          if (activeLocationId) stockQ = stockQ.eq("location_id", activeLocationId);
+          await stockQ;
         }
       }
 
@@ -461,8 +484,11 @@ export default function CreateBillPage() {
           if (!targetMemberId) {
             const email = walkinEmail.trim().toLowerCase();
             if (email) {
-              const { data: ex } = await supabase.from("approved_members").select("id").eq("email", email).maybeSingle();
+              const { data: ex } = await supabase.from("approved_members").select("id, location_id").eq("email", email).maybeSingle();
               if (ex) {
+                if ((ex as any).location_id && (ex as any).location_id !== activeLocationId) {
+                  throw new Error("This email belongs to a member of another branch. Switch branch first.");
+                }
                 targetMemberId = ex.id;
                 await supabase.from("customers").update({ approved_member_id: ex.id, is_walkin: false }).eq("id", customerId);
               } else {
@@ -470,6 +496,7 @@ export default function CreateBillPage() {
                   full_name: walkinName.trim(), email,
                   phone_number: walkinPhone.trim() || "",
                   membership_status: "active", membership_level: "Beginner",
+                  location_id: activeLocationId,
                 }).select("id").single();
                 if (nm) {
                   targetMemberId = nm.id;
@@ -499,6 +526,7 @@ export default function CreateBillPage() {
                     plan_name: si.name, category: si.category,
                     sessions_total: total, sessions_remaining: total,
                     valid_from: today, valid_until: validUntil, status: "active",
+                    location_id: activeLocationId,
                   };
                 })
               );

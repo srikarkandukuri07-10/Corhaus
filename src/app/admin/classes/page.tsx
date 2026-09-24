@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useTransition, useRef } from "react";
+import { useActiveLocation } from "@/lib/useActiveLocation";
 import { useLockBody } from "@/lib/useLockBody";
 import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
@@ -201,6 +202,8 @@ export default function AdminClassesModulePage() {
 
   const supabase = createClient();
   const [isPending, startTransition] = useTransition();
+  // Active branch (server-verified): direct-query fallbacks filter to it.
+  const { activeLocationId } = useActiveLocation();
 
   // Helper: toggle a day in recurringDays
   const toggleRecurringDay = (day: number) => {
@@ -327,10 +330,17 @@ export default function AdminClassesModulePage() {
       } catch {}
 
       if (!apiSucceeded) {
+        const loc = activeLocationId;
         const ctRes = await supabase.from("class_types").select("*").order("name");
-        const sessRes = await supabase.from("classes").select("*").order("class_date", { ascending: true }).order("class_time", { ascending: true });
-        const memRes = await supabase.from("approved_members").select("id, full_name, email, phone_number").order("full_name");
-        const plansRes = await supabase.from("member_purchased_plans").select("id, approved_member_id, plan_name, category, sessions_remaining, sessions_total, valid_until, status");
+        let sessQ = supabase.from("classes").select("*").order("class_date", { ascending: true }).order("class_time", { ascending: true });
+        if (loc) sessQ = sessQ.eq("location_id", loc);
+        const sessRes = await sessQ;
+        let memQ = supabase.from("approved_members").select("id, full_name, email, phone_number").order("full_name");
+        if (loc) memQ = memQ.eq("location_id", loc);
+        const memRes = await memQ;
+        let plansQ = supabase.from("member_purchased_plans").select("id, approved_member_id, plan_name, category, sessions_remaining, sessions_total, valid_until, status");
+        if (loc) plansQ = plansQ.eq("location_id", loc);
+        const plansRes = await plansQ;
         const profRes = await supabase.from("profiles").select("id, email");
         ctData = ctRes.data;
         sessData = sessRes.data;
@@ -377,10 +387,12 @@ export default function AdminClassesModulePage() {
         } else {
           // API failed — fall back to direct query
           console.warn("[Admin] API failed, falling back to direct query. Error:", bkJson?.error);
-          const [bkRes, clsRes] = await Promise.all([
-            supabase.from("bookings").select("*").order("created_at", { ascending: false }),
-            supabase.from("classes").select("*"),
-          ]);
+          const loc2 = activeLocationId;
+          let bkQ = supabase.from("bookings").select("*").order("created_at", { ascending: false });
+          if (loc2) bkQ = bkQ.eq("location_id", loc2);
+          let clsQ = supabase.from("classes").select("*");
+          if (loc2) clsQ = clsQ.eq("location_id", loc2);
+          const [bkRes, clsRes] = await Promise.all([bkQ, clsQ]);
           const clsMap: Record<string, any> = {};
           (clsRes.data || []).forEach((c: any) => { clsMap[c.id] = c; });
           enrichedBookings = (bkRes.data || []).map((b: any) => enrichMember({ ...b, classes: clsMap[b.class_id] || null }));
@@ -389,10 +401,12 @@ export default function AdminClassesModulePage() {
       } catch (bkErr) {
         // Network error — fall back to direct query
         console.error("[Admin] API fetch failed, falling back:", bkErr);
-        const [bkRes, clsRes] = await Promise.all([
-          supabase.from("bookings").select("*").order("created_at", { ascending: false }),
-          supabase.from("classes").select("*"),
-        ]);
+        const loc3 = activeLocationId;
+        let bkQ2 = supabase.from("bookings").select("*").order("created_at", { ascending: false });
+        if (loc3) bkQ2 = bkQ2.eq("location_id", loc3);
+        let clsQ2 = supabase.from("classes").select("*");
+        if (loc3) clsQ2 = clsQ2.eq("location_id", loc3);
+        const [bkRes, clsRes] = await Promise.all([bkQ2, clsQ2]);
         const clsMap: Record<string, any> = {};
         (clsRes.data || []).forEach((c: any) => { clsMap[c.id] = c; });
         enrichedBookings = (bkRes.data || []).map((b: any) => enrichMember({ ...b, classes: clsMap[b.class_id] || null }));
@@ -417,7 +431,7 @@ export default function AdminClassesModulePage() {
       console.error("Error fetching studio classes data:", err);
       if (isInitialLoadRef.current) setLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, activeLocationId]);
 
   useEffect(() => {
     fetchAllData();

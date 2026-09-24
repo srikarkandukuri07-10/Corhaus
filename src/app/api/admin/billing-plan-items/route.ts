@@ -26,11 +26,17 @@ export async function GET(req: Request) {
   const user = await getUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Branch isolation: catalogue scoped to the caller's verified branch.
+  const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+  const locAccess = await getLocationAccess(user);
+  const locationId = resolveActiveLocation(locAccess, req);
+  if (!locationId) return locationDenied("No accessible location found for this account.");
+
   const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } });
 
   const [plansRes, purchasedRes] = await Promise.all([
-    service.from("billing_plan_items").select("*").order("sort_order", { ascending: true }),
-    service.from("member_purchased_plans").select("plan_name, status"),
+    service.from("billing_plan_items").select("*").eq("location_id", locationId).order("sort_order", { ascending: true }),
+    service.from("member_purchased_plans").select("plan_name, status").eq("location_id", locationId),
   ]);
 
   if (plansRes.error) return NextResponse.json({ error: plansRes.error.message }, { status: 500 });

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const supabaseServer = await createServerClient();
     const { data: { user } } = await supabaseServer.auth.getUser();
@@ -12,6 +12,12 @@ export async function GET() {
     const perms = await getUserRolePermissions(user);
     if (perms.role === "Member" || perms.role === "Guest") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+    // Branch isolation: every statistic computed from the active branch only.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { autoRefreshToken: false, persistSession: false } });
 
     const todayStr = new Date().toISOString().split("T")[0];
@@ -19,11 +25,11 @@ export async function GET() {
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
 
     const [classesRes, membersRes, invoicesRes, attendanceRes, bookingsRes] = await Promise.all([
-      service.from("classes").select("id, class_date").gte("class_date", todayStr),
-      service.from("approved_members").select("id", { count: "exact", head: false }),
-      service.from("invoices").select("grand_total, amount_paid, payment_status, created_at").gte("created_at", firstOfMonth),
-      service.from("attendance").select("id, attendance_status, scanned_at, created_at").eq("attendance_status", "attended"),
-      service.from("bookings").select("class_id, booking_status").neq("booking_status", "cancelled"),
+      service.from("classes").select("id, class_date").eq("location_id", locationId).gte("class_date", todayStr),
+      service.from("approved_members").select("id", { count: "exact", head: false }).eq("location_id", locationId),
+      service.from("invoices").select("grand_total, amount_paid, payment_status, created_at").eq("location_id", locationId).gte("created_at", firstOfMonth),
+      service.from("attendance").select("id, attendance_status, scanned_at, created_at").eq("location_id", locationId).eq("attendance_status", "attended"),
+      service.from("bookings").select("class_id, booking_status").eq("location_id", locationId).neq("booking_status", "cancelled"),
     ]);
 
     const todaysClasses = (classesRes.data || []).filter((c: any) => c.class_date === todayStr).length;

@@ -29,11 +29,26 @@ export async function GET(req: Request) {
 
     const supabase = getServiceRoleClient();
 
+    // Branch isolation: verified active location (never trust client input).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     if (memberId) {
+      // The member must belong to the active branch (ID guessing rejected).
+      const { data: mRow } = await supabase.from("approved_members").select("location_id").eq("id", memberId).maybeSingle();
+      if (!mRow) {
+        return NextResponse.json({ error: "Member not found." }, { status: 404 });
+      }
+      if (mRow.location_id !== locationId) {
+        return locationDenied("This member belongs to another location.");
+      }
       const { data: activeDiscount, error } = await supabase
         .from("member_discounts")
         .select("*")
         .eq("approved_member_id", memberId)
+        .eq("location_id", locationId)
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(1)
@@ -46,11 +61,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ activeDiscount });
     }
 
-    // Fetch approved members, purchased plans, and member discounts in parallel
+    // Fetch approved members, purchased plans, and member discounts in parallel (branch-scoped)
     const [membersRes, plansRes, discountsRes] = await Promise.all([
-      supabase.from("approved_members").select("*").order("full_name", { ascending: true }),
-      supabase.from("member_purchased_plans").select("*").eq("status", "active"),
-      supabase.from("member_discounts").select("*").order("created_at", { ascending: false }),
+      supabase.from("approved_members").select("*").eq("location_id", locationId).order("full_name", { ascending: true }),
+      supabase.from("member_purchased_plans").select("*").eq("status", "active").eq("location_id", locationId),
+      supabase.from("member_discounts").select("*").eq("location_id", locationId).order("created_at", { ascending: false }),
     ]);
 
     if (membersRes.error) {
@@ -126,15 +141,24 @@ export async function POST(req: Request) {
 
     const supabase = getServiceRoleClient();
 
-    // Verify member exists
+    // Branch isolation: the member must belong to the verified active branch.
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const postAccess = await getLocationAccess(user);
+    const postLocationId = resolveActiveLocation(postAccess, req);
+    if (!postLocationId) return locationDenied("No accessible location found for this account.");
+
+    // Verify member exists IN THIS BRANCH
     const { data: member } = await supabase
       .from("approved_members")
-      .select("id, full_name, email")
+      .select("id, full_name, email, location_id")
       .eq("id", approved_member_id)
       .maybeSingle();
 
     if (!member) {
       return NextResponse.json({ error: "Approved member not found" }, { status: 404 });
+    }
+    if (member.location_id !== postLocationId) {
+      return locationDenied("This member belongs to another location.");
     }
 
     // Deactivate any existing active discount for this member if creating a new active one
@@ -155,6 +179,7 @@ export async function POST(req: Request) {
         reason,
         status: "active",
         created_by: user.email || "Admin",
+        location_id: postLocationId,
       })
       .select("*")
       .single();

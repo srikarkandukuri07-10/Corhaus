@@ -72,7 +72,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: "Ticket not found." }, { status: 404 });
     }
 
-    // Permission check
+    // Permission check (non-developers may only open their own tickets,
+    // which are inherently in their own branch; developers are global).
     if (!isDeveloper && ticket.created_by !== user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

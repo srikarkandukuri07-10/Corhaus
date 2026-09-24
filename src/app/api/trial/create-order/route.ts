@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     let cls: any = null;
     let classTitle = class_name || "Trial Class";
     if (class_id) {
-      const { data, error: clsErr } = await service.from("classes").select("id, title, class_date, class_time, max_capacity, is_active, status").eq("id", class_id).maybeSingle();
+      const { data, error: clsErr } = await service.from("classes").select("id, title, class_date, class_time, max_capacity, is_active, status, location_id").eq("id", class_id).maybeSingle();
       if (clsErr || !data) return NextResponse.json({ error: "Selected class not found" }, { status: 404 });
       if (data.is_active === false || data.status === "cancelled") return NextResponse.json({ error: "Selected class is not available" }, { status: 400 });
       cls = data;
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     } else if (trial_date && trial_time) {
       // New time-slot flow: no class_id, use the selected date/time directly
       // Check if a class already exists for that slot, if so use it for capacity check
-      const { data: existingClass } = await service.from("classes").select("id, max_capacity").eq("class_date", trial_date).eq("class_time", trial_time + ":00").maybeSingle();
+      const { data: existingClass } = await service.from("classes").select("id, max_capacity, location_id").eq("class_date", trial_date).eq("class_time", trial_time + ":00").maybeSingle();
       if (existingClass) {
         const { data: bookings } = await service.from("bookings").select("id").eq("class_id", existingClass.id).in("booking_status", ["booked", "confirmed", "checked_in", "completed"]);
         if (bookings && bookings.length >= (existingClass.max_capacity ?? 10)) return NextResponse.json({ error: "Class is full" }, { status: 400 });
@@ -77,9 +77,25 @@ export async function POST(req: Request) {
       if (existing) return NextResponse.json({ error: "You have already booked this trial" }, { status: 409 });
     }
 
-    // Determine trial fee server-side - look up Trial Session plan or use 500 INR
+    // Determine trial fee server-side - look up Trial Session plan or use 500 INR.
+    // Branch: the selected class's branch when class_id is given, else an
+    // optional validated ?branch slug, else the Main branch.
+    let feeBranchId: string | null = (cls as any)?.location_id || null;
+    if (!feeBranchId) {
+      const slug = typeof body.branch === "string" ? body.branch.trim().toLowerCase() : "";
+      if (slug) {
+        const { data: loc } = await service.from("locations").select("id").eq("slug", slug).eq("status", "active").maybeSingle();
+        if (loc) feeBranchId = loc.id;
+      }
+    }
+    if (!feeBranchId) {
+      const { data: main } = await service.from("locations").select("id").eq("slug", "main-studio").maybeSingle();
+      if (main) feeBranchId = main.id;
+    }
     let amountPaise = 50000; // default 500 INR
-    const { data: trialPlan } = await service.from("billing_plan_items").select("price").ilike("name", "%Trial Session%").eq("is_active", true).maybeSingle();
+    let trialPlanQuery = service.from("billing_plan_items").select("price").ilike("name", "%Trial Session%").eq("is_active", true);
+    if (feeBranchId) trialPlanQuery = trialPlanQuery.eq("location_id", feeBranchId);
+    const { data: trialPlan } = await trialPlanQuery.maybeSingle();
     if (trialPlan && trialPlan.price) {
       amountPaise = Math.round(Number(trialPlan.price) * 100);
     }
@@ -95,7 +111,14 @@ export async function POST(req: Request) {
       amount: amountPaise,
       currency: "INR",
       receipt,
-      notes: { full_name: full_name.trim(), email: emailLower, phone: cleanPhone, class_id, class_title: cls.title },
+      notes: {
+        full_name: full_name.trim(),
+        email: emailLower,
+        phone: cleanPhone,
+        class_id: class_id || "",
+        class_title: cls.title,
+        ...(feeBranchId ? { branch_id: feeBranchId } : {}),
+      },
     });
 
     // Store pending trial with order id for idempotency (optional - we can store in a separate table or just rely on verification)

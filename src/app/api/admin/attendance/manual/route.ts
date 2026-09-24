@@ -71,6 +71,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required bookingId or classId" }, { status: 400 });
     }
 
+    // 3b. Branch isolation: verified active location (never trust client input).
+    const { getLocationAccess, resolveActiveLocation, locationDenied } = await import("@/lib/location");
+    const locAccess = await getLocationAccess(user);
+    const locationId = resolveActiveLocation(locAccess, req);
+    if (!locationId) return locationDenied("No accessible location found for this account.");
+
     // 4. Create service role client for authoritative database operations
     const service = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -93,19 +99,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Booking does not belong to the selected class session" }, { status: 400 });
     }
 
+    if ((booking as any).location_id && (booking as any).location_id !== locationId) {
+      return locationDenied("This booking belongs to another location.");
+    }
+
     if (booking.booking_status === "cancelled") {
       return NextResponse.json({ error: "Cancelled bookings cannot be marked as attended" }, { status: 400 });
     }
 
-    // 6. Fetch class session and verify timing
+    // 6. Fetch class session and verify timing + branch
     const { data: cls, error: clsErr } = await service
       .from("classes")
-      .select("id, title, class_date, class_time")
+      .select("id, title, class_date, class_time, location_id")
       .eq("id", classId)
       .maybeSingle();
 
     if (clsErr || !cls) {
       return NextResponse.json({ error: "Class session not found" }, { status: 404 });
+    }
+
+    if (cls.location_id !== locationId) {
+      return locationDenied("This class belongs to another location.");
     }
 
     // Strictly verify class start time in IST
@@ -191,6 +205,7 @@ export async function POST(req: Request) {
       attendance_token: attendanceToken,
       attendance_status: "attended",
       scanned_at: nowIso,
+      location_id: locationId,
     });
 
     if (insertError && insertError.code !== "23505") {
