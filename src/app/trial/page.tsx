@@ -42,6 +42,9 @@ function EnquiryForm() {
           email: email.trim(),
           message: message.trim() || null,
           source: sourceParam || null,
+          // Optional branch slug (?branch=) — server validates against active
+          // locations; unknown values safely fall back to the Main branch.
+          branch: (searchParams.get("branch") || "").toLowerCase() || null,
         }),
       });
       const data = await res.json();

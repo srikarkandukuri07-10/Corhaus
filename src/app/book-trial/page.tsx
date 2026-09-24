@@ -39,6 +39,15 @@ export default function BookTrialPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [rzpReady, setRzpReady] = useState(false);
+  // Optional branch slug (?branch=) for branch-specific trial links.
+  // Server validates it against active locations; unknown values fall back.
+  const [branchSlug, setBranchSlug] = useState("");
+  useEffect(() => {
+    try {
+      const s = new URLSearchParams(window.location.search).get("branch") || "";
+      if (s.trim()) setBranchSlug(s.trim().toLowerCase());
+    } catch {}
+  }, []);
 
   function loadRazorpayScript(): Promise<boolean> {
     return new Promise((resolve) => {
@@ -83,7 +92,8 @@ export default function BookTrialPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/trial/classes", { cache: "no-store" });
+        const qs = branchSlug ? `?branch=${encodeURIComponent(branchSlug)}` : "";
+        const res = await fetch(`/api/trial/classes${qs}`, { cache: "no-store" });
         const json = await res.json();
         if (res.ok) setClasses(json.classes || []);
         else setError(json.error || "Failed to load classes");
@@ -94,7 +104,7 @@ export default function BookTrialPage() {
       }
     }
     load();
-  }, []);
+  }, [branchSlug]);
 
   const getSlotAvailability = (date: string, time: string) => {
     const cls = classes.find(c => c.class_date === date && c.class_time?.startsWith(time));
@@ -134,6 +144,7 @@ export default function BookTrialPage() {
           trial_date: selectedDate,
           trial_time: selectedSlot,
           class_name: selectedSlot.startsWith("16") || selectedSlot.startsWith("17") || selectedSlot.startsWith("18") || selectedSlot.startsWith("19") ? "Evening Reformer" : "Morning Reformer",
+          branch: branchSlug || undefined,
         }),
       });
       const orderData = await orderRes.json();
@@ -167,6 +178,7 @@ export default function BookTrialPage() {
                 class_id: classId,
                 trial_date: selectedDate,
                 trial_time: selectedSlot,
+                branch: branchSlug || undefined,
               }),
             });
             const verifyData = await verifyRes.json();

@@ -201,16 +201,18 @@ END $$;
 
 -- Enforce NOT NULL now that backfill is complete (guarded per table)
 DO $$
-DECLARE t TEXT;
-BEGIN
-  FOREACH t IN ARRAY ARRAY[
+DECLARE
+  t TEXT;
+  tables TEXT[] := ARRAY[
     'approved_members','staff_members','classes','bookings','attendance',
     'member_purchased_plans','invoices','invoice_items','customers',
     'billing_plan_items','member_discounts','expenses',
     'trial_members','leads','pt_assignments','pt_sessions',
     'referral_codes','referral_requests','support_tickets',
     'waitlists','booking_history','membership_freezes','freeze_requests'
-  ] LOOP
+  ];
+BEGIN
+  FOREACH t IN ARRAY tables LOOP
     IF to_regclass(('public.' || t)::text) IS NOT NULL THEN
       EXECUTE format('ALTER TABLE public.%I ALTER COLUMN location_id SET NOT NULL', t);
     END IF;
@@ -596,6 +598,24 @@ CREATE POLICY "Staff can view staff directory" ON public.staff_members
       OR lower(email) = lower(auth.jwt() ->> 'email')
     )
   );
+
+-- admin_notifications: attributable notices are branch-scoped, unattributed
+-- operational notices (NULL branch) stay visible to authorized staff.
+SELECT public._drop_all_policies('admin_notifications');
+CREATE POLICY "Admins can read notifications" ON public.admin_notifications
+  FOR SELECT TO authenticated USING (
+    public.is_owner_or_manager()
+    AND (location_id IS NULL OR location_id IN (SELECT public.user_location_ids()))
+  );
+CREATE POLICY "Admins can update notifications" ON public.admin_notifications
+  FOR UPDATE TO authenticated
+  USING (
+    public.is_owner_or_manager()
+    AND (location_id IS NULL OR location_id IN (SELECT public.user_location_ids()))
+  )
+  WITH CHECK (public.is_owner_or_manager());
+CREATE POLICY "Admins can insert notifications" ON public.admin_notifications
+  FOR INSERT TO authenticated WITH CHECK (public.is_owner_or_manager());
 
 -- staff_roles / roles / permissions / role_permissions: global RBAC infra (unchanged)
 

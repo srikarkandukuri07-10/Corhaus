@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Modal from "@/components/modal";
+import { useActiveLocation } from "@/lib/useActiveLocation";
 
 interface StaffMember {
   id: string;
@@ -35,6 +36,8 @@ interface StaffMember {
   upi_id: string | null;
   created_at: string;
   updated_at: string;
+  location_id?: string | null;
+  branch_ids?: string[];
 }
 
 interface SummaryMetrics {
@@ -49,6 +52,8 @@ const LOCATIONS = ["Main Studio", "Studio Room A", "Studio Room B", "All Locatio
 
 export default function StaffPage() {
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  // Authorized branches (server-verified): primary + extra branch assignment.
+  const { locations: branchOptions, activeLocationId } = useActiveLocation();
   const [summary, setSummary] = useState<SummaryMetrics>({
     totalStaff: 0,
     totalTrainers: 0,
@@ -86,6 +91,8 @@ export default function StaffPage() {
     role: "Trainer",
     designation: "Pilates Instructor",
     location: "Main Studio",
+    location_id: "" as string,
+    location_ids: [] as string[],
     joining_date: new Date().toISOString().split("T")[0],
     employment_status: "Active" as "Active" | "Inactive",
     // Trainer Details
@@ -158,6 +165,8 @@ export default function StaffPage() {
       role: "Trainer",
       designation: "Pilates Instructor",
       location: "Main Studio",
+      location_id: "",
+      location_ids: [] as string[],
       joining_date: new Date().toISOString().split("T")[0],
       employment_status: "Active",
       specialization: "Reformer Pilates",
@@ -196,6 +205,10 @@ export default function StaffPage() {
       role: staff.role || "Trainer",
       designation: staff.designation || "",
       location: staff.location || "Main Studio",
+      location_id: staff.location_id || "",
+      location_ids: Array.isArray(staff.branch_ids)
+        ? staff.branch_ids.filter((b) => b && b !== staff.location_id)
+        : [],
       joining_date: staff.joining_date || new Date().toISOString().split("T")[0],
       employment_status: staff.employment_status || "Active",
       specialization: staff.specialization || "",
@@ -841,6 +854,49 @@ export default function StaffPage() {
                           className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
                         />
                       </div>
+
+                      <div>
+                        <label className="block font-bold text-fg text-[11px] mb-1">Primary Branch</label>
+                        <select
+                          value={(formData as any).location_id || ""}
+                          onChange={(e) => setFormData({ ...formData, location_id: e.target.value } as any)}
+                          className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 font-bold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
+                        >
+                          <option value="">Current branch ({branchOptions.find((b) => b.id === activeLocationId)?.name || "…"})</option>
+                          {branchOptions.map((b) => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {branchOptions.length > 1 && (
+                        <div className="col-span-2">
+                          <label className="block font-bold text-fg text-[11px] mb-1">Also works at (extra branches)</label>
+                          <div className="flex flex-wrap gap-2">
+                            {branchOptions
+                              .filter((b) => b.id !== (formData as any).location_id)
+                              .map((b) => {
+                                const checked = ((formData as any).location_ids || []).includes(b.id);
+                                return (
+                                  <label key={b.id} className="flex items-center gap-1.5 text-xs font-semibold text-fg-2 border border-line rounded-xl px-2.5 py-1.5 cursor-pointer hover:bg-hover">
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={(e) => {
+                                        const cur = ((formData as any).location_ids || []) as string[];
+                                        setFormData({
+                                          ...formData,
+                                          location_ids: e.target.checked ? [...cur, b.id] : cur.filter((x) => x !== b.id),
+                                        } as any);
+                                      }}
+                                    />
+                                    {b.name}
+                                  </label>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
 
                       <div>
                         <label className="block font-bold text-fg text-[11px] mb-1">Date of Joining</label>

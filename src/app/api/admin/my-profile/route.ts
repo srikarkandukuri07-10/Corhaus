@@ -199,11 +199,23 @@ export async function PATCH(req: Request) {
 
     // Owner fallback: create staff_members row on first save
     if (isOwnerFallback) {
-      const insertPayload = {
+      // Branch-tag the new Owner row (post-054 location_id is NOT NULL).
+      let ownerBranch: string | null = null;
+      try {
+        const { getLocationAccess, resolveActiveLocation } = await import("@/lib/location");
+        const ownerAccess = await getLocationAccess(auth.user);
+        ownerBranch = resolveActiveLocation(ownerAccess, req);
+        if (!ownerBranch) {
+          const { data: main } = await serviceClient.from("locations").select("id").eq("slug", "main-studio").maybeSingle();
+          ownerBranch = (main as any)?.id || null;
+        }
+      } catch {}
+      const insertPayload: Record<string, unknown> = {
         ...updatePayload,
         role: "Owner",
         employment_status: "Active",
         joining_date: new Date().toISOString().split("T")[0],
+        ...(ownerBranch ? { location_id: ownerBranch } : {}),
       };
       const { data, error } = await serviceClient.from("staff_members").insert(insertPayload).select().single();
       if (error) {

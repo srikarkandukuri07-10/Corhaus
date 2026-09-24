@@ -77,16 +77,29 @@ export async function GET(req: Request) {
     let staffList = allStaff || [];
 
     // Branch scope: primary branch or explicit mapping to the active branch.
+    // Also attach each row's full branch access for the edit form.
+    let branchMap: Record<string, string[]> = {};
     try {
       const { data: mapped } = await serviceClient
         .from("staff_locations")
-        .select("staff_id")
-        .eq("location_id", locationId);
-      const mappedIds = new Set((mapped || []).map((m: any) => m.staff_id));
+        .select("staff_id, location_id");
+      const byStaff: Record<string, string[]> = {};
+      (mapped || []).forEach((m: any) => {
+        if (!byStaff[m.staff_id]) byStaff[m.staff_id] = [];
+        byStaff[m.staff_id].push(m.location_id);
+      });
+      branchMap = byStaff;
+      const mappedIds = new Set(
+        (mapped || []).filter((m: any) => m.location_id === locationId).map((m: any) => m.staff_id)
+      );
       staffList = staffList.filter((s: any) => s.location_id === locationId || mappedIds.has(s.id));
     } catch {
       staffList = staffList.filter((s: any) => !s.location_id || s.location_id === locationId);
     }
+    staffList = staffList.map((s: any) => ({
+      ...s,
+      branch_ids: [...new Set([s.location_id, ...(branchMap[s.id] || [])].filter(Boolean))],
+    }));
 
     // Client-side search filtering
     if (search) {
