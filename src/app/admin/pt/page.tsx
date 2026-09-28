@@ -121,6 +121,7 @@ export default function PtSchedulerPage() {
   const [assignStartTime, setAssignStartTime] = useState("09:00");
   const [assignDays, setAssignDays] = useState<number[]>([]);
   const [assignWeeks, setAssignWeeks] = useState(4);
+  const [isRecurring, setIsRecurring] = useState(false);
 
   // Book Form state
   const [bookMemberId, setBookMemberId] = useState("");
@@ -300,8 +301,8 @@ export default function PtSchedulerPage() {
 
   const handleAssignTrainer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!assignMemberId || assignDays.length === 0) {
-      setActionError("Please select a member and at least one recurring day.");
+    if (!assignMemberId || (isRecurring && assignDays.length === 0)) {
+      setActionError(isRecurring ? "Please select a member and at least one recurring day." : "Please select a member.");
       return;
     }
 
@@ -317,31 +318,45 @@ export default function PtSchedulerPage() {
     setActionLoading(true);
     setActionError(null);
 
-    // Calculate recurring session dates
+    // Calculate recurring session dates (or single session)
     const sessionInserts: any[] = [];
     const startDate = new Date(assignStartDate + "T00:00:00");
-    const startDayOfWeek = startDate.getDay();
 
-    assignDays.slice().sort((a, b) => a - b).forEach((dayOfWeek) => {
-      let daysUntil = (dayOfWeek - startDayOfWeek + 7) % 7;
-      const firstOccurrence = new Date(startDate);
-      firstOccurrence.setDate(startDate.getDate() + daysUntil);
+    if (isRecurring) {
+      const startDayOfWeek = startDate.getDay();
 
-      for (let week = 0; week < assignWeeks; week++) {
-        const sessionDate = new Date(firstOccurrence);
-        sessionDate.setDate(firstOccurrence.getDate() + week * 7);
-        sessionInserts.push({
-          member_id: assignMemberId,
-          trainer_name: assignTrainerName,
-          session_date: sessionDate.toISOString().split("T")[0],
-          session_time: assignStartTime,
-          duration_minutes: assignDuration,
-          status: "scheduled",
-          purchased_plan_id: activePlan.id,
-          ...(assignBranch ? { location_id: assignBranch } : {}),
-        });
-      }
-    });
+      assignDays.slice().sort((a, b) => a - b).forEach((dayOfWeek) => {
+        let daysUntil = (dayOfWeek - startDayOfWeek + 7) % 7;
+        const firstOccurrence = new Date(startDate);
+        firstOccurrence.setDate(startDate.getDate() + daysUntil);
+
+        for (let week = 0; week < assignWeeks; week++) {
+          const sessionDate = new Date(firstOccurrence);
+          sessionDate.setDate(firstOccurrence.getDate() + week * 7);
+          sessionInserts.push({
+            member_id: assignMemberId,
+            trainer_name: assignTrainerName,
+            session_date: sessionDate.toISOString().split("T")[0],
+            session_time: assignStartTime,
+            duration_minutes: assignDuration,
+            status: "scheduled",
+            purchased_plan_id: activePlan.id,
+            ...(assignBranch ? { location_id: assignBranch } : {}),
+          });
+        }
+      });
+    } else {
+      sessionInserts.push({
+        member_id: assignMemberId,
+        trainer_name: assignTrainerName,
+        session_date: assignStartDate,
+        session_time: assignStartTime,
+        duration_minutes: assignDuration,
+        status: "scheduled",
+        purchased_plan_id: activePlan.id,
+        ...(assignBranch ? { location_id: assignBranch } : {}),
+      });
+    }
 
     const totalToGenerate = sessionInserts.length;
     if (activePlan.sessions_remaining < totalToGenerate) {
@@ -357,7 +372,7 @@ export default function PtSchedulerPage() {
       start_date: assignStartDate,
       duration_minutes: assignDuration,
       start_time: assignStartTime,
-      recurring_days: assignDays,
+      recurring_days: isRecurring ? assignDays : [],
       ...(assignBranch ? { location_id: assignBranch } : {}),
     });
 
@@ -600,6 +615,7 @@ export default function PtSchedulerPage() {
             onClick={() => {
               setAssignMemberId("");
               setAssignDays([]);
+              setIsRecurring(false);
               setShowAssignModal(true);
             }}
             className="px-5 py-3 rounded-2xl bg-accent text-white text-xs font-bold hover:bg-accent-2 shadow-md shadow-accent/25 flex items-center gap-1.5"
@@ -789,7 +805,28 @@ export default function PtSchedulerPage() {
                 </div>
               </div>
 
-              {/* Day of Week Selector */}
+              {/* Recurring checkbox */}
+              <div className="flex items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  id="isRecurring"
+                  checked={isRecurring}
+                  onChange={(e) => {
+                    setIsRecurring(e.target.checked);
+                    if (!e.target.checked) {
+                      setAssignDays([]);
+                      setAssignWeeks(4);
+                    }
+                  }}
+                  className="w-4 h-4 accent-accent rounded"
+                />
+                <label htmlFor="isRecurring" className="text-xs font-bold text-fg-3 uppercase tracking-wider cursor-pointer">
+                  Recurring Schedule
+                </label>
+              </div>
+
+              {/* Day of Week Selector — only when recurring */}
+              {isRecurring && (
               <div>
                 <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-2">Recurring Days *</label>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -809,8 +846,10 @@ export default function PtSchedulerPage() {
                   ))}
                 </div>
               </div>
+              )}
 
-              {/* Number of Weeks */}
+              {/* Number of Weeks — only when recurring */}
+              {isRecurring && (
               <div className="flex items-center gap-3 pt-2">
                 <span className="text-[11px] font-bold text-fg-3 uppercase tracking-wider">Repeat for</span>
                 <input
@@ -828,11 +867,18 @@ export default function PtSchedulerPage() {
                   </span>
                 )}
               </div>
+              )}
 
               {/* Actions */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-line">
                 <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-xs text-fg hover:bg-black/5">Cancel</button>
-                <button type="submit" disabled={actionLoading || assignDays.length === 0 || !assignMemberId} className="px-6 py-2.5 bg-accent text-white font-extrabold text-xs rounded-xl hover:bg-accent-2 disabled:opacity-50">Assign &amp; Generate Sessions</button>
+                <button
+                  type="submit"
+                  disabled={actionLoading || (isRecurring && assignDays.length === 0) || !assignMemberId}
+                  className="px-6 py-2.5 bg-accent text-white font-extrabold text-xs rounded-xl hover:bg-accent-2 disabled:opacity-50"
+                >
+                  {isRecurring ? 'Assign & Generate Sessions' : 'Assign Trainer'}
+                </button>
               </div>
             </form>
           </div>
