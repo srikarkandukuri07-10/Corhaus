@@ -628,6 +628,14 @@ function MembersPageContent() {
       await supabase.from("profiles").update({ role: "member" }).ilike("email", cleanEmail);
     } catch (_) {}
 
+    let resolvedLocationId = activeLocationId;
+    if (!resolvedLocationId) {
+      try {
+        const { data: loc } = await supabase.from("locations").select("id").eq("status", "active").limit(1).maybeSingle();
+        resolvedLocationId = loc?.id || null;
+      } catch (_) {}
+    }
+
     const { data: insertedMember, error: insertError } = await supabase
       .from("approved_members")
       .insert({
@@ -636,7 +644,7 @@ function MembersPageContent() {
         phone_number: formPhone.replace(/\D/g, ""),
         membership_status: formStatus,
         membership_level: formLevel,
-        ...(activeLocationId ? { location_id: activeLocationId } : {}),
+        ...(resolvedLocationId ? { location_id: resolvedLocationId } : {}),
       })
       .select("id")
       .single();

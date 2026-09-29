@@ -161,3 +161,29 @@ CREATE POLICY "Branch members and staff can view classes" ON public.classes
     location_id IN (SELECT public.user_location_ids())
     AND (public.is_staff() OR public.is_active_member())
   );
+
+-- 6. Fix auto_create_referral_code trigger & relax referral_codes location_id NOT NULL constraint
+ALTER TABLE public.referral_codes ALTER COLUMN location_id DROP NOT NULL;
+
+CREATE OR REPLACE FUNCTION public.auto_create_referral_code()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  new_code TEXT;
+  v_loc UUID;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.referral_codes WHERE member_email = LOWER(NEW.email)) THEN
+    new_code := public.generate_referral_code();
+    v_loc := NEW.location_id;
+    IF v_loc IS NULL THEN
+      SELECT id INTO v_loc FROM public.locations WHERE status = 'active' ORDER BY created_at ASC LIMIT 1;
+    END IF;
+    INSERT INTO public.referral_codes (member_email, code, location_id)
+    VALUES (LOWER(NEW.email), new_code, v_loc);
+  END IF;
+  RETURN NEW;
+END;
+$$;
