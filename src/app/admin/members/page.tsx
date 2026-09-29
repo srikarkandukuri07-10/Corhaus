@@ -622,16 +622,10 @@ function MembersPageContent() {
 
     const cleanEmail = formEmail.trim().toLowerCase();
 
-    // Clean out any stale profiles or historical records if re-adding a previously deleted member
+    // If re-adding a previously removed member, remove any duplicate approved_members row and reactivate profile role
     try {
-      await supabase.from("profiles").delete().ilike("email", cleanEmail);
       await supabase.from("approved_members").delete().ilike("email", cleanEmail);
-      await supabase.from("member_purchased_plans").delete().ilike("email", cleanEmail);
-      await supabase.from("membership_freezes").delete().ilike("member_email", cleanEmail);
-      await supabase.from("freeze_requests").delete().ilike("member_email", cleanEmail);
-      await supabase.from("bookings").delete().ilike("member_email", cleanEmail);
-      await supabase.from("attendance").delete().ilike("email", cleanEmail);
-      await supabase.from("referral_codes").delete().ilike("member_email", cleanEmail);
+      await supabase.from("profiles").update({ role: "member" }).ilike("email", cleanEmail);
     } catch (_) {}
 
     const { data: insertedMember, error: insertError } = await supabase
@@ -1763,42 +1757,22 @@ function MembersPageContent() {
                     const memId = deletingMember.id;
                     const memEmail = deletingMember.email.trim().toLowerCase();
 
-                    // Note: Billing data (invoices, invoice_items, customers) is PERMANENTLY PRESERVED for financial accuracy & monthly revenue accounting.
-                    
-                    // 1. Delete member profiles, plans, freezes, freeze requests, bookings, attendance, PT, referrals, notifications
-                    try { await supabase.from("profiles").delete().ilike("email", memEmail); } catch (e) {}
-                    try { await supabase.from("member_purchased_plans").delete().or(`approved_member_id.eq.${memId},email.ilike.${memEmail}`); } catch (e) {}
-                    try { await supabase.from("membership_freezes").delete().or(`member_id.eq.${memId},member_email.ilike.${memEmail}`); } catch (e) {}
-                    try { await supabase.from("freeze_requests").delete().or(`member_id.eq.${memId},member_email.ilike.${memEmail}`); } catch (e) {}
-                    try { await supabase.from("bookings").delete().or(`member_id.eq.${memId},member_email.ilike.${memEmail}`); } catch (e) {}
-                    try { await supabase.from("attendance").delete().or(`member_id.eq.${memId},email.ilike.${memEmail}`); } catch (e) {}
-                    try {
-                      let ptSessDel = supabase.from("pt_sessions").delete().eq("member_id", memId);
-                      if (activeLocationId) ptSessDel = ptSessDel.eq("location_id", activeLocationId);
-                      await ptSessDel;
-                    } catch (e) {}
-                    try {
-                      let ptAssignDel = supabase.from("pt_assignments").delete().eq("member_id", memId);
-                      if (activeLocationId) ptAssignDel = ptAssignDel.eq("location_id", activeLocationId);
-                      await ptAssignDel;
-                    } catch (e) {}
-                    try { await supabase.from("referral_codes").delete().ilike("member_email", memEmail); } catch (e) {}
-                    try { await supabase.from("referral_requests").delete().or(`referrer_email.ilike.${memEmail},referee_email.ilike.${memEmail}`); } catch (e) {}
-                    try { await supabase.from("admin_notifications").delete().ilike("email", memEmail); } catch (e) {}
+                    const res = await fetch("/api/admin/members/delete", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ memberId: memId, email: memEmail }),
+                    });
+                    const data = await res.json().catch(() => null);
 
-                    // 2. Delete approved_members record (active-branch only)
-                    let memDel = supabase.from("approved_members").delete().eq("id", memId);
-                    if (activeLocationId) memDel = memDel.eq("location_id", activeLocationId);
-                    const { error: deleteErr } = await memDel;
-                    if (deleteErr) {
-                      await supabase.from("approved_members").delete().ilike("email", memEmail);
+                    if (!res.ok || !data?.success) {
+                      throw new Error(data?.error || "Failed to remove member from approved list.");
                     }
 
                     setDeletingMember(null);
                     setSelectedMember(null);
                     await fetchMembers();
                   } catch (err: any) {
-                    setActionError(err.message || "Failed to delete member completely.");
+                    setActionError(err.message || "Failed to delete member.");
                   } finally {
                     setDeleteLoading(false);
                   }

@@ -247,30 +247,17 @@ export async function POST(request: Request) {
     }
 
     // ─── 3. APPROVED MEMBER IDENTITY ──────────────────────────────────────────
-    const { data: member } = await serviceClient
-      .from("approved_members")
-      .select("id, full_name, phone_number, membership_status")
-      .ilike("email", normalizedEmail)
-      .limit(1)
-      .maybeSingle();
+    const { verifyCanonicalMemberAuthorization } = await import("@/lib/auth-canonical");
+    const authResult = await verifyCanonicalMemberAuthorization(normalizedEmail);
 
-    const isMemberActive = member && (member.membership_status || "").toLowerCase() === "active";
-
-    if (!isMemberActive) {
-      const { data: profile } = await serviceClient
-        .from("profiles")
-        .select("id, role")
-        .ilike("email", normalizedEmail)
-        .limit(1)
-        .maybeSingle();
-
-      if (!profile) {
-        return NextResponse.json(
-          { error: "This email is not approved for access. Please contact Corhaus staff to activate your membership." },
-          { status: 403 }
-        );
-      }
+    if (!authResult.authorized || !authResult.member) {
+      return NextResponse.json(
+        { error: authResult.error || "You do not currently have access to the Corhaus Member Portal. Please contact Corhaus staff to activate your membership." },
+        { status: 403 }
+      );
     }
+
+    const member = authResult.member;
 
     const { data: usersData } = await serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
     let memberUser = (usersData?.users || []).find(

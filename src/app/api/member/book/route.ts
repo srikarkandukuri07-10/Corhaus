@@ -23,21 +23,16 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 3. Look up approved_members record for plan lookups
-    const cleanEmail = (user.email || "").trim().toLowerCase();
-    const { data: amData, error: amError } = await supabase
-      .from("approved_members")
-      .select("id, membership_level, membership_status, freeze_status, location_id")
-      .ilike("email", cleanEmail)
-      .maybeSingle();
+    // 3. Canonical member authorization check
+    const { verifyCanonicalMemberAuthorization } = await import("@/lib/auth-canonical");
+    const userPhone = user.user_metadata?.phone_number || (user as any).phone || null;
+    const authResult = await verifyCanonicalMemberAuthorization(user.email, userPhone);
 
-    if (amError) {
-      console.error("approved_members lookup error:", amError);
-      return NextResponse.json({ error: "Profile lookup failed. Please try again." }, { status: 500 });
+    if (!authResult.authorized || !authResult.member) {
+      return NextResponse.json({ error: authResult.error || "No approved active member profile found for your account. Please contact the studio." }, { status: 403 });
     }
-    if (!amData) {
-      return NextResponse.json({ error: "No approved member profile found for your account. Please contact the studio." }, { status: 403 });
-    }
+
+    const amData = authResult.member;
 
     const todayStr = new Date().toISOString().split("T")[0];
     const { data: activeFreeze } = await supabase

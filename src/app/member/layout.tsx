@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -71,20 +71,33 @@ export default function MemberLayout({
         }
 
         const userEmail = (user.email || "").trim().toLowerCase();
+        const userPhone = user.user_metadata?.phone_number || (user as any).phone || profile?.phone_number || "";
 
         const memberPromise = supabase
           .from("approved_members")
-          .select("id, membership_status")
+          .select("id, phone_number, membership_status")
           .ilike("email", userEmail)
           .limit(1)
           .maybeSingle();
 
         const { data: memberRecord } = (await Promise.race([memberPromise, timeoutPromise])) as any;
 
-        const isActiveStatus = memberRecord && (memberRecord.membership_status || "").toLowerCase() === "active";
-        const hasMemberProfile = profile?.role === "member";
+        const isActiveStatus = memberRecord && (memberRecord.membership_status || "").trim().toLowerCase() === "active";
 
-        if (!isActiveStatus && !hasMemberProfile) {
+        // Canonical phone verification
+        let isPhoneMatched = true;
+        if (userPhone && memberRecord?.phone_number) {
+          const uDigits = userPhone.replace(/\D/g, "");
+          const mDigits = memberRecord.phone_number.replace(/\D/g, "");
+          const u10 = uDigits.length >= 10 ? uDigits.slice(-10) : uDigits;
+          const m10 = mDigits.length >= 10 ? mDigits.slice(-10) : mDigits;
+          if (u10 && m10 && u10 !== m10) {
+            isPhoneMatched = false;
+          }
+        }
+
+        if (!isActiveStatus || !isPhoneMatched) {
+          if (timeoutId) clearTimeout(timeoutId);
           await supabase.auth.signOut();
           router.push("/auth/login?error=not_approved");
           return;

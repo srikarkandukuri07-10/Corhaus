@@ -99,15 +99,11 @@ export async function POST(request: Request) {
       });
     }
 
-    // 3. Approved Member check
-    const { data: member } = await serviceClient
-      .from("approved_members")
-      .select("membership_status")
-      .ilike("email", normalizedEmail)
-      .limit(1)
-      .maybeSingle();
+    // 3. Approved Member canonical check
+    const { verifyCanonicalMemberAuthorization } = await import("@/lib/auth-canonical");
+    const authResult = await verifyCanonicalMemberAuthorization(normalizedEmail);
 
-    if (member && member.membership_status === "active") {
+    if (authResult.authorized && authResult.member) {
       let hasPassword = false;
       try {
         const { data: usersData } = await serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
@@ -129,43 +125,10 @@ export async function POST(request: Request) {
       });
     }
 
-    // 4. Fallback check for existing profiles table entry
-    const { data: profile } = await serviceClient
-      .from("profiles")
-      .select("id, role")
-      .ilike("email", normalizedEmail)
-      .limit(1)
-      .maybeSingle();
-
-    if (profile) {
-      const isStaffRole = ["admin", "manager", "owner", "receptionist", "trainer", "staff"].includes(
-        (profile.role || "").toLowerCase()
-      );
-      let hasPassword = false;
-      try {
-        const { data: usersData } = await serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
-        const existingUser = (usersData?.users || []).find(
-          (u) => u.email?.trim().toLowerCase() === normalizedEmail
-        );
-        if (
-          existingUser?.user_metadata?.has_password ||
-          existingUser?.user_metadata?.password_set_at
-        ) {
-          hasPassword = true;
-        }
-      } catch (_) {}
-
-      return NextResponse.json({
-        approved: true,
-        accountType: isStaffRole ? "staff" : "member",
-        hasPassword,
-      });
-    }
-
     return NextResponse.json({
       approved: false,
       accountType: "unrecognized",
-      error: "This email is not approved for access. Please contact Corhaus staff.",
+      error: authResult.error || "You do not currently have access to the Corhaus Member Portal. Please contact Corhaus staff to activate your membership.",
     }, { status: 403 });
   } catch (err: any) {
     console.error("POST /api/auth/check-email error:", err);

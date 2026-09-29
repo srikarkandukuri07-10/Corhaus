@@ -133,8 +133,7 @@ function LoginForm() {
       const checkData = await checkRes.json().catch(() => null);
 
       if (!checkRes.ok || !checkData?.approved) {
-        setError(checkData?.error || "This email is not approved for access. Please contact Corhaus staff.");
-        setLoading(false);
+        setError(checkData?.error || "You do not currently have access to the Corhaus Member Portal. Please contact Corhaus staff to activate your membership.");
         return;
       }
 
@@ -153,15 +152,14 @@ function LoginForm() {
           setStep("setup_password");
           setInfoMsg(`Your ${roleName.toLowerCase()} account does not have a password set yet. Please establish your password below.`);
         }
-        setLoading(false);
         return;
       }
 
       // Fallback
       setError("Unrecognized account type.");
-      setLoading(false);
     } catch (err: any) {
       setError(safeErrorMessage(err));
+    } finally {
       setLoading(false);
     }
   }

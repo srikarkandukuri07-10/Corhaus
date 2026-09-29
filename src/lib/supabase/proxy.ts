@@ -156,29 +156,21 @@ export async function updateSession(request: NextRequest) {
       isApproved = true;
       userRole = "admin";
     } else {
-      // Check existing member profile or approved_members by email
-      if (userRole === "member") {
-        isApproved = true;
-      } else {
-        try {
-          const { data: results } = await serviceClient
-            .from("approved_members")
-            .select("id, email, membership_status")
-            .ilike("email", normalizedEmail);
-
-          const match = results?.find(
-            (r) =>
-              r.email &&
-              r.email.trim().toLowerCase() === normalizedEmail &&
-              (r.membership_status || "").toLowerCase() === "active"
-          );
-          isApproved = !!match;
-          if (match) {
-            matchedMemberEmail = match.email;
-          }
-        } catch (e) {
-          devLog("APPROVED MEMBER CHECK ERROR:", e);
+      // Canonical Member Authorization check
+      try {
+        const { verifyCanonicalMemberAuthorization } = await import("@/lib/auth-canonical");
+        const userPhone = user.user_metadata?.phone_number || (user as any).phone || (profile as any)?.phone_number || null;
+        const authResult = await verifyCanonicalMemberAuthorization(normalizedEmail, userPhone);
+        isApproved = authResult.authorized;
+        if (isApproved && authResult.member) {
+          matchedMemberEmail = authResult.member.email;
+          userRole = "member";
+        } else {
+          userRole = null;
         }
+      } catch (e) {
+        devLog("CANONICAL MEMBER CHECK ERROR:", e);
+        isApproved = false;
       }
     }
 

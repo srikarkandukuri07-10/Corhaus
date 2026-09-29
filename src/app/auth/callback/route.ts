@@ -167,33 +167,19 @@ export async function GET(request: NextRequest) {
       return redirectWithCookies(`${origin}/admin`);
     }
 
-    // Member Authorization Check
-    let isApprovedMember = false;
-    let memberDbRecord: { full_name?: string; phone_number?: string } | null = null;
-    try {
-      const { data: member } = await serviceClient
-        .from("approved_members")
-        .select("full_name, phone_number, membership_status")
-        .ilike("email", normalizedEmail)
-        .limit(1)
-        .maybeSingle();
+    // Member Authorization Canonical Check
+    const { verifyCanonicalMemberAuthorization } = await import("@/lib/auth-canonical");
+    const userPhone = user.user_metadata?.phone_number || user.phone || profile?.phone_number || null;
+    const authResult = await verifyCanonicalMemberAuthorization(normalizedEmail, userPhone);
 
-      if (member && (member.membership_status || "").toLowerCase() === "active") {
-        isApprovedMember = true;
-        memberDbRecord = { full_name: member.full_name, phone_number: member.phone_number };
-      }
-    } catch (_) {}
-
-    if (profile && profile.role === "member") {
-      isApprovedMember = true;
-    }
-
-    if (!isApprovedMember) {
+    if (!authResult.authorized || !authResult.member) {
       try {
         await supabase.auth.signOut();
       } catch {}
       return redirectWithCookies(`${origin}/auth/login?error=not_approved`);
     }
+
+    const memberDbRecord = authResult.member;
 
     // Approved gym member profile auto-creation/update
     try {

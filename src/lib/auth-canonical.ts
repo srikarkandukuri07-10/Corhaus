@@ -1,0 +1,114 @@
+import { createClient } from "@supabase/supabase-js";
+
+/**
+ * Normalizes phone numbers to standard 10-digit format for reliable comparison.
+ * Extracts only digits and takes the last 10 digits (handles +91, 0 prefix, spaces, dashes).
+ */
+export function normalizePhoneNumber(phone: string | null | undefined): string {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length >= 10) {
+    return digits.slice(-10);
+  }
+  return digits;
+}
+
+export interface CanonicalMemberRecord {
+  id: string;
+  full_name: string;
+  email: string;
+  phone_number: string;
+  membership_status: string;
+  freeze_status?: string | null;
+  membership_level?: string | null;
+  location_id?: string | null;
+}
+
+export interface MemberAuthorizationResult {
+  authorized: boolean;
+  member: CanonicalMemberRecord | null;
+  error?: string;
+  errorCode?: "not_found" | "inactive" | "phone_mismatch" | "unauthorized";
+}
+
+/**
+ * Single canonical member authorization check across the entire application.
+ *
+ * Requirements for a member to be authorized:
+ * 1. User must be authenticated.
+ * 2. Record must exist in `approved_members` with matching email (case-insensitive).
+ * 3. Phone number must match `approved_members.phone_number` (normalized 10-digits),
+ *    if phone number is available on the user identity or profile.
+ * 4. `membership_status` must be strictly 'active'.
+ *
+ * Note: Historical rows in `profiles` alone NEVER grant member authorization.
+ */
+export async function verifyCanonicalMemberAuthorization(
+  email: string | null | undefined,
+  phoneToCheck?: string | null | undefined
+): Promise<MemberAuthorizationResult> {
+  if (!email || typeof email !== "string" || !email.trim()) {
+    return {
+      authorized: false,
+      member: null,
+      error: "Valid email address is required.",
+      errorCode: "not_found",
+    };
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+  const serviceClient = createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  // Query approved_members directly using service role client
+  const { data: member, error: dbError } = await serviceClient
+    .from("approved_members")
+    .select("id, full_name, email, phone_number, membership_status, freeze_status, membership_level, location_id")
+    .ilike("email", normalizedEmail)
+    .limit(1)
+    .maybeSingle();
+
+  if (dbError || !member) {
+    return {
+      authorized: false,
+      member: null,
+      error: "You do not currently have access to the Corhaus Member Portal. Please contact Corhaus staff to activate your membership.",
+      errorCode: "not_found",
+    };
+  }
+
+  // 1. Status Check: Must be 'active'
+  const isStatusActive = (member.membership_status || "").trim().toLowerCase() === "active";
+  if (!isStatusActive) {
+    return {
+      authorized: false,
+      member: member as CanonicalMemberRecord,
+      error: "Your membership is currently inactive. Please contact Corhaus staff to reactivate your membership.",
+      errorCode: "inactive",
+    };
+  }
+
+  // 2. Phone Match Check: If phoneToCheck is provided, enforce normalized matching
+  if (phoneToCheck) {
+    const normUserPhone = normalizePhoneNumber(phoneToCheck);
+    const normApprovedPhone = normalizePhoneNumber(member.phone_number);
+
+    if (normUserPhone && normApprovedPhone && normUserPhone !== normApprovedPhone) {
+      return {
+        authorized: false,
+        member: member as CanonicalMemberRecord,
+        error: "Your phone number does not match our approved membership records. Please contact Corhaus staff.",
+        errorCode: "phone_mismatch",
+      };
+    }
+  }
+
+  return {
+    authorized: true,
+    member: member as CanonicalMemberRecord,
+  };
+}

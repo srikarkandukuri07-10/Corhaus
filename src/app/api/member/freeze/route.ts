@@ -13,17 +13,16 @@ async function getMemberData() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // Find member record by email (case insensitive)
-  const cleanEmail = (user.email || "").trim().toLowerCase();
-  const { data: member } = await serviceClient
-    .from("approved_members")
-    .select("*")
-    .ilike("email", cleanEmail)
-    .maybeSingle();
+  // Find member record using canonical authorization check
+  const { verifyCanonicalMemberAuthorization } = await import("@/lib/auth-canonical");
+  const userPhone = user.user_metadata?.phone_number || (user as any).phone || null;
+  const authResult = await verifyCanonicalMemberAuthorization(user.email, userPhone);
 
-  if (!member) {
-    return { error: "Approved member profile not found", status: 404 };
+  if (!authResult.authorized || !authResult.member) {
+    return { error: authResult.error || "Approved active member profile not found", status: 403 };
   }
+
+  const member = authResult.member as any;
 
   // Find purchased plan
   const { data: plans } = await serviceClient

@@ -22,16 +22,15 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 3. Look up approved_members ID from user email
-    const { data: amData } = await supabase
-      .from("approved_members")
-      .select("id, location_id")
-      .eq("email", user.email || "")
-      .maybeSingle();
+    // 3. Canonical member authorization check
+    const { verifyCanonicalMemberAuthorization } = await import("@/lib/auth-canonical");
+    const userPhone = user.user_metadata?.phone_number || (user as any).phone || null;
+    const authResult = await verifyCanonicalMemberAuthorization(user.email, userPhone);
 
-    if (!amData) {
-      return NextResponse.json({ error: "No approved member profile found." }, { status: 403 });
+    if (!authResult.authorized || !authResult.member) {
+      return NextResponse.json({ error: authResult.error || "No approved active membership found." }, { status: 403 });
     }
+    const amData = authResult.member;
     const memberBranch = (amData as any).location_id || null;
     // bookings.member_id FK references profiles(id) = auth.uid()
     // Use user.id for ownership check; use amData.id for plan queries
