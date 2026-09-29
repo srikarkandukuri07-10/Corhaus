@@ -324,8 +324,8 @@ export default function MemberLayout({
       </header>
 
       {needsPassword && showPasswordBanner && (
-        <div className="bg-rail text-white px-4 py-3 flex items-center justify-between animate-fade-in relative z-40">
-          <div className="flex-1 text-center text-sm font-medium">
+        <div className="bg-rail text-white px-4 pr-10 py-3 flex items-center justify-between animate-fade-in relative z-40">
+          <div className="flex-1 text-center text-xs sm:text-sm font-medium">
             Please secure your account by setting a password in your Profile Settings.
           </div>
           <button

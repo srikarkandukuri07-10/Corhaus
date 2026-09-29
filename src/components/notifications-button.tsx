@@ -116,13 +116,17 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
   }
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
 
   return (
@@ -141,7 +145,7 @@ export default function NotificationsButton({ role }: NotificationsButtonProps) 
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-[calc(100vw-1rem)] max-w-[90vw] sm:w-80 sm:max-w-sm bg-surface rounded-xl shadow-lg border border-line overflow-hidden z-50 sm:right-0 -right-2">
+        <div className="fixed left-3 right-3 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 sm:max-w-sm bg-surface rounded-2xl shadow-2xl border border-line overflow-hidden z-50 animate-fade-in">
           <div className="px-4 py-3 border-b border-line bg-surface-2/30 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-fg">Notifications</h3>
             {role === "admin" && notifications.length > 0 && (
