@@ -2,9 +2,33 @@ import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 
-async function getAdminClient() {
-  const supabase = await createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+async function getAdminClient(req?: Request) {
+  let user: any = null;
+  if (req) {
+    const authHeader = req.headers.get("authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "").trim();
+      if (token) {
+        try {
+          const supabaseAnon = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+          );
+          const { data: { user: u } } = await supabaseAnon.auth.getUser(token);
+          if (u) user = u;
+        } catch (_) {}
+      }
+    }
+  }
+
+  if (!user) {
+    try {
+      const supabase = await createServerClient();
+      const { data: { user: u } } = await supabase.auth.getUser();
+      if (u) user = u;
+    } catch (_) {}
+  }
+
   if (!user) return { error: "Unauthorized", status: 401 };
 
   const { getUserRolePermissions } = await import("@/lib/rbac");
@@ -13,11 +37,18 @@ async function getAdminClient() {
     return { error: "Forbidden", status: 403 };
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, full_name")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { data: profile } = await (async () => {
+    try {
+      const supabase = await createServerClient();
+      return await supabase
+        .from("profiles")
+        .select("role, full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+    } catch {
+      return { data: null };
+    }
+  })();
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;

@@ -184,6 +184,9 @@ export async function updateSession(request: NextRequest) {
 
     if (!isApproved && !isReferralPage) {
       devLog("DECISION: member not approved -> redirect to /auth/login");
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Access Denied: You are not authorized." }, { status: 403 });
+      }
       try {
         await supabase.auth.signOut();
       } catch {}
@@ -350,7 +353,10 @@ export async function updateSession(request: NextRequest) {
 
     // Member trying to access admin or developer routes
     if (userRole !== "admin" && userRole !== "developer") {
-      if (pathname.startsWith("/admin") || pathname.startsWith("/developer")) {
+      if (pathname.startsWith("/admin") || pathname.startsWith("/developer") || pathname.startsWith("/api/admin")) {
+        if (pathname.startsWith("/api/")) {
+          return NextResponse.json({ error: "Forbidden: Admin access required." }, { status: 403 });
+        }
         devLog("DECISION: non-admin/non-dev on protected route -> redirect to /member");
         const url = request.nextUrl.clone();
         url.pathname = "/member";
@@ -383,6 +389,9 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith(route)
   );
   if (!user && isProtectedRoute) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     devLog("DECISION: not authenticated on protected route -> redirect to /auth/login");
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";

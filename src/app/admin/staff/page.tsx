@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Modal from "@/components/modal";
 import { useActiveLocation } from "@/lib/useActiveLocation";
+import { createClient } from "@/lib/supabase/client";
 
 interface StaffMember {
   id: string;
@@ -131,8 +132,28 @@ export default function StaffPage() {
         location: locationFilter,
         sortBy: sortBy,
       });
-      const res = await fetch(`/api/admin/staff?${queryParams.toString()}`);
-      const json = await res.json();
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+      const res = await fetch(`/api/admin/staff?${queryParams.toString()}`, { headers });
+      if (res.status === 401) {
+        window.location.href = "/auth/login";
+        return;
+      }
+      const text = await res.text();
+      let json: any = null;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        if (text.includes("<!DOCTYPE") || res.status === 403) {
+          setActionError("Session expired or permission denied. Please sign in again.");
+          return;
+        }
+        throw new Error("Invalid response format from server.");
+      }
       if (!res.ok || json.error) {
         setActionError(json.error || "Failed to load staff data.");
       } else {
