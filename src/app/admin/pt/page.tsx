@@ -104,31 +104,23 @@ export default function PtSchedulerPage() {
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   // Modals state
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showBookModal, setShowBookModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showPtMembersModal, setShowPtMembersModal] = useState(false);
 
   // Lock background scroll while any dialog is open
-  useLockBody(showAssignModal || showBookModal || showDetailModal || showPtMembersModal);
+  useLockBody(showBookModal || showDetailModal || showPtMembersModal);
   const [selectedSession, setSelectedSession] = useState<PtSession | null>(null);
 
-  // Assign Form state
-  const [assignMemberId, setAssignMemberId] = useState("");
-  const [assignTrainerName, setAssignTrainerName] = useState("Rahul Sharma");
-  const [assignStartDate, setAssignStartDate] = useState(getTodayIstString());
-  const [assignDuration, setAssignDuration] = useState(60);
-  const [assignStartTime, setAssignStartTime] = useState("09:00");
-  const [assignDays, setAssignDays] = useState<number[]>([]);
-  const [assignWeeks, setAssignWeeks] = useState(4);
-  const [isRecurring, setIsRecurring] = useState(false);
-
-  // Book Form state
+  // Book Form state — the trainer is chosen here, which is what "assigns"
+  // the trainer to the PT package member. There is no separate assign flow.
   const [bookMemberId, setBookMemberId] = useState("");
-  const [bookOption, setBookOption] = useState<"one" | "all">("one");
+  const [bookTrainerName, setBookTrainerName] = useState("");
+  const [bookOption, setBookOption] = useState<"one" | "weekly" | "all">("one");
   const [bookDate, setBookDate] = useState(getTodayIstString());
   const [bookTime, setBookTime] = useState("10:00");
   const [bookDuration, setBookDuration] = useState(60);
+  const [bookWeeks, setBookWeeks] = useState(4);
 
   // Reschedule Form state
   const [isRescheduling, setIsRescheduling] = useState(false);
@@ -137,7 +129,7 @@ export default function PtSchedulerPage() {
 
   // Reassign Form state
   const [isReassigning, setIsReassigning] = useState(false);
-  const [reassignTrainer, setReassignTrainer] = useState("Sneha Reddy");
+  const [reassignTrainer, setReassignTrainer] = useState("");
   const [reassignScope, setReassignScope] = useState<"only" | "all">("only");
 
   const supabase = createClient();
@@ -146,7 +138,7 @@ export default function PtSchedulerPage() {
   const { activeLocationId } = useActiveLocation();
 
   // Scroll lock when modal is open
-  const isAnyModalOpen = showAssignModal || showBookModal || showDetailModal || showPtMembersModal;
+  const isAnyModalOpen = showBookModal || showDetailModal || showPtMembersModal;
   useEffect(() => {
     document.body.style.overflow = isAnyModalOpen ? "hidden" : "unset";
     return () => { document.body.style.overflow = "unset"; };
@@ -250,16 +242,24 @@ export default function PtSchedulerPage() {
     }
   }, [trainers, selectedTrainer]);
 
-  // Drop picked members that are no longer in the (branch-filtered) list,
+  // Keep the book form's trainer in sync with the loaded staff list.
+  useEffect(() => {
+    if (trainers.length === 0) {
+      setBookTrainerName("");
+      return;
+    }
+    if (!bookTrainerName || !trainers.some(t => t.full_name === bookTrainerName)) {
+      setBookTrainerName(selectedTrainer || trainers[0].full_name);
+    }
+  }, [trainers, selectedTrainer, bookTrainerName]);
+
+  // Drop a picked member that is no longer in the (branch-filtered) list,
   // so a booking can never be tagged from a stale record again.
   useEffect(() => {
-    if (assignMemberId && members.length > 0 && !members.some(m => m.id === assignMemberId)) {
-      setAssignMemberId("");
-    }
     if (bookMemberId && members.length > 0 && !members.some(m => m.id === bookMemberId)) {
       setBookMemberId("");
     }
-  }, [members, assignMemberId, bookMemberId]);
+  }, [members, bookMemberId]);
 
   // Realtime
   useEffect(() => {
@@ -306,158 +306,51 @@ export default function PtSchedulerPage() {
 
   // ─── ACTIONS ───────────────────────────────────────────────────────────────
 
-  const toggleAssignDay = (day: number) => {
-    setAssignDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
-  };
+  // Minutes-from-midnight for a "HH:MM" / "HH:MM:SS" value, tolerant of the
+  // "09:00:00+05:30" shape Postgres TIME columns round-trip through.
+  function toMinutes(time: string): number {
+    const parts = (time || "").trim().split(":");
+    const h = parseInt(parts[0], 10) || 0;
+    const m = parseInt(parts[1], 10) || 0;
+    return h * 60 + m;
+  }
 
-  const handleAssignTrainer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!assignMemberId || (isRecurring && assignDays.length === 0)) {
-      setActionError(isRecurring ? "Please select a member and at least one recurring day." : "Please select a member.");
-      return;
-    }
+  function overlaps(aStart: number, aMin: number, bStart: number, bMin: number) {
+    return aStart < bStart + bMin && bStart < aStart + aMin;
+  }
 
-    const member = members.find(m => m.id === assignMemberId);
-    const activePlan = member?.ptPlans[0];
-    if (!activePlan) {
-      setActionError("Selected member does not have an active PT Package.");
-      return;
-    }
-    // Fresh branch verification (never trust possibly-stale list state):
-    // the member must exist in the currently viewed branch.
-    const { data: freshAssignMember } = await supabase
-      .from("approved_members")
-      .select("id, location_id")
-      .eq("id", assignMemberId)
-      .maybeSingle();
-    const freshAssignBranch = (freshAssignMember as any)?.location_id || null;
-    if (!freshAssignMember) {
-      setActionError("Selected member was not found in this branch. Reload the page and pick the member again.");
-      return;
-    }
-    if (activeLocationId && freshAssignBranch && freshAssignBranch !== activeLocationId) {
-      setActionError("This member belongs to another branch. Switch branch first, then assign again.");
-      return;
-    }
-    // Branch-tag from verified record (single source of truth for write + read).
-    const assignBranch = freshAssignBranch || activeLocationId || null;
-
-    setActionLoading(true);
-    setActionError(null);
-
-    // Calculate recurring session dates (or single session)
-    const sessionInserts: any[] = [];
-    const startDate = new Date(assignStartDate + "T00:00:00");
-
-    if (isRecurring) {
-      const startDayOfWeek = startDate.getDay();
-
-      assignDays.slice().sort((a, b) => a - b).forEach((dayOfWeek) => {
-        let daysUntil = (dayOfWeek - startDayOfWeek + 7) % 7;
-        const firstOccurrence = new Date(startDate);
-        firstOccurrence.setDate(startDate.getDate() + daysUntil);
-
-        for (let week = 0; week < assignWeeks; week++) {
-          const sessionDate = new Date(firstOccurrence);
-          sessionDate.setDate(firstOccurrence.getDate() + week * 7);
-          sessionInserts.push({
-            member_id: assignMemberId,
-            trainer_name: assignTrainerName,
-            session_date: sessionDate.toISOString().split("T")[0],
-            session_time: assignStartTime,
-            duration_minutes: assignDuration,
-            status: "scheduled",
-            purchased_plan_id: activePlan.id,
-            ...(assignBranch ? { location_id: assignBranch } : {}),
-          });
-        }
-      });
-    } else {
-      sessionInserts.push({
-        member_id: assignMemberId,
-        trainer_name: assignTrainerName,
-        session_date: assignStartDate,
-        session_time: assignStartTime,
-        duration_minutes: assignDuration,
-        status: "scheduled",
-        purchased_plan_id: activePlan.id,
-        ...(assignBranch ? { location_id: assignBranch } : {}),
-      });
-    }
-
-    const totalToGenerate = sessionInserts.length;
-    if (activePlan.sessions_remaining < totalToGenerate) {
-      setActionError(`Member only has ${activePlan.sessions_remaining} sessions left in their plan, but this schedule tries to generate ${totalToGenerate} sessions.`);
-      setActionLoading(false);
-      return;
-    }
-
-    // 1. Create or Update Assignment
-    const { error: assignErr } = await supabase.from("pt_assignments").upsert({
-      member_id: assignMemberId,
-      trainer_name: assignTrainerName,
-      start_date: assignStartDate,
-      duration_minutes: assignDuration,
-      start_time: assignStartTime,
-      recurring_days: isRecurring ? assignDays : [],
-      ...(assignBranch ? { location_id: assignBranch } : {}),
-    });
-
-    if (assignErr) {
-      setActionError("Failed to save assignment: " + assignErr.message);
-      setActionLoading(false);
-      return;
-    }
-
-    // 2. Insert Sessions
-    const { data: insertedSessions, error: sessErr } = await supabase.from("pt_sessions").insert(sessionInserts).select("id");
-    if (sessErr) {
-      setActionError("Failed to generate sessions: " + sessErr.message);
-      setActionLoading(false);
-      return;
-    }
-
-    // Confirm the new rows are actually visible under the current branch
-    // filter — never report success for invisible sessions again.
-    if (activeLocationId && insertedSessions) {
-      const newIds = insertedSessions.map((s: any) => s.id);
-      const { data: visibleRows } = await supabase.from("pt_sessions").select("id").in("id", newIds);
-      if ((visibleRows || []).length !== newIds.length) {
-        setActionError(
-          "Sessions were saved but are not visible in this branch view. Reload the page; if they still don't appear, the member may belong to another branch."
-        );
-        setActionLoading(false);
-        loadData();
-        return;
+  // Find an existing live session for the same trainer that clashes with the
+  // proposed slot. Returns a human-readable reason, or null when the slot is free.
+  function findTrainerConflict(
+    trainer: string,
+    dateStr: string,
+    minutes: number,
+    duration: number,
+    excludeSessionId?: string
+  ): string | null {
+    for (const s of sessions) {
+      if (s.id === excludeSessionId) continue;
+      if (s.status !== "scheduled") continue;
+      if (s.trainer_name !== trainer) continue;
+      if (s.session_date !== dateStr) continue;
+      if (overlaps(toMinutes(s.session_time), s.duration_minutes || 60, minutes, duration)) {
+        const m = members.find((mm) => mm.id === s.member_id);
+        return `${trainer} already has a session at ${s.session_time.substring(0, 5)} with ${m?.full_name || "another member"} on this date.`;
       }
     }
-
-    // 3. Deduct Remaining Sessions
-    const { error: planErr } = await supabase.from("member_purchased_plans")
-      .update({ sessions_remaining: Math.max(0, activePlan.sessions_remaining - totalToGenerate) })
-      .eq("id", activePlan.id);
-
-    setActionLoading(false);
-    if (planErr) {
-      setActionError("Generated sessions, but failed to deduct sessions remaining: " + planErr.message);
-    } else {
-      setActionSuccess(`Successfully assigned member and generated ${totalToGenerate} sessions!`);
-      setShowAssignModal(false);
-      loadData();
-    }
-  };
+    return null;
+  }
 
   const handleBookIndividualSession = async (e: React.FormEvent) => {
     e.preventDefault();
+    setActionError(null);
+
     if (!bookMemberId) {
       setActionError("Please select a member.");
       return;
     }
-
-    // Rule: Session can be booked ONLY if a trainer is assigned to that member
-    const isAssigned = assignments.some(a => a.member_id === bookMemberId);
-    if (!isAssigned) {
-      setActionError("Cannot book PT session: This member has not been assigned a trainer yet. Please assign a trainer to this member first.");
+    if (!bookTrainerName) {
+      setActionError("Please select a trainer from staff.");
       return;
     }
 
@@ -467,6 +360,7 @@ export default function PtSchedulerPage() {
       setActionError("Member does not have an active PT Package or remaining sessions.");
       return;
     }
+
     // Fresh branch verification (never trust possibly-stale list state).
     const { data: freshBookMember } = await supabase
       .from("approved_members")
@@ -484,28 +378,60 @@ export default function PtSchedulerPage() {
     }
     const bookBranch = freshBookBranch || activeLocationId || null;
 
-    setActionLoading(true);
-    setActionError(null);
-
-    const sessionsToBook = bookOption === "one" ? 1 : activePlan.sessions_remaining;
-    const sessionInserts = [];
-
-    // For simplicity, multiple bookings are scheduled on consecutive weeks on the same selected day
-    const baseDate = new Date(bookDate + "T00:00:00");
-    for (let i = 0; i < sessionsToBook; i++) {
-      const sessDateObj = new Date(baseDate);
-      sessDateObj.setDate(baseDate.getDate() + i * 7);
-      sessionInserts.push({
-        member_id: bookMemberId,
-        trainer_name: selectedTrainer,
-        session_date: sessDateObj.toISOString().split("T")[0],
-        session_time: bookTime,
-        duration_minutes: bookDuration,
-        status: "scheduled",
-        purchased_plan_id: activePlan.id,
-        ...(bookBranch ? { location_id: bookBranch } : {}),
-      });
+    // Build the concrete list of slots this booking will create, then reject
+    // the whole booking on any clash (rather than half-creating it).
+    const requestedCount = bookOption === "one" ? 1 : bookOption === "weekly" ? bookWeeks : activePlan.sessions_remaining;
+    if (requestedCount > activePlan.sessions_remaining) {
+      setActionError(`Member only has ${activePlan.sessions_remaining} sessions left in their plan, but this booking needs ${requestedCount}.`);
+      return;
     }
+
+    const baseDate = new Date(bookDate + "T00:00:00");
+    const slotDates: string[] = [];
+    for (let i = 0; i < requestedCount; i++) {
+      const d = new Date(baseDate);
+      d.setDate(baseDate.getDate() + i * 7);
+      slotDates.push(d.toISOString().split("T")[0]);
+    }
+
+    const slotMinutes = toMinutes(bookTime);
+    for (const d of slotDates) {
+      const clash = findTrainerConflict(bookTrainerName, d, slotMinutes, bookDuration);
+      if (clash) {
+        setActionError(clash);
+        return;
+      }
+    }
+
+    setActionLoading(true);
+
+    // Assigning the trainer to the member is a side effect of booking, not a
+    // separate action — this is what "assign trainer" now means.
+    const { error: assignErr } = await supabase.from("pt_assignments").upsert({
+      member_id: bookMemberId,
+      trainer_name: bookTrainerName,
+      start_date: slotDates[0],
+      duration_minutes: bookDuration,
+      start_time: bookTime,
+      recurring_days: bookOption === "weekly" ? [new Date(baseDate).getDay()] : [],
+      ...(bookBranch ? { location_id: bookBranch } : {}),
+    });
+    if (assignErr) {
+      setActionError("Failed to save trainer assignment: " + assignErr.message);
+      setActionLoading(false);
+      return;
+    }
+
+    const sessionInserts = slotDates.map((d) => ({
+      member_id: bookMemberId,
+      trainer_name: bookTrainerName,
+      session_date: d,
+      session_time: bookTime,
+      duration_minutes: bookDuration,
+      status: "scheduled",
+      purchased_plan_id: activePlan.id,
+      ...(bookBranch ? { location_id: bookBranch } : {}),
+    }));
 
     const { data: insertedBooked, error: sessErr } = await supabase.from("pt_sessions").insert(sessionInserts).select("id");
     if (sessErr) {
@@ -531,14 +457,18 @@ export default function PtSchedulerPage() {
 
     // Deduct count
     const { error: planErr } = await supabase.from("member_purchased_plans")
-      .update({ sessions_remaining: Math.max(0, activePlan.sessions_remaining - sessionsToBook) })
+      .update({ sessions_remaining: Math.max(0, activePlan.sessions_remaining - requestedCount) })
       .eq("id", activePlan.id);
 
     setActionLoading(false);
     if (planErr) {
       setActionError("Booked session, but failed to deduct sessions remaining: " + planErr.message);
     } else {
-      setActionSuccess(`Successfully booked ${sessionsToBook} session(s)!`);
+      setActionSuccess(
+        requestedCount === 1
+          ? `Booked 1 PT session with ${bookTrainerName}.`
+          : `Booked ${requestedCount} PT sessions with ${bookTrainerName}.`
+      );
       setShowBookModal(false);
       loadData();
     }
@@ -659,7 +589,7 @@ export default function PtSchedulerPage() {
             PT <span className="text-accent">Scheduler</span>
           </h1>
           <p className="text-sm text-fg-3 mt-1.5 font-medium">
-            Manage personal training trainer calendars, recurring assignments, and status tracking
+            Manage personal training trainer calendars, session bookings, and status tracking
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -685,24 +615,17 @@ export default function PtSchedulerPage() {
 
           <button
             onClick={() => {
-              setAssignMemberId("");
-              setAssignDays([]);
-              setIsRecurring(false);
-              setShowAssignModal(true);
+              setBookMemberId("");
+              setBookOption("one");
+              setBookWeeks(4);
+              setBookDate(getTodayIstString());
+              setActionError(null);
+              setActionSuccess(null);
+              setShowBookModal(true);
             }}
             className="px-5 py-3 rounded-2xl bg-accent text-white text-xs font-bold hover:bg-accent-2 shadow-md shadow-accent/25 flex items-center gap-1.5"
           >
-            <span>+</span> Assign Trainer
-          </button>
-
-          <button
-            onClick={() => {
-              setBookMemberId("");
-              setShowBookModal(true);
-            }}
-            className="px-5 py-3 rounded-2xl bg-surface border border-accent/30 text-accent hover:bg-accent/5 text-xs font-bold shadow-xs"
-          >
-            Book Session
+            <span>+</span> Book Session
           </button>
         </div>
       </div>
@@ -812,152 +735,6 @@ export default function PtSchedulerPage() {
         </div>
       </div>
 
-      {/* ─── ASSIGN TRAINER MODAL ─────────────────────────────────────────── */}
-      {showAssignModal && (
-        <Modal>
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 sm:p-6">
-          <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-xl w-full p-7 flex flex-col animate-fade-in space-y-4 max-h-[85dvh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-line pb-4">
-              <div>
-                <h3 className="text-xl font-extrabold text-fg">Assign Trainer &amp; Recurring Schedule</h3>
-                <p className="text-xs text-fg-4 mt-0.5">Assign a trainer to a member and pre-generate training blocks</p>
-              </div>
-              <button onClick={() => setShowAssignModal(false)} className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-base font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
-            </div>
-
-            <form onSubmit={handleAssignTrainer} className="space-y-4">
-              {/* Member Selection */}
-              <div>
-                <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Select Member (Must have active PT Package) *</label>
-                <select
-                  required
-                  value={assignMemberId}
-                  onChange={(e) => setAssignMemberId(e.target.value)}
-                  className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
-                >
-                  <option value="">-- Choose Member --</option>
-                  {members.map(m => {
-                    const plan = m.ptPlans[0];
-                    const label = plan ? `${plan.plan_name} (${plan.sessions_remaining} sessions left)` : "No PT Package";
-                    return (
-                      <option key={m.id} value={m.id} disabled={!plan}>
-                        {m.full_name} — {label}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              {/* Trainer Select */}
-              <div>
-                <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Trainer *</label>
-                <select
-                  value={assignTrainerName}
-                  onChange={(e) => setAssignTrainerName(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-[11px] font-semibold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
-                >
-                  {trainers.length === 0 && <option value="" disabled>No trainers found in staff</option>}
-                  {trainers.map(t => <option key={t.id} value={t.full_name}>{t.full_name}{t.specialization ? ` — ${t.specialization}` : ""}</option>)}
-                </select>
-              </div>
-
-              {/* Start Date, Time & Duration */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Start Date *</label>
-                  <input type="date" required value={assignStartDate} onChange={(e) => setAssignStartDate(e.target.value)} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg" />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Start Time *</label>
-                  <input type="time" required value={assignStartTime} onChange={(e) => setAssignStartTime(e.target.value)} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg" />
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Duration (mins)</label>
-                  <input type="number" min="15" step="15" value={assignDuration} onChange={(e) => setAssignDuration(Number(e.target.value))} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg" />
-                </div>
-              </div>
-
-              {/* Recurring checkbox */}
-              <div className="flex items-center gap-2.5">
-                <input
-                  type="checkbox"
-                  id="isRecurring"
-                  checked={isRecurring}
-                  onChange={(e) => {
-                    setIsRecurring(e.target.checked);
-                    if (!e.target.checked) {
-                      setAssignDays([]);
-                      setAssignWeeks(4);
-                    }
-                  }}
-                  className="w-4 h-4 accent-accent rounded"
-                />
-                <label htmlFor="isRecurring" className="text-xs font-bold text-fg-3 uppercase tracking-wider cursor-pointer">
-                  Recurring Schedule
-                </label>
-              </div>
-
-              {/* Day of Week Selector — only when recurring */}
-              {isRecurring && (
-              <div>
-                <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-2">Recurring Days *</label>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
-                    <button
-                      key={day}
-                      type="button"
-                      onClick={() => toggleAssignDay(i)}
-                      className={`w-10 h-10 rounded-full text-xs font-extrabold transition-all ${
-                        assignDays.includes(i)
-                          ? "bg-accent text-white shadow-md shadow-accent/30"
-                          : "bg-surface border border-line/20 text-fg-3 hover:border-accent/50"
-                      }`}
-                    >
-                      {day}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              )}
-
-              {/* Number of Weeks — only when recurring */}
-              {isRecurring && (
-              <div className="flex items-center gap-3 pt-2">
-                <span className="text-[11px] font-bold text-fg-3 uppercase tracking-wider">Repeat for</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="12"
-                  value={assignWeeks}
-                  onChange={(e) => setAssignWeeks(Math.max(1, Number(e.target.value)))}
-                  className="w-16 p-2 bg-surface-2 border border-line-2 rounded-lg text-center font-extrabold text-xs text-fg focus:outline-none"
-                />
-                <span className="text-[11px] font-bold text-fg-3">weeks</span>
-                {assignDays.length > 0 && (
-                  <span className="text-[10px] font-bold text-accent bg-accent/10 px-2 py-1.5 rounded-lg">
-                    = {assignDays.length * assignWeeks} sessions
-                  </span>
-                )}
-              </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-line">
-                <button type="button" onClick={() => setShowAssignModal(false)} className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-xs text-fg hover:bg-black/5">Cancel</button>
-                <button
-                  type="submit"
-                  disabled={actionLoading || (isRecurring && assignDays.length === 0) || !assignMemberId}
-                  className="px-6 py-2.5 bg-accent text-white font-extrabold text-xs rounded-xl hover:bg-accent-2 disabled:opacity-50"
-                >
-                  {isRecurring ? 'Assign & Generate Sessions' : 'Assign Trainer'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-        </Modal>
-      )}
-
       {/* ─── BOOK INDIVIDUAL SESSION MODAL ────────────────────────────────── */}
       {showBookModal && (
         <Modal>
@@ -965,8 +742,8 @@ export default function PtSchedulerPage() {
           <div className="bg-surface rounded-3xl border border-line shadow-2xl max-w-lg w-full p-7 flex flex-col animate-fade-in space-y-4 max-h-[85dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-line pb-4">
               <div>
-                <h3 className="text-xl font-extrabold text-fg">Book Individual Session</h3>
-                <p className="text-xs text-fg-4 mt-0.5">Schedule a single PT appointment for a trainer</p>
+                <h3 className="text-xl font-extrabold text-fg">Book PT Session</h3>
+                <p className="text-xs text-fg-4 mt-0.5">Pick the trainer — this assigns them to the member and books the session</p>
               </div>
               <button onClick={() => setShowBookModal(false)} className="w-8 h-8 rounded-full bg-surface-2 hover:bg-accent/10 text-base font-bold text-fg-3 flex items-center justify-center transition-colors">✕</button>
             </div>
@@ -974,7 +751,7 @@ export default function PtSchedulerPage() {
             <form onSubmit={handleBookIndividualSession} className="space-y-4">
               {/* Member Selector */}
               <div>
-                <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Select Member *</label>
+                <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Select Member (Must have active PT Package) *</label>
                 <select
                   required
                   value={bookMemberId}
@@ -994,22 +771,69 @@ export default function PtSchedulerPage() {
                 </select>
               </div>
 
+              {/* Trainer Select — from staff */}
+              <div>
+                <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Assign Trainer *</label>
+                <select
+                  required
+                  value={bookTrainerName}
+                  onChange={(e) => {
+                    setBookTrainerName(e.target.value);
+                    setSelectedTrainer(e.target.value);
+                  }}
+                  className="w-full p-3 rounded-2xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg focus:ring-2 focus:ring-accent/30 focus:outline-none"
+                >
+                  <option value="">-- Choose Trainer --</option>
+                  {trainers.length === 0 && <option value="" disabled>No trainers found in staff</option>}
+                  {trainers.map(t => <option key={t.id} value={t.full_name}>{t.full_name}{t.specialization ? ` — ${t.specialization}` : ""}</option>)}
+                </select>
+                {bookMemberId && (() => {
+                  const current = assignments.find(a => a.member_id === bookMemberId);
+                  return current ? (
+                    <p className="text-[11px] text-fg-4 mt-1.5">
+                      Currently assigned to <span className="font-bold text-accent">{current.trainer_name}</span>. Choosing a different trainer here switches them over.
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-fg-4 mt-1.5">This member has no trainer yet — the one you pick gets assigned.</p>
+                  );
+                })()}
+              </div>
+
               {/* Book Option Choice */}
               <div>
                 <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-2">Booking Option *</label>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                   <label className="flex items-center gap-2 text-xs font-bold text-fg cursor-pointer">
                     <input type="radio" name="bookOption" checked={bookOption === "one"} onChange={() => setBookOption("one")} className="w-4 h-4 accent-accent" />
-                    Book One Session
+                    One Session
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-bold text-fg cursor-pointer">
+                    <input type="radio" name="bookOption" checked={bookOption === "weekly"} onChange={() => setBookOption("weekly")} className="w-4 h-4 accent-accent" />
+                    Weekly x
                   </label>
                   <label className="flex items-center gap-2 text-xs font-bold text-fg cursor-pointer">
                     <input type="radio" name="bookOption" checked={bookOption === "all"} onChange={() => setBookOption("all")} className="w-4 h-4 accent-accent" />
-                    Book All Remaining Sessions
+                    All Remaining
                   </label>
                 </div>
               </div>
 
-              {/* Date & Time */}
+              {bookOption === "weekly" && (
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] font-bold text-fg-3 uppercase tracking-wider">Repeat for</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="24"
+                    value={bookWeeks}
+                    onChange={(e) => setBookWeeks(Math.max(1, Math.min(24, Number(e.target.value) || 1)))}
+                    className="w-16 p-2 bg-surface-2 border border-line-2 rounded-lg text-center font-extrabold text-xs text-fg focus:outline-none"
+                  />
+                  <span className="text-[11px] font-bold text-fg-3">weeks, same weekday</span>
+                </div>
+              )}
+
+              {/* Date & Time & Duration */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
                   <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Date *</label>
@@ -1021,10 +845,27 @@ export default function PtSchedulerPage() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-[11px] font-bold text-fg-3 uppercase tracking-wider mb-1.5">Duration (mins)</label>
+                <input type="number" min="15" step="15" value={bookDuration} onChange={(e) => setBookDuration(Math.max(15, Number(e.target.value) || 60))} className="w-full p-2.5 rounded-xl border border-line-2 bg-surface-2 text-xs font-semibold text-fg" />
+              </div>
+
+              {(() => {
+                const plan = members.find(m => m.id === bookMemberId)?.ptPlans[0];
+                if (!plan) return null;
+                const count = bookOption === "one" ? 1 : bookOption === "weekly" ? bookWeeks : plan.sessions_remaining;
+                const over = count > plan.sessions_remaining;
+                return (
+                  <div className={`text-[11px] font-bold px-3 py-2 rounded-xl border ${over ? "bg-red-500/10 border-red-400/30 text-red-600" : "bg-accent/10 border-accent/20 text-accent"}`}>
+                    Will book {count} session{count === 1 ? "" : "s"} — {plan.sessions_remaining - count}/{plan.sessions_total} will remain.
+                  </div>
+                );
+              })()}
+
               {/* Actions */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-line">
                 <button type="button" onClick={() => setShowBookModal(false)} className="px-5 py-2.5 border border-line-2 rounded-xl font-bold text-xs text-fg hover:bg-black/5">Cancel</button>
-                <button type="submit" disabled={actionLoading || !bookMemberId} className="px-6 py-2.5 bg-accent text-white font-extrabold text-xs rounded-xl hover:bg-accent-2 disabled:opacity-50">Book Session</button>
+                <button type="submit" disabled={actionLoading || !bookMemberId || !bookTrainerName} className="px-6 py-2.5 bg-accent text-white font-extrabold text-xs rounded-xl hover:bg-accent-2 disabled:opacity-50">Book Session</button>
               </div>
             </form>
           </div>
@@ -1191,12 +1032,21 @@ export default function PtSchedulerPage() {
               ) : (
                 ptMembers.map(m => {
                   const plan = m.ptPlans[0];
+                  const assigned = assignments.find(a => a.member_id === m.id);
                   return (
                     <div key={m.id} className="flex items-center justify-between p-3 rounded-2xl border border-line bg-surface-2">
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-fg truncate">{m.full_name}</p>
                         <p className="text-xs text-fg-3 truncate">{plan?.plan_name || "PT Package"}</p>
-                        <p className="text-xs text-fg-4 truncate">{m.email} • {m.phone_number}</p>
+                        <p className="text-xs text-fg-4 truncate">
+                          {m.email} • {m.phone_number}
+                        </p>
+                        <p className="text-xs mt-1 truncate">
+                          <span className="text-fg-4">Trainer: </span>
+                          <span className={assigned ? "font-bold text-accent" : "text-fg-5 italic"}>
+                            {assigned ? assigned.trainer_name : "not assigned yet"}
+                          </span>
+                        </p>
                       </div>
                       <span className="text-xs font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-full flex-shrink-0 ml-3">
                         {plan ? `${plan.sessions_remaining}/${plan.sessions_total}` : "—"}

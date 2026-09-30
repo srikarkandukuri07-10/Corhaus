@@ -12,6 +12,10 @@ interface ClassData {
   class_date: string;
   class_time: string;
   max_capacity: number;
+  // PT sessions carry their own lifecycle; regular classes do not.
+  isPt?: boolean;
+  ptStatus?: string;
+  durationMinutes?: number;
 }
 
 interface BookingData {
@@ -65,6 +69,11 @@ function parseAsIst(dateStr: string, timeStr: string): number {
 
 
 
+function sessionLengthMins(cls: ClassData): number {
+  if (cls.isPt && cls.durationMinutes && cls.durationMinutes > 0) return cls.durationMinutes;
+  return 60;
+}
+
 function isClassStarted(cls: ClassData, now: number): boolean {
   const classStart = parseAsIst(cls.class_date, cls.class_time);
   return now >= classStart;
@@ -72,12 +81,12 @@ function isClassStarted(cls: ClassData, now: number): boolean {
 
 function isClassOngoing(cls: ClassData, now: number): boolean {
   const classStart = parseAsIst(cls.class_date, cls.class_time);
-  return now >= classStart && now < classStart + 60 * 60 * 1000;
+  return now >= classStart && now < classStart + sessionLengthMins(cls) * 60 * 1000;
 }
 
 function isClassOver(cls: ClassData, now: number): boolean {
   const classStart = parseAsIst(cls.class_date, cls.class_time);
-  return now >= classStart + 60 * 60 * 1000;
+  return now >= classStart + sessionLengthMins(cls) * 60 * 1000;
 }
 
 export default function MemberDashboard() {
@@ -186,7 +195,7 @@ export default function MemberDashboard() {
       supabase.from("pt_sessions")
         .select("*")
         .or(`member_id.eq.${approvedMemberId || user.id},member_id.eq.${user.id}`)
-        .in("status", ["scheduled", "completed"])
+        .in("status", ["scheduled", "completed", "no-show"])
         .order("session_date", { ascending: true })
         .order("session_time", { ascending: true }),
     ]);
@@ -214,16 +223,21 @@ export default function MemberDashboard() {
     const ptSessionsList = (ptData.data || []) as PtSessionData[];
     setPtSessions(ptSessionsList);
 
-    const ptAsClasses: ClassData[] = ptSessionsList
-      .filter(pt => pt.status === "scheduled")
-      .map(pt => ({
-        id: `pt_${pt.id}`,
-        title: `PT Session with ${pt.trainer_name}`,
-        instructor: pt.trainer_name,
-        class_date: pt.session_date,
-        class_time: pt.session_time,
-        max_capacity: 1,
-      }));
+    // Every PT session the member can still see (scheduled, completed or
+    // no-show) becomes a card. Cancelled sessions are already excluded by the
+    // query above. A completed session must KEEP its card — it is the member's
+    // session history, not something to vanish.
+    const ptAsClasses: ClassData[] = ptSessionsList.map((pt) => ({
+      id: `pt_${pt.id}`,
+      title: `PT Session with ${pt.trainer_name}`,
+      instructor: pt.trainer_name,
+      class_date: pt.session_date,
+      class_time: pt.session_time,
+      max_capacity: 1,
+      isPt: true,
+      ptStatus: pt.status,
+      durationMinutes: pt.duration_minutes || 60,
+    }));
     const allClasses = [...(cr.data || []), ...ptAsClasses];
     setClasses(allClasses);
     classesRef.current = allClasses;
@@ -232,6 +246,9 @@ export default function MemberDashboard() {
     if (br.data) {
       userBookings = br.data as unknown as BookingData[];
     }
+    // A PT session is "booked" for the member while it is still live
+    // (scheduled). Completed / no-show sessions keep their card but are no
+    // longer cancellable or scannable.
     const ptBookings: BookingData[] = ptSessionsList
       .filter(pt => pt.status === "scheduled")
       .map(pt => ({
@@ -549,6 +566,9 @@ export default function MemberDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {classes
             .filter((cls) => {
+              // A finished PT session (completed / no-show) is history, not a
+              // stale offer — keep its card on the dashboard forever.
+              if (cls.isPt && cls.ptStatus !== "scheduled") return true;
               const hasBooking = bookings.some((b) => b.class_id === cls.id);
               if (hasBooking) return true;
               return !isClassOver(cls, currentTime);
@@ -559,17 +579,32 @@ export default function MemberDashboard() {
               const isCancelled = matchingBooking?.booking_status === "cancelled";
               const booked = Boolean(matchingBooking) && !isCancelled || forceBookedIds.has(cls.id);
               const attendance = attendanceRecords.find((a) => a.class_id === cls.id);
+              const ptCompleted = isPt && cls.ptStatus === "completed";
+              const ptNoShow = isPt && cls.ptStatus === "no-show";
               const isCheckedInOrAttended =
                 attendance?.attendance_status === "attended" ||
+                ptCompleted ||
                 matchingBooking?.booking_status === "checked_in" ||
                 matchingBooking?.booking_status === "attended" ||
                 matchingBooking?.booking_status === "completed";
 
               const isExpired = isClassOver(cls, currentTime);
-              const isNoShow = (booked || matchingBooking?.booking_status === "no_show") && !isCheckedInOrAttended && !isCancelled && isExpired;
+              // PT attendance is recorded by the trainer/admin (or by the member
+              // scanning the reception QR), so status comes from pt_sessions —
+              // never inferred from the clock. Regular classes keep the
+              // time-based no-show inference.
+              const isNoShow = isPt
+                ? ptNoShow
+                : (booked || matchingBooking?.booking_status === "no_show") && !isCheckedInOrAttended && !isCancelled && isExpired;
 
               const started = isClassStarted(cls, currentTime);
               const ongoing = isClassOngoing(cls, currentTime);
+              // The reception QR only works inside the session window, so only
+              // offer the scanner while it can actually succeed.
+              const sessionStart = parseAsIst(cls.class_date, cls.class_time);
+              const scanOpensAt = sessionStart - 30 * 60 * 1000;
+              const scanClosesAt = sessionStart + (sessionLengthMins(cls) + 60) * 60 * 1000;
+              const canScan = currentTime >= scanOpensAt && currentTime <= scanClosesAt;
 
               return (
                 <div key={cls.id} className="bg-surface rounded-2xl border border-line p-4 sm:p-5 hover:shadow-md transition-all flex flex-col justify-between min-w-0 overflow-hidden">
@@ -602,7 +637,7 @@ export default function MemberDashboard() {
                       <div className="flex-shrink-0 ml-2 flex flex-wrap gap-1.5 justify-end max-w-[110px] sm:max-w-none">
                         {isCheckedInOrAttended && (
                           <span className="text-xs font-semibold text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/20 shrink-0">
-                            ✓ Attended
+                            ✓ {ptCompleted ? "Completed" : "Attended"}
                           </span>
                         )}
                         {isNoShow && (
@@ -639,7 +674,7 @@ export default function MemberDashboard() {
                       </div>
 
                       {/* Scanner option for booked classes */}
-                      {booked && !isCheckedInOrAttended && !isNoShow && !isCancelled && (
+                      {booked && !isCheckedInOrAttended && !isNoShow && !isCancelled && (!isPt || canScan) && (
                         <div className="mt-4">
                           <a href={`/member/scanner?classId=${cls.id}`} className="block w-full py-3 rounded-xl text-sm font-bold text-center bg-accent text-white hover:bg-accent-2 shadow-md shadow-accent/20">
                             📷 Scan Attendance QR
@@ -647,7 +682,7 @@ export default function MemberDashboard() {
                           <p className="text-[11px] text-fg-5 text-center mt-1.5">Scan the QR at reception to mark attendance</p>
                         </div>
                       )}
-                      {isCheckedInOrAttended && (
+                      {isCheckedInOrAttended && !isPt && (
                         <div className="mt-4">
                           <div className="w-full py-2.5 rounded-xl text-sm font-semibold text-center bg-green-500/10 text-green-600 border border-green-500/20">
                             ✓ Scanned, attendance marked
@@ -658,7 +693,33 @@ export default function MemberDashboard() {
                   </div>
 
                   <div className="mt-4 space-y-2">
-                    {isCheckedInOrAttended ? (
+                    {isPt ? (
+                      ptCompleted ? (
+                        <div className="w-full py-2.5 rounded-xl text-sm font-semibold text-center bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                          ✓ Session Completed
+                        </div>
+                      ) : isNoShow ? (
+                        <div className="w-full py-2.5 rounded-xl text-sm font-semibold text-center bg-red-500/10 text-red-600 border border-red-500/20">
+                          ✕ No Show
+                        </div>
+                      ) : isCancelled ? (
+                        <div className="w-full py-2.5 rounded-xl text-sm font-semibold text-center bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                          ↩ Cancelled (Session Restored)
+                        </div>
+                      ) : ongoing ? (
+                        <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-text-gold/10 text-text-gold border border-text-gold/20">
+                          Session in progress
+                        </div>
+                      ) : started ? (
+                        <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-hover text-fg-4 border border-line">
+                          Awaiting trainer confirmation
+                        </div>
+                      ) : (
+                        <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-accent/10 text-accent border border-accent/20">
+                          Personal Training Session
+                        </div>
+                      )
+                    ) : isCheckedInOrAttended ? (
                       <div className="w-full py-2.5 rounded-xl text-sm font-semibold text-center bg-green-500/10 text-green-600 border border-green-500/20">
                         ✓ Attended (QR Scanned)
                       </div>
@@ -669,10 +730,6 @@ export default function MemberDashboard() {
                     ) : isCancelled ? (
                       <div className="w-full py-2.5 rounded-xl text-sm font-semibold text-center bg-amber-500/10 text-amber-600 border border-amber-500/20">
                         ↩ Cancelled (Credit Restored)
-                      </div>
-                    ) : isPt && booked && !started ? (
-                      <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-accent/10 text-accent border border-accent/20">
-                        Personal Training Session
                       </div>
                     ) : ongoing && booked ? (
                       <div className="w-full py-2.5 rounded-xl text-sm font-medium text-center bg-text-gold/10 text-text-gold border border-text-gold/20">

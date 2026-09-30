@@ -74,7 +74,10 @@ export default function BookingsPage() {
         ptBookings = ptSessions.map((pt: any) => ({
           id: pt.id,
           class_id: pt.id,
-          booking_status: pt.status === "no-show" ? "no_show" : pt.status,
+          // Normalise to the same vocabulary the class-booking filters use:
+          // a live PT session is an open ("booked") booking.
+          booking_status:
+            pt.status === "scheduled" ? "booked" : pt.status === "no-show" ? "no_show" : pt.status,
           created_at: pt.created_at,
           cancelled_at: pt.status === "cancelled" ? pt.created_at : null,
           classes: {
@@ -213,7 +216,11 @@ export default function BookingsPage() {
   );
 
   const pastBookings = bookings.filter((b) => {
-    if (b.booking_status !== "booked" || !b.classes) return false;
+    if (!b.classes) return false;
+    // A completed/no-show PT session is settled history, not an open booking —
+    // keep it listed instead of letting it fall through every filter.
+    const settled = b.isPT && (b.booking_status === "completed" || b.booking_status === "no_show");
+    if (!settled && b.booking_status !== "booked") return false;
     const classDateTime = new Date(
       `${b.classes.class_date}T${b.classes.class_time}`
     );
@@ -424,7 +431,9 @@ export default function BookingsPage() {
                 {pastBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="bg-surface rounded-2xl border border-line p-4 sm:p-5 opacity-50 min-w-0"
+                    className={`bg-surface rounded-2xl border border-line p-4 sm:p-5 min-w-0 ${
+                      booking.isPT ? "" : "opacity-50"
+                    }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -466,7 +475,7 @@ export default function BookingsPage() {
                         }`}
                       >
                         {booking.booking_status === "checked_in" || booking.booking_status === "attended" || booking.booking_status === "completed"
-                          ? "✓ Attended"
+                          ? (booking.isPT ? "✓ Completed" : "✓ Attended")
                           : booking.booking_status === "no_show"
                           ? "✕ No Show"
                           : booking.booking_status === "cancelled"
