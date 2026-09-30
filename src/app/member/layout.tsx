@@ -98,6 +98,12 @@ export default function MemberLayout({
 
         if (!isActiveStatus || !isPhoneMatched) {
           if (timeoutId) clearTimeout(timeoutId);
+          // Server signout FIRST: client-side signOut alone cannot clear the
+          // httpOnly session cookies, and the proxy would bounce us right back
+          // to /member (infinite Loading loop). Same pattern as manual Sign Out.
+          try {
+            await fetch("/api/auth/signout", { method: "POST", cache: "no-store" });
+          } catch {}
           await supabase.auth.signOut();
           router.push("/auth/login?error=not_approved");
           return;
@@ -137,6 +143,11 @@ export default function MemberLayout({
         if (err.message !== "Loading timed out. Please refresh.") {
           // Don't auto sign out on timeout — let user retry
           if (!err.message.includes("timed out")) {
+            // Server signout first so httpOnly cookies are cleared too;
+            // otherwise the proxy redirects straight back here (loop).
+            try {
+              await fetch("/api/auth/signout", { method: "POST", cache: "no-store" });
+            } catch {}
             await supabase.auth.signOut();
             router.push("/auth/login");
           }
