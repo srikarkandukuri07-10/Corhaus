@@ -407,6 +407,10 @@ export default function PtSchedulerPage() {
 
     // Assigning the trainer to the member is a side effect of booking, not a
     // separate action — this is what "assign trainer" now means.
+    // One assignment per member (pt_assignments.member_id is UNIQUE), so the
+    // conflict target must be member_id. Without it PostgREST targets the
+    // primary key, tries to INSERT a second row, and the member hits
+    // "duplicate key value violates unique constraint pt_assignments_member_id_key".
     const { error: assignErr } = await supabase.from("pt_assignments").upsert({
       member_id: bookMemberId,
       trainer_name: bookTrainerName,
@@ -415,7 +419,7 @@ export default function PtSchedulerPage() {
       start_time: bookTime,
       recurring_days: bookOption === "weekly" ? [new Date(baseDate).getDay()] : [],
       ...(bookBranch ? { location_id: bookBranch } : {}),
-    });
+    }, { onConflict: "member_id" });
     if (assignErr) {
       setActionError("Failed to save trainer assignment: " + assignErr.message);
       setActionLoading(false);
