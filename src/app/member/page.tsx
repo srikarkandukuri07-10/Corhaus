@@ -599,12 +599,6 @@ export default function MemberDashboard() {
 
               const started = isClassStarted(cls, currentTime);
               const ongoing = isClassOngoing(cls, currentTime);
-              // The reception QR only works inside the session window, so only
-              // offer the scanner while it can actually succeed.
-              const sessionStart = parseAsIst(cls.class_date, cls.class_time);
-              const scanOpensAt = sessionStart - 30 * 60 * 1000;
-              const scanClosesAt = sessionStart + (sessionLengthMins(cls) + 60) * 60 * 1000;
-              const canScan = currentTime >= scanOpensAt && currentTime <= scanClosesAt;
 
               return (
                 <div key={cls.id} className="bg-surface rounded-2xl border border-line p-4 sm:p-5 hover:shadow-md transition-all flex flex-col justify-between min-w-0 overflow-hidden">
@@ -673,8 +667,8 @@ export default function MemberDashboard() {
                         {formatTime(cls.class_time)}
                       </div>
 
-                      {/* Scanner option for booked classes */}
-                      {booked && !isCheckedInOrAttended && !isNoShow && !isCancelled && (!isPt || canScan) && (
+                      {/* Scanner option for booked classes — identical for PT and non-PT */}
+                      {booked && !isCheckedInOrAttended && !isNoShow && !isCancelled && (
                         <div className="mt-4">
                           <a href={`/member/scanner?classId=${cls.id}`} className="block w-full py-3 rounded-xl text-sm font-bold text-center bg-accent text-white hover:bg-accent-2 shadow-md shadow-accent/20">
                             📷 Scan Attendance QR
