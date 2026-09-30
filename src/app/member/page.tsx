@@ -667,8 +667,8 @@ export default function MemberDashboard() {
                         {formatTime(cls.class_time)}
                       </div>
 
-                      {/* Scanner option for booked classes — identical for PT and non-PT */}
-                      {booked && !isCheckedInOrAttended && !isNoShow && !isCancelled && (
+                      {/* Scanner option: shown from booking until the session ends */}
+                      {booked && !isCheckedInOrAttended && !isNoShow && !isCancelled && !isClassOver(cls, currentTime) && (
                         <div className="mt-4">
                           <a href={`/member/scanner?classId=${cls.id}`} className="block w-full py-3 rounded-xl text-sm font-bold text-center bg-accent text-white hover:bg-accent-2 shadow-md shadow-accent/20">
                             📷 Scan Attendance QR

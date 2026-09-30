@@ -10,10 +10,7 @@ function parseAsIst(dateStr: string, timeStr: string): number {
   return d.getTime() + (IST_OFFSET - browserOffset);
 }
 
-// The reception QR opens 30 minutes before a session and closes one hour after
-// it ends, so members can scan on arrival and shortly after a late finish.
-const SCAN_OPEN_LEAD_MS = 30 * 60 * 1000;
-const SCAN_CLOSE_GRACE_MS = 60 * 60 * 1000;
+// A booking is scannable from the moment it is booked until the session ends.
 
 type PtSessionRow = {
   id: string;
@@ -126,9 +123,10 @@ export async function POST(req: Request) {
     for (const s of ptSessions || []) {
       if (memberBranch && s.location_id && s.location_id !== memberBranch) continue;
       const start = parseAsIst(s.session_date, s.session_time);
+      // Scannable from the moment it is booked until the session ends, which
+      // matches the scanner button the member sees on their dashboard card.
       const end = start + (s.duration_minutes || 60) * 60 * 1000;
-      if (now < start - SCAN_OPEN_LEAD_MS) continue;
-      if (now > end + SCAN_CLOSE_GRACE_MS) continue;
+      if (now > end) continue;
       ptInWindow.push(s);
     }
 
