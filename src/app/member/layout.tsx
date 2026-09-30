@@ -45,13 +45,15 @@ export default function MemberLayout({
           // No browser session. Clear any leftover server session too, or the
           // proxy (which reads httpOnly cookies) bounces us straight back here
           // and the page spins forever. Landing on login cleanly instead.
+          // The error param tells the login page WHY (vs a silent redirect),
+          // so a repeat is diagnosable instead of mysterious.
           try {
             await fetch("/api/auth/signout", { method: "POST", cache: "no-store" });
           } catch {}
           try {
             await supabase.auth.signOut();
           } catch {}
-          router.push("/auth/login");
+          router.push("/auth/login?error=session_missing");
           return;
         }
 

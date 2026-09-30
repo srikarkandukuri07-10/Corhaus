@@ -97,6 +97,8 @@ function LoginForm() {
       ? "You do not currently have access to the Corhaus Member Portal. Please contact Corhaus staff to activate your membership."
       : urlError === "staff_inactive"
       ? "Your staff account is currently inactive. Please contact your manager."
+      : urlError === "session_missing"
+      ? "Your sign-in didn't complete in this browser. Please sign in again — and if this keeps happening, reload the page to load the latest version before signing in."
       : null;
 
   useEffect(() => {
