@@ -194,16 +194,21 @@ function LoginForm() {
       // Sync the server-established session into the browser Supabase client.
       // Without this, direct browser reads (billing catalogue, invoices, member
       // search) go out unauthenticated and RLS returns empty lists.
-      if (data?.session?.access_token && data?.session?.refresh_token) {
-        const { error: sessErr } = await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
-        if (sessErr) {
-          setError("Signed in, but the browser session could not be established. Please reload and sign in again.");
-          setLoading(false);
-          return;
-        }
+      // Fail LOUDLY if tokens are missing: redirecting without a browser
+      // session is exactly what produced the infinite Loading loop.
+      if (!data?.session?.access_token || !data?.session?.refresh_token) {
+        setError("Signed in on the server, but no browser session was issued. Please reload the page and sign in again.");
+        setLoading(false);
+        return;
+      }
+      const { error: sessErr } = await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
+      if (sessErr) {
+        setError("Signed in, but the browser session could not be established. Please reload and sign in again.");
+        setLoading(false);
+        return;
       }
 
       window.location.href = data.redirectUrl;
@@ -246,16 +251,20 @@ function LoginForm() {
 
       // Sync the server-established session into the browser Supabase client
       // (see handleStaffLoginWithPassword above for why this is required).
-      if (data?.session?.access_token && data?.session?.refresh_token) {
-        const { error: sessErr } = await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
-        if (sessErr) {
-          setError("Password set, but the browser session could not be established. Please sign in with your new password.");
-          setLoading(false);
-          return;
-        }
+      // Fail loudly on missing tokens — never redirect sessionless (loop).
+      if (!data?.session?.access_token || !data?.session?.refresh_token) {
+        setError("Password set, but no browser session was issued. Please reload the page and sign in with your new password.");
+        setLoading(false);
+        return;
+      }
+      const { error: sessErr } = await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
+      if (sessErr) {
+        setError("Password set, but the browser session could not be established. Please sign in with your new password.");
+        setLoading(false);
+        return;
       }
 
       window.location.href = data.redirectUrl;
