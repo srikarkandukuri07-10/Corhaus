@@ -85,7 +85,7 @@ export async function POST(request: Request) {
           },
         });
 
-        const { error: pwdErr } = await ssrClient.auth.signInWithPassword({
+        const { data: { session: pwdSession }, error: pwdErr } = await ssrClient.auth.signInWithPassword({
           email: normalizedEmail,
           password,
         });
@@ -104,7 +104,12 @@ export async function POST(request: Request) {
           );
         }
 
-        const { data: { session: freshSession } } = await ssrClient.auth.getSession();
+        // NOTE: take the session from the sign-in RESPONSE, not getSession().
+        // getSession() re-reads the request cookie jar, which never received the
+        // new cookies (setAll is captured into cookieHeaderMap), so it returns
+        // null — and the browser would be left sessionless (infinite Loading loop).
+        const { data: sessionData } = await ssrClient.auth.getSession();
+        const freshSession = pwdSession || sessionData.session;
         const sessionTokens = freshSession
           ? { access_token: freshSession.access_token, refresh_token: freshSession.refresh_token }
           : null;
@@ -190,7 +195,7 @@ export async function POST(request: Request) {
           },
         });
 
-        const { error: pwdErr } = await ssrClient.auth.signInWithPassword({
+        const { data: { session: pwdSession }, error: pwdErr } = await ssrClient.auth.signInWithPassword({
           email: normalizedEmail,
           password,
         });
@@ -215,7 +220,9 @@ export async function POST(request: Request) {
           );
         }
 
-        const { data: { session: freshSession } } = await ssrClient.auth.getSession();
+        // See developer branch above: session must come from the sign-in response.
+        const { data: sessionData } = await ssrClient.auth.getSession();
+        const freshSession = pwdSession || sessionData.session;
         const sessionTokens = freshSession
           ? { access_token: freshSession.access_token, refresh_token: freshSession.refresh_token }
           : null;
@@ -285,7 +292,7 @@ export async function POST(request: Request) {
         },
       });
 
-      const { error: pwdErr } = await ssrClient.auth.signInWithPassword({
+      const { data: { session: pwdSession }, error: pwdErr } = await ssrClient.auth.signInWithPassword({
         email: normalizedEmail,
         password,
       });
@@ -306,7 +313,9 @@ export async function POST(request: Request) {
         );
       }
 
-      const { data: { session: freshSession } } = await ssrClient.auth.getSession();
+      // See developer branch above: session must come from the sign-in response.
+      const { data: sessionData } = await ssrClient.auth.getSession();
+      const freshSession = pwdSession || sessionData.session;
       const sessionTokens = freshSession
         ? { access_token: freshSession.access_token, refresh_token: freshSession.refresh_token }
         : null;

@@ -160,7 +160,7 @@ export async function POST(request: Request) {
       },
     });
 
-    const { error: signInErr } = await ssrClient.auth.signInWithPassword({
+    const { data: { session: pwdSession }, error: signInErr } = await ssrClient.auth.signInWithPassword({
       email: normalizedEmail,
       password,
     });
@@ -174,7 +174,10 @@ export async function POST(request: Request) {
     }
 
     const redirectUrl = isDev ? "/developer/support" : isStaff ? "/admin" : "/member";
-    const { data: { session: freshSession } } = await ssrClient.auth.getSession();
+    // Session must come from the sign-in response (see login route): getSession()
+    // re-reads the request cookie jar and returns null here.
+    const { data: sessionData } = await ssrClient.auth.getSession();
+    const freshSession = pwdSession || sessionData.session;
     const sessionTokens = freshSession
       ? { access_token: freshSession.access_token, refresh_token: freshSession.refresh_token }
       : null;
