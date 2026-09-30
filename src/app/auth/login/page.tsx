@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, Component } from "react";
+import { useState, Suspense, Component } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -101,17 +101,10 @@ function LoginForm() {
       ? "Your sign-in didn't complete in this browser. Please sign in again — and if this keeps happening, reload the page to load the latest version before signing in."
       : null;
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user && event === "SIGNED_IN") {
-        window.location.href = `${window.location.origin}/`;
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
+  // NOTE: no onAuthStateChange auto-redirect here on purpose. After a
+  // password sign-in the handler below navigates exactly once to the
+  // role-specific URL. A second competing full-page navigation (e.g. to "/")
+  // races it and only adds failure surface.
 
   async function handleCheckEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -211,6 +204,16 @@ function LoginForm() {
         return;
       }
 
+      // Confirm the browser can actually see the new session BEFORE leaving
+      // this page. If it can't (blocked cookies, storage failure), navigating
+      // would land on a spinner/loop — stop here with an actionable message.
+      const { data: { user: confirmUser } } = await supabase.auth.getUser();
+      if (!confirmUser) {
+        setError("Signed in, but this browser couldn't keep the session. Please enable cookies for this site, reload the page, and sign in again.");
+        setLoading(false);
+        return;
+      }
+
       window.location.href = data.redirectUrl;
     } catch (err: any) {
       setError(safeErrorMessage(err));
@@ -263,6 +266,14 @@ function LoginForm() {
       });
       if (sessErr) {
         setError("Password set, but the browser session could not be established. Please sign in with your new password.");
+        setLoading(false);
+        return;
+      }
+
+      // Same confirm-before-navigate guard as the password sign-in above.
+      const { data: { user: confirmUser } } = await supabase.auth.getUser();
+      if (!confirmUser) {
+        setError("Password set, but this browser couldn't keep the session. Please enable cookies for this site, reload, and sign in with your new password.");
         setLoading(false);
         return;
       }
