@@ -42,6 +42,15 @@ export default function MemberLayout({
         } = (await Promise.race([userPromise, timeoutPromise])) as any;
 
         if (userError || !user) {
+          // No browser session. Clear any leftover server session too, or the
+          // proxy (which reads httpOnly cookies) bounces us straight back here
+          // and the page spins forever. Landing on login cleanly instead.
+          try {
+            await fetch("/api/auth/signout", { method: "POST", cache: "no-store" });
+          } catch {}
+          try {
+            await supabase.auth.signOut();
+          } catch {}
           router.push("/auth/login");
           return;
         }
@@ -60,6 +69,10 @@ export default function MemberLayout({
         const { data: profile, error: profileError } = (await Promise.race([profilePromise, timeoutPromise])) as any;
 
         if (profileError) {
+          // Same loop guard as above: clear the server session before leaving.
+          try {
+            await fetch("/api/auth/signout", { method: "POST", cache: "no-store" });
+          } catch {}
           await supabase.auth.signOut();
           router.push("/auth/login");
           return;
