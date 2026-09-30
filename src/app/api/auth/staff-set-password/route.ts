@@ -152,7 +152,8 @@ export async function POST(request: Request) {
               maxAge: 60 * 60 * 24 * 365, // 1 year session (C-1)
               secure: true,
               sameSite: "lax" as const,
-              httpOnly: true,
+              // NOTE: no httpOnly — the browser client must read these cookies
+              // (matches the Google callback route).
             };
             cookieHeaderMap.set(name, { name, value, options: customizedOptions });
           });

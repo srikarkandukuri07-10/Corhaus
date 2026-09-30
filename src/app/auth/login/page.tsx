@@ -184,36 +184,9 @@ function LoginForm() {
         return;
       }
 
-      // Sync the server-established session into the browser Supabase client.
-      // Without this, direct browser reads (billing catalogue, invoices, member
-      // search) go out unauthenticated and RLS returns empty lists.
-      // Fail LOUDLY if tokens are missing: redirecting without a browser
-      // session is exactly what produced the infinite Loading loop.
-      if (!data?.session?.access_token || !data?.session?.refresh_token) {
-        setError("Signed in on the server, but no browser session was issued. Please reload the page and sign in again.");
-        setLoading(false);
-        return;
-      }
-      const { error: sessErr } = await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      });
-      if (sessErr) {
-        setError("Signed in, but the browser session could not be established. Please reload and sign in again.");
-        setLoading(false);
-        return;
-      }
-
-      // Confirm the browser can actually see the new session BEFORE leaving
-      // this page. If it can't (blocked cookies, storage failure), navigating
-      // would land on a spinner/loop — stop here with an actionable message.
-      const { data: { user: confirmUser } } = await supabase.auth.getUser();
-      if (!confirmUser) {
-        setError("Signed in, but this browser couldn't keep the session. Please enable cookies for this site, reload the page, and sign in again.");
-        setLoading(false);
-        return;
-      }
-
+      // The API response sets readable session cookies (same-origin fetch
+      // stores Set-Cookie), which both the proxy and the browser Supabase
+      // client read directly — no client-side session write needed.
       window.location.href = data.redirectUrl;
     } catch (err: any) {
       setError(safeErrorMessage(err));
@@ -252,32 +225,8 @@ function LoginForm() {
         return;
       }
 
-      // Sync the server-established session into the browser Supabase client
-      // (see handleStaffLoginWithPassword above for why this is required).
-      // Fail loudly on missing tokens — never redirect sessionless (loop).
-      if (!data?.session?.access_token || !data?.session?.refresh_token) {
-        setError("Password set, but no browser session was issued. Please reload the page and sign in with your new password.");
-        setLoading(false);
-        return;
-      }
-      const { error: sessErr } = await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      });
-      if (sessErr) {
-        setError("Password set, but the browser session could not be established. Please sign in with your new password.");
-        setLoading(false);
-        return;
-      }
-
-      // Same confirm-before-navigate guard as the password sign-in above.
-      const { data: { user: confirmUser } } = await supabase.auth.getUser();
-      if (!confirmUser) {
-        setError("Password set, but this browser couldn't keep the session. Please enable cookies for this site, reload, and sign in with your new password.");
-        setLoading(false);
-        return;
-      }
-
+      // Same as password sign-in above: the API response cookies already carry
+      // the readable session — navigate directly.
       window.location.href = data.redirectUrl;
     } catch (err: any) {
       setError(safeErrorMessage(err));

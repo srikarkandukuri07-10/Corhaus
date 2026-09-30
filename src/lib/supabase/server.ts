@@ -17,12 +17,15 @@ export async function createClient() {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
               const isDeletion = (options as any)?.maxAge === 0 || (options as any)?.maxAge < 0 || !value;
+              // NOTE: no httpOnly override here on purpose. The browser client
+              // (layouts, RLS reads) must be able to read the session cookies —
+              // exactly like the Google callback route sets them. Forcing
+              // httpOnly blinds the browser and breaks password logins.
               const customizedOptions = {
                 ...options,
                 ...(isDeletion ? {} : { maxAge: 60 * 60 * 24 * 365 }),
                 secure: true,
                 sameSite: "lax" as const,
-                httpOnly: true,
               };
               cookieStore.set(name, value, customizedOptions);
             });

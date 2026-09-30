@@ -34,12 +34,14 @@ export async function updateSession(request: NextRequest) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
             const isDeletion = (options as any)?.maxAge === 0 || (options as any)?.maxAge < 0 || !value;
+            // NOTE: no httpOnly override — session cookies must stay readable
+            // by the browser client (same reason as server.ts). Deletions pass
+            // through untouched so sign-out keeps working.
             const customizedOptions = {
               ...options,
               ...(isDeletion ? {} : { maxAge: 60 * 60 * 24 * 365 }), // 1 year, but respect deletions
               secure: true,
               sameSite: "lax" as const,
-              httpOnly: true,
             };
             request.cookies.set({ name, value, ...customizedOptions });
           });
@@ -48,12 +50,12 @@ export async function updateSession(request: NextRequest) {
           });
           cookiesToSet.forEach(({ name, value, options }) => {
             const isDeletion = (options as any)?.maxAge === 0 || (options as any)?.maxAge < 0 || !value;
+            // NOTE: no httpOnly override here either (see above).
             const customizedOptions = {
               ...options,
               ...(isDeletion ? {} : { maxAge: 60 * 60 * 24 * 365 }), // 1 year, but respect deletions
               secure: true,
               sameSite: "lax" as const,
-              httpOnly: true,
             };
             supabaseResponse.cookies.set(name, value, customizedOptions);
           });

@@ -77,7 +77,9 @@ export async function POST(request: Request) {
                   maxAge: 60 * 60 * 24 * 365, // 1 year cookie lifetime (C-1)
                   secure: true,
                   sameSite: "lax" as const,
-                  httpOnly: true,
+                  // NOTE: no httpOnly — the browser client must read these
+                  // cookies (matches the Google callback route, which is why
+                  // OAuth logins always worked and password logins looped).
                 };
                 cookieHeaderMap.set(name, { name, value, options: customizedOptions });
               });
@@ -187,7 +189,9 @@ export async function POST(request: Request) {
                   maxAge: 60 * 60 * 24 * 365, // 1 year cookie lifetime (C-1)
                   secure: true,
                   sameSite: "lax" as const,
-                  httpOnly: true,
+                  // NOTE: no httpOnly — the browser client must read these
+                  // cookies (matches the Google callback route, which is why
+                  // OAuth logins always worked and password logins looped).
                 };
                 cookieHeaderMap.set(name, { name, value, options: customizedOptions });
               });
@@ -279,13 +283,13 @@ export async function POST(request: Request) {
           getAll() { return cookieStore.getAll(); },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
-              const customizedOptions = {
-                ...options,
-                maxAge: 60 * 60 * 24 * 365, // 1 year session
-                secure: true,
-                sameSite: "lax" as const,
-                httpOnly: true,
-              };
+                const customizedOptions = {
+                  ...options,
+                  maxAge: 60 * 60 * 24 * 365, // 1 year session
+                  secure: true,
+                  sameSite: "lax" as const,
+                  // NOTE: no httpOnly — see developer branch above.
+                };
               cookieHeaderMap.set(name, { name, value, options: customizedOptions });
             });
           },
