@@ -250,6 +250,17 @@ export default function PtSchedulerPage() {
     }
   }, [trainers, selectedTrainer]);
 
+  // Drop picked members that are no longer in the (branch-filtered) list,
+  // so a booking can never be tagged from a stale record again.
+  useEffect(() => {
+    if (assignMemberId && members.length > 0 && !members.some(m => m.id === assignMemberId)) {
+      setAssignMemberId("");
+    }
+    if (bookMemberId && members.length > 0 && !members.some(m => m.id === bookMemberId)) {
+      setBookMemberId("");
+    }
+  }, [members, assignMemberId, bookMemberId]);
+
   // Realtime
   useEffect(() => {
     const channel = supabase
@@ -312,8 +323,24 @@ export default function PtSchedulerPage() {
       setActionError("Selected member does not have an active PT Package.");
       return;
     }
-    // Branch-tag from the member's own record (members list is branch-filtered).
-    const assignBranch = (member as any)?.location_id || activeLocationId || null;
+    // Fresh branch verification (never trust possibly-stale list state):
+    // the member must exist in the currently viewed branch.
+    const { data: freshAssignMember } = await supabase
+      .from("approved_members")
+      .select("id, location_id")
+      .eq("id", assignMemberId)
+      .maybeSingle();
+    const freshAssignBranch = (freshAssignMember as any)?.location_id || null;
+    if (!freshAssignMember) {
+      setActionError("Selected member was not found in this branch. Reload the page and pick the member again.");
+      return;
+    }
+    if (activeLocationId && freshAssignBranch && freshAssignBranch !== activeLocationId) {
+      setActionError("This member belongs to another branch. Switch branch first, then assign again.");
+      return;
+    }
+    // Branch-tag from verified record (single source of truth for write + read).
+    const assignBranch = freshAssignBranch || activeLocationId || null;
 
     setActionLoading(true);
     setActionError(null);
@@ -383,11 +410,26 @@ export default function PtSchedulerPage() {
     }
 
     // 2. Insert Sessions
-    const { error: sessErr } = await supabase.from("pt_sessions").insert(sessionInserts);
+    const { data: insertedSessions, error: sessErr } = await supabase.from("pt_sessions").insert(sessionInserts).select("id");
     if (sessErr) {
       setActionError("Failed to generate sessions: " + sessErr.message);
       setActionLoading(false);
       return;
+    }
+
+    // Confirm the new rows are actually visible under the current branch
+    // filter — never report success for invisible sessions again.
+    if (activeLocationId && insertedSessions) {
+      const newIds = insertedSessions.map((s: any) => s.id);
+      const { data: visibleRows } = await supabase.from("pt_sessions").select("id").in("id", newIds);
+      if ((visibleRows || []).length !== newIds.length) {
+        setActionError(
+          "Sessions were saved but are not visible in this branch view. Reload the page; if they still don't appear, the member may belong to another branch."
+        );
+        setActionLoading(false);
+        loadData();
+        return;
+      }
     }
 
     // 3. Deduct Remaining Sessions
@@ -425,7 +467,22 @@ export default function PtSchedulerPage() {
       setActionError("Member does not have an active PT Package or remaining sessions.");
       return;
     }
-    const bookBranch = (member as any)?.location_id || activeLocationId || null;
+    // Fresh branch verification (never trust possibly-stale list state).
+    const { data: freshBookMember } = await supabase
+      .from("approved_members")
+      .select("id, location_id")
+      .eq("id", bookMemberId)
+      .maybeSingle();
+    const freshBookBranch = (freshBookMember as any)?.location_id || null;
+    if (!freshBookMember) {
+      setActionError("Selected member was not found in this branch. Reload the page and pick the member again.");
+      return;
+    }
+    if (activeLocationId && freshBookBranch && freshBookBranch !== activeLocationId) {
+      setActionError("This member belongs to another branch. Switch branch first, then book again.");
+      return;
+    }
+    const bookBranch = freshBookBranch || activeLocationId || null;
 
     setActionLoading(true);
     setActionError(null);
@@ -450,11 +507,26 @@ export default function PtSchedulerPage() {
       });
     }
 
-    const { error: sessErr } = await supabase.from("pt_sessions").insert(sessionInserts);
+    const { data: insertedBooked, error: sessErr } = await supabase.from("pt_sessions").insert(sessionInserts).select("id");
     if (sessErr) {
       setActionError("Failed to book session: " + sessErr.message);
       setActionLoading(false);
       return;
+    }
+
+    // Confirm the new rows are actually visible under the current branch
+    // filter — never report success for invisible sessions again.
+    if (activeLocationId && insertedBooked) {
+      const newIds = insertedBooked.map((s: any) => s.id);
+      const { data: visibleRows } = await supabase.from("pt_sessions").select("id").in("id", newIds);
+      if ((visibleRows || []).length !== newIds.length) {
+        setActionError(
+          "Session was saved but is not visible in this branch view. Reload the page; if it still doesn't appear, the member may belong to another branch."
+        );
+        setActionLoading(false);
+        loadData();
+        return;
+      }
     }
 
     // Deduct count
