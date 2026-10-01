@@ -9,7 +9,12 @@
 # over the pairing QR.
 
 app = "corhaus-whatsapp-worker"
-primary_region = "bom"   # Mumbai - closest to Asia/Kolkata
+# Singapore. Closest available region to both India and WhatsApp's own
+# infrastructure. Region choice has NO effect on reminder correctness: the send
+# window is computed in Postgres as (class_date + class_time) AT TIME ZONE
+# 'Asia/Kolkata', so the worker's location only affects latency.
+# (Mumbai/bom is not offered on this account.)
+primary_region = "sin"
 
 [build]
   dockerfile = "Dockerfile"
