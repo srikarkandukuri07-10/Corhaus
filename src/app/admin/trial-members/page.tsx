@@ -52,6 +52,14 @@ function displayTrialNotes(notes: string | null): string | null {
   return cleaned || null;
 }
 
+// Phone numbers are stored inconsistently across this project — 10-digit,
+// "917702355344" and "+91 98765 43210" all occur in real rows. A raw substring
+// match silently fails across those formats, so compare digits only on both
+// sides.
+function digitsOnly(value: string | null | undefined): string {
+  return (value || "").replace(/\D/g, "");
+}
+
 export default function TrialMembersPage() {
   const supabase = createClient();
   const router = useRouter();
@@ -218,12 +226,23 @@ export default function TrialMembersPage() {
       // Search Query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        const matchesName = item.full_name.toLowerCase().includes(q);
-        const matchesPhone = item.phone_number.includes(q);
-        const matchesEmail = (item.email || "").toLowerCase().includes(q);
-        const matchesClass = item.class_name.toLowerCase().includes(q);
-        const matchesInstructor = item.instructor_name.toLowerCase().includes(q);
-        return matchesName || matchesPhone || matchesEmail || matchesClass || matchesInstructor;
+        const qDigits = digitsOnly(q);
+
+        // Legacy rows can carry nulls in fields the type declares as string, and
+        // a throw inside this predicate blanks the whole list the moment
+        // anything is typed. Treat every field as nullable.
+        const text = (value: string | null | undefined) => (value || "").toLowerCase();
+
+        const matchesPhone =
+          qDigits.length > 0 && digitsOnly(item.phone_number).includes(qDigits);
+
+        return (
+          text(item.full_name).includes(q) ||
+          matchesPhone ||
+          text(item.email).includes(q) ||
+          text(item.class_name).includes(q) ||
+          text(item.instructor_name).includes(q)
+        );
       }
 
       return true;
@@ -593,7 +612,7 @@ export default function TrialMembersPage() {
           <div className="relative w-full sm:w-72">
             <input
               type="text"
-              placeholder="Search name, phone, class..."
+              placeholder="Search name, phone, email, class, trainer..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 rounded-xl border border-line-2 bg-surface-2 text-xs text-fg placeholder:text-fg-4 focus:outline-none focus:ring-1 focus:ring-accent"
