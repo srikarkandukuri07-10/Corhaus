@@ -115,6 +115,27 @@ function followUpLabel(v: string | null | undefined): { text: string; cls: strin
   return { text: fmtDate(v), cls: "text-fg-3 text-xs whitespace-nowrap", full };
 }
 
+/**
+ * Follow-up urgency rank, lowest sorts first:
+ *   0 = overdue, 1 = today, 2 = tomorrow, 3 = later, 4 = none scheduled
+ *
+ * Uses the same midnight-normalised day difference as followUpLabel(), so the
+ * order of the list and the badge on each row can never disagree.
+ */
+function followUpRank(v: string | null | undefined): number {
+  if (!v) return 4;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return 4;
+  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const diff = Math.round((day - today) / 86400000);
+  if (diff < 0) return 0;
+  if (diff === 0) return 1;
+  if (diff === 1) return 2;
+  return 3;
+}
+
 function isOverdue(v: string | null | undefined): boolean {
   if (!v) return false;
   const d = new Date(v);
@@ -316,7 +337,7 @@ export default function LeadsPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const now = new Date();
-    return leads.filter((l) => {
+    const matched = leads.filter((l) => {
       if (tab === "enquiries" && !(l.source === "Website" || l.source === "Instagram")) return false;
       if (dateFilter !== "all") {
         const d = new Date(l.created_at);
@@ -346,6 +367,19 @@ export default function LeadsPage() {
         if (!hay.includes(q)) return false;
       }
       return true;
+    });
+
+    // Surface what staff must action: overdue, then today, then tomorrow, then
+    // anything further out, then leads with no follow-up scheduled at all.
+    // Inside a tier the soonest follow-up wins, so the most pressing item is
+    // never buried under a later one; leads with no follow-up keep the fetched
+    // order (returning 0 leaves the stable sort untouched).
+    return matched.sort((a, b) => {
+      const rankA = followUpRank(a.follow_up_at);
+      const rankB = followUpRank(b.follow_up_at);
+      if (rankA !== rankB) return rankA - rankB;
+      if (rankA === 4) return 0;
+      return new Date(a.follow_up_at as string).getTime() - new Date(b.follow_up_at as string).getTime();
     });
   }, [leads, tab, dateFilter, search, fStage, fSource, fConvert, fFollowup]);
 
