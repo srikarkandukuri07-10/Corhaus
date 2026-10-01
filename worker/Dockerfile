@@ -38,4 +38,10 @@ VOLUME ["/data"]
 ENV WA_SESSION_DIR=/data
 
 USER node
+
+# Container hosts require a bound port for health checks. The worker serves only
+# /health; all real traffic goes through Supabase.
+ENV PORT=8080
+EXPOSE 8080
+
 CMD ["node", "dist/index.js"]

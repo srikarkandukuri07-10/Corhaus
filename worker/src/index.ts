@@ -15,6 +15,7 @@
 // hold their own WhatsApp socket, so deploy it as ONE replica.
 
 import { config as loadEnv } from "dotenv";
+import http from "node:http";
 import path from "node:path";
 import { db, patchSettings, readSettings, writeAudit } from "./db";
 import { JobProcessor } from "./jobs";
@@ -113,8 +114,43 @@ async function handleCommand(session: WhatsappSession, command: string): Promise
   }
 }
 
+/**
+ * Minimal health endpoint.
+ *
+ * The worker delivers no HTTP API by design — everything goes through Supabase.
+ * But container hosts (Railway, Render, Fly, Kubernetes) require a process to
+ * bind PORT, and will mark a deployment unhealthy if nothing listens. This binds
+ * PORT and answers /health, and exposes nothing else.
+ */
+function startHealthServer(): void {
+  const port = parseInt(process.env.PORT || "8080", 10);
+  const server = http.createServer((req, res) => {
+    if (req.url === "/health" || req.url === "/") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          ok: true,
+          worker_id: WORKER_ID,
+          uptime_seconds: Math.floor(process.uptime()),
+        })
+      );
+    } else {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Not found" }));
+    }
+  });
+  server.on("error", (err) => {
+    console.error("[worker] health server error:", err);
+  });
+  server.listen(port, () => {
+    console.log(`[worker] health endpoint listening on :${port}/health`);
+  });
+}
+
 async function main(): Promise<void> {
   console.log(`[worker] Corhaus WhatsApp worker starting (id=${WORKER_ID})`);
+
+  startHealthServer();
 
   await patchSettings({ worker_id: WORKER_ID, worker_heartbeat_at: new Date().toISOString() });
 
