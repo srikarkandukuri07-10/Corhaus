@@ -41,13 +41,32 @@ const HEARTBEAT_MS = 30_000;
 let shuttingDown = false;
 
 async function claimPendingCommand(): Promise<{ id: string; command: string } | null> {
-  // Atomic claim so a second replica (if ever run) cannot double-execute.
-  const { data, error } = await db()
+  // PostgREST's UPDATE endpoint does not support `order()` — ordering an
+  // update produces an invalid ORDER BY and Postgres reports the column as
+  // missing. So pick the oldest pending row with a SELECT, then claim that
+  // specific id.
+  const { data: pending, error: selErr } = await db()
     .from("whatsapp_commands")
-    .update({ status: "PROCESSING", claimed_at: new Date().toISOString() })
+    .select("id, command")
     .eq("status", "PENDING")
     .order("created_at", { ascending: true })
     .limit(1)
+    .maybeSingle();
+
+  if (selErr) {
+    console.error("[worker] command lookup failed:", selErr.message);
+    return null;
+  }
+  if (!pending) return null;
+
+  // The `status = PENDING` predicate is the atomic guard: if another replica
+  // claimed it between our SELECT and this UPDATE, zero rows are affected and
+  // we correctly do nothing.
+  const { data, error } = await db()
+    .from("whatsapp_commands")
+    .update({ status: "PROCESSING", claimed_at: new Date().toISOString() })
+    .eq("id", pending.id)
+    .eq("status", "PENDING")
     .select("id, command")
     .maybeSingle();
 
