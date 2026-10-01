@@ -1,0 +1,49 @@
+# Corhaus WhatsApp Worker — systemd unit
+#
+# For a plain VPS (Ubuntu/Debian) with no container runtime.
+#
+#   sudo cp corhaus-whatsapp-worker.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now corhaus-whatsapp-worker
+#   journalctl -u corhaus-whatsapp-worker -f
+#
+# Adjust WorkingDirectory and User to match your checkout and user.
+
+[Unit]
+Description=Corhaus WhatsApp Worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=corhaus
+Group=corhaus
+WorkingDirectory=/opt/corhaus/worker
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+Environment=NODE_ENV=production
+# Baileys credentials must live on disk that survives restarts. This directory
+# is inside WorkingDirectory on a real VPS; on ephemeral hosts you must use a
+# mounted volume instead.
+Environment=WA_SESSION_DIR=/opt/corhaus/worker/.wa-session
+Environment=WORKER_ID=worker-1
+
+# Secrets: prefer an EnvironmentFile outside version control.
+#   /etc/corhaus-whatsapp-worker.env containing:
+#     SUPABASE_URL=https://xxxx.supabase.co
+#     SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
+EnvironmentFile=-/etc/corhaus-whatsapp-worker.env
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/opt/corhaus/worker
+
+[Install]
+WantedBy=multi-user.target

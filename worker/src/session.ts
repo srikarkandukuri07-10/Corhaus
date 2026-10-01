@@ -60,6 +60,15 @@ export class WhatsappSession {
     this.starting = true;
 
     try {
+      // Always tear down any existing socket BEFORE creating a new one.
+      // Leaving a previous socket alive while opening a second one on the same
+      // credential directory makes WhatsApp see two live devices under one
+      // identity, so the freshly scanned QR completes pairing and then hangs:
+      // the QR appears and scans, but the session never reaches 'open'.
+      if (this.sock) {
+        await this.disposeSocket();
+      }
+
       if (options.fresh) {
         await this.destroySessionFiles();
       }
@@ -87,7 +96,25 @@ export class WhatsappSession {
       });
       this.sock = sock;
 
+      // Persist credentials to disk on every rotation. Without this the pairing
+      // is lost on restart and the session can never survive a redeploy.
       sock.ev.on("creds.update", saveCreds);
+
+      // Baileys surfaces protocol failures as stream errors and an
+      // unhandled 'error' event, both of which are otherwise silent. Without
+      // these, a pairing failure looks identical to "still waiting".
+      (sock.ev as unknown as { on: (e: string, h: (err: unknown) => void) => void }).on(
+        "error",
+        (err: unknown) => {
+          const message = err instanceof Error ? err.message : String(err);
+          console.error("[worker] Baileys stream error:", message);
+          void patchSettings({
+            connection_status: "ERROR",
+            last_error: message.slice(0, 500),
+            last_error_at: new Date().toISOString(),
+          }).catch(() => {});
+        }
+      );
 
       sock.ev.on("connection.update", async (update) => {
         const { connection, lastDisconnect, qr } = update as Partial<ConnectionState>;
@@ -200,6 +227,29 @@ export class WhatsappSession {
     }, 5_000);
   }
 
+  /** Close and forget the current socket without touching credentials. */
+  private async disposeSocket(): Promise<void> {
+    const old = this.sock;
+    this.sock = null;
+    this.lastStatus = null;
+    if (!old) return;
+    try {
+      old.ev.removeAllListeners("connection.update");
+    } catch {
+      /* listener removal is best-effort */
+    }
+    try {
+      old.ws?.close();
+    } catch {
+      /* socket may already be closed */
+    }
+    try {
+      old.end(undefined);
+    } catch (err) {
+      console.error("[worker] socket end error:", err);
+    }
+  }
+
   /** Explicit logout: clears the credential files so a fresh QR is required. */
   async logoutAndClear(): Promise<void> {
     this.closing = true;
@@ -231,17 +281,8 @@ export class WhatsappSession {
   async softStop(): Promise<void> {
     this.closing = true;
     try {
-      if (this.sock) {
-        this.sock.ev.removeAllListeners("connection.update");
-        try {
-          this.sock.ws?.close();
-        } catch {
-          /* socket may already be closed */
-        }
-      }
+      await this.disposeSocket();
     } finally {
-      this.sock = null;
-      this.lastStatus = null;
       this.closing = false;
     }
   }

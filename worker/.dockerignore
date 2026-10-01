@@ -1,0 +1,9 @@
+node_modules
+dist
+.wa-session
+.env
+.env.*
+*.log
+.git
+.gitignore
+README.md

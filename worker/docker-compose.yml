@@ -1,0 +1,38 @@
+# One-command local production-equivalent run.
+#
+#   cd worker
+#   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... docker compose up -d --build
+#
+# The named volume is what makes the WhatsApp pairing survive restarts.
+
+services:
+  whatsapp-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: corhaus-whatsapp-worker
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      SUPABASE_URL: ${SUPABASE_URL:?SUPABASE_URL is required}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?SUPABASE_SERVICE_ROLE_KEY is required}
+      WA_SESSION_DIR: /data
+      WORKER_ID: ${WORKER_ID:-worker-1}
+    volumes:
+      - whatsapp-session:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      # No HTTP endpoint by design (the worker never serves traffic), so this
+      # only asserts the process is alive. Real liveness is the Supabase
+      # heartbeat, which the admin UI surfaces.
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  whatsapp-session:

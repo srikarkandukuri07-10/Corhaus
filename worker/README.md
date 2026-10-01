@@ -36,18 +36,73 @@ over HTTP.
 
 ## Deploy it
 
-Any host with a **persistent disk** and a long-running Node process:
+Any host with a **persistent disk** and a long-running Node process.
 
-| Host | Notes |
-| --- | --- |
-| Railway | Create a service from this directory, add a volume mounted at `/app/.wa-session` |
-| Fly.io | `fly launch --volume /app/.wa-session`, set `--min 1 --max 1` |
-| Render | Background worker + disk at `/opt/render/project/src/.wa-session` |
-| Any VPS | `systemd` unit + `npm ci && npm run build && npm start` |
+### Recommended: Docker (works on Railway, Fly, Render, any VPS)
+
+A `Dockerfile` is included. Build context is the **`worker/`** directory.
+
+```bash
+cd worker
+docker build -t corhaus-worker .
+docker run -d --name corhaus-whatsapp-worker \
+  -e SUPABASE_URL="https://xxxx.supabase.co" \
+  -e SUPABASE_SERVICE_ROLE_KEY="sb_secret_..." \
+  -v corhaus-wa:/data \
+  --restart unless-stopped \
+  corhaus-worker
+```
+
+Or with the included compose file (creates the named volume for you):
+
+```bash
+cd worker
+SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... docker compose up -d --build
+docker compose logs -f
+```
+
+The volume is the whole point: **without `/data` mounted, every restart needs a
+new QR scan.**
+
+### Fly.io
+
+`fly.toml` is included and pre-wired for a Mumbai region with a 1 GB volume.
+
+```bash
+cd worker
+fly volumes create whatsapp_session --size 1
+fly secrets set SUPABASE_URL=https://xxxx.supabase.co SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
+fly deploy
+```
+
+### Railway / Render
+
+Point the service at this directory, build `npm ci && npm run build`, start
+`npm start`, and attach a volume mounted at `/data` with `WA_SESSION_DIR=/data`.
+Both can also build the `Dockerfile` directly.
+
+### Plain VPS (systemd)
+
+`corhaus-whatsapp-worker.service` is included. Copy it to
+`/etc/systemd/system/`, put the secrets in `/etc/corhaus-whatsapp-worker.env`,
+then `systemctl enable --now corhaus-whatsapp-worker`.
 
 **Run exactly one replica.** Two replicas are safe for message *delivery* (SQL
 `SKIP LOCKED` prevents double-sends) but each would hold its own WhatsApp socket,
-and the two would fight over the pairing QR.
+and the two would fight over the pairing QR — the QR scans but never connects.
+
+### Local development only
+
+```bash
+cd worker
+npm install
+npm run build
+npm start
+```
+
+Reads the web app's root `.env.local` automatically (outside production). Useful
+for testing, but remember the pairing lives in `worker/.wa-session` on your
+laptop, so it is lost if you delete it.
 
 ### Steps
 
@@ -63,10 +118,10 @@ npm start
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `SUPABASE_URL` | yes | Same project as the web app. Falls back to `NEXT_PUBLIC_SUPABASE_URL`. |
-| `SUPABASE_SERVICE_ROLE_KEY` | yes | Worker writes `whatsapp_settings` and settles jobs. Never expose to a browser. |
-| `WA_SESSION_DIR` | no | Where Baileys stores credentials. **Must be on a persistent volume.** Defaults to `./.wa-session`. |
+| `SUPABASE_SERVICE_ROLE_KEY` | yes | Worker writes `whatsapp_settings` and settles jobs. **Must be a new `sb_secret_…` key** — a legacy JWT fails with "Legacy API keys are disabled". Never expose to a browser. |
+| `WA_SESSION_DIR` | no | Where Baileys stores credentials. **Must be a persistent volume.** Defaults to `./.wa-session`; the Dockerfile sets `/data`. |
 | `WORKER_ID` | no | Label written to `whatsapp_settings.worker_id`. Defaults to `worker-<pid>`. |
-| `NODE_ENV` | no | Set to `production` on the host. |
+| `NODE_ENV` | no | Set to `production` on the host. Outside production the worker also loads `worker/.env.local` and the repo-root `.env.local`. |
 
 No WhatsApp credentials are stored in Postgres. Baileys keeps them in
 `WA_SESSION_DIR` on the host's disk only.
@@ -141,3 +196,4 @@ Failure counts, last message, last failure and worker heartbeat are visible unde
 | Messages stuck `PENDING` | Socket disconnected | Reconnect; check `connection_status` |
 | Messages `FAILED` | Real send error | Read `error_message` in Message History |
 | Two QR codes alternating | Two worker replicas | Reduce to one replica |
+| QR scans but never connects | Two sockets on one credential directory, or a stale socket left open | Fixed in code (`disposeSocket` before every start). If it persists, check for a second replica and confirm `/data` is a real volume |

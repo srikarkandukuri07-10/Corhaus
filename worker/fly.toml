@@ -1,0 +1,35 @@
+# Fly.io deployment for the Corhaus WhatsApp worker.
+#
+#   cd worker
+#   fly launch --no-deploy        (accepts the generated fly.toml)
+#   fly volumes create whatsapp_session --size 1
+#   fly deploy
+#
+# ONE replica only: two processes would each hold a WhatsApp socket and fight
+# over the pairing QR.
+
+app = "corhaus-whatsapp-worker"
+primary_region = "bom"   # Mumbai - closest to Asia/Kolkata
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  WA_SESSION_DIR = "/data"
+  WORKER_ID = "worker-1"
+
+# Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY with:
+#   fly secrets set SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=...
+
+[[mounts]]
+  source = "whatsapp_session"
+  destination = "/data"
+
+[processes]
+  app = "node dist/index.js"
+
+# Single replica. Do not scale to 2+: each would open its own socket.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
