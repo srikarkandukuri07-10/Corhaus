@@ -49,7 +49,12 @@ interface Health {
     template_key: string;
     error: string | null;
   } | null;
-  pending_command: { id: string; command: string; created_at: string } | null;
+  pending_command: {
+    id: string;
+    command: string;
+    created_at: string;
+    waiting_seconds: number;
+  } | null;
 }
 
 interface TemplateRow {
@@ -329,7 +334,7 @@ export default function IntegrationPage() {
 
   // ─── Actions ───────────────────────────────────────────────────────────────
 
-  async function sendCommand(command: "CONNECT" | "DISCONNECT" | "RECONNECT") {
+  async function sendCommand(command: "CONNECT" | "DISCONNECT" | "RECONNECT" | "CANCEL") {
     setActionLoading(true);
     setActionError(null);
     setActionSuccess(null);
@@ -344,6 +349,11 @@ export default function IntegrationPage() {
         setActionError(body.error || "Request failed.");
         return;
       }
+      if (command === "CANCEL") {
+        setActionSuccess("Request cancelled. WhatsApp is idle.");
+        await loadStatus();
+        return;
+      }
       setActionSuccess(
         command === "DISCONNECT"
           ? "WhatsApp disconnected. Automated messages are paused."
@@ -352,7 +362,7 @@ export default function IntegrationPage() {
       if (!body.worker_online) {
         setBanner({
           tone: "warn",
-          text: "The WhatsApp worker is not reporting a heartbeat. Deploy the worker before expecting messages to send.",
+          text: "The WhatsApp worker is not reporting a heartbeat. Start or deploy the worker — until then no QR will appear and no messages can send.",
         });
       }
       await loadStatus();
@@ -736,6 +746,47 @@ export default function IntegrationPage() {
                     ? `Paired as ${state.connected_phone}`
                     : "Paired"}
                 </p>
+              </div>
+            ) : status === "CONNECTING" && !state?.worker_online ? (
+              // Honest empty state: a queued request with nothing to service it.
+              // Never imply progress that is not happening.
+              <div className="text-center space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/15 text-amber-600 flex items-center justify-center mx-auto">
+                  <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.13 3 1.73 3z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-bold text-amber-700">
+                  WhatsApp worker not running
+                </p>
+                <p className="text-[11px] text-fg-4 max-w-[300px]">
+                  Your request is queued and will be picked up the moment the worker
+                  starts. No QR can be generated until then.
+                </p>
+                {health?.pending_command && (
+                  <p className="text-[11px] font-mono text-fg-4">
+                    {health.pending_command.command} queued · waiting{" "}
+                    {Math.floor(health.pending_command.waiting_seconds / 60)}m{" "}
+                    {health.pending_command.waiting_seconds % 60}s
+                  </p>
+                )}
+                <div className="flex items-center justify-center gap-2 flex-wrap pt-1">
+                  <button
+                    onClick={() => loadStatus()}
+                    className="px-3 py-1.5 rounded-lg bg-surface border border-line text-[11px] font-bold text-fg hover:bg-hover"
+                  >
+                    Refresh
+                  </button>
+                  {canManage && (
+                    <button
+                      onClick={() => sendCommand("CANCEL")}
+                      disabled={actionLoading}
+                      className="px-3 py-1.5 rounded-lg bg-surface border border-line text-[11px] font-bold text-fg-3 hover:bg-hover disabled:opacity-50"
+                    >
+                      Cancel request
+                    </button>
+                  )}
+                </div>
               </div>
             ) : status === "CONNECTING" ? (
               <div className="text-center space-y-3">

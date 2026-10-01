@@ -14,10 +14,26 @@
 // safe for message delivery (SQL claim uses SKIP LOCKED) but would each try to
 // hold their own WhatsApp socket, so deploy it as ONE replica.
 
+import { config as loadEnv } from "dotenv";
+import path from "node:path";
 import { db, patchSettings, readSettings, writeAudit } from "./db";
 import { JobProcessor } from "./jobs";
 import { startReminderScheduler } from "./reminders";
 import { WhatsappSession } from "./session";
+
+// Local development convenience: reuse the web app's existing env files so the
+// worker talks to the same Supabase project without a second secret to copy.
+// Real process env always wins, so this is a no-op in production.
+if (process.env.NODE_ENV !== "production") {
+  loadEnv({ path: path.join(__dirname, "..", ".env.local") });
+  loadEnv({ path: path.join(__dirname, "..", "..", ".env.local") });
+  loadEnv({ path: path.join(__dirname, "..", "..", ".env") });
+}
+
+// The worker reads SUPABASE_URL, but the web app calls it NEXT_PUBLIC_SUPABASE_URL.
+if (!process.env.SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  process.env.SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+}
 
 const WORKER_ID = process.env.WORKER_ID || `worker-${process.pid}`;
 const HEARTBEAT_MS = 30_000;
@@ -189,6 +205,22 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error("[worker] fatal startup error:", err);
+  const message = err instanceof Error ? err.message : String(err);
+
+  // The single most common misconfiguration for this worker, and the raw
+  // PostgREST string does not explain itself.
+  if (/legacy api keys/i.test(message)) {
+    console.error(
+      "[worker] SUPABASE_SERVICE_ROLE_KEY is a legacy key and this project has " +
+        "legacy API keys disabled.\n" +
+        "          Supabase Dashboard -> Project Settings -> API Keys -> copy the " +
+        "NEW 'sb_secret_...' service role key.\n" +
+        "          Local: put it in .env.local as SUPABASE_SERVICE_ROLE_KEY.\n" +
+        "          Hosted: set SUPABASE_SERVICE_ROLE_KEY to the new key in your " +
+        "worker's environment."
+    );
+  } else {
+    console.error("[worker] fatal startup error:", message);
+  }
   process.exit(1);
 });

@@ -102,7 +102,20 @@ export async function GET() {
               error: lastFailure.error_message,
             }
           : null,
-        pending_command: pendingCommand,
+        pending_command: pendingCommand
+          ? {
+              id: pendingCommand.id,
+              command: pendingCommand.command,
+              created_at: pendingCommand.created_at,
+              // How long the request has been waiting with nobody to service
+              // it. Without this the UI looks identical whether the worker is
+              // about to respond or is not running at all.
+              waiting_seconds: Math.max(
+                0,
+                Math.floor((Date.now() - new Date(pendingCommand.created_at).getTime()) / 1000)
+              ),
+            }
+          : null,
       },
     });
   } catch (err) {

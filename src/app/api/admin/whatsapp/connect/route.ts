@@ -8,7 +8,7 @@ import { audit, readSettings, requireWhatsapp } from "@/lib/whatsapp/admin";
 // it up on its next poll. This keeps the deployment topology honest: Supabase is
 // the only channel.
 
-const VALID_COMMANDS = ["CONNECT", "DISCONNECT", "RECONNECT"] as const;
+const VALID_COMMANDS = ["CONNECT", "DISCONNECT", "RECONNECT", "CANCEL"] as const;
 type Command = (typeof VALID_COMMANDS)[number];
 
 export async function POST(req: Request) {
@@ -51,6 +51,21 @@ export async function POST(req: Request) {
         .eq("id", "default");
     }
 
+    // CANCEL abandons a queued request. The worker never sees it: the pending
+    // rows are superseded below, and the UI returns to a truthful idle state
+    // instead of spinning on "Connecting…" forever with no worker to answer.
+    if (command === "CANCEL") {
+      await service
+        .from("whatsapp_settings")
+        .update({
+          connection_status: "DISCONNECTED",
+          current_qr: null,
+          qr_expires_at: null,
+          updated_by: email,
+        })
+        .eq("id", "default");
+    }
+
     if (command === "RECONNECT" || command === "CONNECT") {
       // Clear any stale pairing string so the UI can never render an expired QR.
       await service
@@ -66,11 +81,19 @@ export async function POST(req: Request) {
     }
 
     // Collapse any stale pending command so an admin pressing the button twice
-    // does not queue two sessions (section 10).
+    // does not queue two sessions (section 10). For CANCEL this is the whole
+    // point: it discards the queued CONNECT that nobody is going to service.
     await service
       .from("whatsapp_commands")
       .update({ status: "CANCELLED", error_message: "Superseded by a newer request", processed_at: new Date().toISOString() })
       .eq("status", "PENDING");
+
+    // CANCEL is resolved entirely in the app; there is nothing for the worker
+    // to do, so do not queue a command row for it.
+    if (command === "CANCEL") {
+      await audit(service, "whatsapp.connect_request_cancelled", { email, role }, {});
+      return NextResponse.json({ success: true, cancelled: true });
+    }
 
     const { data: cmd, error: cmdErr } = await service
       .from("whatsapp_commands")
