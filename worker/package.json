@@ -1,0 +1,27 @@
+{
+  "name": "corhaus-whatsapp-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Persistent WhatsApp Web session + message worker for Corhaus. Deploy to a host with a persistent volume (Railway, Fly.io, Render, or a VPS) — NOT to Vercel.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "@whiskeysockets/baileys": "^6.7.9",
+    "qrcode": "^1.5.4",
+    "pino": "^9.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+
+# Baileys pairing credentials. NEVER commit these — they grant full access to
+# the paired WhatsApp account.
+.wa-session/
+*.wa-session
+.env
+.env.*

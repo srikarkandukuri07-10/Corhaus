@@ -1,0 +1,194 @@
+// Corhaus WhatsApp worker — process entry point.
+//
+//   WhatsApp Web (Baileys, persistent volume)
+//        ↓ claims
+//   whatsapp_message_jobs  (Supabase)
+//        ↑ written by
+//   Vercel /api/member/book, /api/member/cancel, /admin/integration
+//
+// Supabase is the ONLY channel between the worker and the web app. The worker
+// never calls the app, and the app never calls the worker.
+//
+// This process owns exactly one WhatsApp session and is intended to run as a
+// single instance. Two copies pointed at the same Supabase project will still be
+// safe for message delivery (SQL claim uses SKIP LOCKED) but would each try to
+// hold their own WhatsApp socket, so deploy it as ONE replica.
+
+import { db, patchSettings, readSettings, writeAudit } from "./db";
+import { JobProcessor } from "./jobs";
+import { startReminderScheduler } from "./reminders";
+import { WhatsappSession } from "./session";
+
+const WORKER_ID = process.env.WORKER_ID || `worker-${process.pid}`;
+const HEARTBEAT_MS = 30_000;
+
+let shuttingDown = false;
+
+async function claimPendingCommand(): Promise<{ id: string; command: string } | null> {
+  // Atomic claim so a second replica (if ever run) cannot double-execute.
+  const { data, error } = await db()
+    .from("whatsapp_commands")
+    .update({ status: "PROCESSING", claimed_at: new Date().toISOString() })
+    .eq("status", "PENDING")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .select("id, command")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[worker] command claim failed:", error.message);
+    return null;
+  }
+  return (data as { id: string; command: string } | null) ?? null;
+}
+
+async function completeCommand(
+  id: string,
+  status: "COMPLETED" | "FAILED",
+  error?: string
+): Promise<void> {
+  await db()
+    .from("whatsapp_commands")
+    .update({
+      status,
+      processed_at: new Date().toISOString(),
+      error_message: error ?? null,
+    })
+    .eq("id", id);
+}
+
+async function handleCommand(session: WhatsappSession, command: string): Promise<void> {
+  switch (command) {
+    case "CONNECT":
+      console.log("[worker] command: CONNECT");
+      await session.start({ fresh: true });
+      break;
+    case "RECONNECT":
+      console.log("[worker] command: RECONNECT");
+      // Clean slate: stop, clear credentials, fresh QR (section 36).
+      await session.softStop();
+      await session.start({ fresh: true });
+      break;
+    case "DISCONNECT":
+      console.log("[worker] command: DISCONNECT");
+      await session.logoutAndClear();
+      break;
+    default:
+      console.warn(`[worker] unknown command "${command}" — ignoring`);
+  }
+}
+
+async function main(): Promise<void> {
+  console.log(`[worker] Corhaus WhatsApp worker starting (id=${WORKER_ID})`);
+
+  await patchSettings({ worker_id: WORKER_ID, worker_heartbeat_at: new Date().toISOString() });
+
+  const session = new WhatsappSession({
+    onConnected: () => {
+      // Messaging is enabled only once the socket is genuinely open.
+      patchSettings({ enabled: true }).catch((e) =>
+        console.error("[worker] failed to enable messaging:", e)
+      );
+      console.log("[worker] WhatsApp connected — messaging enabled");
+    },
+    onDisconnected: (reason) => {
+      console.log(`[worker] WhatsApp disconnected: ${reason}`);
+    },
+    onQr: () => {
+      console.log("[worker] new pairing QR issued");
+    },
+    onStatusUpdate: (status) => {
+      console.log(`[worker] connection state: ${status}`);
+    },
+  });
+
+  // An unclean shutdown leaves rows in PROCESSING; put them back so they retry.
+  await session.recoverStuckJobs();
+
+  const processor = new JobProcessor(session);
+  const reminderTimer = startReminderScheduler();
+
+  // Heartbeat so the admin UI can tell a live worker from a dead one.
+  const heartbeat = setInterval(() => {
+    patchSettings({ worker_heartbeat_at: new Date().toISOString() }).catch((e) =>
+      console.error("[worker] heartbeat failed:", e)
+    );
+  }, HEARTBEAT_MS);
+
+  // Command poll: the web app's only way to reach this process.
+  const commandPoll = setInterval(async () => {
+    if (shuttingDown) return;
+    try {
+      const pending = await claimPendingCommand();
+      if (!pending) return;
+      try {
+        await handleCommand(session, pending.command);
+        await completeCommand(pending.id, "COMPLETED");
+        await writeAudit("whatsapp.command_completed", {
+          command: pending.command,
+          command_id: pending.id,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[worker] command ${pending.command} failed:`, message);
+        await completeCommand(pending.id, "FAILED", message);
+        await patchSettings({
+          connection_status: "ERROR",
+          last_error: message.slice(0, 500),
+          last_error_at: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.error("[worker] command poll error:", err);
+    }
+  }, 3000);
+
+  // Auto-resume: if a session already exists on disk, reconnect automatically so
+  // a worker restart does not require the admin to rescan.
+  try {
+    const settings = await readSettings();
+    if (settings?.connection_status === "CONNECTED" || settings?.connection_status === "AUTHENTICATED") {
+      console.log("[worker] resuming existing session from disk");
+      await session.start();
+    } else {
+      console.log(
+        "[worker] no active session; waiting for a Connect/QR command from the admin UI"
+      );
+      await patchSettings({ connection_status: "DISCONNECTED", current_qr: null, qr_expires_at: null });
+    }
+  } catch (err) {
+    console.error("[worker] initial session start failed:", err);
+  }
+
+  processor.start(5000);
+
+  const shutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[worker] ${signal} received — shutting down`);
+    clearInterval(heartbeat);
+    clearInterval(commandPoll);
+    clearInterval(reminderTimer);
+    processor.stop();
+    try {
+      await session.softStop();
+    } catch (err) {
+      console.error("[worker] socket close error:", err);
+    }
+    // Leave any PROCESSING row recoverable for the next boot.
+    process.exit(0);
+  };
+
+  process.on("SIGINT", () => void shutdown("SIGINT"));
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  process.on("unhandledRejection", (reason) => {
+    console.error("[worker] unhandled rejection:", reason);
+  });
+
+  console.log("[worker] running");
+}
+
+main().catch((err) => {
+  console.error("[worker] fatal startup error:", err);
+  process.exit(1);
+});

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "verify:whatsapp": "npx tsx scripts/verify-whatsapp-logic.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

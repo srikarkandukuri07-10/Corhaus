@@ -287,6 +287,7 @@ export async function updateSession(request: NextRequest) {
       "/admin/reports": "reports.view",
       "/admin/staff": "staff.view",
       "/admin/support": "support.view",
+      "/admin/integration": "whatsapp.view",
       "/admin/settings/locations": "staff.manage_rbac",
     };
 

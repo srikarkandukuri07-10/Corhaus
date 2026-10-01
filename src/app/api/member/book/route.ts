@@ -202,6 +202,26 @@ export async function POST(req: Request) {
         .eq("id", plan.id);
     }
 
+    // 12. Queue the WhatsApp confirmation as an asynchronous side effect.
+    // The booking is already committed, so this can only ever add a message job.
+    // tryEnqueueWhatsappMessage never throws and never blocks the response.
+    if (bookingStatus === "booked") {
+      try {
+        const { tryEnqueueWhatsappMessage } = await import("@/lib/whatsapp/enqueue");
+        await tryEnqueueWhatsappMessage({
+          templateKey: "booking_confirmation",
+          approvedMemberId: approvedMemberId,
+          bookingId: newBooking.id,
+          classId: classId,
+          // One confirmation per booking, enforced by the unique
+          // idempotency_key even if this route runs twice.
+          idempotencyKey: `${newBooking.id}:booking_confirmation`,
+        });
+      } catch (e) {
+        console.error("[whatsapp] booking_confirmation enqueue failed (booking unaffected):", e);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       bookingId: newBooking.id,

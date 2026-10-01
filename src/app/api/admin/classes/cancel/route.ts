@@ -68,6 +68,14 @@ export async function POST(req: Request) {
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+      // A hard delete cascades away the bookings, so any queued WhatsApp job
+      // referencing them must not be allowed to fire afterwards.
+      try {
+        const { cancelPendingJobs } = await import("@/lib/whatsapp/enqueue");
+        await cancelPendingJobs({ classId: sessionId });
+      } catch (e) {
+        console.error("[whatsapp] cancel-pending on class delete failed:", e);
+      }
       return NextResponse.json({ success: true, message: "Session deleted." });
     }
 
@@ -90,6 +98,16 @@ export async function POST(req: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // The class is now cancelled. Mark every still-PENDING WhatsApp job for it
+    // CANCELLED so no member receives a reminder for a class that will not run.
+    // Jobs already SENT are left alone - we never try to unsend a message.
+    try {
+      const { cancelPendingJobs } = await import("@/lib/whatsapp/enqueue");
+      await cancelPendingJobs({ classId: sessionId });
+    } catch (e) {
+      console.error("[whatsapp] cancel-pending on class cancel failed:", e);
     }
 
     return NextResponse.json({ success: true, message: "Session cancelled successfully." });

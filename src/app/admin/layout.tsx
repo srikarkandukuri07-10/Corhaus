@@ -472,6 +472,24 @@ export default function AdminLayout({
             </div>
           </div>
 
+          {/* Section: INTEGRATION */}
+          <div>
+            <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 mb-2">
+              INTEGRATION
+            </p>
+            <div className="space-y-1">
+              <Link
+                href="/admin/integration"
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname === "/admin/integration" || pathname.startsWith("/admin/integration"), "whatsapp.view")}`}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.964 9.964 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                {renderLinkText("Integration", "whatsapp.view")}
+              </Link>
+            </div>
+          </div>
+
           {/* Section: SETTINGS */}
           {(role === "Manager" || role === "Owner") && (
             <div>
@@ -666,6 +684,9 @@ export default function AdminLayout({
 
               <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 pt-4 pb-1">ANALYTICS</p>
               {mobileLink("reports.view", "/admin/reports", "Reports & Analytics")}
+
+              <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 pt-4 pb-1">INTEGRATION</p>
+              {mobileLink("whatsapp.view", "/admin/integration", "Integration")}
 
               {(role === "Manager" || role === "Owner") && (
                 <>

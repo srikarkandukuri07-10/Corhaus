@@ -180,6 +180,24 @@ export async function POST(req: Request) {
       }
     }
 
+    // 10. Stop any queued reminder for this booking from sending, then queue
+    // the cancellation notice. Ordering matters: a reminder that is still
+    // PENDING is cancelled before a new job is added, so a member is never told
+    // "don't forget" about a class they just cancelled.
+    try {
+      const { tryEnqueueWhatsappMessage, cancelPendingJobs } = await import("@/lib/whatsapp/enqueue");
+      await cancelPendingJobs({ bookingId });
+      await tryEnqueueWhatsappMessage({
+        templateKey: "booking_cancellation",
+        approvedMemberId: approvedMemberId,
+        authUserId: memberId,
+        bookingId: booking.id,
+        idempotencyKey: `${booking.id}:booking_cancellation`,
+      });
+    } catch (e) {
+      console.error("[whatsapp] cancellation enqueue failed (cancellation unaffected):", e);
+    }
+
     return NextResponse.json({ success: true, message: "Booking cancelled successfully." });
   } catch (e) {
     console.error("Cancel booking error:", e);
