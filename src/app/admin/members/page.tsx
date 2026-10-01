@@ -568,7 +568,7 @@ function MembersPageContent() {
 
   // Filtered members list based on real-time search & status dropdown
   const filteredMembers = useMemo(() => {
-    return members.filter((m) => {
+    const matched = members.filter((m) => {
       if (statusFilter !== "All Status" && m.computedStatus !== statusFilter) {
         return false;
       }
@@ -584,6 +584,20 @@ function MembersPageContent() {
       }
 
       return true;
+    });
+
+    // Members holding a plan come first; the "No plan" ones drop to the bottom
+    // of the list. activePlan is the exact field the UI uses to decide between
+    // showing a plan name and the italic "No plan", so the sort always agrees
+    // with what is on screen.
+    //
+    // Array.prototype.sort is stable, so the fetched order (newest first) is
+    // preserved inside each group. filter() already returns a fresh array, so
+    // sorting it does not mutate React state.
+    return matched.sort((a, b) => {
+      const aRank = a.activePlan ? 0 : 1;
+      const bRank = b.activePlan ? 0 : 1;
+      return aRank - bRank;
     });
   }, [members, statusFilter, searchQuery]);
 
