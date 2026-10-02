@@ -60,6 +60,7 @@ function fmt(n: number) {
 }
 
 import { formatDate } from "@/lib/date-utils";
+import { PERIOD_OPTIONS, type PeriodKey } from "@/lib/reportMetrics";
 
 
 type TabType =
@@ -87,7 +88,12 @@ export default function ReportsPage() {
 
   // Global Filter States
   const [searchQuery, setSearchQuery] = useState("");
-  const [dateRangePreset, setDateRangePreset] = useState("all");
+  // Single period selector — the same named periods (and the same underlying
+  // calculation) used by every summary card on this page and on the admin
+  // dashboard. Mirrors MyGymDesk's Reports date picker so the two apps'
+  // period options line up. Defaults to All Time (prior page behavior).
+  const [periodKey, setPeriodKey] = useState<PeriodKey>("allTime");
+  const [periodMenuOpen, setPeriodMenuOpen] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [secondaryFilter, setSecondaryFilter] = useState("All");
@@ -100,8 +106,13 @@ export default function ReportsPage() {
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (startDate) params.set("startDate", startDate);
-      if (endDate) params.set("endDate", endDate);
+      if (startDate || endDate) {
+        // A custom date range always wins over the named period.
+        if (startDate) params.set("startDate", startDate);
+        if (endDate) params.set("endDate", endDate);
+      } else {
+        params.set("period", periodKey);
+      }
 
       const res = await fetch(`/api/admin/reports?${params.toString()}`);
       if (!res.ok) {
@@ -116,40 +127,24 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [periodKey, startDate, endDate]);
 
   useEffect(() => {
     fetchReportData();
   }, [fetchReportData]);
 
-  // Handle Preset Date Range selection
-  const handleDatePresetChange = (preset: string) => {
-    setDateRangePreset(preset);
-    const today = new Date();
-
-    if (preset === "today") {
-      const d = today.toISOString().split("T")[0];
-      setStartDate(d);
-      setEndDate(d);
-    } else if (preset === "week") {
-      const start = new Date(today);
-      start.setDate(today.getDate() - 7);
-      setStartDate(start.toISOString().split("T")[0]);
-      setEndDate(today.toISOString().split("T")[0]);
-    } else if (preset === "month") {
-      const start = new Date(today.getFullYear(), today.getMonth(), 1);
-      setStartDate(start.toISOString().split("T")[0]);
-      setEndDate(today.toISOString().split("T")[0]);
-    } else if (preset === "30days") {
-      const start = new Date(today);
-      start.setDate(today.getDate() - 30);
-      setStartDate(start.toISOString().split("T")[0]);
-      setEndDate(today.toISOString().split("T")[0]);
-    } else {
-      setStartDate("");
-      setEndDate("");
-    }
+  // Selecting a named period clears any custom range so the period takes effect.
+  const handlePeriodSelect = (key: PeriodKey) => {
+    setPeriodKey(key);
+    setStartDate("");
+    setEndDate("");
+    setPeriodMenuOpen(false);
   };
+
+  const periodLabel =
+    startDate || endDate
+      ? "Custom Range"
+      : PERIOD_OPTIONS.flatMap((g) => g.items).find((o) => o.key === periodKey)?.label || "All Time";
 
   const overview = reportData?.overview || {};
   const payments = reportData?.payments || [];
@@ -280,41 +275,75 @@ export default function ReportsPage() {
             </svg>
           </div>
 
-          {/* Date Range Controls */}
+          {/* Period Selector — one picker drives every summary card on this page */}
           <div className="flex items-center gap-2 flex-wrap text-xs">
-            <span className="font-bold text-fg-3 uppercase text-[10px] tracking-wider">Date Range:</span>
-            {["all", "today", "week", "month", "30days"].map((p) => (
+            <span className="font-bold text-fg-3 uppercase text-[10px] tracking-wider">Period:</span>
+
+            {(["last7days", "last30days", "thisMonth"] as PeriodKey[]).map((p) => (
               <button
                 key={p}
-                onClick={() => handleDatePresetChange(p)}
-                className={`px-3 py-1.5 rounded-lg font-bold capitalize transition-all ${
-                  dateRangePreset === p
+                onClick={() => handlePeriodSelect(p)}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                  !startDate && !endDate && periodKey === p
                     ? "bg-accent text-white shadow-xs"
                     : "bg-surface-2 text-fg-3 hover:text-fg hover:bg-hover"
                 }`}
               >
-                {p === "all" ? "All Time" : p === "30days" ? "30 Days" : p}
+                {p === "last7days" ? "7D" : p === "last30days" ? "30D" : "Month"}
               </button>
             ))}
+
+            <div className="relative">
+              <button
+                onClick={() => setPeriodMenuOpen((v) => !v)}
+                className="px-3 py-1.5 rounded-lg font-bold bg-surface-2 text-fg-3 hover:text-fg hover:bg-hover transition-all flex items-center gap-1.5 border border-line-2"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {periodLabel}
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {periodMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setPeriodMenuOpen(false)} />
+                  <div className="absolute z-20 top-full left-0 mt-1 w-56 bg-surface rounded-xl border border-line-2 shadow-xl overflow-hidden max-h-80 overflow-y-auto">
+                    {PERIOD_OPTIONS.map((group) => (
+                      <div key={group.group} className="py-1">
+                        <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-fg-4">{group.group}</div>
+                        {group.items.map((item) => (
+                          <button
+                            key={item.key}
+                            onClick={() => handlePeriodSelect(item.key)}
+                            className={`w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-hover transition-colors ${
+                              !startDate && !endDate && periodKey === item.key ? "text-accent font-bold" : "text-fg"
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
 
             <div className="flex flex-wrap items-center gap-1.5 border-l border-line-2 pl-2">
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
-                  setDateRangePreset("custom");
-                }}
+                onChange={(e) => setStartDate(e.target.value)}
                 className="px-2 py-1.5 rounded-lg border border-line-2 bg-surface-2 text-fg text-xs outline-none w-full sm:w-auto min-w-0"
               />
               <span className="text-fg-3">to</span>
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => {
-                  setEndDate(e.target.value);
-                  setDateRangePreset("custom");
-                }}
+                onChange={(e) => setEndDate(e.target.value)}
                 className="px-2 py-1.5 rounded-lg border border-line-2 bg-surface-2 text-fg text-xs outline-none w-full sm:w-auto min-w-0"
               />
             </div>
@@ -355,43 +384,63 @@ export default function ReportsPage() {
           {/* TAB 1: OVERVIEW EXECUTIVE DASHBOARD */}
           {activeTab === "overview" && (
             <div className="space-y-6">
-              {/* Executive Summary Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              {/* Executive Summary Cards — same metrics, same period picker, same calculation engine as MyGymDesk's Reports Overview */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Today's Revenue</p>
-                  <p className="text-xl font-bold text-emerald-500 mt-1">{fmt(overview.todayRevenue)}</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">This Month Revenue</p>
-                  <p className="text-xl font-bold text-fg mt-1">{fmt(overview.monthRevenue)}</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Total Revenue</p>
-                  <p className="text-xl font-bold text-gold-fg mt-1">{fmt(overview.totalRevenue)}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Revenue &middot; {periodLabel}</p>
+                  <p className="text-xl font-bold text-emerald-500 mt-1">{fmt(overview.revenue)}</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Active Members</p>
                   <p className="text-xl font-bold text-indigo-400 mt-1">{overview.activeMembersCount || 0}</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">New Members (30d)</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">New Members &middot; {periodLabel}</p>
                   <p className="text-xl font-bold text-purple-400 mt-1">{overview.newMembersCount || 0}</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Trial Members</p>
-                  <p className="text-xl font-bold text-amber-500 mt-1">{overview.trialMembersCount || 0}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Renewal Rate &middot; {periodLabel}</p>
+                  <p className="text-xl font-bold text-fg mt-1">
+                    {overview.renewalRate === null || overview.renewalRate === undefined ? "—" : `${overview.renewalRate}%`}
+                  </p>
                 </div>
                 <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Expiring Memberships</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Avg Revenue / Member</p>
+                  <p className="text-xl font-bold text-gold-fg mt-1">{fmt(overview.avgRevenuePerMember)}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Expiring &le;7D</p>
                   <p className="text-xl font-bold text-orange-500 mt-1">{overview.expiringMembershipsCount || 0}</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Pending Payments</p>
                   <p className="text-xl font-bold text-red-500 mt-1">{fmt(overview.pendingPaymentsTotal)}</p>
+                  <p className="text-[10px] text-fg-4 mt-0.5">outstanding, all-time</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Product Sales</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Product Sales &middot; {periodLabel}</p>
                   <p className="text-xl font-bold text-teal-400 mt-1">{fmt(overview.productSalesTotal)}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-surface border border-line-2 shadow-xs">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Trial Members</p>
+                  <p className="text-xl font-bold text-amber-500 mt-1">{overview.trialMembersCount || 0}</p>
+                </div>
+              </div>
+
+              {/* Reference cards — same revenue engine as above, fixed windows so you can verify the admin dashboard's "This Month" card agrees with this one */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-surface-2/60 border border-line-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Today&apos;s Revenue</p>
+                  <p className="text-lg font-bold text-fg mt-1">{fmt(overview.todayRevenue)}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-surface-2/60 border border-line-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">This Month Revenue</p>
+                  <p className="text-lg font-bold text-fg mt-1">{fmt(overview.monthRevenue)}</p>
+                  <p className="text-[10px] text-fg-4 mt-0.5">matches /admin&apos;s Monthly Revenue card</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-surface-2/60 border border-line-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-fg-3">Total Revenue (All Time)</p>
+                  <p className="text-lg font-bold text-fg mt-1">{fmt(overview.totalRevenueAllTime)}</p>
                 </div>
               </div>
 

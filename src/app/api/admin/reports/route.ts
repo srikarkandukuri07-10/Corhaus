@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  getPeriodRange,
+  computeRevenue,
+  computePendingPaymentsTotal,
+  computeProductSalesTotal,
+  computeActiveMembersCount,
+  computeNewMembersCount,
+  computeExpiringMembershipsCount,
+  computeRenewalRate,
+  computeAvgRevenuePerMember,
+  isDateInRange,
+  type PeriodKey,
+} from "@/lib/reportMetrics";
 
 async function getAdminClient() {
   const supabase = await createServerClient();
@@ -50,6 +63,18 @@ async function getAdminClient() {
     const url = new URL(req.url);
     const startDate = url.searchParams.get("startDate");
     const endDate = url.searchParams.get("endDate");
+    const periodParam = url.searchParams.get("period") as PeriodKey | null;
+
+    // Single source of truth for every period-based card on this page — the
+    // same function the admin dashboard's "This Month" card uses, so the two
+    // pages can never disagree again. A legacy startDate/endDate pair (from
+    // the old custom-range inputs) is treated as a custom period; otherwise
+    // the named period param is used, defaulting to All Time.
+    const now = new Date();
+    const activeRange =
+      startDate || endDate
+        ? getPeriodRange("custom", now, { startDate: startDate || "1970-01-01", endDate: endDate || now.toISOString().split("T")[0] })
+        : getPeriodRange(periodParam || "allTime", now);
 
     // Execute queries in parallel for optimal performance
     const [
@@ -141,106 +166,52 @@ async function getAdminClient() {
       };
     });
 
-    const todayStr = new Date().toISOString().split("T")[0];
+    // "Today" is always its own fixed 1-day window (IST), regardless of the
+    // selected period. Derived from last7days' end boundary (not a plain
+    // `new Date().toISOString()` UTC date string, which can land a calendar
+    // day off from IST near midnight).
+    const last7 = getPeriodRange("last7days", now);
+    const todayRangeFinal = { ...last7, key: "custom" as const, label: "Today", start: new Date(last7.end.getTime() - 86400000) };
 
-    const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    // Filter datasets by the single active period for every period-based calculation on this page.
+    const filteredInvoices = invoices.filter((inv: any) => isDateInRange(inv.created_at, activeRange));
+    const filteredExpenses = expensesList.filter((e: any) => isDateInRange(e.expense_date, activeRange));
+    const filteredPurchasedPlans = enrichedPurchasedPlans.filter((p: any) =>
+      isDateInRange(p.created_at || p.valid_from, activeRange)
+    );
+    const filteredClasses = classes.filter((c: any) => isDateInRange(c.class_date, activeRange));
+    const filteredPtSessions = ptSessions.filter((pt: any) => isDateInRange(pt.session_date, activeRange));
 
-    // Filter datasets by date range for period-based calculations
-    const filteredInvoices = invoices.filter((inv: any) => {
-      if (!inv.created_at) return true;
-      const d = inv.created_at.split("T")[0];
-      if (startDate && d < startDate) return false;
-      if (endDate && d > endDate) return false;
-      return true;
-    });
+    // 1. Overview Metrics — all computed via the shared reportMetrics engine
+    // (src/lib/reportMetrics.ts), the same module the admin dashboard uses.
+    const targetInvoices = activeRange.key === "allTime" ? invoices : filteredInvoices;
 
-    const filteredExpenses = expensesList.filter((e: any) => {
-      if (!e.expense_date) return true;
-      const d = e.expense_date.split("T")[0];
-      if (startDate && d < startDate) return false;
-      if (endDate && d > endDate) return false;
-      return true;
-    });
+    const revenueForActiveRange = computeRevenue(invoices, activeRange);
+    const monthRevenue = computeRevenue(invoices, getPeriodRange("thisMonth", now));
+    const todayRevenue = computeRevenue(invoices, todayRangeFinal);
+    // "Total Revenue" card: honors the selected period (matches MyGymDesk,
+    // where every overview card moves together with the one period picker).
+    const totalRevenue = revenueForActiveRange;
+    // True all-time total, independent of the selected period — used only
+    // for the reference "Total Revenue (All Time)" card.
+    const totalRevenueAllTime = computeRevenue(invoices, getPeriodRange("allTime", now));
+    const pendingPaymentsTotal = computePendingPaymentsTotal(invoices);
 
-    const filteredPurchasedPlans = enrichedPurchasedPlans.filter((p: any) => {
-      const d = p.created_at ? p.created_at.split("T")[0] : p.valid_from;
-      if (!d) return true;
-      if (startDate && d < startDate) return false;
-      if (endDate && d > endDate) return false;
-      return true;
-    });
-
-
-    const filteredClasses = classes.filter((c: any) => {
-      if (!c.class_date) return true;
-      if (startDate && c.class_date < startDate) return false;
-      if (endDate && c.class_date > endDate) return false;
-      return true;
-    });
-
-    const filteredPtSessions = ptSessions.filter((pt: any) => {
-      if (!pt.session_date) return true;
-      if (startDate && pt.session_date < startDate) return false;
-      if (endDate && pt.session_date > endDate) return false;
-      return true;
-    });
-
-    // 1. Overview Metrics
-    let todayRevenue = 0;
-    let monthRevenue = 0;
-    let totalRevenue = 0;
-    let pendingPaymentsTotal = 0;
-
-    // Use filteredInvoices for totalRevenue when a date filter is selected
-    const targetInvoices = (startDate || endDate) ? filteredInvoices : invoices;
-
-    targetInvoices.forEach((inv: any) => {
-      const invDate = inv.created_at ? inv.created_at.split("T")[0] : "";
-      const isPaid = inv.payment_status === "paid" || inv.payment_status === "Paid" || inv.payment_status === "Completed";
-      
-      if (isPaid) {
-        const amt = Number(inv.grand_total || inv.amount_paid || 0);
-        totalRevenue += amt;
-        if (invDate === todayStr) todayRevenue += amt;
-        if (inv.created_at && inv.created_at >= firstDayOfMonth) monthRevenue += amt;
-      } else if (inv.payment_status === "due" || inv.payment_status === "partial" || inv.payment_status === "Payment Due") {
-        const due = Number(inv.grand_total || 0) - Number(inv.amount_paid || 0);
-        pendingPaymentsTotal += Math.max(0, due);
-      }
-    });
-
-    const activeMembersCount = members.filter((m: any) => m.membership_status === "active").length;
-    
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
-    const newMembersCount = members.filter((m: any) => m.created_at >= thirtyDaysAgo).length;
+    const activeMembersCount = computeActiveMembersCount(members);
+    const newMembersCount = computeNewMembersCount(members, activeRange.key === "allTime" ? getPeriodRange("last30days", now) : activeRange);
 
     const trialMembersCount = trialMembers.length;
 
-    // Expiring memberships in next 30 days
-    const next30DaysStr = new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
-    const expiringMembershipsCount = purchasedPlans.filter((p: any) => {
-      if (!p.valid_until) return false;
-      return p.valid_until >= todayStr && p.valid_until <= next30DaysStr;
-    }).length;
+    // Expiring memberships — fixed 7-day lookahead (matches MyGymDesk's "Expiring ≤7D" card); not period-scoped.
+    const expiringMembershipsCount = computeExpiringMembershipsCount(purchasedPlans, 7, now);
+
+    const renewalRate = computeRenewalRate(enrichedPurchasedPlans as any, activeRange);
+    const avgRevenuePerMember = computeAvgRevenuePerMember(revenueForActiveRange, activeMembersCount);
 
     // Product Sales Volume (period-filtered)
-    let productSalesTotal = 0;
-    const targetInvoiceItems = (startDate || endDate)
-      ? invoiceItems.filter((item: any) => {
-          const parentInv = invoices.find((inv: any) => inv.id === item.invoice_id);
-          if (!parentInv || !parentInv.created_at) return true;
-          const d = parentInv.created_at.split("T")[0];
-          if (startDate && d < startDate) return false;
-          if (endDate && d > endDate) return false;
-          return true;
-        })
-      : invoiceItems;
-
-    targetInvoiceItems.forEach((item: any) => {
-      if (item.category === "Products" || (item.name && item.name.toLowerCase().includes("product"))) {
-        productSalesTotal += Number(item.total_price || 0);
-      }
-    });
+    const invoiceDateById = new Map<string, string | null | undefined>();
+    invoices.forEach((inv: any) => invoiceDateById.set(inv.id, inv.created_at));
+    const productSalesTotal = computeProductSalesTotal(invoiceItems, invoiceDateById, activeRange);
 
     // Monthly Revenue Trend (Last 6 Months)
     const monthsMap = new Map<string, number>();
@@ -275,7 +246,7 @@ async function getAdminClient() {
 
     // Revenue by Plan Category
     const planRevenueMap = new Map<string, number>();
-    const targetPlans = (startDate || endDate) ? filteredPurchasedPlans : enrichedPurchasedPlans;
+    const targetPlans = activeRange.key === "allTime" ? enrichedPurchasedPlans : filteredPurchasedPlans;
 
     targetPlans.forEach((p: any) => {
       const cat = p.category || "Membership Plans";
@@ -310,7 +281,7 @@ async function getAdminClient() {
     }));
 
     // 3. Classes & Attendance Analytics
-    const targetClassesList = (startDate || endDate) ? filteredClasses : classes;
+    const targetClassesList = activeRange.key === "allTime" ? classes : filteredClasses;
     const classAttendanceAnalytics = targetClassesList.map((c: any) => {
       const classBookings = bookings.filter((b: any) => b.class_id === c.id && b.booking_status !== "cancelled");
       const attendedCount = classBookings.filter((b: any) => 
@@ -338,7 +309,7 @@ async function getAdminClient() {
     });
 
     // 4. Trainer Performance & Commissions Calculation
-    const targetPtSessions = (startDate || endDate) ? filteredPtSessions : ptSessions;
+    const targetPtSessions = activeRange.key === "allTime" ? ptSessions : filteredPtSessions;
     const trainerPerformance = staff.map((tr: any) => {
       const trName = tr.full_name;
       const trainerClasses = targetClassesList.filter((c: any) => c.instructor === trName);
@@ -417,7 +388,7 @@ async function getAdminClient() {
     });
 
     // Period-filtered expenses for P&L
-    const targetExpenses = (startDate || endDate) ? filteredExpenses : expensesList;
+    const targetExpenses = activeRange.key === "allTime" ? expensesList : filteredExpenses;
     let totalRecordedExpenses = 0;
     targetExpenses.forEach((e: any) => {
       totalRecordedExpenses += Number(e.amount || 0);
@@ -428,12 +399,18 @@ async function getAdminClient() {
 
     // Return combined analytics response
     return NextResponse.json({
+      period: { key: activeRange.key, label: activeRange.label, start: activeRange.start?.toISOString() ?? null, end: activeRange.end.toISOString() },
       overview: {
+        // Revenue for the selected period — the single figure every card below should agree with.
+        revenue: revenueForActiveRange,
         todayRevenue,
         monthRevenue,
         totalRevenue,
+        totalRevenueAllTime,
         activeMembersCount,
         newMembersCount,
+        renewalRate,
+        avgRevenuePerMember,
         trialMembersCount,
         expiringMembershipsCount,
         pendingPaymentsTotal,

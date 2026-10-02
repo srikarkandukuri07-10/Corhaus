@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
+import { getPeriodRange, computeRevenue } from "@/lib/reportMetrics";
 
 export async function GET(req: Request) {
   try {
@@ -22,12 +23,18 @@ export async function GET(req: Request) {
 
     const todayStr = new Date().toISOString().split("T")[0];
     const now = new Date();
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+    // Single source of truth for "This Month" boundaries — the same function
+    // the reports page uses, so the two pages can never disagree on the window.
+    const thisMonthRange = getPeriodRange("thisMonth", now);
 
     const [classesRes, membersRes, invoicesRes, attendanceRes, bookingsRes] = await Promise.all([
       service.from("classes").select("id, class_date").eq("location_id", locationId).gte("class_date", todayStr),
       service.from("approved_members").select("id", { count: "exact", head: false }).eq("location_id", locationId),
-      service.from("invoices").select("grand_total, amount_paid, payment_status, created_at").eq("location_id", locationId).gte("created_at", firstOfMonth),
+      service
+        .from("invoices")
+        .select("grand_total, amount_paid, payment_status, created_at")
+        .eq("location_id", locationId)
+        .gte("created_at", (thisMonthRange.start as Date).toISOString()),
       service.from("attendance").select("id, attendance_status, scanned_at, created_at").eq("location_id", locationId).eq("attendance_status", "attended"),
       service.from("bookings").select("class_id, booking_status").eq("location_id", locationId).neq("booking_status", "cancelled"),
     ]);
@@ -44,16 +51,8 @@ export async function GET(req: Request) {
       });
     }
 
-    let revenue = 0;
-    if (invoicesRes.data) {
-      for (const inv of invoicesRes.data) {
-        const status = (inv.payment_status || "").toLowerCase();
-        if (status === "paid" || status === "completed") {
-          const paid = inv.amount_paid != null && Number(inv.amount_paid) > 0 ? Number(inv.amount_paid) : Number(inv.grand_total || 0);
-          revenue += paid;
-        }
-      }
-    }
+    // Same computeRevenue() the reports page's "This Month" card uses.
+    const revenue = computeRevenue(invoicesRes.data || [], thisMonthRange);
 
     let checkIns = 0;
     if (attendanceRes.data) {
