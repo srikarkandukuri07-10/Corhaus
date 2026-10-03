@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
+import SiteFooter from "@/components/site-footer";
 
 interface ClassOption {
   id: string;
@@ -299,9 +301,34 @@ export default function BookTrialPage() {
             </button>
             {!rzpReady && <p className="text-[10px] text-amber-600 text-center">Loading secure payment library...</p>}
             <p className="text-[10px] text-gray-400 text-center">Test payments only. Use Razorpay test cards. No real money is charged.</p>
+
+            {/* Legal acceptance notice. No checkbox — the brief asked for no
+                added friction. Payment logic and the Test Mode copy above are
+                deliberately unchanged. */}
+            <p className="text-[11px] leading-relaxed text-gray-400 text-center mt-4 px-1">
+              By continuing with the payment, you agree to the{" "}
+              <Link href="/terms" className="underline underline-offset-2 hover:text-gray-200">
+                Corhaus Terms &amp; Conditions
+              </Link>{" "}
+              and acknowledge the{" "}
+              <Link href="/privacy" className="underline underline-offset-2 hover:text-gray-200">
+                Privacy Policy
+              </Link>{" "}
+              and{" "}
+              <Link href="/refund-policy" className="underline underline-offset-2 hover:text-gray-200">
+                Refund &amp; Cancellation Policy
+              </Link>
+              . For support, visit our{" "}
+              <Link href="/contact" className="underline underline-offset-2 hover:text-gray-200">
+                Contact &amp; Support
+              </Link>{" "}
+              page.
+            </p>
           </form>
         </div>
       </div>
+
+      <SiteFooter tone="dark" />
     </div>
   );
 }
