@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       );
     }
 
-    let body: { invoiceId?: string; refresh?: boolean };
+    let body: { invoiceId?: string; refresh?: boolean; amountRupees?: number };
     try {
       body = await req.json();
     } catch {
@@ -144,6 +144,11 @@ export async function POST(req: Request) {
       customerName: invoice.customer_name,
       customerEmail: invoice.customer_email,
       customerPhone: invoice.customer_phone,
+      // The billing screen declares what is being collected now. The QR must
+      // collect exactly that figure, not the leftover balance.
+      ...(typeof body.amountRupees === "number" && body.amountRupees > 0
+        ? { amountRupees: Math.min(body.amountRupees, invoice.grand_total ?? body.amountRupees) }
+        : {}),
     });
 
     if (!result.ok) {

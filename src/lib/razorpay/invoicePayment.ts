@@ -73,11 +73,23 @@ export async function createInvoicePaymentLink(
     customerEmail: string | null;
     customerPhone: string | null;
     notifySms?: boolean;
+    /**
+     * Amount the link should collect, in rupees.
+     *
+     * Defaults to the invoice's outstanding balance. Callers pass the
+     * "collecting now" figure when staff have declared part of the bill is
+     * being settled through this QR, which is what the billing screen does.
+     */
+    amountRupees?: number;
   }
 ): Promise<CreateLinkResult> {
-  const amount = outstandingBalance(args.invoice);
+  const amount =
+    args.amountRupees !== undefined && args.amountRupees > 0
+      ? Math.min(args.amountRupees, args.invoice.grand_total ?? args.amountRupees)
+      : outstandingBalance(args.invoice);
+
   if (amount <= 0) {
-    return { ok: false, reason: "This invoice has nothing outstanding." };
+    return { ok: false, reason: "This invoice has nothing to collect." };
   }
 
   try {
@@ -149,18 +161,24 @@ export async function markInvoicePaidFromLink(
 
   const inv = invoice as unknown as InvoiceForPayment;
   const total = Number(inv.grand_total || 0);
-  const alreadyPaid = Number(inv.amount_paid || 0);
-  const paidNow = Math.min(args.amountRupees, Math.max(0, total - alreadyPaid));
-  const newPaid = Math.round((alreadyPaid + paidNow) * 100) / 100;
 
-  // Fully settled, or nothing left to apply - treat as success and stop.
-  if (newPaid >= total - 0.001) {
-    if (inv.payment_status === "paid" && alreadyPaid >= total - 0.001) {
-      return { ok: true, alreadyPaid: true };
-    }
+  // SET, never add.
+  //
+  // The billing screen records what staff declared is being collected ("Paying
+  // now"), and raises the link for exactly that figure. So when the QR payment
+  // confirms, the correct amount_paid is the amount that actually arrived -
+  // adding it to the declared figure would double-count every online payment.
+  const newPaid = Math.round(Math.min(args.amountRupees, total) * 100) / 100;
+  const previouslyRecorded = Number(inv.amount_paid || 0);
+  const paymentStatus = newPaid >= total - 0.001 ? "paid" : newPaid > 0 ? "partial" : "due";
+
+  // Same payment delivered twice - nothing left to do.
+  if (
+    inv.payment_status === paymentStatus &&
+    previouslyRecorded >= newPaid - 0.001
+  ) {
+    return { ok: true, alreadyPaid: true };
   }
-
-  const paymentStatus = newPaid >= total - 0.001 ? "paid" : "partial";
 
   const { error: updErr } = await service
     .from("invoices")
@@ -168,8 +186,7 @@ export async function markInvoicePaidFromLink(
       amount_paid: newPaid,
       payment_status: paymentStatus,
       payment_method: args.paymentMethod || "Razorpay",
-      // Keep the first reference; append later ones so nothing is lost.
-      transaction_reference: alreadyPaid > 0 ? `${inv.invoice_number}` : args.paymentId,
+      transaction_reference: args.paymentId,
     })
     .eq("id", args.invoiceId);
 
@@ -182,9 +199,10 @@ export async function markInvoicePaidFromLink(
       actor_email: "razorpay@webhook",
       details: {
         payment_id: args.paymentId,
-        amount_applied: paidNow,
-        amount_paid_total: newPaid,
+        amount_confirmed: newPaid,
+        amount_recorded_before: previouslyRecorded,
         grand_total: total,
+        balance_after: Math.max(0, Math.round((total - newPaid) * 100) / 100),
       },
     });
   } catch (e) {

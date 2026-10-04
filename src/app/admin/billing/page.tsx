@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import QRCode from "qrcode";
@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { usePermissions } from "@/lib/usePermissions";
 import { useActiveLocation } from "@/lib/useActiveLocation";
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ApprovedMember {
   id: string;
@@ -47,10 +47,13 @@ interface CartItem {
   stock_quantity: number | null;
 }
 
-type PaymentMethod = "Cash" | "UPI" | "Card" | "Bank Transfer";
+type PaymentStatus = "paid" | "due";
+type PaymentMethod = "UPI" | "Cash" | "Card" | "Bank Transfer";
 type DiscountType = "percentage" | "flat";
 
-// â”€â”€â”€ Category config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const PAYMENT_METHODS: PaymentMethod[] = ["UPI", "Cash", "Card", "Bank Transfer"];
+
+// ─── Category config ──────────────────────────────────────────────────────────
 
 const CATEGORIES = [
   { id: "Membership Plans", label: "Membership Plans" },
@@ -62,7 +65,7 @@ const CATEGORIES = [
   { id: "Other Charges",    label: "Other Charges" },
 ];
 
-// â”€â”€â”€ Billing Sub-Nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Billing Sub-Nav ──────────────────────────────────────────────────────────
 
 function BillingSubNav() {
   const pathname = usePathname();
@@ -89,13 +92,13 @@ function BillingSubNav() {
   );
 }
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(n: number) {
-  return "â‚¹" + n.toLocaleString("en-IN");
+  return "₹" + n.toLocaleString("en-IN");
 }
 
-// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CreateBillPage() {
   const supabase = createClient();
@@ -135,13 +138,9 @@ export default function CreateBillPage() {
   const [discountValue, setDiscountValue] = useState("");
 
   // Payment
-  const [paymentMethod,  setPaymentMethod]  = useState<PaymentMethod>("Cash");
-  // Single source of truth for "how much is being collected right now".
-  // There is no paid/due mode toggle any more - the amount alone decides the
-  // resulting invoice status, so a partial payment cannot be mislabelled.
-  // null means "untouched", so the field shows the live bill total by default
-  // without an effect pushing state on every total change.
-  const [amountOverride, setAmountOverride] = useState<string | null>(null);
+  const [paymentStatus,  setPaymentStatus]  = useState<PaymentStatus>("paid");
+  const [paymentMethod,  setPaymentMethod]  = useState<PaymentMethod>("UPI");
+  const [amountPaid,     setAmountPaid]     = useState("");
   const [transactionRef, setTransactionRef] = useState("");
   const [notes,          setNotes]          = useState("");
 
@@ -152,6 +151,9 @@ export default function CreateBillPage() {
   // exact invoice without staff re-finding it in the list.
   const [completedInvoiceId, setCompletedInvoiceId] = useState<string | null>(null);
   const [completedOutstanding, setCompletedOutstanding] = useState<number>(0);
+  // What staff declared as "Paying now" — this is the figure the Razorpay QR
+  // must collect, not the remaining balance.
+  const [completedCollected, setCompletedCollected] = useState<number>(0);
   const [onlinePay, setOnlinePay] = useState<{
     loading: boolean;
     url: string | null;
@@ -161,7 +163,7 @@ export default function CreateBillPage() {
   }>({ loading: false, url: null, qrDataUrl: null, amount: null, error: null });
   const [error,            setError]            = useState<string | null>(null);
 
-  // â”€â”€ Load plan items (active branch catalogue) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Load plan items (active branch catalogue) ─────────────────────
   useEffect(() => {
     async function fetchItems() {
       setItemsLoading(true);
@@ -185,7 +187,7 @@ export default function CreateBillPage() {
     fetchItems();
   }, [supabase, activeLocationId]);
 
-  // â”€â”€ Customer search (debounced, active branch only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Customer search (debounced, active branch only) ─────────────────
   useEffect(() => {
     if (!customerSearch.trim() || customerSearch.length < 2) {
       setSearchResults([]); setShowDropdown(false); return;
@@ -217,7 +219,7 @@ export default function CreateBillPage() {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  // â”€â”€ Derived catalogue data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Derived catalogue data ──────────────────────────────
   const categoryItems = useMemo(
     () => allItems.filter((i) => i.category === activeCategory),
     [allItems, activeCategory]
@@ -241,14 +243,14 @@ export default function CreateBillPage() {
     return items;
   }, [categoryItems, activeSubcat, itemSearch, subcategories]);
 
-  // â”€â”€ Cart map for quick lookup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Cart map for quick lookup ────────────────────────────
   const cartMap = useMemo(() => {
     const m = new Map<string, CartItem>();
     cartItems.forEach((c) => m.set(c.id, c));
     return m;
   }, [cartItems]);
 
-  // â”€â”€ Totals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Totals ───────────────────────────────────────────────
   const subtotal = useMemo(
     () => cartItems.reduce((s, i) => s + i.unit_price * i.quantity, 0),
     [cartItems]
@@ -264,40 +266,30 @@ export default function CreateBillPage() {
 
   const grandTotal = subtotal - discountAmount;
 
-  // â”€â”€ Collection maths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // One number drives everything: what is collected now, what is left, and the
-  // payment_status written to the invoice. Deriving all three from one value is
-  // what prevents the old bug where collecting part of a bill was recorded as
-  // payment_status 'due' even though money had been received.
-  const amountField =
-    amountOverride ?? (grandTotal > 0 ? String(grandTotal) : "");
-  const amountEntered = parseFloat(amountField);
-  const collected = Number.isFinite(amountEntered)
-    ? Math.min(grandTotal, Math.max(0, amountEntered))
-    : 0;
-  const balanceLeft = Math.max(0, grandTotal - collected);
-  const derivedStatus: "paid" | "partial" | "due" =
-    grandTotal <= 0 ? "due" : collected >= grandTotal ? "paid" : collected > 0 ? "partial" : "due";
+  // ── Collection maths ──────────────────────────────────────────────────────
+  // "Fully paying" -> the exact grand total is collected.
+  // "Due"          -> staff types what is being paid NOW; the balance is derived.
+  //
+  // The invoice status follows the money, not the toggle, so a part payment is
+  // recorded as 'partial' instead of being mislabelled 'due'.
+  const enteredAmount = parseFloat(amountPaid);
+  const collectedNow =
+    paymentStatus === "paid"
+      ? grandTotal
+      : Number.isFinite(enteredAmount)
+        ? Math.min(grandTotal, Math.max(0, enteredAmount))
+        : 0;
+  const dueAfter = Math.max(0, grandTotal - collectedNow);
+  const collectedStatus: "paid" | "partial" | "due" =
+    grandTotal <= 0
+      ? "due"
+      : collectedNow >= grandTotal
+        ? "paid"
+        : collectedNow > 0
+          ? "partial"
+          : "due";
 
-  function setAmount(v: number | string) {
-    setAmountOverride(v === "" ? "" : String(v));
-  }
-
-  // Presets that make sense for THIS bill total - no dead buttons.
-  const amountPresets = useMemo(() => {
-    if (grandTotal <= 0) return [] as number[];
-    const out: number[] = [];
-    const half = Math.round(grandTotal / 2);
-    if (half > 0) out.push(half);
-    for (const r of [1000, 500, 2000]) {
-      if (out.length >= 3) break;
-      if (r > 0 && r < grandTotal && !out.includes(r)) out.push(r);
-    }
-    out.push(grandTotal);
-    return out;
-  }, [grandTotal]);
-
-  // â”€â”€ Category change â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Category change ─────────────────────────────────────
   function handleCategoryChange(cat: string) {
     setActiveCategory(cat); setActiveSubcat("All"); setItemSearch("");
   }
@@ -305,7 +297,7 @@ export default function CreateBillPage() {
   const [autoDiscountAlert, setAutoDiscountAlert] = useState<string | null>(null);
   const [appliedDiscountId, setAppliedDiscountId] = useState<string | null>(null);
 
-  // â”€â”€ Customer helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Customer helpers ────────────────────────────────────
   async function handleSelectMember(m: ApprovedMember) {
     setSelectedMember(m); setIsWalkin(false);
     setCustomerSearch(""); setShowDropdown(false);
@@ -323,7 +315,7 @@ export default function CreateBillPage() {
         setDiscountType(disc.discount_type === "percentage" ? "percentage" : "flat");
         setDiscountValue(disc.discount_value.toString());
         setAppliedDiscountId(disc.id);
-        const label = disc.discount_type === "percentage" ? `${disc.discount_value}%` : `â‚¹${disc.discount_value.toLocaleString("en-IN")}`;
+        const label = disc.discount_type === "percentage" ? `${disc.discount_value}%` : `₹${disc.discount_value.toLocaleString("en-IN")}`;
         setAutoDiscountAlert(`Active Discount Auto-Applied: ${label} (${disc.source} - ${disc.reason})`);
       } else {
         setShowDiscount(false);
@@ -347,7 +339,7 @@ export default function CreateBillPage() {
     setAutoDiscountAlert(null); setAppliedDiscountId(null);
   }
 
-  // â”€â”€ Cart helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Cart helpers ─────────────────────────────────────────
   function addToCart(item: BillingPlanItem) {
     setCartItems((prev) => {
       const existing = prev.find((c) => c.id === item.id);
@@ -374,28 +366,29 @@ export default function CreateBillPage() {
     setCartItems((prev) => prev.filter((c) => c.cartId !== cartId));
   }
 
-  // â”€â”€ Reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Reset ───────────────────────────────────────────────
   const resetBill = useCallback(() => {
     setSelectedMember(null); setIsWalkin(false);
     setWalkinName(""); setWalkinEmail(""); setWalkinPhone(""); setCustomerSearch("");
     setCartItems([]); setDiscountValue(""); setShowDiscount(false);
-    setDiscountType("percentage");
-    setPaymentMethod("Cash"); setAmountOverride(null); setTransactionRef(""); setNotes("");
+    setDiscountType("percentage"); setPaymentStatus("paid");
+    setPaymentMethod("Cash"); setAmountPaid(""); setTransactionRef(""); setNotes("");
     setError(null); setCompletedInvoice(null);
     setCompletedInvoiceId(null);
     setCompletedOutstanding(0);
+    setCompletedCollected(0);
     closeOnlinePay();
   }, []);
 
-  // â”€â”€ Complete Bill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Complete Bill ────────────────────────────────────────
   async function handleCompleteBill() {
     setError(null);
     if (!selectedMember && !isWalkin)        { setError("Please select a customer or choose Walk-in."); return; }
     if (isWalkin && !walkinName.trim())       { setError("Please enter the walk-in customer's name."); return; }
     if (cartItems.length === 0)              { setError("Please add at least one item to the bill."); return; }
-    if (amountField.trim() !== "" && !Number.isFinite(parseFloat(amountField))) { setError("Enter a valid amount."); return; }
-    if (amountField.trim() !== "" && parseFloat(amountField) < 0) { setError("Amount cannot be negative."); return; }
-    if (parseFloat(amountField) > grandTotal) { setError(`Amount collected cannot be more than the bill total of ${fmt(grandTotal)}.`); return; }
+    if (paymentStatus === "due" && amountPaid.trim() !== "" && !Number.isFinite(parseFloat(amountPaid))) { setError("Enter a valid amount."); return; }
+    if (paymentStatus === "due" && amountPaid.trim() !== "" && parseFloat(amountPaid) < 0) { setError("Amount cannot be negative."); return; }
+    if (parseFloat(amountPaid) > grandTotal) { setError(`Amount cannot be more than the Grand Total of ${fmt(grandTotal)}.`); return; }
     // Branch gate: every record below is tagged with the active branch.
     if (!activeLocationId) { setError("Branch not resolved yet. Please wait a moment and try again."); return; }
     // Cross-branch guard: the selected member must belong to the active branch.
@@ -481,12 +474,11 @@ export default function CreateBillPage() {
         discount_value:  showDiscount && discountValue ? parseFloat(discountValue) : 0,
         discount_amount: discountAmount,
         grand_total:     grandTotal,
-        // Status follows the money, not a UI mode. Collecting part of a bill is
-        // recorded as 'partial' so the invoice reflects the â‚¹ actually received;
-        // the previous expression labelled any partial amount as 'due'.
-        payment_status:  derivedStatus,
-        payment_method:  collected > 0 ? paymentMethod : null,
-        amount_paid:     collected,
+        // Status follows the money. A part payment is 'partial', so the invoice
+        // reflects the amount actually received instead of claiming 'due'.
+        payment_status:  collectedStatus,
+        payment_method:  collectedNow > 0 ? paymentMethod : null,
+        amount_paid:     collectedNow,
         transaction_reference: transactionRef.trim() || null,
         notes: notes.trim() || null,
         created_by: user?.id || null,
@@ -603,7 +595,8 @@ export default function CreateBillPage() {
 
       setCompletedInvoice(invNum);
       setCompletedInvoiceId(invoiceId);
-      setCompletedOutstanding(balanceLeft);
+      setCompletedOutstanding(dueAfter);
+      setCompletedCollected(collectedNow);
     } catch (err: unknown) {
       setError((err as Error).message || "Failed to complete bill.");
     } finally {
@@ -613,7 +606,7 @@ export default function CreateBillPage() {
 
   const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0);
 
-  // â”€â”€ Online collection for the invoice just created â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Online collection for the invoice just created ────────────────────
   // Creates a Razorpay Payment Link for the outstanding balance and renders it
   // as a QR for the member to scan. The webhook settles the invoice when
   // Razorpay confirms the payment.
@@ -624,7 +617,11 @@ export default function CreateBillPage() {
       const res = await fetch("/api/admin/billing/payment-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId: completedInvoiceId }),
+        body: JSON.stringify({
+          invoiceId: completedInvoiceId,
+          // The QR must collect exactly what staff declared as "Paying now".
+          ...(completedCollected > 0 ? { amountRupees: completedCollected } : {}),
+        }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -651,7 +648,7 @@ export default function CreateBillPage() {
   }
   const customerLabel = selectedMember?.full_name || (isWalkin && walkinName ? walkinName : null);
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="animate-fade-in min-w-0 max-w-full overflow-hidden">
       {/* Page title */}
@@ -689,7 +686,7 @@ export default function CreateBillPage() {
                 disabled={onlinePay.loading}
                 className="px-4 py-2 rounded-xl bg-rail text-white text-xs font-bold hover:bg-rail/90 transition-colors disabled:opacity-50 flex-shrink-0"
               >
-                {onlinePay.loading ? "Creating linkâ€¦" : "Collect payment online"}
+                {onlinePay.loading ? "Creating link…" : "Collect payment online"}
               </button>
             )}
             <Link href="/admin/billing/invoices" className="text-xs text-green-600 underline">View Invoice</Link>
@@ -700,7 +697,7 @@ export default function CreateBillPage() {
         </div>
       )}
 
-      {/* Online collection panel â€” appears after Complete Bill when a balance is due */}
+      {/* Online collection panel — appears after Complete Bill when a balance is due */}
       {(onlinePay.error || onlinePay.qrDataUrl) && (
         <div className="mb-4 rounded-2xl border border-line bg-surface p-4 sm:p-5 animate-fade-in">
           <div className="flex items-start justify-between gap-3">
@@ -708,12 +705,15 @@ export default function CreateBillPage() {
               <p className="text-sm font-bold text-fg">Collect payment online</p>
               <p className="text-[11px] text-fg-3 mt-0.5">
                 Invoice <span className="font-mono font-bold">{completedInvoice}</span>
-                {typeof onlinePay.amount === "number" && onlinePay.amount > 0 && (
-                  <> Â· outstanding{" "}<span className="font-mono font-bold">{fmt(onlinePay.amount)}</span></>
+                {completedCollected > 0 && (
+                  <> · collecting <span className="font-mono font-bold">{fmt(completedCollected)}</span></>
+                )}
+                {completedOutstanding > 0 && (
+                  <> · balance due <span className="font-mono font-bold text-amber-600">{fmt(completedOutstanding)}</span></>
                 )}
               </p>
             </div>
-            <button onClick={closeOnlinePay} className="text-xs font-bold text-fg-4 hover:text-fg shrink-0">âœ•</button>
+            <button onClick={closeOnlinePay} className="text-xs font-bold text-fg-4 hover:text-fg shrink-0">✕</button>
           </div>
 
           {onlinePay.error && (
@@ -734,10 +734,16 @@ export default function CreateBillPage() {
                   <li>Scan the QR code above</li>
                   <li>Choose UPI and pay the exact amount shown</li>
                 </ol>
-                <p className="text-fg-4">
-                  The invoice is marked paid automatically once Razorpay confirms the payment. If the member
-                  cannot scan, open the link on a phone instead.
-                </p>
+                <p className="text-[11px] text-fg-4">
+                {onlinePay.amount && onlinePay.amount > 0 && (
+                  <>The QR collects exactly{" "}
+                    <span className="font-mono font-bold text-fg-3">{fmt(onlinePay.amount)}</span>. </>
+                )}
+                The invoice is marked paid automatically once Razorpay confirms the payment.
+                {completedOutstanding > 0 && onlinePay.amount === completedOutstanding && (
+                  <> A balance of <span className="font-mono font-bold text-amber-600">{fmt(completedOutstanding)}</span> stays due.</>
+                )}
+              </p>
                 {onlinePay.url && (
                   <p className="pt-1">
                     <span className="text-fg-4">Link: </span>
@@ -764,14 +770,14 @@ export default function CreateBillPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           {error}
-          <button onClick={() => setError(null)} className="ml-auto text-red-500/60 hover:text-red-500">âœ•</button>
+          <button onClick={() => setError(null)} className="ml-auto text-red-500/60 hover:text-red-500">✕</button>
         </div>
       )}
 
       {/* 3-panel layout */}
       <div className="flex flex-col lg:flex-row gap-3 min-h-0 lg:h-[calc(100vh-12rem)] pb-2">
 
-        {/* â”€â”€ LEFT PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── LEFT PANEL ─────────────────────────────────── */}
         <div className="w-full lg:w-[260px] flex-shrink-0 bg-surface rounded-2xl border border-line flex flex-col overflow-y-auto shadow-sm">
 
           {/* Customer section */}
@@ -791,7 +797,7 @@ export default function CreateBillPage() {
                     type="text" value={customerSearch}
                     onChange={(e) => setCustomerSearch(e.target.value)}
                     onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
-                    placeholder="Search memberâ€¦"
+                    placeholder="Search member…"
                     className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-line bg-surface-2/50 text-sm text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
                   />
                   {searchLoading && (
@@ -896,7 +902,7 @@ export default function CreateBillPage() {
           </div>
         </div>
 
-        {/* â”€â”€ MIDDLE PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── MIDDLE PANEL ─────────────────────────────────── */}
         <div className="flex-1 bg-surface rounded-2xl border border-line flex flex-col overflow-hidden min-w-0 shadow-sm">
           {/* Header */}
           <div className="p-3 sm:p-4 border-b border-line flex-shrink-0">
@@ -909,7 +915,7 @@ export default function CreateBillPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
               </svg>
               <input type="text" value={itemSearch} onChange={(e) => setItemSearch(e.target.value)}
-                placeholder={`Search ${CATEGORIES.find((c) => c.id === activeCategory)?.label.toLowerCase()}â€¦`}
+                placeholder={`Search ${CATEGORIES.find((c) => c.id === activeCategory)?.label.toLowerCase()}…`}
                 className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-line bg-surface-2/50 text-sm text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
               />
             </div>
@@ -937,7 +943,7 @@ export default function CreateBillPage() {
               <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-2">
                   <div className="w-6 h-6 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
-                  <p className="text-xs text-fg-5">Loadingâ€¦</p>
+                  <p className="text-xs text-fg-5">Loading…</p>
                 </div>
               </div>
             ) : filteredItems.length === 0 ? (
@@ -980,10 +986,10 @@ export default function CreateBillPage() {
           </div>
         </div>
 
-        {/* â”€â”€ RIGHT PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ── RIGHT PANEL ──────────────────────────────────── */}
         <div className="w-full lg:w-[360px] flex-shrink-0 bg-surface rounded-2xl border border-line flex flex-col overflow-hidden shadow-sm h-auto lg:h-full min-h-0">
 
-          {/* Header â€” shows who the bill is for */}
+          {/* Header — shows who the bill is for */}
           <div className="p-3 sm:p-4 border-b border-line flex-shrink-0 bg-surface">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
@@ -1016,9 +1022,9 @@ export default function CreateBillPage() {
                         <svg className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M17 17h.01M7 7l10 10M7 7a4 4 0 115.657 5.657M17 17a4 4 0 11-5.657-5.657" />
                         </svg>
-                        <span className="truncate">Discount: {discountType === "percentage" ? `${discountValue}% OFF` : `â‚¹${parseFloat(discountValue || "0").toLocaleString("en-IN")} OFF`}</span>
+                        <span className="truncate">Discount: {discountType === "percentage" ? `${discountValue}% OFF` : `₹${parseFloat(discountValue || "0").toLocaleString("en-IN")} OFF`}</span>
                       </div>
-                      {discountAmount > 0 && <span className="font-black text-emerald-600 flex-shrink-0">âˆ’{fmt(discountAmount)}</span>}
+                      {discountAmount > 0 && <span className="font-black text-emerald-600 flex-shrink-0">−{fmt(discountAmount)}</span>}
                     </div>
                   ) : (
                     <div className="text-[11px] font-medium text-fg-4 px-1">
@@ -1054,7 +1060,7 @@ export default function CreateBillPage() {
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <button onClick={() => updateQty(item.cartId, -1)}
-                          className="w-6 h-6 rounded-lg bg-line/60 text-fg text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">âˆ’</button>
+                          className="w-6 h-6 rounded-lg bg-line/60 text-fg text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">−</button>
                         <span className="text-sm font-bold text-fg w-5 text-center">{item.quantity}</span>
                         <button onClick={() => updateQty(item.cartId, 1)}
                           className="w-6 h-6 rounded-lg bg-line/60 text-fg text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">+</button>
@@ -1090,12 +1096,12 @@ export default function CreateBillPage() {
                     }}
                     className="text-xs font-bold text-accent hover:underline flex items-center gap-1.5"
                   >
-                    <span>ðŸ·ï¸</span>
+                    <span>🏷️</span>
                     <span>{showDiscount ? "Remove Discount" : "+ Apply Manual Discount"}</span>
                   </button>
                   {showDiscount && discountValue && (
                     <span className="text-[10px] text-emerald-500 font-bold break-all">
-                      {discountType === "percentage" ? `${discountValue}% OFF` : `â‚¹${discountValue} OFF`}
+                      {discountType === "percentage" ? `${discountValue}% OFF` : `₹${discountValue} OFF`}
                     </span>
                   )}
                 </div>
@@ -1108,7 +1114,7 @@ export default function CreateBillPage() {
                       className="px-2 py-1.5 rounded-lg border border-line bg-surface text-xs font-semibold text-fg outline-none"
                     >
                       <option value="percentage">% OFF</option>
-                      <option value="flat">â‚¹ OFF</option>
+                      <option value="flat">₹ OFF</option>
                     </select>
                     <input
                       type="number"
@@ -1131,112 +1137,146 @@ export default function CreateBillPage() {
                 {discountAmount > 0 && (
                   <div className="flex items-center justify-between gap-2 flex-wrap text-xs text-emerald-600 font-bold">
                     <span className="min-w-0 break-words">Member Discount ({discountType === "percentage" ? discountValue + "% OFF" : fmt(parseFloat(discountValue))})</span>
-                    <span className="flex-shrink-0">âˆ’ {fmt(discountAmount)}</span>
+                    <span className="flex-shrink-0">− {fmt(discountAmount)}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-line">
-                  <span className="font-bold text-fg text-sm">Grand Total</span>
-                  <span className="font-bold text-accent text-lg break-all">{fmt(grandTotal)}</span>
-                </div>
               </div>
 
-{/* Payment collection */}
+              {/* Payment */}
               <div className="space-y-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-fg-4">
-                    Collecting now
+
+                {/* Grand Total */}
+                <div className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-3.5 py-3">
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-fg-4">
+                    Grand Total
                   </span>
-                  <span
-                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                      derivedStatus === "paid"
-                        ? "text-green-600 bg-green-500/10 border-green-500/25"
-                        : derivedStatus === "partial"
-                          ? "text-amber-600 bg-amber-500/10 border-amber-500/25"
-                          : "text-fg-4 bg-hover border-line"
+                  <span className="text-xl font-black text-accent">{fmt(grandTotal)}</span>
+                </div>
+
+                {/* Two options: Fully paying (default) / Due */}
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => { setPaymentStatus("paid"); setAmountPaid(""); }}
+                    className={`py-3 rounded-2xl text-xs font-extrabold transition-colors ${
+                      paymentStatus === "paid"
+                        ? "bg-rail text-white"
+                        : "bg-surface border border-line text-fg-3 hover:bg-hover"
                     }`}
                   >
-                    {derivedStatus === "paid"
-                      ? "Paid in full"
-                      : derivedStatus === "partial"
-                        ? "Part paid"
-                        : "Nothing collected"}
-                  </span>
+                    Fully paying
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentStatus("due")}
+                    className={`py-3 rounded-2xl text-xs font-extrabold transition-colors ${
+                      paymentStatus === "due"
+                        ? "bg-amber-500 text-white"
+                        : "bg-surface border border-line text-fg-3 hover:bg-hover"
+                    }`}
+                  >
+                    Due
+                  </button>
                 </div>
 
-                {/* Amount */}
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-bold text-fg-4 pointer-events-none">
-                    â‚¹
-                  </span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    max={grandTotal}
-                    value={amountField}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0"
-                    className="w-full pl-9 pr-4 py-3.5 rounded-2xl border border-line-2 bg-surface-2/50 text-2xl font-black text-fg placeholder:text-fg-5/60 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-fg-5 pointer-events-none">
-                    of {fmt(grandTotal)}
-                  </span>
-                </div>
+                {/* Fully paying: the exact Grand Total is due, nothing to type */}
+                {paymentStatus === "paid" ? (
+                  <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3.5 space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700/80">
+                      Amount to be paid in full
+                    </p>
+                    <p className="text-2xl font-black text-emerald-600">
+                      {fmt(grandTotal)}
+                    </p>
+                    <p className="text-[11px] text-fg-4">
+                      Nothing will be left due on this invoice.
+                    </p>
+                  </div>
+                ) : (
+                  /* Due: type what is being paid now, the balance is derived beside it */
+                  <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3.5 space-y-2.5">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-amber-700/80 mb-1.5">
+                          Paying now
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-fg-4 pointer-events-none">
+                            ₹
+                          </span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            max={grandTotal}
+                            value={amountPaid}
+                            onChange={(e) => setAmountPaid(e.target.value)}
+                            placeholder="0"
+                            className="w-full pl-7 pr-2 py-3 rounded-xl border border-line bg-surface text-lg font-black text-fg placeholder:text-fg-5/60 focus:outline-none focus:ring-2 focus:ring-amber-500/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-amber-700/80 mb-1.5">
+                          Due after
+                        </label>
+                        <div className="px-3 py-3 rounded-xl border border-amber-500/30 bg-amber-500/10">
+                          <p className="text-lg font-black text-amber-600 break-all">
+                            {fmt(dueAfter)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
-                {/* Presets */}
-                {amountPresets.length > 0 && (
-                  <div className="flex gap-1.5 flex-wrap">
-                    {amountPresets.map((amt) => {
-                      const active = collected === amt && derivedStatus !== "due";
-                      return (
-                        <button
-                          key={amt}
-                          type="button"
-                          onClick={() => setAmount(amt)}
-                          className={`flex-1 min-w-[64px] py-2 rounded-xl text-xs font-bold transition-colors ${
-                            active
-                              ? "bg-rail text-white"
-                              : "bg-surface border border-line text-fg-3 hover:bg-hover"
-                          }`}
-                        >
-                          {amt === grandTotal ? "Full" : fmt(amt)}
-                        </button>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      onClick={() => setAmount(0)}
-                      disabled={collected === 0}
-                      className={`flex-1 min-w-[64px] py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${
-                        collected === 0
-                          ? "bg-fg-4 text-surface"
-                          : "bg-surface border border-line text-fg-3 hover:bg-hover"
-                      }`}
-                    >
-                      Nothing
-                    </button>
+                    {parseFloat(amountPaid) > grandTotal && (
+                      <p className="text-[11px] font-bold text-red-600">
+                        That is more than the Grand Total. It will be capped at{" "}
+                        {fmt(grandTotal)}.
+                      </p>
+                    )}
+
+                    <div className="flex gap-1.5 flex-wrap">
+                      {[grandTotal, Math.round(grandTotal / 2), 0].map((v, i) => {
+                        const active = collectedNow === v;
+                        const label = i === 0 ? "Full" : i === 1 ? "Half" : "Nothing";
+                        return (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={() => setAmountPaid(v === 0 ? "" : String(v))}
+                            disabled={v === 0 && collectedNow === 0}
+                            className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-colors disabled:opacity-40 ${
+                              active ? "bg-amber-500 text-white" : "bg-surface border border-line text-fg-3 hover:bg-hover"
+                            }`}
+                          >
+                            {label}
+                            {v > 0 && <span className="ml-1 opacity-70">{fmt(v)}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <p className="text-[11px] leading-relaxed text-fg-4">
+                      <span className="font-bold text-amber-600">{fmt(collectedNow)}</span>{" "}
+                      is being collected now and{" "}
+                      <span className="font-bold text-amber-600">{fmt(dueAfter)}</span>{" "}
+                      stays due on the invoice.
+                    </p>
                   </div>
                 )}
 
-                {collected > grandTotal && (
-                  <p className="text-[11px] font-bold text-red-600">
-                    That is more than the bill total. It will be capped at{" "}
-                    {fmt(grandTotal)}.
-                  </p>
-                )}
-
-                {/* Method */}
+                {/* Method - UPI first and selected by default */}
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-fg-4 mb-1.5">
-                    {collected > 0 ? "Paid by" : "Expected method"}
+                    Paid by
                   </label>
                   <div className="grid grid-cols-4 gap-1.5">
-                    {(["Cash", "UPI", "Card", "Bank Transfer"] as PaymentMethod[]).map((m) => (
+                    {PAYMENT_METHODS.map((m) => (
                       <button
                         key={m}
                         type="button"
                         onClick={() => setPaymentMethod(m)}
-                        className={`py-2 rounded-xl text-[11px] font-bold transition-colors ${
+                        className={`py-2.5 rounded-xl text-[11px] font-bold transition-colors ${
                           paymentMethod === m
                             ? "bg-rail text-white"
                             : "bg-surface border border-line text-fg-3 hover:bg-hover"
@@ -1248,7 +1288,7 @@ export default function CreateBillPage() {
                   </div>
                 </div>
 
-                {collected > 0 && paymentMethod !== "Cash" && (
+                {collectedNow > 0 && paymentMethod !== "Cash" && (
                   <input
                     type="text"
                     value={transactionRef}
@@ -1256,56 +1296,6 @@ export default function CreateBillPage() {
                     placeholder="Transaction ref / UTR (optional)"
                     className="w-full px-3 py-2.5 rounded-xl border border-line bg-surface-2/50 text-xs text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent"
                   />
-                )}
-
-                {/* Live breakdown */}
-                <div className="rounded-2xl border border-line bg-surface overflow-hidden">
-                  <div className="flex items-center justify-between gap-2 px-3 py-2.5 text-xs">
-                    <span className="text-fg-4 font-semibold">Bill total</span>
-                    <span className="font-bold text-fg">{fmt(grandTotal)}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 px-3 py-2.5 text-xs border-t border-line">
-                    <span className="text-fg-4 font-semibold">Collecting now</span>
-                    <span className="font-bold text-green-600">{fmt(collected)}</span>
-                  </div>
-                  <div
-                    className={`flex items-center justify-between gap-2 px-3 py-2.5 border-t ${
-                      balanceLeft > 0 ? "bg-amber-500/10 border-amber-500/25" : "border-line"
-                    }`}
-                  >
-                    <span className="font-extrabold text-fg-3 text-xs">
-                      Balance left
-                    </span>
-                    <span
-                      className={`font-black text-sm ${
-                        balanceLeft > 0 ? "text-amber-600" : "text-fg-4"
-                      }`}
-                    >
-                      {balanceLeft > 0 ? fmt(balanceLeft) : "Nothing due"}
-                    </span>
-                  </div>
-                </div>
-
-                {balanceLeft > 0 && (
-                  <p className="text-[11px] leading-relaxed text-fg-4">
-                    The remaining{" "}
-                    <span className="font-bold text-amber-600">{fmt(balanceLeft)}</span>{" "}
-                    stays on the invoice. Use{" "}
-                    <span className="font-semibold text-fg-3">
-                      Collect payment online
-                    </span>{" "}
-                    after completing the bill to raise a QR for exactly that
-                    balance.
-                  </p>
-                )}
-
-                {collected >= grandTotal && grandTotal > 0 && (
-                  <p className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Settled in full â€” no balance will remain on this invoice.
-                  </p>
                 )}
 
                 <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
@@ -1329,13 +1319,13 @@ export default function CreateBillPage() {
               title={hasPerm("billing.create") ? "" : "Requires billing.create permission"}
             >
               {completing ? (
-                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Processingâ€¦</>
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Processing…</>
               ) : !hasPerm("billing.create") ? (
                 <span className="flex items-center justify-center gap-1.5"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>Complete Bill (Permission Required)</span>
               ) : (
                 <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>Complete Bill â€” {fmt(grandTotal)}</>
+                </svg>Complete Bill — {fmt(grandTotal)}</>
               )}
             </button>
           </div>
@@ -1345,8 +1335,8 @@ export default function CreateBillPage() {
   );
 }
 
-// â”€â”€â”€ Plan Item Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Shows current cart quantity inline â€” no separate "already added" confusion
+// ─── Plan Item Card ───────────────────────────────────────────────────────────
+// Shows current cart quantity inline — no separate "already added" confusion
 
 function PlanItemCard({
   item, cartItem, justAdded, onAdd, onIncrement, onDecrement,
@@ -1404,7 +1394,7 @@ function PlanItemCard({
         )}
         {perSession && (
           <p className="text-[10px] text-fg-5 mt-0.5">
-            {item.sessions} sessions â€¢ {fmt(perSession)}/session
+            {item.sessions} sessions • {fmt(perSession)}/session
           </p>
         )}
         {item.validity_days && (
@@ -1416,11 +1406,11 @@ function PlanItemCard({
 
       {/* Add / Qty control */}
       {cartItem ? (
-        // Already in cart â†’ show inline qty controls
+        // Already in cart → show inline qty controls
         <div className="mt-auto flex items-center justify-between gap-2 p-1.5 rounded-xl bg-rail/8 border border-fg/10">
           <button onClick={onDecrement}
             className="w-8 h-8 rounded-lg bg-surface border border-line/60 text-fg font-bold flex items-center justify-center hover:bg-hover transition-colors shadow-sm">
-            âˆ’
+            −
           </button>
           <span className="text-sm font-bold text-fg">{cartItem.quantity}</span>
           <button onClick={onIncrement}
@@ -1452,4 +1442,3 @@ function PlanItemCard({
     </div>
   );
 }
-
