@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import QRCode from "qrcode";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -144,6 +145,17 @@ export default function CreateBillPage() {
   // Completion
   const [completing,       setCompleting]       = useState(false);
   const [completedInvoice, setCompletedInvoice] = useState<string | null>(null);
+  // Kept alongside the number so the online-collection flow can act on this
+  // exact invoice without staff re-finding it in the list.
+  const [completedInvoiceId, setCompletedInvoiceId] = useState<string | null>(null);
+  const [completedOutstanding, setCompletedOutstanding] = useState<number>(0);
+  const [onlinePay, setOnlinePay] = useState<{
+    loading: boolean;
+    url: string | null;
+    qrDataUrl: string | null;
+    amount: number | null;
+    error: string | null;
+  }>({ loading: false, url: null, qrDataUrl: null, amount: null, error: null });
   const [error,            setError]            = useState<string | null>(null);
 
   // ── Load plan items (active branch catalogue) ─────────────────────
@@ -334,6 +346,9 @@ export default function CreateBillPage() {
     setDiscountType("percentage"); setPaymentStatus("paid");
     setPaymentMethod("Cash"); setAmountPaid(""); setTransactionRef(""); setNotes("");
     setError(null); setCompletedInvoice(null);
+    setCompletedInvoiceId(null);
+    setCompletedOutstanding(0);
+    closeOnlinePay();
   }, []);
 
   // ── Complete Bill ────────────────────────────────────────
@@ -546,6 +561,8 @@ export default function CreateBillPage() {
       }));
 
       setCompletedInvoice(invNum);
+      setCompletedInvoiceId(invoiceId);
+      setCompletedOutstanding(Math.max(0, grandTotal - (paymentStatus === "paid" ? grandTotal : Math.min(grandTotal, parseFloat(amountPaid) || 0))));
     } catch (err: unknown) {
       setError((err as Error).message || "Failed to complete bill.");
     } finally {
@@ -554,6 +571,43 @@ export default function CreateBillPage() {
   }
 
   const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0);
+
+  // ── Online collection for the invoice just created ────────────────────
+  // Creates a Razorpay Payment Link for the outstanding balance and renders it
+  // as a QR for the member to scan. The webhook settles the invoice when
+  // Razorpay confirms the payment.
+  async function collectOnline() {
+    if (!completedInvoiceId) return;
+    setOnlinePay((p) => ({ ...p, loading: true, error: null, qrDataUrl: null }));
+    try {
+      const res = await fetch("/api/admin/billing/payment-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: completedInvoiceId }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setOnlinePay((p) => ({ ...p, loading: false, error: body.error || "Could not create the payment link." }));
+        return;
+      }
+      if (body.alreadyPaid || !body.url) {
+        setOnlinePay({ loading: false, url: null, qrDataUrl: null, amount: 0, error: null });
+        return;
+      }
+      const qr = await QRCode.toDataURL(body.url, {
+        width: 300,
+        margin: 1,
+        color: { dark: "#000000", light: "#FFFFFF" },
+      });
+      setOnlinePay({ loading: false, url: body.url, qrDataUrl: qr, amount: body.amount, error: null });
+    } catch {
+      setOnlinePay({ loading: false, url: null, qrDataUrl: null, amount: null, error: "Network error while creating the payment link." });
+    }
+  }
+
+  function closeOnlinePay() {
+    setOnlinePay({ loading: false, url: null, qrDataUrl: null, amount: null, error: null });
+  }
   const customerLabel = selectedMember?.full_name || (isWalkin && walkinName ? walkinName : null);
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -588,11 +642,77 @@ export default function CreateBillPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {completedOutstanding > 0 && !onlinePay.qrDataUrl && (
+              <button
+                onClick={collectOnline}
+                disabled={onlinePay.loading}
+                className="px-4 py-2 rounded-xl bg-rail text-white text-xs font-bold hover:bg-rail/90 transition-colors disabled:opacity-50 flex-shrink-0"
+              >
+                {onlinePay.loading ? "Creating link…" : "Collect payment online"}
+              </button>
+            )}
             <Link href="/admin/billing/invoices" className="text-xs text-green-600 underline">View Invoice</Link>
             <button onClick={resetBill} className="px-4 py-2 rounded-xl bg-green-500 text-white text-sm font-semibold hover:bg-green-500/80 transition-colors flex-shrink-0">
               New Bill
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Online collection panel — appears after Complete Bill when a balance is due */}
+      {(onlinePay.error || onlinePay.qrDataUrl) && (
+        <div className="mb-4 rounded-2xl border border-line bg-surface p-4 sm:p-5 animate-fade-in">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-fg">Collect payment online</p>
+              <p className="text-[11px] text-fg-3 mt-0.5">
+                Invoice <span className="font-mono font-bold">{completedInvoice}</span>
+                {typeof onlinePay.amount === "number" && onlinePay.amount > 0 && (
+                  <> · outstanding{" "}<span className="font-mono font-bold">{fmt(onlinePay.amount)}</span></>
+                )}
+              </p>
+            </div>
+            <button onClick={closeOnlinePay} className="text-xs font-bold text-fg-4 hover:text-fg shrink-0">✕</button>
+          </div>
+
+          {onlinePay.error && (
+            <p className="mt-3 rounded-xl bg-red-500/10 border border-red-500/25 px-3 py-2 text-[11px] font-semibold text-red-600">
+              {onlinePay.error}
+            </p>
+          )}
+
+          {onlinePay.qrDataUrl && (
+            <div className="mt-4 flex flex-col sm:flex-row gap-5 items-start">
+              <div className="mx-auto sm:mx-0 shrink-0 rounded-xl border border-line bg-white p-2">
+                <img src={onlinePay.qrDataUrl} alt="Payment QR code" className="w-[240px] h-[240px]" />
+              </div>
+              <div className="min-w-0 text-[11px] text-fg-3 space-y-2">
+                <p className="font-semibold text-fg">Ask the member to scan this code</p>
+                <ol className="space-y-1 list-decimal pl-4 marker:text-fg-4">
+                  <li>Open their UPI app (GPay, PhonePe, Paytm) or the camera</li>
+                  <li>Scan the QR code above</li>
+                  <li>Choose UPI and pay the exact amount shown</li>
+                </ol>
+                <p className="text-fg-4">
+                  The invoice is marked paid automatically once Razorpay confirms the payment. If the member
+                  cannot scan, open the link on a phone instead.
+                </p>
+                {onlinePay.url && (
+                  <p className="pt-1">
+                    <span className="text-fg-4">Link: </span>
+                    <a
+                      href={onlinePay.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-accent underline underline-offset-2 break-all"
+                    >
+                      {onlinePay.url}
+                    </a>
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

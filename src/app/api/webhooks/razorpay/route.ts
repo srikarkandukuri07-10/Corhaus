@@ -6,6 +6,7 @@ import {
   fulfilTrialFromOrder,
   type OrderNotes,
 } from "@/lib/razorpay/trialFulfilment";
+import { markInvoicePaidFromLink } from "@/lib/razorpay/invoicePayment";
 
 /**
  * Razorpay webhook.
@@ -73,18 +74,61 @@ export async function POST(req: Request) {
     const order = payload.payload?.order?.entity ?? null;
     const payment = payload.payload?.payment?.entity ?? null;
 
+    // Created up front: both the payment-link branch and the trial branch below
+    // need it.
+    const service = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    // ── 0. Payment Links (invoice collection) ──────────────────────────────
+    // A payment-link payment carries notes.reference_id, which we set to the
+    // invoice id when creating the link. That is the only correlation used -
+    // never amount or timing heuristics, which could settle the wrong invoice.
+    const referenceId: string | null =
+      payment?.notes?.reference_id ?? order?.notes?.reference_id ?? null;
+
+    if (referenceId) {
+      const invoiceId = String(referenceId);
+      // Guard against a stray notes field colliding with an unrelated payment.
+      const { data: invExists } = await service
+        .from("invoices")
+        .select("id")
+        .eq("id", invoiceId)
+        .maybeSingle();
+
+      if (invExists) {
+        const amountRupees = payment?.amount
+          ? Number(payment.amount) / 100
+          : order?.amount
+            ? Number(order.amount) / 100
+            : 0;
+
+        const settled = await markInvoicePaidFromLink(service, {
+          invoiceId,
+          paymentId: payment?.id ?? order?.id ?? "unknown",
+          amountRupees,
+          paymentMethod: "Razorpay",
+        });
+
+        return NextResponse.json({
+          received: true,
+          handled: true,
+          outcome: settled.ok ? "invoice_settled" : "invoice_rejected",
+          invoiceId,
+          alreadyPaid: settled.alreadyPaid ?? false,
+          ...(settled.reason ? { detail: settled.reason } : {}),
+        });
+      }
+    }
+
     const orderId: string | null = payment?.order_id ?? order?.id ?? null;
     const paymentId: string | null = payment?.id ?? null;
 
     if (!orderId) {
       return NextResponse.json({ received: true, handled: false });
     }
-
-    const service = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
 
     // ── 1. Already fulfilled by the browser path? ──────────────────────────
     // Query the dedicated columns. The previous version searched `notes` for the

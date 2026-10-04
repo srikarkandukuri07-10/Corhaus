@@ -17,7 +17,8 @@ const secret = (
   .replace("RAZORPAY_WEBHOOK_SECRET=", "")
   .trim();
 
-const BASE = "http://127.0.0.1:3113/api/webhooks/razorpay";
+const PORT = process.env.PORT || "3113";
+const BASE = `http://127.0.0.1:${PORT}/api/webhooks/razorpay`;
 
 async function post(body, sigSecret) {
   const raw = typeof body === "string" ? body : JSON.stringify(body);
