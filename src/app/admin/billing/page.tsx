@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import QRCode from "qrcode";
@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { usePermissions } from "@/lib/usePermissions";
 import { useActiveLocation } from "@/lib/useActiveLocation";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ApprovedMember {
   id: string;
@@ -47,11 +47,10 @@ interface CartItem {
   stock_quantity: number | null;
 }
 
-type PaymentStatus = "paid" | "due";
 type PaymentMethod = "Cash" | "UPI" | "Card" | "Bank Transfer";
 type DiscountType = "percentage" | "flat";
 
-// ─── Category config ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Category config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const CATEGORIES = [
   { id: "Membership Plans", label: "Membership Plans" },
@@ -63,7 +62,7 @@ const CATEGORIES = [
   { id: "Other Charges",    label: "Other Charges" },
 ];
 
-// ─── Billing Sub-Nav ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Billing Sub-Nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function BillingSubNav() {
   const pathname = usePathname();
@@ -90,13 +89,13 @@ function BillingSubNav() {
   );
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function fmt(n: number) {
-  return "₹" + n.toLocaleString("en-IN");
+  return "â‚¹" + n.toLocaleString("en-IN");
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function CreateBillPage() {
   const supabase = createClient();
@@ -136,9 +135,13 @@ export default function CreateBillPage() {
   const [discountValue, setDiscountValue] = useState("");
 
   // Payment
-  const [paymentStatus,  setPaymentStatus]  = useState<PaymentStatus>("paid");
   const [paymentMethod,  setPaymentMethod]  = useState<PaymentMethod>("Cash");
-  const [amountPaid,     setAmountPaid]     = useState("");
+  // Single source of truth for "how much is being collected right now".
+  // There is no paid/due mode toggle any more - the amount alone decides the
+  // resulting invoice status, so a partial payment cannot be mislabelled.
+  // null means "untouched", so the field shows the live bill total by default
+  // without an effect pushing state on every total change.
+  const [amountOverride, setAmountOverride] = useState<string | null>(null);
   const [transactionRef, setTransactionRef] = useState("");
   const [notes,          setNotes]          = useState("");
 
@@ -158,7 +161,7 @@ export default function CreateBillPage() {
   }>({ loading: false, url: null, qrDataUrl: null, amount: null, error: null });
   const [error,            setError]            = useState<string | null>(null);
 
-  // ── Load plan items (active branch catalogue) ─────────────────────
+  // â”€â”€ Load plan items (active branch catalogue) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     async function fetchItems() {
       setItemsLoading(true);
@@ -182,7 +185,7 @@ export default function CreateBillPage() {
     fetchItems();
   }, [supabase, activeLocationId]);
 
-  // ── Customer search (debounced, active branch only) ─────────────────
+  // â”€â”€ Customer search (debounced, active branch only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!customerSearch.trim() || customerSearch.length < 2) {
       setSearchResults([]); setShowDropdown(false); return;
@@ -214,7 +217,7 @@ export default function CreateBillPage() {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  // ── Derived catalogue data ──────────────────────────────
+  // â”€â”€ Derived catalogue data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const categoryItems = useMemo(
     () => allItems.filter((i) => i.category === activeCategory),
     [allItems, activeCategory]
@@ -238,14 +241,14 @@ export default function CreateBillPage() {
     return items;
   }, [categoryItems, activeSubcat, itemSearch, subcategories]);
 
-  // ── Cart map for quick lookup ────────────────────────────
+  // â”€â”€ Cart map for quick lookup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const cartMap = useMemo(() => {
     const m = new Map<string, CartItem>();
     cartItems.forEach((c) => m.set(c.id, c));
     return m;
   }, [cartItems]);
 
-  // ── Totals ───────────────────────────────────────────────
+  // â”€â”€ Totals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const subtotal = useMemo(
     () => cartItems.reduce((s, i) => s + i.unit_price * i.quantity, 0),
     [cartItems]
@@ -261,7 +264,40 @@ export default function CreateBillPage() {
 
   const grandTotal = subtotal - discountAmount;
 
-  // ── Category change ─────────────────────────────────────
+  // â”€â”€ Collection maths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // One number drives everything: what is collected now, what is left, and the
+  // payment_status written to the invoice. Deriving all three from one value is
+  // what prevents the old bug where collecting part of a bill was recorded as
+  // payment_status 'due' even though money had been received.
+  const amountField =
+    amountOverride ?? (grandTotal > 0 ? String(grandTotal) : "");
+  const amountEntered = parseFloat(amountField);
+  const collected = Number.isFinite(amountEntered)
+    ? Math.min(grandTotal, Math.max(0, amountEntered))
+    : 0;
+  const balanceLeft = Math.max(0, grandTotal - collected);
+  const derivedStatus: "paid" | "partial" | "due" =
+    grandTotal <= 0 ? "due" : collected >= grandTotal ? "paid" : collected > 0 ? "partial" : "due";
+
+  function setAmount(v: number | string) {
+    setAmountOverride(v === "" ? "" : String(v));
+  }
+
+  // Presets that make sense for THIS bill total - no dead buttons.
+  const amountPresets = useMemo(() => {
+    if (grandTotal <= 0) return [] as number[];
+    const out: number[] = [];
+    const half = Math.round(grandTotal / 2);
+    if (half > 0) out.push(half);
+    for (const r of [1000, 500, 2000]) {
+      if (out.length >= 3) break;
+      if (r > 0 && r < grandTotal && !out.includes(r)) out.push(r);
+    }
+    out.push(grandTotal);
+    return out;
+  }, [grandTotal]);
+
+  // â”€â”€ Category change â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function handleCategoryChange(cat: string) {
     setActiveCategory(cat); setActiveSubcat("All"); setItemSearch("");
   }
@@ -269,7 +305,7 @@ export default function CreateBillPage() {
   const [autoDiscountAlert, setAutoDiscountAlert] = useState<string | null>(null);
   const [appliedDiscountId, setAppliedDiscountId] = useState<string | null>(null);
 
-  // ── Customer helpers ────────────────────────────────────
+  // â”€â”€ Customer helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function handleSelectMember(m: ApprovedMember) {
     setSelectedMember(m); setIsWalkin(false);
     setCustomerSearch(""); setShowDropdown(false);
@@ -287,7 +323,7 @@ export default function CreateBillPage() {
         setDiscountType(disc.discount_type === "percentage" ? "percentage" : "flat");
         setDiscountValue(disc.discount_value.toString());
         setAppliedDiscountId(disc.id);
-        const label = disc.discount_type === "percentage" ? `${disc.discount_value}%` : `₹${disc.discount_value.toLocaleString("en-IN")}`;
+        const label = disc.discount_type === "percentage" ? `${disc.discount_value}%` : `â‚¹${disc.discount_value.toLocaleString("en-IN")}`;
         setAutoDiscountAlert(`Active Discount Auto-Applied: ${label} (${disc.source} - ${disc.reason})`);
       } else {
         setShowDiscount(false);
@@ -311,7 +347,7 @@ export default function CreateBillPage() {
     setAutoDiscountAlert(null); setAppliedDiscountId(null);
   }
 
-  // ── Cart helpers ─────────────────────────────────────────
+  // â”€â”€ Cart helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function addToCart(item: BillingPlanItem) {
     setCartItems((prev) => {
       const existing = prev.find((c) => c.id === item.id);
@@ -338,26 +374,28 @@ export default function CreateBillPage() {
     setCartItems((prev) => prev.filter((c) => c.cartId !== cartId));
   }
 
-  // ── Reset ───────────────────────────────────────────────
+  // â”€â”€ Reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const resetBill = useCallback(() => {
     setSelectedMember(null); setIsWalkin(false);
     setWalkinName(""); setWalkinEmail(""); setWalkinPhone(""); setCustomerSearch("");
     setCartItems([]); setDiscountValue(""); setShowDiscount(false);
-    setDiscountType("percentage"); setPaymentStatus("paid");
-    setPaymentMethod("Cash"); setAmountPaid(""); setTransactionRef(""); setNotes("");
+    setDiscountType("percentage");
+    setPaymentMethod("Cash"); setAmountOverride(null); setTransactionRef(""); setNotes("");
     setError(null); setCompletedInvoice(null);
     setCompletedInvoiceId(null);
     setCompletedOutstanding(0);
     closeOnlinePay();
   }, []);
 
-  // ── Complete Bill ────────────────────────────────────────
+  // â”€â”€ Complete Bill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function handleCompleteBill() {
     setError(null);
     if (!selectedMember && !isWalkin)        { setError("Please select a customer or choose Walk-in."); return; }
     if (isWalkin && !walkinName.trim())       { setError("Please enter the walk-in customer's name."); return; }
     if (cartItems.length === 0)              { setError("Please add at least one item to the bill."); return; }
-    if (paymentStatus === "paid" && !amountPaid) { setError("Please enter the amount paid."); return; }
+    if (amountField.trim() !== "" && !Number.isFinite(parseFloat(amountField))) { setError("Enter a valid amount."); return; }
+    if (amountField.trim() !== "" && parseFloat(amountField) < 0) { setError("Amount cannot be negative."); return; }
+    if (parseFloat(amountField) > grandTotal) { setError(`Amount collected cannot be more than the bill total of ${fmt(grandTotal)}.`); return; }
     // Branch gate: every record below is tagged with the active branch.
     if (!activeLocationId) { setError("Branch not resolved yet. Please wait a moment and try again."); return; }
     // Cross-branch guard: the selected member must belong to the active branch.
@@ -443,9 +481,12 @@ export default function CreateBillPage() {
         discount_value:  showDiscount && discountValue ? parseFloat(discountValue) : 0,
         discount_amount: discountAmount,
         grand_total:     grandTotal,
-        payment_status:  paymentStatus === "paid" || ((parseFloat(amountPaid) || 0) >= grandTotal && grandTotal > 0) ? "paid" : "due",
-        payment_method:  paymentStatus === "paid" || (parseFloat(amountPaid) || 0) > 0 ? paymentMethod : null,
-        amount_paid:     paymentStatus === "paid" ? grandTotal : Math.min(grandTotal, parseFloat(amountPaid) || 0),
+        // Status follows the money, not a UI mode. Collecting part of a bill is
+        // recorded as 'partial' so the invoice reflects the â‚¹ actually received;
+        // the previous expression labelled any partial amount as 'due'.
+        payment_status:  derivedStatus,
+        payment_method:  collected > 0 ? paymentMethod : null,
+        amount_paid:     collected,
         transaction_reference: transactionRef.trim() || null,
         notes: notes.trim() || null,
         created_by: user?.id || null,
@@ -562,7 +603,7 @@ export default function CreateBillPage() {
 
       setCompletedInvoice(invNum);
       setCompletedInvoiceId(invoiceId);
-      setCompletedOutstanding(Math.max(0, grandTotal - (paymentStatus === "paid" ? grandTotal : Math.min(grandTotal, parseFloat(amountPaid) || 0))));
+      setCompletedOutstanding(balanceLeft);
     } catch (err: unknown) {
       setError((err as Error).message || "Failed to complete bill.");
     } finally {
@@ -572,7 +613,7 @@ export default function CreateBillPage() {
 
   const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0);
 
-  // ── Online collection for the invoice just created ────────────────────
+  // â”€â”€ Online collection for the invoice just created â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Creates a Razorpay Payment Link for the outstanding balance and renders it
   // as a QR for the member to scan. The webhook settles the invoice when
   // Razorpay confirms the payment.
@@ -610,7 +651,7 @@ export default function CreateBillPage() {
   }
   const customerLabel = selectedMember?.full_name || (isWalkin && walkinName ? walkinName : null);
 
-  // ─────────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="animate-fade-in min-w-0 max-w-full overflow-hidden">
       {/* Page title */}
@@ -648,7 +689,7 @@ export default function CreateBillPage() {
                 disabled={onlinePay.loading}
                 className="px-4 py-2 rounded-xl bg-rail text-white text-xs font-bold hover:bg-rail/90 transition-colors disabled:opacity-50 flex-shrink-0"
               >
-                {onlinePay.loading ? "Creating link…" : "Collect payment online"}
+                {onlinePay.loading ? "Creating linkâ€¦" : "Collect payment online"}
               </button>
             )}
             <Link href="/admin/billing/invoices" className="text-xs text-green-600 underline">View Invoice</Link>
@@ -659,7 +700,7 @@ export default function CreateBillPage() {
         </div>
       )}
 
-      {/* Online collection panel — appears after Complete Bill when a balance is due */}
+      {/* Online collection panel â€” appears after Complete Bill when a balance is due */}
       {(onlinePay.error || onlinePay.qrDataUrl) && (
         <div className="mb-4 rounded-2xl border border-line bg-surface p-4 sm:p-5 animate-fade-in">
           <div className="flex items-start justify-between gap-3">
@@ -668,11 +709,11 @@ export default function CreateBillPage() {
               <p className="text-[11px] text-fg-3 mt-0.5">
                 Invoice <span className="font-mono font-bold">{completedInvoice}</span>
                 {typeof onlinePay.amount === "number" && onlinePay.amount > 0 && (
-                  <> · outstanding{" "}<span className="font-mono font-bold">{fmt(onlinePay.amount)}</span></>
+                  <> Â· outstanding{" "}<span className="font-mono font-bold">{fmt(onlinePay.amount)}</span></>
                 )}
               </p>
             </div>
-            <button onClick={closeOnlinePay} className="text-xs font-bold text-fg-4 hover:text-fg shrink-0">✕</button>
+            <button onClick={closeOnlinePay} className="text-xs font-bold text-fg-4 hover:text-fg shrink-0">âœ•</button>
           </div>
 
           {onlinePay.error && (
@@ -723,14 +764,14 @@ export default function CreateBillPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           {error}
-          <button onClick={() => setError(null)} className="ml-auto text-red-500/60 hover:text-red-500">✕</button>
+          <button onClick={() => setError(null)} className="ml-auto text-red-500/60 hover:text-red-500">âœ•</button>
         </div>
       )}
 
       {/* 3-panel layout */}
       <div className="flex flex-col lg:flex-row gap-3 min-h-0 lg:h-[calc(100vh-12rem)] pb-2">
 
-        {/* ── LEFT PANEL ─────────────────────────────────── */}
+        {/* â”€â”€ LEFT PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="w-full lg:w-[260px] flex-shrink-0 bg-surface rounded-2xl border border-line flex flex-col overflow-y-auto shadow-sm">
 
           {/* Customer section */}
@@ -750,7 +791,7 @@ export default function CreateBillPage() {
                     type="text" value={customerSearch}
                     onChange={(e) => setCustomerSearch(e.target.value)}
                     onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
-                    placeholder="Search member…"
+                    placeholder="Search memberâ€¦"
                     className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-line bg-surface-2/50 text-sm text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
                   />
                   {searchLoading && (
@@ -855,7 +896,7 @@ export default function CreateBillPage() {
           </div>
         </div>
 
-        {/* ── MIDDLE PANEL ─────────────────────────────────── */}
+        {/* â”€â”€ MIDDLE PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="flex-1 bg-surface rounded-2xl border border-line flex flex-col overflow-hidden min-w-0 shadow-sm">
           {/* Header */}
           <div className="p-3 sm:p-4 border-b border-line flex-shrink-0">
@@ -868,7 +909,7 @@ export default function CreateBillPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
               </svg>
               <input type="text" value={itemSearch} onChange={(e) => setItemSearch(e.target.value)}
-                placeholder={`Search ${CATEGORIES.find((c) => c.id === activeCategory)?.label.toLowerCase()}…`}
+                placeholder={`Search ${CATEGORIES.find((c) => c.id === activeCategory)?.label.toLowerCase()}â€¦`}
                 className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-line bg-surface-2/50 text-sm text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent transition-all"
               />
             </div>
@@ -896,7 +937,7 @@ export default function CreateBillPage() {
               <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-2">
                   <div className="w-6 h-6 border-2 border-accent/30 border-t-text-gold rounded-full animate-spin" />
-                  <p className="text-xs text-fg-5">Loading…</p>
+                  <p className="text-xs text-fg-5">Loadingâ€¦</p>
                 </div>
               </div>
             ) : filteredItems.length === 0 ? (
@@ -939,10 +980,10 @@ export default function CreateBillPage() {
           </div>
         </div>
 
-        {/* ── RIGHT PANEL ──────────────────────────────────── */}
+        {/* â”€â”€ RIGHT PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="w-full lg:w-[360px] flex-shrink-0 bg-surface rounded-2xl border border-line flex flex-col overflow-hidden shadow-sm h-auto lg:h-full min-h-0">
 
-          {/* Header — shows who the bill is for */}
+          {/* Header â€” shows who the bill is for */}
           <div className="p-3 sm:p-4 border-b border-line flex-shrink-0 bg-surface">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
@@ -975,9 +1016,9 @@ export default function CreateBillPage() {
                         <svg className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M17 17h.01M7 7l10 10M7 7a4 4 0 115.657 5.657M17 17a4 4 0 11-5.657-5.657" />
                         </svg>
-                        <span className="truncate">Discount: {discountType === "percentage" ? `${discountValue}% OFF` : `₹${parseFloat(discountValue || "0").toLocaleString("en-IN")} OFF`}</span>
+                        <span className="truncate">Discount: {discountType === "percentage" ? `${discountValue}% OFF` : `â‚¹${parseFloat(discountValue || "0").toLocaleString("en-IN")} OFF`}</span>
                       </div>
-                      {discountAmount > 0 && <span className="font-black text-emerald-600 flex-shrink-0">−{fmt(discountAmount)}</span>}
+                      {discountAmount > 0 && <span className="font-black text-emerald-600 flex-shrink-0">âˆ’{fmt(discountAmount)}</span>}
                     </div>
                   ) : (
                     <div className="text-[11px] font-medium text-fg-4 px-1">
@@ -1013,7 +1054,7 @@ export default function CreateBillPage() {
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <button onClick={() => updateQty(item.cartId, -1)}
-                          className="w-6 h-6 rounded-lg bg-line/60 text-fg text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">−</button>
+                          className="w-6 h-6 rounded-lg bg-line/60 text-fg text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">âˆ’</button>
                         <span className="text-sm font-bold text-fg w-5 text-center">{item.quantity}</span>
                         <button onClick={() => updateQty(item.cartId, 1)}
                           className="w-6 h-6 rounded-lg bg-line/60 text-fg text-sm flex items-center justify-center hover:bg-brand-sand transition-colors font-bold">+</button>
@@ -1049,12 +1090,12 @@ export default function CreateBillPage() {
                     }}
                     className="text-xs font-bold text-accent hover:underline flex items-center gap-1.5"
                   >
-                    <span>🏷️</span>
+                    <span>ðŸ·ï¸</span>
                     <span>{showDiscount ? "Remove Discount" : "+ Apply Manual Discount"}</span>
                   </button>
                   {showDiscount && discountValue && (
                     <span className="text-[10px] text-emerald-500 font-bold break-all">
-                      {discountType === "percentage" ? `${discountValue}% OFF` : `₹${discountValue} OFF`}
+                      {discountType === "percentage" ? `${discountValue}% OFF` : `â‚¹${discountValue} OFF`}
                     </span>
                   )}
                 </div>
@@ -1067,7 +1108,7 @@ export default function CreateBillPage() {
                       className="px-2 py-1.5 rounded-lg border border-line bg-surface text-xs font-semibold text-fg outline-none"
                     >
                       <option value="percentage">% OFF</option>
-                      <option value="flat">₹ OFF</option>
+                      <option value="flat">â‚¹ OFF</option>
                     </select>
                     <input
                       type="number"
@@ -1090,7 +1131,7 @@ export default function CreateBillPage() {
                 {discountAmount > 0 && (
                   <div className="flex items-center justify-between gap-2 flex-wrap text-xs text-emerald-600 font-bold">
                     <span className="min-w-0 break-words">Member Discount ({discountType === "percentage" ? discountValue + "% OFF" : fmt(parseFloat(discountValue))})</span>
-                    <span className="flex-shrink-0">− {fmt(discountAmount)}</span>
+                    <span className="flex-shrink-0">âˆ’ {fmt(discountAmount)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between gap-2 pt-2 border-t border-line">
@@ -1099,142 +1140,172 @@ export default function CreateBillPage() {
                 </div>
               </div>
 
-              {/* Payment Status & Options */}
-              <div className="space-y-2">
-                <div className="flex rounded-xl border border-line overflow-hidden text-xs">
-                  <button onClick={() => setPaymentStatus("paid")}
-                    className={`flex-1 py-2.5 font-semibold transition-colors ${paymentStatus === "paid" ? "bg-rail text-white" : "bg-surface text-fg-3 hover:bg-hover"}`}>
-                    Paid Now
-                  </button>
-                  <button onClick={() => setPaymentStatus("due")}
-                    className={`flex-1 py-2.5 font-semibold transition-colors ${paymentStatus === "due" ? "bg-amber-500 text-white" : "bg-surface text-fg-3 hover:bg-hover"}`}>
-                    Payment Due
-                  </button>
+{/* Payment collection */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-fg-4">
+                    Collecting now
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                      derivedStatus === "paid"
+                        ? "text-green-600 bg-green-500/10 border-green-500/25"
+                        : derivedStatus === "partial"
+                          ? "text-amber-600 bg-amber-500/10 border-amber-500/25"
+                          : "text-fg-4 bg-hover border-line"
+                    }`}
+                  >
+                    {derivedStatus === "paid"
+                      ? "Paid in full"
+                      : derivedStatus === "partial"
+                        ? "Part paid"
+                        : "Nothing collected"}
+                  </span>
                 </div>
 
-                {paymentStatus === "paid" && (
-                  <div className="space-y-2">
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <div className="flex-1 relative min-w-0">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-fg-5 font-semibold">₹</span>
-                        <input type="number" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)}
-                          placeholder="0"
-                          className="w-full pl-7 pr-2 py-2 rounded-xl border border-line bg-surface-2/50 text-sm text-fg font-semibold placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent"
-                        />
-                      </div>
-                      <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-                        className="flex-1 min-w-0 w-full sm:w-auto px-2 py-2 rounded-xl border border-line bg-surface-2/50 text-xs text-fg font-medium focus:outline-none focus:ring-1 focus:ring-accent"
-                      >
-                        <option>Cash</option>
-                        <option>UPI</option>
-                        <option>Card</option>
-                        <option>Bank Transfer</option>
-                      </select>
-                    </div>
+                {/* Amount */}
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-bold text-fg-4 pointer-events-none">
+                    â‚¹
+                  </span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    max={grandTotal}
+                    value={amountField}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0"
+                    className="w-full pl-9 pr-4 py-3.5 rounded-2xl border border-line-2 bg-surface-2/50 text-2xl font-black text-fg placeholder:text-fg-5/60 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-fg-5 pointer-events-none">
+                    of {fmt(grandTotal)}
+                  </span>
+                </div>
 
-                    {/* Quick chips */}
-                    <div className="flex gap-1.5 flex-wrap">
-                      {[500, 1000].map((amt) => (
-                        <button key={amt} onClick={() => setAmountPaid(amt.toString())}
-                          className="flex-1 py-1.5 rounded-lg border border-line/60 text-xs text-fg-3 hover:bg-hover transition-colors font-medium">
-                          ₹{amt.toLocaleString("en-IN")}
+                {/* Presets */}
+                {amountPresets.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {amountPresets.map((amt) => {
+                      const active = collected === amt && derivedStatus !== "due";
+                      return (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => setAmount(amt)}
+                          className={`flex-1 min-w-[64px] py-2 rounded-xl text-xs font-bold transition-colors ${
+                            active
+                              ? "bg-rail text-white"
+                              : "bg-surface border border-line text-fg-3 hover:bg-hover"
+                          }`}
+                        >
+                          {amt === grandTotal ? "Full" : fmt(amt)}
                         </button>
-                      ))}
-                      <button onClick={() => setAmountPaid(grandTotal.toString())}
-                        className="flex-1 py-1.5 rounded-lg bg-rail text-white text-xs font-bold hover:bg-rail/90 transition-colors">
-                        Exact
-                      </button>
-                    </div>
-
-                    {paymentMethod !== "Cash" && (
-                      <input type="text" value={transactionRef} onChange={(e) => setTransactionRef(e.target.value)}
-                        placeholder="Transaction ref / UTR (optional)"
-                        className="w-full px-3 py-2 rounded-xl border border-line bg-surface-2/50 text-xs text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent"
-                      />
-                    )}
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setAmount(0)}
+                      disabled={collected === 0}
+                      className={`flex-1 min-w-[64px] py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-40 ${
+                        collected === 0
+                          ? "bg-fg-4 text-surface"
+                          : "bg-surface border border-line text-fg-3 hover:bg-hover"
+                      }`}
+                    >
+                      Nothing
+                    </button>
                   </div>
                 )}
 
-                {paymentStatus === "due" && (
-                  <div className="space-y-2.5 p-3 rounded-2xl bg-amber-500/5 border border-amber-500/20">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-extrabold text-amber-600">Partial Payment Breakdown</span>
-                      <span className="text-[10px] text-fg-4 font-semibold">Enter paid vs due</span>
-                    </div>
+                {collected > grandTotal && (
+                  <p className="text-[11px] font-bold text-red-600">
+                    That is more than the bill total. It will be capped at{" "}
+                    {fmt(grandTotal)}.
+                  </p>
+                )}
 
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <div className="flex-1 relative min-w-0">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-fg-5 font-semibold">₹</span>
-                        <input
-                          type="number"
-                          min="0"
-                          max={grandTotal}
-                          value={amountPaid}
-                          onChange={(e) => setAmountPaid(e.target.value)}
-                          placeholder="Amount Paid (e.g. 2000)"
-                          className="w-full pl-7 pr-2 py-2 rounded-xl border border-line bg-surface font-extrabold text-xs text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                        />
-                      </div>
-
-                      <select
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-                        className="flex-1 min-w-0 w-full sm:w-auto px-2 py-2 rounded-xl border border-line bg-surface text-xs text-fg font-medium focus:outline-none focus:ring-1 focus:ring-amber-500"
-                      >
-                        <option>Cash</option>
-                        <option>UPI</option>
-                        <option>Card</option>
-                        <option>Bank Transfer</option>
-                      </select>
-                    </div>
-
-                    {/* Quick presets for partial payment */}
-                    <div className="flex gap-1.5 flex-wrap">
+                {/* Method */}
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-fg-4 mb-1.5">
+                    {collected > 0 ? "Paid by" : "Expected method"}
+                  </label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {(["Cash", "UPI", "Card", "Bank Transfer"] as PaymentMethod[]).map((m) => (
                       <button
+                        key={m}
                         type="button"
-                        onClick={() => setAmountPaid("0")}
-                        className="flex-1 py-1 rounded-lg border border-line bg-surface text-[11px] text-fg-3 hover:bg-hover font-semibold"
+                        onClick={() => setPaymentMethod(m)}
+                        className={`py-2 rounded-xl text-[11px] font-bold transition-colors ${
+                          paymentMethod === m
+                            ? "bg-rail text-white"
+                            : "bg-surface border border-line text-fg-3 hover:bg-hover"
+                        }`}
                       >
-                        ₹0 (Full Due)
+                        {m}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setAmountPaid(Math.round(grandTotal / 2).toString())}
-                        className="flex-1 py-1 rounded-lg border border-line bg-surface text-[11px] text-fg-3 hover:bg-hover font-semibold"
-                      >
-                        50% (₹{Math.round(grandTotal / 2).toLocaleString("en-IN")})
-                      </button>
-                    </div>
-
-                    {paymentMethod !== "Cash" && (parseFloat(amountPaid) || 0) > 0 && (
-                      <input
-                        type="text"
-                        value={transactionRef}
-                        onChange={(e) => setTransactionRef(e.target.value)}
-                        placeholder="Transaction ref / UTR (optional)"
-                        className="w-full px-3 py-2 rounded-xl border border-line bg-surface text-xs text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                      />
-                    )}
-
-                    {/* Due Amount Breakdown Box */}
-                    <div className="p-2.5 rounded-xl bg-surface border border-line space-y-1 text-xs">
-                      <div className="flex items-center justify-between gap-2 text-fg-4 font-medium">
-                        <span>Paid Today:</span>
-                        <span className="font-bold text-fg break-all">₹{(parseFloat(amountPaid) || 0).toLocaleString("en-IN")}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-line font-black">
-                        <span className="text-amber-600">Remaining Balance Due:</span>
-                        <span className="text-amber-600 text-sm break-all">
-                          ₹{Math.max(0, grandTotal - (parseFloat(amountPaid) || 0)).toLocaleString("en-IN")}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
-                      <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                      Member access will be granted for this package upon completing this bill.
-                    </div>
+                    ))}
                   </div>
+                </div>
+
+                {collected > 0 && paymentMethod !== "Cash" && (
+                  <input
+                    type="text"
+                    value={transactionRef}
+                    onChange={(e) => setTransactionRef(e.target.value)}
+                    placeholder="Transaction ref / UTR (optional)"
+                    className="w-full px-3 py-2.5 rounded-xl border border-line bg-surface-2/50 text-xs text-fg placeholder:text-fg-5 focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                )}
+
+                {/* Live breakdown */}
+                <div className="rounded-2xl border border-line bg-surface overflow-hidden">
+                  <div className="flex items-center justify-between gap-2 px-3 py-2.5 text-xs">
+                    <span className="text-fg-4 font-semibold">Bill total</span>
+                    <span className="font-bold text-fg">{fmt(grandTotal)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 px-3 py-2.5 text-xs border-t border-line">
+                    <span className="text-fg-4 font-semibold">Collecting now</span>
+                    <span className="font-bold text-green-600">{fmt(collected)}</span>
+                  </div>
+                  <div
+                    className={`flex items-center justify-between gap-2 px-3 py-2.5 border-t ${
+                      balanceLeft > 0 ? "bg-amber-500/10 border-amber-500/25" : "border-line"
+                    }`}
+                  >
+                    <span className="font-extrabold text-fg-3 text-xs">
+                      Balance left
+                    </span>
+                    <span
+                      className={`font-black text-sm ${
+                        balanceLeft > 0 ? "text-amber-600" : "text-fg-4"
+                      }`}
+                    >
+                      {balanceLeft > 0 ? fmt(balanceLeft) : "Nothing due"}
+                    </span>
+                  </div>
+                </div>
+
+                {balanceLeft > 0 && (
+                  <p className="text-[11px] leading-relaxed text-fg-4">
+                    The remaining{" "}
+                    <span className="font-bold text-amber-600">{fmt(balanceLeft)}</span>{" "}
+                    stays on the invoice. Use{" "}
+                    <span className="font-semibold text-fg-3">
+                      Collect payment online
+                    </span>{" "}
+                    after completing the bill to raise a QR for exactly that
+                    balance.
+                  </p>
+                )}
+
+                {collected >= grandTotal && grandTotal > 0 && (
+                  <p className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Settled in full â€” no balance will remain on this invoice.
+                  </p>
                 )}
 
                 <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
@@ -1258,13 +1329,13 @@ export default function CreateBillPage() {
               title={hasPerm("billing.create") ? "" : "Requires billing.create permission"}
             >
               {completing ? (
-                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Processing…</>
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Processingâ€¦</>
               ) : !hasPerm("billing.create") ? (
                 <span className="flex items-center justify-center gap-1.5"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>Complete Bill (Permission Required)</span>
               ) : (
                 <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>Complete Bill — {fmt(grandTotal)}</>
+                </svg>Complete Bill â€” {fmt(grandTotal)}</>
               )}
             </button>
           </div>
@@ -1274,8 +1345,8 @@ export default function CreateBillPage() {
   );
 }
 
-// ─── Plan Item Card ───────────────────────────────────────────────────────────
-// Shows current cart quantity inline — no separate "already added" confusion
+// â”€â”€â”€ Plan Item Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Shows current cart quantity inline â€” no separate "already added" confusion
 
 function PlanItemCard({
   item, cartItem, justAdded, onAdd, onIncrement, onDecrement,
@@ -1333,7 +1404,7 @@ function PlanItemCard({
         )}
         {perSession && (
           <p className="text-[10px] text-fg-5 mt-0.5">
-            {item.sessions} sessions • {fmt(perSession)}/session
+            {item.sessions} sessions â€¢ {fmt(perSession)}/session
           </p>
         )}
         {item.validity_days && (
@@ -1345,11 +1416,11 @@ function PlanItemCard({
 
       {/* Add / Qty control */}
       {cartItem ? (
-        // Already in cart → show inline qty controls
+        // Already in cart â†’ show inline qty controls
         <div className="mt-auto flex items-center justify-between gap-2 p-1.5 rounded-xl bg-rail/8 border border-fg/10">
           <button onClick={onDecrement}
             className="w-8 h-8 rounded-lg bg-surface border border-line/60 text-fg font-bold flex items-center justify-center hover:bg-hover transition-colors shadow-sm">
-            −
+            âˆ’
           </button>
           <span className="text-sm font-bold text-fg">{cartItem.quantity}</span>
           <button onClick={onIncrement}
@@ -1381,3 +1452,4 @@ function PlanItemCard({
     </div>
   );
 }
+
