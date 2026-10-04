@@ -111,12 +111,18 @@ export async function POST(req: Request) {
       amount: amountPaise,
       currency: "INR",
       receipt,
+      // Everything the webhook needs to fulfil this order on its own, if the
+      // customer's browser never reports back after paying (closed tab, lost
+      // signal, failed verify request). Without class_id the date/time must be
+      // present too, otherwise the booked slot is unrecoverable.
       notes: {
         full_name: full_name.trim(),
         email: emailLower,
         phone: cleanPhone,
         class_id: class_id || "",
         class_title: cls.title,
+        trial_date: cls.class_date || trial_date || "",
+        trial_time: cls.class_time || trial_time || "",
         ...(feeBranchId ? { branch_id: feeBranchId } : {}),
       },
     });
