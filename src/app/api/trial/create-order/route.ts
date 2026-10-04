@@ -137,7 +137,38 @@ export async function POST(req: Request) {
       keyId,
     });
   } catch (err: any) {
-    console.error("create-order error:", err);
+    // Log enough to diagnose without leaking anything to the caller. A bare
+    // "Internal server error" made a 401 Authentication failure indistinguishable
+    // from a code bug; statusCode + provider description is what actually tells
+    // them whether the keys, the account, or the request are at fault.
+    const status = err?.statusCode ?? err?.response?.statusCode ?? null;
+    const providerCode = err?.error?.code ?? err?.response?.data?.error?.code ?? null;
+    const providerDesc =
+      err?.error?.description ??
+      err?.response?.data?.error?.description ??
+      err?.message ??
+      "unknown";
+    // Read straight from env: keyId/keySecret are declared inside the try block
+    // and are not in scope here. Values are never logged.
+    const envKeyId = process.env.RAZORPAY_KEY_ID || "";
+    const envKeySecret = process.env.RAZORPAY_KEY_SECRET || "";
+    console.error(
+      `[create-order] FAILED status=${status ?? "n/a"} providerCode=${providerCode ?? "n/a"} ` +
+        `keyIdMode=${
+          envKeyId.startsWith("rzp_live_")
+            ? "live"
+            : envKeyId.startsWith("rzp_test_")
+              ? "test"
+              : "missing-or-unknown"
+        } ` +
+        `keyIdHasWhitespace=${envKeyId !== envKeyId.trim()} ` +
+        `secretHasWhitespace=${envKeySecret !== envKeySecret.trim()} ` +
+        `detail=${providerDesc}`
+    );
+    if (err?.stack) console.error("[create-order] stack:", err.stack);
+
+    // The response stays generic: this is a public unauthenticated endpoint and
+    // provider detail must not leak to callers.
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
