@@ -232,7 +232,7 @@ export default function BookTrialPage() {
       <div className="flex-1 py-6 sm:py-8 px-4">
         <div className="max-w-3xl mx-auto w-full">
           <h2 className="text-2xl sm:text-3xl font-black text-white text-center break-words leading-tight">Book Your Trial</h2>
-          <p className="text-sm text-white/60 text-center mt-2 break-words px-2 sm:px-0">Choose any upcoming date and a time slot — pay securely via Razorpay Test Mode</p>
+          <p className="text-sm text-white/60 text-center mt-2 break-words px-2 sm:px-0">Choose any upcoming date and a time slot — pay securely via Razorpay</p>
 
           <form onSubmit={handleSubmit} className="bg-white rounded-3xl p-4 sm:p-8 mt-6 sm:mt-8 space-y-6 shadow-2xl w-full">
             {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">{error}</div>}
@@ -297,14 +297,13 @@ export default function BookTrialPage() {
             </div>
 
             <button type="submit" disabled={submitting || loading || !selectedSlot} className="w-full py-4 rounded-xl bg-black text-white font-extrabold text-sm hover:bg-gray-900 disabled:opacity-50">
-              {submitting ? "Processing..." : rzpReady ? "Pay & Book Trial — Razorpay Test Mode" : "Loading payment..."}
+              {submitting ? "Processing..." : rzpReady ? "Pay & Book Trial" : "Loading payment..."}
             </button>
             {!rzpReady && <p className="text-[10px] text-amber-600 text-center">Loading secure payment library...</p>}
-            <p className="text-[10px] text-gray-400 text-center">Test payments only. Use Razorpay test cards. No real money is charged.</p>
+            <p className="text-[10px] text-gray-400 text-center">Payment is processed securely by Razorpay. Your booking is confirmed once payment succeeds.</p>
 
             {/* Legal acceptance notice. No checkbox — the brief asked for no
-                added friction. Payment logic and the Test Mode copy above are
-                deliberately unchanged. */}
+                added friction. */}
             <p className="text-[11px] leading-relaxed text-gray-400 text-center mt-4 px-1">
               By continuing with the payment, you agree to the{" "}
               <Link href="/terms" className="underline underline-offset-2 hover:text-gray-200">
