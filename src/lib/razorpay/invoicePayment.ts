@@ -11,6 +11,9 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type Razorpay from "razorpay";
+
+type RazorpayInstance = Razorpay;
 
 export interface InvoiceForPayment {
   id: string;
@@ -52,20 +55,18 @@ export interface CreateLinkResult {
 /**
  * Creates a Razorpay Payment Link for an invoice's outstanding balance.
  *
+ * Typed against the real SDK instance rather than a hand-rolled structural
+ * type. That matters: the resource is `paymentLink` (singular), and the earlier
+ * `paymentLinks` guess was `undefined` at runtime and was masked from the
+ * compiler by an `as never` cast. Typing it properly makes the compiler verify
+ * the method name and the payload shape.
+ *
  * `reference_id` is set to the invoice id. That is the only correlation the
  * webhook relies on, so a payment can never be attached to the wrong invoice by
  * coincidence of amount or timing.
  */
 export async function createInvoicePaymentLink(
-  razorpay: {
-    paymentLinks: {
-      create: (payload: Record<string, unknown>) => Promise<{
-        id: string;
-        short_url?: string;
-        uri?: string;
-      }>;
-    };
-  },
+  razorpay: RazorpayInstance,
   args: {
     invoice: InvoiceForPayment;
     customerName: string | null;
@@ -80,7 +81,7 @@ export async function createInvoicePaymentLink(
   }
 
   try {
-    const link = await razorpay.paymentLinks.create({
+    const link = await razorpay.paymentLink.create({
       amount: Math.round(amount * 100), // Razorpay works in paise
       currency: "INR",
       accept_partial: false, // never let a member underpay the link amount
@@ -98,7 +99,9 @@ export async function createInvoicePaymentLink(
       reminder_enable: false,
     });
 
-    const url = link.short_url || link.uri || null;
+    // short_url is the field the SDK actually returns; fall back to id so we
+    // never hand a null URL to the QR renderer.
+    const url = link.short_url || null;
     if (!url) {
       return { ok: false, reason: "Razorpay did not return a payment URL." };
     }

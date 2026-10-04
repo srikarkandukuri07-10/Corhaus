@@ -139,15 +139,12 @@ export async function POST(req: Request) {
 
     const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
 
-    const result = await createInvoicePaymentLink(
-      razorpay as never,
-      {
-        invoice,
-        customerName: invoice.customer_name,
-        customerEmail: invoice.customer_email,
-        customerPhone: invoice.customer_phone,
-      }
-    );
+    const result = await createInvoicePaymentLink(razorpay, {
+      invoice,
+      customerName: invoice.customer_name,
+      customerEmail: invoice.customer_email,
+      customerPhone: invoice.customer_phone,
+    });
 
     if (!result.ok) {
       const status = /auth|credential|api key/i.test(result.reason || "")
