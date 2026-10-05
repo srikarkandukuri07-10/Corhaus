@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { email, password } = await request.json();
+    const { email, password, phone } = await request.json();
     if (!email || typeof email !== "string") {
       return NextResponse.json(
         { error: "Please enter a valid email address." },
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 const customizedOptions = {
                   ...options,
-                  maxAge: 60 * 60 * 24 * 365, // 1 year cookie lifetime (C-1)
+                  maxAge: 604800, // 1 week session
                   secure: true,
                   sameSite: "lax" as const,
                   // NOTE: no httpOnly — the browser client must read these
@@ -186,7 +186,7 @@ export async function POST(request: Request) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 const customizedOptions = {
                   ...options,
-                  maxAge: 60 * 60 * 24 * 365, // 1 year cookie lifetime (C-1)
+                  maxAge: 604800, // 1 week session
                   secure: true,
                   sameSite: "lax" as const,
                   // NOTE: no httpOnly — the browser client must read these
@@ -258,14 +258,43 @@ export async function POST(request: Request) {
     }
 
     // ─── 3. APPROVED MEMBER IDENTITY ──────────────────────────────────────────
+    // Email is the primary identifier. `phone` is the fallback for members whose
+    // record has no email on file (migrated from the previous system).
     const { verifyCanonicalMemberAuthorization } = await import("@/lib/auth-canonical");
-    const authResult = await verifyCanonicalMemberAuthorization(normalizedEmail);
+    const authResult = await verifyCanonicalMemberAuthorization(
+      normalizedEmail,
+      typeof phone === "string" && phone.trim() ? phone.trim() : undefined
+    );
 
     if (!authResult.authorized || !authResult.member) {
       return NextResponse.json(
         { error: authResult.error || "You do not currently have access to the Corhaus Member Portal. Please contact Corhaus staff to activate your membership." },
         { status: 403 }
       );
+    }
+
+    // Phone-linked member: write the auth email onto their member row so every
+    // other lookup in the system (RLS branch scoping, is_active_member(),
+    // user_location_ids(), the member dashboard) resolves them normally from
+    // now on. The UPDATE is conditional on the email still being NULL, so it can
+    // never repoint a record that already belongs to someone else.
+    if (authResult.phoneLinked) {
+      try {
+        const { backfillMemberEmail } = await import("@/lib/member-linking");
+        const link = await backfillMemberEmail(serviceClient, {
+          memberId: authResult.member.id,
+          authEmail: normalizedEmail,
+          phone: typeof phone === "string" ? phone : null,
+          source: "login",
+        });
+        if (link.ok && link.member) {
+          authResult.member = link.member as typeof authResult.member;
+        }
+      } catch (linkErr) {
+        // A failed backfill must not block sign-in; the member is still matched
+        // by phone on every future request.
+        console.error("[auth/login] member email backfill failed:", linkErr);
+      }
     }
 
     const member = authResult.member;
@@ -285,7 +314,7 @@ export async function POST(request: Request) {
             cookiesToSet.forEach(({ name, value, options }) => {
                 const customizedOptions = {
                   ...options,
-                  maxAge: 60 * 60 * 24 * 365, // 1 year session
+                  maxAge: 604800, // 1 week session
                   secure: true,
                   sameSite: "lax" as const,
                   // NOTE: no httpOnly — see developer branch above.
@@ -336,7 +365,13 @@ export async function POST(request: Request) {
       memberUser?.user_metadata?.password_set_at
     );
 
-    if (!hasPassword) {
+    // A member whose identity was established by PHONE must hold a password
+    // before the account is considered secure, even if a Google auth user
+    // already exists. Without this, "Continue with Google" would leave a
+    // phone-claimed membership reachable with no password ever set.
+    const requiresPasswordForMember = !hasPassword || authResult.phoneLinked === true;
+
+    if (requiresPasswordForMember) {
       return NextResponse.json({
         success: false,
         needsStaffPasswordSetup: true,

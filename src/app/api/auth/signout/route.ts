@@ -16,7 +16,7 @@ export async function POST(request: Request) {
               const isDeletion = (options as any)?.maxAge === 0 || (options as any)?.maxAge < 0 || !value;
               const customizedOptions: any = {
                 ...options,
-                ...(isDeletion ? {} : { maxAge: 60 * 60 * 24 * 365 }),
+                ...(isDeletion ? {} : { maxAge: 604800 }), // 1 week
                 secure: true,
                 sameSite: "lax" as const,
                 httpOnly: true,
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
               const isDeletion = (options as any)?.maxAge === 0 || (options as any)?.maxAge < 0 || !value;
               const customizedOptions: any = {
                 ...options,
-                ...(isDeletion ? {} : { maxAge: 60 * 60 * 24 * 365 }),
+                ...(isDeletion ? {} : { maxAge: 604800 }), // 1 week
                 secure: true,
                 sameSite: "lax" as const,
                 httpOnly: true,

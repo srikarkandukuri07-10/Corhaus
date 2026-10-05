@@ -28,7 +28,11 @@ export interface MemberAuthorizationResult {
   authorized: boolean;
   member: CanonicalMemberRecord | null;
   error?: string;
-  errorCode?: "not_found" | "inactive" | "phone_mismatch" | "unauthorized";
+  errorCode?: "not_found" | "inactive" | "phone_mismatch" | "unauthorized" | "ambiguous" | "email_conflict";
+  /** How the member was resolved: existing email match, or new phone link. */
+  matchedOn?: "email" | "phone";
+  /** True when this member was resolved (and so linked) by phone. */
+  phoneLinked?: boolean;
 }
 
 /**
@@ -65,14 +69,37 @@ export async function verifyCanonicalMemberAuthorization(
   });
 
   // Query approved_members directly using service role client
-  const { data: member, error: dbError } = await serviceClient
-    .from("approved_members")
-    .select("id, full_name, email, phone_number, membership_status, freeze_status, membership_level, location_id")
-    .ilike("email", normalizedEmail)
-    .limit(1)
-    .maybeSingle();
+  let member: CanonicalMemberRecord | null = null;
+  let matchedOn: "email" | "phone" = "email";
+  let phoneLinked = false;
 
-  if (dbError || !member) {
+  {
+    const { data } = await serviceClient
+      .from("approved_members")
+      .select("id, full_name, email, phone_number, membership_status, freeze_status, membership_level, location_id")
+      .ilike("email", normalizedEmail)
+      .limit(1)
+      .maybeSingle();
+    member = data as CanonicalMemberRecord | null;
+  }
+
+  // Fallback: members migrated without an email cannot match on email at all.
+  // Resolve them by phone instead. src/lib/member-linking.ts owns the matching
+  // rules (active-only, never ambiguous, never overwrite a different email).
+  if (!member && phoneToCheck) {
+    const { resolveMemberForAuth } = await import("@/lib/member-linking");
+    const resolved = await resolveMemberForAuth(serviceClient, {
+      email: normalizedEmail,
+      phone: phoneToCheck,
+    });
+    if (resolved.status === "matched") {
+      member = resolved.member as CanonicalMemberRecord;
+      matchedOn = resolved.matchedOn;
+      phoneLinked = resolved.matchedOn === "phone";
+    }
+  }
+
+  if (!member) {
     return {
       authorized: false,
       member: null,
@@ -86,7 +113,7 @@ export async function verifyCanonicalMemberAuthorization(
   if (!isStatusActive) {
     return {
       authorized: false,
-      member: member as CanonicalMemberRecord,
+      member,
       error: "Your membership is currently inactive. Please contact Corhaus staff to reactivate your membership.",
       errorCode: "inactive",
     };
@@ -100,7 +127,7 @@ export async function verifyCanonicalMemberAuthorization(
     if (normUserPhone && normApprovedPhone && normUserPhone !== normApprovedPhone) {
       return {
         authorized: false,
-        member: member as CanonicalMemberRecord,
+        member,
         error: "Your phone number does not match our approved membership records. Please contact Corhaus staff.",
         errorCode: "phone_mismatch",
       };
@@ -109,6 +136,16 @@ export async function verifyCanonicalMemberAuthorization(
 
   return {
     authorized: true,
-    member: member as CanonicalMemberRecord,
+    member: {
+      ...member,
+      // Preserve whatever the email match found. When we matched by phone the
+      // member row may still have a NULL email, and callers that seed
+      // `profiles` (login, OAuth callback) need the auth email, not a null.
+      email: (member.email as string) || normalizedEmail,
+    },
+    // Lets the OAuth callback require a password for phone-linked members, so a
+    // Google-only sign-in cannot claim a membership with a password never set.
+    matchedOn,
+    phoneLinked,
   };
 }

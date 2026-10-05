@@ -81,6 +81,9 @@ export function safeErrorMessage(err: any): string {
 function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Optional second identifier. Members migrated without an email are matched
+  // on their phone number instead; staff and developers are unaffected.
+  const [phone, setPhone] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [forgotCode, setForgotCode] = useState("");
   const [step, setStep] = useState<"email" | "password" | "setup_password" | "forgot_password_request" | "forgot_password_verify">("email");
@@ -123,7 +126,12 @@ function LoginForm() {
       const checkRes = await fetch("/api/auth/check-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalizedEmail }),
+        // Phone is optional and only used for members whose record has no email
+        // on file (migrated from the previous system).
+        body: JSON.stringify({
+          email: normalizedEmail,
+          phone: phone.trim() || undefined,
+        }),
       });
       const checkData = await checkRes.json().catch(() => null);
 
@@ -174,7 +182,7 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password, phone: phone.trim() || undefined }),
       });
       const data = await res.json().catch(() => null);
 
@@ -215,7 +223,7 @@ function LoginForm() {
       const res = await fetch("/api/auth/staff-set-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password, phone: phone.trim() || undefined }),
       });
       const data = await res.json().catch(() => null);
 
@@ -374,6 +382,24 @@ function LoginForm() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-fg/70 mb-1.5">
+                  Phone number <span className="text-fg-5 font-normal">(if you do not have an email on file)</span>
+                </label>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s-]/g, ""))}
+                  autoComplete="tel"
+                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
+                  placeholder="98765 43210"
+                />
+                <p className="text-xs text-fg-5 mt-1.5">
+                  We will match your membership on either your email or this number.
+                </p>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
@@ -382,7 +408,7 @@ function LoginForm() {
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Checking email...
+                    Checking details...
                   </span>
                 ) : (
                   "Continue"

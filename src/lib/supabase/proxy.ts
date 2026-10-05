@@ -39,7 +39,7 @@ export async function updateSession(request: NextRequest) {
             // through untouched so sign-out keeps working.
             const customizedOptions = {
               ...options,
-              ...(isDeletion ? {} : { maxAge: 60 * 60 * 24 * 365 }), // 1 year, but respect deletions
+              ...(isDeletion ? {} : { maxAge: 604800 }), // 1 week, but respect deletions
               secure: true,
               sameSite: "lax" as const,
             };
@@ -53,7 +53,7 @@ export async function updateSession(request: NextRequest) {
             // NOTE: no httpOnly override here either (see above).
             const customizedOptions = {
               ...options,
-              ...(isDeletion ? {} : { maxAge: 60 * 60 * 24 * 365 }), // 1 year, but respect deletions
+              ...(isDeletion ? {} : { maxAge: 604800 }), // 1 week, but respect deletions
               secure: true,
               sameSite: "lax" as const,
             };

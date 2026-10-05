@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { email } = await request.json();
+const { email, phone } = await request.json();
     if (!email || typeof email !== "string") {
       return NextResponse.json({ approved: false, accountType: "unrecognized", error: "Email is required." }, { status: 400 });
     }
@@ -99,9 +99,14 @@ export async function POST(request: Request) {
       });
     }
 
-    // 3. Approved Member canonical check
+// 3. Approved Member canonical check. The optional phone is a second
+    // identifier for members whose record has no email (migrated from the
+    // previous system) - email alone can never match those rows.
     const { verifyCanonicalMemberAuthorization } = await import("@/lib/auth-canonical");
-    const authResult = await verifyCanonicalMemberAuthorization(normalizedEmail);
+    const authResult = await verifyCanonicalMemberAuthorization(
+      normalizedEmail,
+      typeof phone === "string" && phone.trim() ? phone.trim() : undefined
+    );
 
     if (authResult.authorized && authResult.member) {
       let hasPassword = false;
@@ -122,6 +127,10 @@ export async function POST(request: Request) {
         approved: true,
         accountType: "member",
         hasPassword,
+        // A phone-matched member with no password yet is sent to password setup,
+        // so the account is never left protected by Google alone.
+        matchedOn: authResult.matchedOn ?? "email",
+        phoneLinked: authResult.phoneLinked === true,
       });
     }
 

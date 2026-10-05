@@ -179,6 +179,43 @@ export async function GET(request: NextRequest) {
       return redirectWithCookies(`${origin}/auth/login?error=not_approved`);
     }
 
+    // Phone-linked member: persist the auth email onto their member row so the
+    // rest of the system resolves them by email from now on. Conditional on the
+    // email still being NULL, so it cannot repoint an existing record.
+    if (authResult.phoneLinked) {
+      try {
+        const { backfillMemberEmail } = await import("@/lib/member-linking");
+        const link = await backfillMemberEmail(serviceClient, {
+          memberId: authResult.member.id,
+          authEmail: normalizedEmail,
+          authUserId: user.id,
+          phone: userPhone,
+          source: "oauth_callback",
+        });
+        if (link.ok && link.member) {
+          authResult.member = link.member as typeof authResult.member;
+        }
+      } catch (linkErr) {
+        console.error("[auth/callback] member email backfill failed:", linkErr);
+      }
+    }
+
+    // A membership claimed by PHONE must not stay reachable through Google alone.
+    // Send the member to password setup before granting portal access.
+    if (authResult.phoneLinked) {
+      const alreadyHasPassword = !!(
+        user.user_metadata?.has_password || user.user_metadata?.password_set_at
+      );
+      if (!alreadyHasPassword) {
+        try {
+          await supabase.auth.signOut();
+        } catch {}
+        return redirectWithCookies(
+          `${origin}/auth/staff-set-password?email=${encodeURIComponent(normalizedEmail)}&role=member&linked=phone`
+        );
+      }
+    }
+
     const memberDbRecord = authResult.member;
 
     // Approved gym member profile auto-creation/update

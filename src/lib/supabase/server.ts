@@ -23,7 +23,7 @@ export async function createClient() {
               // httpOnly blinds the browser and breaks password logins.
               const customizedOptions = {
                 ...options,
-                ...(isDeletion ? {} : { maxAge: 60 * 60 * 24 * 365 }),
+                ...(isDeletion ? {} : { maxAge: 604800 }), // 1 week
                 secure: true,
                 sameSite: "lax" as const,
               };

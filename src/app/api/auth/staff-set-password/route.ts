@@ -149,7 +149,7 @@ export async function POST(request: Request) {
           cookiesToSet.forEach(({ name, value, options }) => {
             const customizedOptions = {
               ...options,
-              maxAge: 60 * 60 * 24 * 365, // 1 year session (C-1)
+              maxAge: 604800, // 1 week session
               secure: true,
               sameSite: "lax" as const,
               // NOTE: no httpOnly — the browser client must read these cookies
