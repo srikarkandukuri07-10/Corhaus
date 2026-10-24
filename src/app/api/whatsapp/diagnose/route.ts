@@ -22,8 +22,9 @@ export async function GET() {
   let metaApiCheck: any = null;
   let metaTemplates: any = null;
   let debugTokenData: any = null;
-  let wabaTemplates: any = null;
-  let targetIds: any[] = [];
+  let wabaDiscovery: any = null;
+  let templateMeta: any = null;
+  let phoneMeta: any = null;
   if (process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) {
     try {
       const version = process.env.WHATSAPP_GRAPH_VERSION || "v25.0";
@@ -43,25 +44,47 @@ export async function GET() {
       );
       debugTokenData = await debugRes.json();
 
-      const granularScopes = debugTokenData?.data?.granular_scopes || [];
-      const mgmtScope = granularScopes.find((s: any) =>
-        s.scope === "whatsapp_business_management" || s.scope === "whatsapp_business_messaging"
-      );
-      targetIds = mgmtScope?.target_ids || [];
+      // Query metadata and accessible WABAs
+      let wabaDiscovery: any = null;
+      try {
+        const discRes = await fetch(
+          `https://graph.facebook.com/${version}/122094533283532276/assigned_whatsapp_business_accounts?fields=id,name,currency,message_templates{id,name,status,language},phone_numbers{id,display_phone_number,verified_name}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const discData = await discRes.json();
+        wabaDiscovery = discData;
+      } catch (e: any) {
+        wabaDiscovery = { error: e.message };
+      }
 
-      if (targetIds.length > 0) {
-        const wabaId = targetIds[0];
-        try {
-          const tmplListRes = await fetch(
-            `https://graph.facebook.com/${version}/${wabaId}/message_templates?limit=50`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          wabaTemplates = await tmplListRes.json();
-        } catch (e: any) {
-          wabaTemplates = { error: e.message };
-        }
+      // Query template node metadata
+      let templateMeta: any = null;
+      try {
+        const tmplMetaRes = await fetch(
+          `https://graph.facebook.com/${version}/3061502297550653?metadata=1`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        templateMeta = await tmplMetaRes.json();
+      } catch (e: any) {
+        templateMeta = { error: e.message };
+      }
+
+      // Query phone number metadata
+      let phoneMeta: any = null;
+      try {
+        const pMetaRes = await fetch(
+          `https://graph.facebook.com/${version}/${process.env.WHATSAPP_PHONE_NUMBER_ID}?metadata=1`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        phoneMeta = await pMetaRes.json();
+      } catch (e: any) {
+        phoneMeta = { error: e.message };
       }
 
       // Directly query template 3061502297550653
@@ -110,8 +133,9 @@ export async function GET() {
       env: envStatus,
       meta_account: metaApiCheck,
       meta_templates: metaTemplates,
-      waba_templates: wabaTemplates,
-      target_ids: targetIds,
+      waba_discovery: wabaDiscovery,
+      template_meta: templateMeta,
+      phone_meta: phoneMeta,
       debug_token: debugTokenData?.data || null,
       db: {
         messages_total: msgCount ?? 0,
