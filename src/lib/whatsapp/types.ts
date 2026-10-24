@@ -33,6 +33,7 @@ export const TEMPLATE_KEYS = [
   "booking_cancellation",
   "class_reminder",
   "waitlist_promotion",
+  "payment_receipt",
 ] as const;
 
 export type TemplateKey = (typeof TEMPLATE_KEYS)[number];
@@ -49,6 +50,8 @@ export const TEMPLATE_VARIABLES = [
   "location_name",
   "booking_id",
   "membership_status",
+  "invoice_number",
+  "amount",
 ] as const;
 
 export type TemplateVariable = (typeof TEMPLATE_VARIABLES)[number];
@@ -106,6 +109,17 @@ export const TEMPLATE_VARIABLES_BY_KEY: Record<TemplateKey, TemplateVariable[]> 
     "location_name",
     "booking_id",
     "membership_status",
+  ],
+  payment_receipt: [
+    "member_name",
+    "member_first_name",
+    "invoice_number",
+    "amount",
+    "class_name",
+    "class_date",
+    "class_time",
+    "trainer_name",
+    "location_name",
   ],
 };
 

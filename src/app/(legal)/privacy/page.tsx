@@ -195,6 +195,12 @@ const sections: LegalSection[] = [
             us. We do not receive your Google password.
           </li>
           <li>
+            <strong className="font-medium text-fg">WhatsApp (Meta Cloud API)</strong> —
+            to deliver automated booking confirmations, class reminders (e.g. 2 hours before your session),
+            payment transaction receipts, and to enable studio staff to read and answer your WhatsApp replies.
+            We use official Meta Cloud API HTTPS services directly and do not share message content with advertisers.
+          </li>
+          <li>
             <strong className="font-medium text-fg">Email and messaging
             providers</strong> — to deliver your confirmation, invoice and
             reminders.

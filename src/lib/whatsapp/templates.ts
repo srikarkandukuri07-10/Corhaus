@@ -146,7 +146,8 @@ export function validateTemplateKey(key: string): key is TemplateKey {
     key === "booking_confirmation" ||
     key === "booking_cancellation" ||
     key === "class_reminder" ||
-    key === "waitlist_promotion"
+    key === "waitlist_promotion" ||
+    key === "payment_receipt"
   );
 }
 
@@ -207,3 +208,77 @@ export function firstName(fullName: string | null | undefined): string {
 }
 
 export { IST_OFFSET_MS };
+
+// ─── Meta Cloud API Template Registry ───────────────────────────────────────
+
+export type DashboardEvent = "booking_confirmed" | "class_reminder" | "payment_receipt";
+
+export interface TemplateConfig {
+  name: string;
+  language: string;
+  paramFormat: "named" | "positional";
+  params: string[];
+  buttonUrlParam?: string;
+}
+
+/**
+ * Constant for class reminder template name.
+ * Keep as a single easy-to-edit constant in case Meta requires resubmission (e.g. "_v2").
+ */
+export const TEMPLATE_CLASS_REMINDER_NAME = "booking_reminder";
+
+export const WHATSAPP_TEMPLATE_REGISTRY: Record<DashboardEvent, TemplateConfig> = {
+  booking_confirmed: {
+    name: "<FILL_IN>",
+    language: "en",
+    paramFormat: "named",
+    params: ["<FILL_IN>"],
+  },
+  class_reminder: {
+    name: TEMPLATE_CLASS_REMINDER_NAME,
+    language: "en",
+    paramFormat: "named",
+    params: [
+      "member_name",
+      "class_name",
+      "class_date",
+      "class_time",
+      "trainer_name",
+      "location_name",
+    ],
+  },
+  payment_receipt: {
+    name: "<FILL_IN>",
+    language: "en",
+    paramFormat: "named",
+    params: ["<FILL_IN>"],
+  },
+};
+
+export class TemplateConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TemplateConfigError";
+  }
+}
+
+/**
+ * Returns validated template config or throws clear error if <FILL_IN> placeholder remains.
+ */
+export function getTemplateConfig(event: DashboardEvent): TemplateConfig {
+  const config = WHATSAPP_TEMPLATE_REGISTRY[event];
+  if (!config) {
+    throw new TemplateConfigError(`Unknown WhatsApp event: "${event}"`);
+  }
+  if (config.name === "<FILL_IN>" || config.name.includes("<FILL_IN>")) {
+    throw new TemplateConfigError(
+      `WhatsApp template for event "${event}" is not configured in Meta (name is "<FILL_IN>"). Please update the template name in templates registry.`
+    );
+  }
+  if (config.params.some((p) => p === "<FILL_IN>" || p.includes("<FILL_IN>"))) {
+    throw new TemplateConfigError(
+      `WhatsApp template for event "${event}" has placeholder parameters ("<FILL_IN>"). Please define the exact parameter list.`
+    );
+  }
+  return config;
+}

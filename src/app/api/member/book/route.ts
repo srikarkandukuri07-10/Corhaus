@@ -207,16 +207,8 @@ export async function POST(req: Request) {
     // tryEnqueueWhatsappMessage never throws and never blocks the response.
     if (bookingStatus === "booked") {
       try {
-        const { tryEnqueueWhatsappMessage } = await import("@/lib/whatsapp/enqueue");
-        await tryEnqueueWhatsappMessage({
-          templateKey: "booking_confirmation",
-          approvedMemberId: approvedMemberId,
-          bookingId: newBooking.id,
-          classId: classId,
-          // One confirmation per booking, enforced by the unique
-          // idempotency_key even if this route runs twice.
-          idempotencyKey: `${newBooking.id}:booking_confirmation`,
-        });
+        const { handleBookingConfirmed } = await import("@/lib/whatsapp/events");
+        await handleBookingConfirmed(newBooking.id);
       } catch (e) {
         console.error("[whatsapp] booking_confirmation enqueue failed (booking unaffected):", e);
       }

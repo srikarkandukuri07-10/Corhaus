@@ -212,5 +212,15 @@ export async function markInvoicePaidFromLink(
   console.log(
     `[razorpay] invoice ${inv.invoice_number} -> ${paymentStatus} (paid ${newPaid}/${total})`
   );
+  try {
+    const { handlePaymentReceipt } = await import("@/lib/whatsapp/events");
+    await handlePaymentReceipt({
+      invoiceId: args.invoiceId,
+      amountRupees: newPaid,
+    });
+  } catch (e) {
+    console.error("[whatsapp] payment receipt hook error:", e);
+  }
+
   return { ok: true };
 }

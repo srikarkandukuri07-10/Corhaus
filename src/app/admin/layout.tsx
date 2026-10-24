@@ -23,6 +23,22 @@ export default function AdminLayout({
   const [staffProfile, setStaffProfile] = useState<any>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [mobileProfileMenuOpen, setMobileProfileMenuOpen] = useState(false);
+  const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
+
+  useEffect(() => {
+    async function fetchUnread() {
+      try {
+        const res = await fetch("/api/admin/whatsapp/unread-count");
+        if (res.ok) {
+          const d = await res.json();
+          setInboxUnreadCount(d.unreadCount || 0);
+        }
+      } catch {}
+    }
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 15000);
+    return () => clearInterval(interval);
+  }, []);
   const router = useRouter();
   const pathname = usePathname();
   useEffect(() => {
@@ -297,6 +313,23 @@ export default function AdminLayout({
               PEOPLE &amp; CLASSES
             </p>
             <div className="space-y-1">
+              <Link
+                href="/admin/inbox"
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname === "/admin/inbox", "members.view")}`}
+              >
+                <div className="flex items-center gap-3">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.964 9.964 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <span>Inbox</span>
+                </div>
+                {inboxUnreadCount > 0 && (
+                  <span className="bg-accent text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                    {inboxUnreadCount > 99 ? "99+" : inboxUnreadCount}
+                  </span>
+                )}
+              </Link>
+
               <Link
                 href="/admin/members"
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname === "/admin/members" || (pathname.startsWith("/admin/members") && !pathname.startsWith("/admin/members/history")), "members.view")}`}
@@ -668,6 +701,28 @@ export default function AdminLayout({
               </Link>
 
               <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 pt-3 pb-1">PEOPLE &amp; CLASSES</p>
+              {hasPerm("members.view") && (
+                <Link
+                  href="/admin/inbox"
+                  className={`flex items-center justify-between px-3 py-3 rounded-xl text-sm font-semibold transition-all ${
+                    pathname === "/admin/inbox"
+                      ? "sidebar-active text-white font-bold"
+                      : "text-on-rail hover:text-white hover:bg-rail-hover"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.964 9.964 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <span>Inbox</span>
+                  </div>
+                  {inboxUnreadCount > 0 && (
+                    <span className="bg-accent text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {inboxUnreadCount > 99 ? "99+" : inboxUnreadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
               {mobileLink("members.view", "/admin/members", "Members")}
               {mobileLink("members.trial", "/admin/trial-members", "Trial Members")}
               {mobileLink("members.trial", "/admin/leads", "Leads & Enquiries")}

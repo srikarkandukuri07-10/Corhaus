@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Indian phone number normalisation for WhatsApp addressing.
 //
 // Corhaus stores phone numbers in whatever format the member typed, and the
@@ -89,4 +90,40 @@ export function formatIndianPhone(raw: string | null | undefined): string {
   const res = normalizeIndianPhone(raw);
   if (!res.ok) return raw || "—";
   return `+${DEFAULT_COUNTRY_CODE} ${res.national.slice(0, 5)} ${res.national.slice(5)}`;
+}
+
+/**
+ * Extracts the last 10 digits from any phone representation.
+ */
+export function getNational10(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const digits = String(raw).replace(/\D/g, "");
+  if (digits.length < 10) return null;
+  return digits.slice(-10);
+}
+
+/**
+ * Matches an inbound or outbound phone number to an approved_member record by last 10 digits.
+ */
+export async function matchMemberByPhone(
+  supabase: any,
+  rawPhone: string | null | undefined
+): Promise<{ id: string; full_name: string; phone_number: string; email: string | null } | null> {
+  const national10 = getNational10(rawPhone);
+  if (!national10) return null;
+
+  try {
+    const { data: member, error } = await supabase
+      .from("approved_members")
+      .select("id, full_name, phone_number, email")
+      .or(`phone_normalized.eq.${national10},phone_number.ilike.%${national10}%`)
+      .order("membership_status", { ascending: true }) // 'active' prioritised
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !member) return null;
+    return member;
+  } catch {
+    return null;
+  }
 }
