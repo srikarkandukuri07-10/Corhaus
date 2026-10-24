@@ -45,7 +45,6 @@ export async function GET() {
       debugTokenData = await debugRes.json();
 
       // Query metadata and accessible WABAs
-      let wabaDiscovery: any = null;
       try {
         const discRes = await fetch(
           `https://graph.facebook.com/${version}/122094533283532276/assigned_whatsapp_business_accounts?fields=id,name,currency,message_templates{id,name,status,language},phone_numbers{id,display_phone_number,verified_name}`,
@@ -60,7 +59,6 @@ export async function GET() {
       }
 
       // Query template node metadata
-      let templateMeta: any = null;
       try {
         const tmplMetaRes = await fetch(
           `https://graph.facebook.com/${version}/3061502297550653?metadata=1`,
@@ -74,7 +72,6 @@ export async function GET() {
       }
 
       // Query phone number metadata
-      let phoneMeta: any = null;
       try {
         const pMetaRes = await fetch(
           `https://graph.facebook.com/${version}/${process.env.WHATSAPP_PHONE_NUMBER_ID}?metadata=1`,
