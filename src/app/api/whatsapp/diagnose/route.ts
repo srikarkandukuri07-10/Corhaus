@@ -44,7 +44,7 @@ export async function GET() {
       // Directly query the template by its Meta ID from the screenshot: 3061502297550653
       try {
         const tmplByIdRes = await fetch(
-          `https://graph.facebook.com/${version}/3061502297550653?fields=name,status,language,category,components`,
+          `https://graph.facebook.com/${version}/3061502297550653?fields=name,status,language,category,components,whatsapp_business_account`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -86,8 +86,8 @@ export async function GET() {
       server_time: new Date().toISOString(),
       env: envStatus,
       meta_account: metaApiCheck,
-      meta_templates: metaTemplates?.data || metaTemplates,
-      debug_token: debugTokenData?.data?.granular_scopes || null,
+      meta_templates: metaTemplates,
+      debug_token: debugTokenData?.data || null,
       db: {
         messages_total: msgCount ?? 0,
         messages_error: msgErr?.message ?? null,
@@ -235,6 +235,28 @@ export async function POST(req: Request) {
       const data3 = await res3.json();
       attempts.push({ mode: "named_en_US", status: res3.status, response: data3 });
     }
+
+    // Also test sending default 'hello_world' template to see if this phone can send templates
+    const payloadHelloWorld = {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: toDigits,
+      type: "template",
+      template: {
+        name: "hello_world",
+        language: { code: "en_US" },
+      },
+    };
+    const resHw = await fetch(`https://graph.facebook.com/${version}/${phoneId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payloadHelloWorld),
+    });
+    const dataHw = await resHw.json();
+    attempts.push({ mode: "hello_world", status: resHw.status, response: dataHw });
 
     return NextResponse.json({
       phone: toDigits,
