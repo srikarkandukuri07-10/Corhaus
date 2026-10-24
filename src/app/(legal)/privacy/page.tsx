@@ -8,273 +8,257 @@ import LegalShell, {
 import { SITE } from "@/lib/siteConfig";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description: `How ${SITE.brandName} collects, uses and protects your personal and payment information when you book a class, trial session or personal training.`,
+  title: "Privacy Policy | Corhaus Pilates",
+  description:
+    "How Corhaus Pilates For Everyone and Yuksha Health Private Limited collect, use, and protect your personal information, booking details, and WhatsApp communications under the Digital Personal Data Protection Act, 2023.",
 };
 
 const sections: LegalSection[] = [
   {
     id: "summary",
-    heading: "1. In short",
+    heading: "1. Overview & Summary",
     body: (
       <>
         <LegalP>
-          Booking a session with us means we have to hold your name, contact
-          details and the details of what you booked. We use that only to run
-          your booking, take payment, contact you about your sessions and
-          support you.
+          Corhaus Pilates (&ldquo;Corhaus Pilates For Everyone&rdquo;) operates a
+          fitness and wellness studio managing members, class schedules, and
+          session bookings. When you book a class, trial session, or package with
+          us, we collect the necessary personal and contact details required to
+          manage your booking, take payments, send booking confirmations and
+          reminders, and provide customer support.
         </LegalP>
         <LegalP>
-          Your card or UPI credentials are entered on your payment
-          provider&rsquo;s own secure page. We never see or store them — we keep
-          only the transaction reference the provider gives us.
-        </LegalP>
-        <LegalP>
-          This policy explains this in full. It applies to{" "}
-          {SITE.legalEntity.name} and to {SITE.brandName} as a trading name.
+          We communicate with members directly via Meta&rsquo;s official WhatsApp
+          Business Cloud API. We respect your privacy: we never sell or rent
+          your data, we store only what is required to provide our fitness
+          services, and you have complete control over your communications and
+          personal data.
         </LegalP>
       </>
     ),
   },
   {
     id: "who",
-    heading: "2. Who is responsible for your information",
+    heading: "2. Who We Are & Contact Details",
     body: (
       <>
         <LegalP>
-          The organisation that collects and holds your information is{" "}
+          The service is operated by{" "}
           <strong className="font-semibold text-fg">
             {SITE.legalEntity.name}
           </strong>{" "}
-          (GSTIN {SITE.legalEntity.gstin}), operating as {SITE.brandName}.
+          (GSTIN {SITE.legalEntity.gstin}, PAN {SITE.legalEntity.pan}), trading
+          as <strong className="font-semibold text-fg">Corhaus Pilates For Everyone</strong>.
         </LegalP>
         <LegalP>
-          Privacy questions and requests can be sent to us using the details on
-          our <LegalLink href="/contact">Contact &amp; Support</LegalLink> page.
+          Our studio and registered operations are located in{" "}
+          <strong className="font-semibold text-fg">Hyderabad, India</strong>.
         </LegalP>
+        <LegalP>
+          For any privacy inquiries, data access, or data deletion requests, you
+          can reach our designated privacy team directly:
+        </LegalP>
+        <LegalList>
+          <li>
+            <strong className="font-medium text-fg">Email:</strong>{" "}
+            <a
+              href="mailto:vkalladi@gmail.com"
+              className="text-fg underline underline-offset-2 hover:text-accent"
+            >
+              vkalladi@gmail.com
+            </a>
+          </li>
+          <li>
+            <strong className="font-medium text-fg">Location:</strong>{" "}
+            Hyderabad, Telangana, India
+          </li>
+          <li>
+            <strong className="font-medium text-fg">Data Deletion Instructions:</strong>{" "}
+            Visit our{" "}
+            <LegalLink href="/data-deletion">Data Deletion Instructions</LegalLink>{" "}
+            page.
+          </li>
+        </LegalList>
       </>
     ),
   },
   {
     id: "what-we-collect",
-    heading: "3. What we collect",
+    heading: "3. Information We Collect",
     body: (
       <>
-        <LegalP>We collect only what we need to run your booking. That is:</LegalP>
+        <LegalP>
+          We collect only information essential to providing studio services,
+          managing class bookings, and communicating session updates:
+        </LegalP>
         <LegalList>
           <li>
-            <strong className="font-medium text-fg">Your name</strong>, so we
-            can address you and identify you in class.
+            <strong className="font-medium text-fg">Member profile &amp; contact details:</strong>{" "}
+            Your full name, phone number, and email address provided during
+            registration or booking.
           </li>
           <li>
-            <strong className="font-medium text-fg">Your phone number</strong>,
-            so we can reach you about a session change, a cancellation or a
-            class that has been moved.
+            <strong className="font-medium text-fg">Booking and attendance details:</strong>{" "}
+            The sessions, classes, trial bookings, or membership packages you
+            select, booking dates and times, studio room/location, instructor
+            assignments, and attendance/check-in history.
           </li>
           <li>
-            <strong className="font-medium text-fg">Your email address</strong>,
-            so we can send your booking confirmation and invoices.
+            <strong className="font-medium text-fg">WhatsApp messaging data:</strong>{" "}
+            When we send you booking confirmations, class reminders, or updates,
+            we record WhatsApp message delivery status (e.g., sent, delivered,
+            read, or failed) and the content of any replies or queries you send
+            to our studio WhatsApp number so our staff can assist you.
           </li>
           <li>
-            <strong className="font-medium text-fg">Your booking details</strong> —
-            the session, class or package you booked, the date and time, the
-            studio branch, and the instructor assigned.
-          </li>
-          <li>
-            <strong className="font-medium text-fg">Payment transaction
-            references</strong> — the payment order reference, payment
-            reference and signature, the amount paid, and the payment status.
-          </li>
-          <li>
-            <strong className="font-medium text-fg">Records we create as a
-            member</strong> — for example, session credits used, attendance and
-            cancellation history, invoices raised, and any notes a staff member
-            makes about your membership.
+            <strong className="font-medium text-fg">Payment &amp; transaction references:</strong>{" "}
+            Payment provider order IDs, transaction IDs, payment status,
+            amounts, and tax invoice records. (Note: we never collect, store, or
+            see your credit/debit card numbers, CVVs, net-banking credentials, or
+            UPI PINs).
           </li>
         </LegalList>
+      </>
+    ),
+  },
+  {
+    id: "purpose",
+    heading: "4. Purpose of Processing",
+    body: (
+      <>
+        <LegalP>We process your personal information solely to:</LegalP>
+        <LegalList>
+          <li>
+            Create, manage, and confirm your class and trial bookings, and track
+            session attendance and membership credits.
+          </li>
+          <li>
+            Send timely automated booking confirmations, schedule changes, and
+            class reminders (for example, approximately 2 hours before your
+            scheduled class) via WhatsApp and email.
+          </li>
+          <li>
+            Allow studio staff to read and respond directly to your WhatsApp
+            replies and customer support inquiries from our studio management
+            dashboard.
+          </li>
+          <li>
+            Generate official GST tax invoices and maintain accounting records as
+            mandated by Indian tax authorities.
+          </li>
+        </LegalList>
+      </>
+    ),
+  },
+  {
+    id: "whatsapp-platform",
+    heading: "5. WhatsApp Communications & Meta Cloud API",
+    body: (
+      <>
         <LegalP>
-          If you get in touch with us first, we may also hold the content of your
-          message.
+          Our studio uses Meta&rsquo;s official WhatsApp Business Cloud API to
+          dispatch transactional notifications (booking confirmations, class
+          reminders, and receipts) and receive member responses.
+        </LegalP>
+        <LegalP>
+          When you receive or send messages through WhatsApp, your communication
+          is also subject to WhatsApp&rsquo;s own terms and privacy practices.
+          You can review{" "}
+          <a
+            href="https://www.whatsapp.com/legal/privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-fg underline underline-offset-2 hover:text-accent"
+          >
+            WhatsApp&rsquo;s Privacy Policy
+          </a>{" "}
+          and{" "}
+          <a
+            href="https://www.whatsapp.com/legal/business-terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-fg underline underline-offset-2 hover:text-accent"
+          >
+            WhatsApp Business Terms
+          </a>
+          .
         </LegalP>
       </>
     ),
   },
   {
-    id: "what-we-do-not-collect",
-    heading: "4. What we do not collect",
+    id: "consent-and-opt-out",
+    heading: "6. Consent and Opt-Out",
     body: (
       <>
         <LegalP>
-          We do not ask for, receive or store your card number, card expiry,
-          CVV, net banking password or UPI PIN. Those are entered directly on
-          your payment provider&rsquo;s page and never pass through our
-          systems.
+          By booking a session or providing your phone number on our website or
+          at the studio, you consent to receiving operational and transactional
+          updates regarding your classes via WhatsApp and SMS/email.
         </LegalP>
         <LegalP>
-          We do not collect health information unless you choose to tell an
-          instructor about an injury or condition at the studio, in which case
-          it is handled as a studio safety matter rather than stored on your
-          account.
-        </LegalP>
-      </>
-    ),
-  },
-  {
-    id: "why",
-    heading: "5. Why we collect it",
-    body: (
-      <>
-        <LegalP>
-          We rely on this information to do the things you have asked us for.
-          Specifically, we use it to:
+          <strong className="font-semibold text-fg">How to opt out:</strong> You
+          have full control and can opt out of receiving WhatsApp messages at
+          any time by:
         </LegalP>
         <LegalList>
           <li>
-            <strong className="font-medium text-fg">Confirm payment and issue
-            your invoice.</strong> We check the transaction reference our payment
-            provider returns so that we do not confirm a booking that was not
-            paid for.
+            Replying <strong className="font-medium text-fg">&ldquo;STOP&rdquo;</strong> to
+            any WhatsApp message you receive from us.
           </li>
           <li>
-            <strong className="font-medium text-fg">Create and hold your
-            booking</strong> for the session, class and time you chose, and
-            check capacity so the session is not oversubscribed.
-          </li>
-          <li>
-            <strong className="font-medium text-fg">Maintain your membership
-            record</strong> — session credits, plan validity and attendance
-            history — so you can see what you are entitled to.
-          </li>
-          <li>
-            <strong className="font-medium text-fg">Contact you</strong> about
-            your booking: confirmations, cancellations, instructor or schedule
-            changes, and reminders about an upcoming session.
-          </li>
-          <li>
-            <strong className="font-medium text-fg">Respond to you and
-            support you</strong>, including handling a cancellation or refund
-            request.
-          </li>
-          <li>
-            <strong className="font-medium text-fg">Meet our legal and
-            accounting obligations</strong>, which includes keeping transaction
-            records and issuing tax invoices.
+            Sending an email with your registered phone number to{" "}
+            <a
+              href="mailto:vkalladi@gmail.com"
+              className="text-fg underline underline-offset-2 hover:text-accent"
+            >
+              vkalladi@gmail.com
+            </a>{" "}
+            requesting removal from WhatsApp notifications.
           </li>
         </LegalList>
         <LegalP>
-          We do not use your information for unrelated marketing, and we do not
-          sell or rent it to anyone.
-        </LegalP>
-      </>
-    ),
-  },
-  {
-    id: "processors",
-    heading: "6. Service providers we share it with",
-    body: (
-      <>
-        <LegalP>
-          A small number of providers process data on our behalf so the service
-          can work. They act on our instructions and are not free to use your
-          information for their own purposes.
-        </LegalP>
-        <LegalList>
-          <li>
-            <strong className="font-medium text-fg">Payment provider</strong> —
-            to take payment, confirm it, issue refunds and provide your receipt.
-            Your card or UPI credentials are entered on their page, not ours.
-          </li>
-          <li>
-            <strong className="font-medium text-fg">Cloud database and hosting
-            provider</strong> — to store your booking and membership records and
-            to run this website.
-          </li>
-          <li>
-            <strong className="font-medium text-fg">Sign-in provider</strong> —
-            if you sign in with a Google account, they confirm your identity to
-            us. We do not receive your Google password.
-          </li>
-          <li>
-            <strong className="font-medium text-fg">WhatsApp (Meta Cloud API)</strong> —
-            to deliver automated booking confirmations, class reminders (e.g. 2 hours before your session),
-            payment transaction receipts, and to enable studio staff to read and answer your WhatsApp replies.
-            We use official Meta Cloud API HTTPS services directly and do not share message content with advertisers.
-          </li>
-          <li>
-            <strong className="font-medium text-fg">Email and messaging
-            providers</strong> — to deliver your confirmation, invoice and
-            reminders.
-          </li>
-        </LegalList>
-        <LegalP>
-          Where a provider processes data outside India, it does so under
-          appropriate contractual safeguards.
-        </LegalP>
-      </>
-    ),
-  },
-  {
-    id: "security",
-    heading: "7. How we protect it",
-    body: (
-      <>
-        <LegalP>
-          Reasonable measures we take include:
-        </LegalP>
-        <LegalList>
-          <li>
-            Restricting who inside the studio can see member contact details and
-            payment records, and only where their role requires it.
-          </li>
-          <li>
-            Keeping payment credentials entirely at our payment provider, so
-            they never reach our systems.
-          </li>
-          <li>
-            Verifying that a payment has genuinely been made before confirming
-            a booking, so that no booking can be created without a real
-            transaction.
-          </li>
-          <li>
-            Protecting the areas of the website that hold member information
-            behind a login, so it is not publicly readable.
-          </li>
-          <li>
-            Requiring administrators to authenticate before accessing studio
-            settings or member records.
-          </li>
-        </LegalList>
-        <LegalP>
-          No system is perfectly secure. If we become aware of a breach that
-          affects your information and is likely to cause you serious harm, we
-          will tell you and the relevant authority as required by law.
+          Once opted out, you will no longer receive automated WhatsApp reminders
+          for upcoming classes.
         </LegalP>
       </>
     ),
   },
   {
     id: "sharing",
-    heading: "8. When we disclose information",
+    heading: "7. Data Sharing & Non-Sale of Data",
     body: (
       <>
-        <LegalP>We do not sell or rent your personal information.</LegalP>
-        <LegalP>We may disclose your information where:</LegalP>
+        <LegalP>
+          <strong className="font-semibold text-fg">
+            We do not sell, rent, trade, or monetize your personal information
+            to third-party advertisers or data brokers under any circumstances.
+          </strong>
+        </LegalP>
+        <LegalP>
+          We share your data strictly with trusted service providers necessary
+          to operate our studio infrastructure:
+        </LegalP>
         <LegalList>
           <li>
-            it is needed to process your payment, as described in section 6;
+            <strong className="font-medium text-fg">Meta Platforms, Inc. (WhatsApp Cloud API):</strong>{" "}
+            For delivering transactional WhatsApp notifications and messages.
           </li>
           <li>
-            we are required to disclose it by law, a court order or a competent
-            authority;
+            <strong className="font-medium text-fg">Cloud Hosting &amp; Database Providers:</strong>{" "}
+            Secure cloud infrastructure (Vercel and Supabase) used to store your
+            booking records, class schedules, and member accounts.
           </li>
           <li>
-            it is necessary to protect the safety of staff, members or the
-            public, or to investigate fraud or abuse;
+            <strong className="font-medium text-fg">Payment Processors:</strong>{" "}
+            Authorized Indian payment gateways (such as Razorpay) for securely
+            processing card, netbanking, and UPI payments without exposing
+            financial credentials to us.
           </li>
           <li>
-            the business is restructured or transferred, in which case your
-            booking records move with it and continue to be handled under this
-            policy.
+            <strong className="font-medium text-fg">Legal &amp; Regulatory Authorities:</strong>{" "}
+            Only when required by Indian law, judicial summons, or statutory tax
+            reporting obligations.
           </li>
         </LegalList>
       </>
@@ -282,82 +266,121 @@ const sections: LegalSection[] = [
   },
   {
     id: "retention",
-    heading: "9. How long we keep it",
+    heading: "8. Data Retention Period",
     body: (
       <>
         <LegalP>
-          We keep booking and payment records for as long as they are needed for
-          accounting, tax and dispute purposes, and membership records for as
-          long as you remain a member. Where a period is required by law, we
-          follow it.
+          We retain your personal profile, class history, and WhatsApp
+          communication logs for the duration of your active membership plus{" "}
+          <strong className="font-semibold text-fg">12 months</strong> following
+          inactivity, to facilitate easy renewals and re-bookings.
         </LegalP>
         <LegalP>
-          If you ask us to delete your information we will do so where we are
-          able, except for records we must keep by law — for example tax
-          invoices. Ask us using the details on our{" "}
-          <LegalLink href="/contact">Contact &amp; Support</LegalLink> page.
+          Following this period, or upon receiving a validated data deletion
+          request, personal identifiers and messaging records are securely
+          purged, except for financial invoices and tax documents that we are
+          legally obligated to retain under Indian commercial and taxation laws.
         </LegalP>
+      </>
+    ),
+  },
+  {
+    id: "security",
+    heading: "9. Security Safeguards",
+    body: (
+      <>
+        <LegalP>
+          We implement industry-standard technical and organizational security
+          measures to safeguard your data, including:
+        </LegalP>
+        <LegalList>
+          <li>
+            Encrypted data transmission across all services using modern
+            TLS/HTTPS protocols.
+          </li>
+          <li>
+            Strict role-based access control ensuring only authorized studio
+            staff can access member directories and conversation records.
+          </li>
+          <li>
+            Secure API authentication, including cryptographic HMAC-SHA256
+            signature verification for all inbound Meta WhatsApp webhooks.
+          </li>
+          <li>
+            Complete separation from payment instruments: card and banking
+            credentials are never collected or stored on our servers.
+          </li>
+        </LegalList>
       </>
     ),
   },
   {
     id: "rights",
-    heading: "10. Your rights and choices",
+    heading: "10. Your Rights & Data Deletion",
     body: (
       <>
-        <LegalP>You can ask us to:</LegalP>
-        <LegalList>
-          <li>confirm what information we hold about you, and provide a copy;</li>
-          <li>correct information that is wrong or out of date;</li>
-          <li>
-            delete information we no longer need, subject to the records we
-            must keep by law;
-          </li>
-          <li>
-            withdraw from future messages. Note that we still need to contact
-            you about sessions you have booked, even if you stop marketing
-            messages.
-          </li>
-        </LegalList>
         <LegalP>
-          Send your request through our{" "}
-          <LegalLink href="/contact">Contact &amp; Support</LegalLink> page. We
-          will need to verify your identity before we can act on it, so that
-          nobody else can ask for your records.
+          You have the right to access, review, correct, or request the
+          permanent erasure of your personal data held by us.
+        </LegalP>
+        <LegalP>
+          To exercise your rights or request deletion of your account and WhatsApp
+          messaging history, please email{" "}
+          <a
+            href="mailto:vkalladi@gmail.com"
+            className="text-fg underline underline-offset-2 hover:text-accent"
+          >
+            vkalladi@gmail.com
+          </a>{" "}
+          with the subject line &ldquo;Data deletion request&rdquo; along with your
+          registered phone number.
+        </LegalP>
+        <LegalP>
+          Detailed instructions on our data deletion workflows are available on
+          our dedicated{" "}
+          <LegalLink href="/data-deletion">Data Deletion page</LegalLink>.
         </LegalP>
       </>
     ),
   },
   {
-    id: "children",
-    heading: "11. Children",
+    id: "governing-law",
+    heading: "11. Governing Law & DPDP Act, 2023",
     body: (
-      <LegalP>
-        These services are for adults. We do not knowingly collect information
-        from anyone under 18. If you believe a child has given us information,
-        please contact us and we will remove it.
-      </LegalP>
+      <>
+        <LegalP>
+          This policy and all data handling activities are governed by the laws
+          of India, including the{" "}
+          <strong className="font-semibold text-fg">
+            Digital Personal Data Protection Act, 2023 (DPDPA 2023)
+          </strong>{" "}
+          and the Information Technology Act, 2000.
+        </LegalP>
+        <LegalP>
+          Any disputes arising hereunder shall be subject to the exclusive
+          jurisdiction of the competent courts in Hyderabad, Telangana, India.
+        </LegalP>
+      </>
     ),
   },
   {
     id: "changes",
-    heading: "12. Changes to this policy",
+    heading: "12. Policy Updates",
     body: (
       <>
         <LegalP>
-          We may update this policy. The &ldquo;Last updated&rdquo; date at the
-          top of this page shows when it last changed. Where a change affects
-          how we use information you have already given us, we will tell you
-          before it takes effect.
+          We may update this Privacy Policy from time to time to reflect operational,
+          legal, or regulatory changes. The date at the top of this document
+          reflects the last revision. Continued use of our booking service or
+          studio after changes take effect constitutes acceptance of the revised
+          policy.
         </LegalP>
         <LegalP>
-          This policy forms part of our{" "}
-          <LegalLink href="/terms">Terms &amp; Conditions</LegalLink> and
-          should be read with our{" "}
-          <LegalLink href="/refund-policy">
-            Refund &amp; Cancellation Policy
-          </LegalLink>
-          .
+          Please also review our{" "}
+          <LegalLink href="/terms">Terms &amp; Conditions</LegalLink>,{" "}
+          <LegalLink href="/refund-policy">Refund &amp; Cancellation Policy</LegalLink>,
+          and{" "}
+          <LegalLink href="/data-deletion">Data Deletion Instructions</LegalLink>.
         </LegalP>
       </>
     ),
@@ -370,9 +393,11 @@ export default function PrivacyPage() {
       title="Privacy Policy"
       intro={
         <p>
-          This explains what personal information {SITE.brandName} collects when
-          you book with us, why we need it, and how it is handled. It is written
-          to be read, not to be skipped.
+          This Privacy Policy explains how Corhaus Pilates For Everyone
+          (operated by Yuksha Health Private Limited) collects, protects, and
+          manages your information, bookings, and WhatsApp communications in
+          compliance with India&rsquo;s Digital Personal Data Protection Act,
+          2023.
         </p>
       }
       sections={sections}

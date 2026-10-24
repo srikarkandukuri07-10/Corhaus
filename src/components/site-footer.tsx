@@ -5,6 +5,7 @@ export const LEGAL_LINKS = [
   { href: "/terms", label: "Terms & Conditions" },
   { href: "/privacy", label: "Privacy Policy" },
   { href: "/refund-policy", label: "Refund & Cancellation Policy" },
+  { href: "/data-deletion", label: "Data Deletion" },
   { href: "/contact", label: "Contact & Support" },
 ] as const;
 

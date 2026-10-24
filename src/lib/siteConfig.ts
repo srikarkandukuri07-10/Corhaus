@@ -46,13 +46,13 @@ export const SITE = {
    * them from there. Do not ship placeholder text.
    */
   contact: {
-    supportEmail: "", // TODO(BUSINESS_INFO)
-    supportPhone: "", // TODO(BUSINESS_INFO)
-    addressLine1: "", // TODO(BUSINESS_INFO)
-    addressLine2: "", // TODO(BUSINESS_INFO)
-    city: "", // TODO(BUSINESS_INFO)
-    state: "", // TODO(BUSINESS_INFO)
-    pinCode: "", // TODO(BUSINESS_INFO)
+    supportEmail: "vkalladi@gmail.com",
+    supportPhone: "",
+    addressLine1: "Hyderabad",
+    addressLine2: "",
+    city: "Hyderabad",
+    state: "Telangana",
+    pinCode: "",
     country: "India",
   },
 
@@ -82,7 +82,7 @@ export const SITE = {
    * Deliberately curated date, not `new Date()`. A "Last Updated" line must
    * only change when the content is actually reviewed, never on every deploy.
    */
-  lastUpdated: "2026-10-03",
+  lastUpdated: "2026-10-24",
 } as const;
 
 export const LAST_UPDATED_LABEL = new Date(
