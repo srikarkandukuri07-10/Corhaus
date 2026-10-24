@@ -38,7 +38,25 @@ export async function POST(req: Request) {
 
   // HMAC verification (timing-safe)
   if (!verifyWebhookSignature(rawBody, signature)) {
-    console.warn("[whatsapp:webhook] Rejected request with invalid signature.");
+    console.warn(
+      `[whatsapp:webhook] Rejected request with invalid signature. Has secret: ${Boolean(process.env.WHATSAPP_APP_SECRET)}, Signature: ${signature ? "present" : "missing"}`
+    );
+    try {
+      const supabase = getServiceClient();
+      await supabase.from("whatsapp_messages").insert({
+        direction: "in",
+        phone: "0000000000",
+        type: "other",
+        body: `[Webhook Warning] Rejected request: ${!process.env.WHATSAPP_APP_SECRET ? "WHATSAPP_APP_SECRET is not configured in Vercel" : "Signature mismatch"}`,
+        status: "failed",
+        error_code: "SIGNATURE_FAILED",
+        error_message: !process.env.WHATSAPP_APP_SECRET
+          ? "WHATSAPP_APP_SECRET is not configured in Vercel environment variables"
+          : "HMAC signature mismatch: check that WHATSAPP_APP_SECRET matches Meta App Secret",
+      });
+    } catch {
+      // Ignore fallback insert failure
+    }
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
