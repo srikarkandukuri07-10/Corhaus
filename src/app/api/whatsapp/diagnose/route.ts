@@ -113,27 +113,132 @@ export async function POST(req: Request) {
     const phone = body.phone || "8309909784";
     const memberName = body.memberName || "Test_Member";
 
-    const { sendTemplate, sendText } = await import("@/lib/whatsapp/service");
+    const { normalizeIndianPhone } = await import("@/lib/whatsapp/phone");
+    const norm = normalizeIndianPhone(phone);
+    const toDigits = norm.ok ? norm.digits : phone.replace(/\D/g, "");
 
-    if (body.type === "text") {
-      const res = await sendText(phone, body.text || "Hello from Corhaus Pilates dashboard!");
-      return NextResponse.json({ action: "sendText", phone, result: res });
+    const token = process.env.WHATSAPP_ACCESS_TOKEN;
+    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const version = process.env.WHATSAPP_GRAPH_VERSION || "v25.0";
+
+    const attempts: any[] = [];
+
+    // Attempt 1: Named parameters, language 'en'
+    const payload1 = {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: toDigits,
+      type: "template",
+      template: {
+        name: "class_booking_reminder",
+        language: { code: "en" },
+        components: [
+          {
+            type: "body",
+            parameters: [
+              { type: "text", parameter_name: "member_name", text: memberName },
+              { type: "text", parameter_name: "class_name", text: "Reformer Pilates Intro" },
+              { type: "text", parameter_name: "class_date", text: "Today" },
+              { type: "text", parameter_name: "class_time", text: "5:00 PM" },
+              { type: "text", parameter_name: "trainer_name", text: "Instructor Sarah" },
+              { type: "text", parameter_name: "location_name", text: "Corhaus Studio - Hyderabad" },
+            ],
+          },
+        ],
+      },
+    };
+
+    const res1 = await fetch(`https://graph.facebook.com/${version}/${phoneId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload1),
+    });
+    const data1 = await res1.json();
+    attempts.push({ mode: "named_en", status: res1.status, response: data1 });
+
+    // Attempt 2: Positional parameters, language 'en'
+    if (data1.error) {
+      const payload2 = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: toDigits,
+        type: "template",
+        template: {
+          name: "class_booking_reminder",
+          language: { code: "en" },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: memberName },
+                { type: "text", text: "Reformer Pilates Intro" },
+                { type: "text", text: "Today" },
+                { type: "text", text: "5:00 PM" },
+                { type: "text", text: "Instructor Sarah" },
+                { type: "text", text: "Corhaus Studio - Hyderabad" },
+              ],
+            },
+          ],
+        },
+      };
+
+      const res2 = await fetch(`https://graph.facebook.com/${version}/${phoneId}/messages`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload2),
+      });
+      const data2 = await res2.json();
+      attempts.push({ mode: "positional_en", status: res2.status, response: data2 });
     }
 
-    const res = await sendTemplate("class_reminder", phone, {
-      member_name: memberName,
-      class_name: "Reformer Pilates Intro",
-      class_date: "Today",
-      class_time: "5:00 PM",
-      trainer_name: "Instructor Sarah",
-      location_name: "Corhaus Studio - Hyderabad",
-    });
+    // Attempt 3: If still error, try language 'en_US'
+    const lastAttempt = attempts[attempts.length - 1];
+    if (lastAttempt?.response?.error) {
+      const payload3 = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: toDigits,
+        type: "template",
+        template: {
+          name: "class_booking_reminder",
+          language: { code: "en_US" },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", parameter_name: "member_name", text: memberName },
+                { type: "text", parameter_name: "class_name", text: "Reformer Pilates Intro" },
+                { type: "text", parameter_name: "class_date", text: "Today" },
+                { type: "text", parameter_name: "class_time", text: "5:00 PM" },
+                { type: "text", parameter_name: "trainer_name", text: "Instructor Sarah" },
+                { type: "text", parameter_name: "location_name", text: "Corhaus Studio - Hyderabad" },
+              ],
+            },
+          ],
+        },
+      };
+
+      const res3 = await fetch(`https://graph.facebook.com/${version}/${phoneId}/messages`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload3),
+      });
+      const data3 = await res3.json();
+      attempts.push({ mode: "named_en_US", status: res3.status, response: data3 });
+    }
 
     return NextResponse.json({
-      action: "sendTemplate",
-      event: "class_reminder",
-      phone,
-      result: res,
+      phone: toDigits,
+      attempts,
     });
   } catch (err: any) {
     return NextResponse.json({
