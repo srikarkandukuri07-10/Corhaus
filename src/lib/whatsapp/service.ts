@@ -308,7 +308,7 @@ export async function sendTemplate(
   };
 
   try {
-    const res = await fetch(`https://graph.facebook.com/${version}/${phoneNumberId}/messages`, {
+    let res = await fetch(`https://graph.facebook.com/${version}/${phoneNumberId}/messages`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${accessToken}`,
@@ -317,7 +317,69 @@ export async function sendTemplate(
       body: JSON.stringify(payload),
     });
 
-    const data = await res.json();
+    let data = await res.json();
+
+    // Fallback 1: Language code mismatch (Meta 132001)
+    if (data.error && data.error.code === 132001) {
+      const altLang = (templateConfig.language || "en") === "en" ? "en_US" : "en";
+      const altPayload = {
+        ...payload,
+        template: {
+          ...payload.template,
+          language: { code: altLang },
+        },
+      };
+      const retryRes = await fetch(`https://graph.facebook.com/${version}/${phoneNumberId}/messages`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(altPayload),
+      });
+      const retryData = await retryRes.json();
+      if (retryRes.ok && !retryData.error) {
+        res = retryRes;
+        data = retryData;
+      }
+    }
+
+    // Fallback 2: Parameter format mismatch (named vs positional)
+    if (data.error && (data.error.code === 132000 || data.error.code === 100)) {
+      const positionalComponents = [
+        {
+          type: "body",
+          parameters: templateConfig.params.map((p) => ({
+            type: "text",
+            text: String(params[p] ?? ""),
+          })),
+        },
+      ];
+      for (const langCode of [templateConfig.language || "en", "en_US"]) {
+        const altPayload = {
+          ...payload,
+          template: {
+            name: templateConfig.name,
+            language: { code: langCode },
+            components: positionalComponents,
+          },
+        };
+        const retryRes = await fetch(`https://graph.facebook.com/${version}/${phoneNumberId}/messages`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(altPayload),
+        });
+        const retryData = await retryRes.json();
+        if (retryRes.ok && !retryData.error) {
+          res = retryRes;
+          data = retryData;
+          break;
+        }
+      }
+    }
 
     if (!res.ok || data.error) {
       const errCode = String(data.error?.code || res.status);
