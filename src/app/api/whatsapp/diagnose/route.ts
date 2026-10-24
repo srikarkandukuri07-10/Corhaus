@@ -123,6 +123,8 @@ export async function POST(req: Request) {
 
     const attempts: any[] = [];
 
+    const templateName = body.template || "class_booking_reminder1";
+
     // Attempt 1: Named parameters, language 'en'
     const payload1 = {
       messaging_product: "whatsapp",
@@ -130,7 +132,7 @@ export async function POST(req: Request) {
       to: toDigits,
       type: "template",
       template: {
-        name: "class_booking_reminder",
+        name: templateName,
         language: { code: "en" },
         components: [
           {
@@ -157,7 +159,7 @@ export async function POST(req: Request) {
       body: JSON.stringify(payload1),
     });
     const data1 = await res1.json();
-    attempts.push({ mode: "named_en", status: res1.status, response: data1 });
+    attempts.push({ mode: `named_en_${templateName}`, status: res1.status, response: data1 });
 
     // Attempt 2: Positional parameters, language 'en'
     if (data1.error) {
@@ -167,7 +169,7 @@ export async function POST(req: Request) {
         to: toDigits,
         type: "template",
         template: {
-          name: "class_booking_reminder",
+          name: templateName,
           language: { code: "en" },
           components: [
             {
@@ -194,7 +196,7 @@ export async function POST(req: Request) {
         body: JSON.stringify(payload2),
       });
       const data2 = await res2.json();
-      attempts.push({ mode: "positional_en", status: res2.status, response: data2 });
+      attempts.push({ mode: `positional_en_${templateName}`, status: res2.status, response: data2 });
     }
 
     // Attempt 3: If still error, try language 'en_US'
@@ -206,7 +208,7 @@ export async function POST(req: Request) {
         to: toDigits,
         type: "template",
         template: {
-          name: "class_booking_reminder",
+          name: templateName,
           language: { code: "en_US" },
           components: [
             {
@@ -233,7 +235,7 @@ export async function POST(req: Request) {
         body: JSON.stringify(payload3),
       });
       const data3 = await res3.json();
-      attempts.push({ mode: "named_en_US", status: res3.status, response: data3 });
+      attempts.push({ mode: `named_en_US_${templateName}`, status: res3.status, response: data3 });
     }
 
     // Also test sending default 'hello_world' template to see if this phone can send templates
