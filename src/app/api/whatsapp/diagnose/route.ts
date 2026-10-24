@@ -41,19 +41,17 @@ export async function GET() {
       );
       debugTokenData = await debugRes.json();
 
-      const targetIds = debugTokenData?.data?.granular_scopes?.find(
-        (s: any) => s.scope === "whatsapp_business_management" || s.scope === "whatsapp_business_messaging"
-      )?.target_ids || [];
-
-      const wabaId = targetIds[0];
-      if (wabaId) {
-        const tmplRes = await fetch(
-          `https://graph.facebook.com/${version}/${wabaId}/message_templates?fields=name,status,language,category,components&limit=10`,
+      // Directly query the template by its Meta ID from the screenshot: 3061502297550653
+      try {
+        const tmplByIdRes = await fetch(
+          `https://graph.facebook.com/${version}/3061502297550653?fields=name,status,language,category,components`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        metaTemplates = await tmplRes.json();
+        metaTemplates = await tmplByIdRes.json();
+      } catch (tmplErr: any) {
+        metaTemplates = { error: tmplErr.message };
       }
     } catch (e: any) {
       metaApiCheck = { error: e.message };
