@@ -21,27 +21,36 @@ export async function GET() {
 
   let metaApiCheck: any = null;
   let metaTemplates: any = null;
+  let debugTokenData: any = null;
   if (process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) {
     try {
       const version = process.env.WHATSAPP_GRAPH_VERSION || "v25.0";
+      const token = process.env.WHATSAPP_ACCESS_TOKEN;
+
       const metaRes = await fetch(
-        `https://graph.facebook.com/${version}/${process.env.WHATSAPP_PHONE_NUMBER_ID}?fields=verified_name,display_phone_number,quality_rating,code_verification_status,whatsapp_business_account`,
+        `https://graph.facebook.com/${version}/${process.env.WHATSAPP_PHONE_NUMBER_ID}?fields=verified_name,display_phone_number,quality_rating,code_verification_status`,
         {
-          headers: {
-            Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
       metaApiCheck = await metaRes.json();
 
-      const wabaId = metaApiCheck?.whatsapp_business_account?.id;
+      // Inspect debug_token to get WABA ID
+      const debugRes = await fetch(
+        `https://graph.facebook.com/${version}/debug_token?input_token=${token}&access_token=${token}`
+      );
+      debugTokenData = await debugRes.json();
+
+      const targetIds = debugTokenData?.data?.granular_scopes?.find(
+        (s: any) => s.scope === "whatsapp_business_management" || s.scope === "whatsapp_business_messaging"
+      )?.target_ids || [];
+
+      const wabaId = targetIds[0];
       if (wabaId) {
         const tmplRes = await fetch(
-          `https://graph.facebook.com/${version}/${wabaId}/message_templates?fields=name,status,language,category,components&limit=20`,
+          `https://graph.facebook.com/${version}/${wabaId}/message_templates?fields=name,status,language,category,components&limit=10`,
           {
-            headers: {
-              Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           }
         );
         metaTemplates = await tmplRes.json();
@@ -80,6 +89,7 @@ export async function GET() {
       env: envStatus,
       meta_account: metaApiCheck,
       meta_templates: metaTemplates?.data || metaTemplates,
+      debug_token: debugTokenData?.data?.granular_scopes || null,
       db: {
         messages_total: msgCount ?? 0,
         messages_error: msgErr?.message ?? null,
