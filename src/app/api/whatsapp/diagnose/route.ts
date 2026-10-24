@@ -23,6 +23,7 @@ export async function GET() {
   let metaTemplates: any = null;
   let debugTokenData: any = null;
   let wabaDiscovery: any = null;
+  let phoneTemplates: any = null;
   let templateMeta: any = null;
   let phoneMeta: any = null;
   if (process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) {
@@ -44,18 +45,18 @@ export async function GET() {
       );
       debugTokenData = await debugRes.json();
 
-      // Query metadata and accessible WABAs
+      // Query phone number's templates directly
+      let phoneTemplates: any = null;
       try {
-        const discRes = await fetch(
-          `https://graph.facebook.com/${version}/122094533283532276/assigned_whatsapp_business_accounts?fields=id,name,currency,message_templates{id,name,status,language},phone_numbers{id,display_phone_number,verified_name}`,
+        const pTmplRes = await fetch(
+          `https://graph.facebook.com/${version}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/message_templates`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        const discData = await discRes.json();
-        wabaDiscovery = discData;
+        phoneTemplates = await pTmplRes.json();
       } catch (e: any) {
-        wabaDiscovery = { error: e.message };
+        phoneTemplates = { error: e.message };
       }
 
       // Query template node metadata
@@ -114,9 +115,9 @@ export async function GET() {
 
     const { data: latestMsg } = await supabase
       .from("whatsapp_messages")
-      .select("id, direction, phone, type, status, created_at, error_code, error_message")
+      .select("id, direction, phone, type, status, wa_message_id, created_at, error_code, error_message")
       .order("created_at", { ascending: false })
-      .limit(3);
+      .limit(10);
 
     const { data: latestConvs } = await supabase
       .from("whatsapp_conversations")
@@ -130,7 +131,7 @@ export async function GET() {
       env: envStatus,
       meta_account: metaApiCheck,
       meta_templates: metaTemplates,
-      waba_discovery: wabaDiscovery,
+      phone_templates: phoneTemplates,
       template_meta: templateMeta,
       phone_meta: phoneMeta,
       debug_token: debugTokenData?.data || null,
@@ -305,6 +306,21 @@ export async function POST(req: Request) {
     });
     const dataHw = await resHw.json();
     attempts.push({ mode: "hello_world", status: resHw.status, response: dataHw });
+
+    const supabase = getServiceClient();
+    for (const att of attempts) {
+      const waMsgId = att.response?.messages?.[0]?.id;
+      if (waMsgId) {
+        await supabase.from("whatsapp_messages").insert({
+          direction: "out",
+          phone: toDigits,
+          type: "template",
+          body: `[Test] Template: ${att.mode}`,
+          status: "sent",
+          wa_message_id: waMsgId,
+        });
+      }
+    }
 
     return NextResponse.json({
       phone: toDigits,
