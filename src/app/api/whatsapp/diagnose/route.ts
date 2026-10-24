@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/whatsapp/service";
 
@@ -17,6 +18,24 @@ export async function GET() {
     WHATSAPP_GRAPH_VERSION: process.env.WHATSAPP_GRAPH_VERSION ?? "v25.0",
     has_SUPABASE_SERVICE_ROLE_KEY: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
   };
+
+  let metaApiCheck: any = null;
+  if (process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) {
+    try {
+      const version = process.env.WHATSAPP_GRAPH_VERSION || "v25.0";
+      const metaRes = await fetch(
+        `https://graph.facebook.com/${version}/${process.env.WHATSAPP_PHONE_NUMBER_ID}?fields=verified_name,display_phone_number,quality_rating,code_verification_status`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+          },
+        }
+      );
+      metaApiCheck = await metaRes.json();
+    } catch (e: any) {
+      metaApiCheck = { error: e.message };
+    }
+  }
 
   try {
     const supabase = getServiceClient();
@@ -45,6 +64,7 @@ export async function GET() {
       status: "ok",
       server_time: new Date().toISOString(),
       env: envStatus,
+      meta_account: metaApiCheck,
       db: {
         messages_total: msgCount ?? 0,
         messages_error: msgErr?.message ?? null,
@@ -63,3 +83,39 @@ export async function GET() {
     }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json().catch(() => ({}));
+    const phone = body.phone || "8309909784";
+    const memberName = body.memberName || "Test_Member";
+
+    const { sendTemplate, sendText } = await import("@/lib/whatsapp/service");
+
+    if (body.type === "text") {
+      const res = await sendText(phone, body.text || "Hello from Corhaus Pilates dashboard!");
+      return NextResponse.json({ action: "sendText", phone, result: res });
+    }
+
+    const res = await sendTemplate("class_reminder", phone, {
+      member_name: memberName,
+      class_name: "Reformer Pilates Intro",
+      class_date: "Today",
+      class_time: "5:00 PM",
+      trainer_name: "Instructor Sarah",
+      location_name: "Corhaus Studio - Hyderabad",
+    });
+
+    return NextResponse.json({
+      action: "sendTemplate",
+      event: "class_reminder",
+      phone,
+      result: res,
+    });
+  } catch (err: any) {
+    return NextResponse.json({
+      error: err.message,
+    }, { status: 500 });
+  }
+}
+
