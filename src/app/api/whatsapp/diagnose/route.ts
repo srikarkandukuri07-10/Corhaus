@@ -22,13 +22,15 @@ export async function GET() {
   let metaApiCheck: any = null;
   let metaTemplates: any = null;
   let debugTokenData: any = null;
+  let wabaTemplates: any = null;
+  let targetIds: any[] = [];
   if (process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) {
     try {
       const version = process.env.WHATSAPP_GRAPH_VERSION || "v25.0";
       const token = process.env.WHATSAPP_ACCESS_TOKEN;
 
       const metaRes = await fetch(
-        `https://graph.facebook.com/${version}/${process.env.WHATSAPP_PHONE_NUMBER_ID}?fields=verified_name,display_phone_number,quality_rating,code_verification_status`,
+        `https://graph.facebook.com/${version}/${process.env.WHATSAPP_PHONE_NUMBER_ID}?fields=verified_name,display_phone_number,quality_rating,code_verification_status,account_mode,status,name_status`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -41,10 +43,31 @@ export async function GET() {
       );
       debugTokenData = await debugRes.json();
 
-      // Directly query the template by its Meta ID from the screenshot: 3061502297550653
+      const granularScopes = debugTokenData?.data?.granular_scopes || [];
+      const mgmtScope = granularScopes.find((s: any) =>
+        s.scope === "whatsapp_business_management" || s.scope === "whatsapp_business_messaging"
+      );
+      targetIds = mgmtScope?.target_ids || [];
+
+      if (targetIds.length > 0) {
+        const wabaId = targetIds[0];
+        try {
+          const tmplListRes = await fetch(
+            `https://graph.facebook.com/${version}/${wabaId}/message_templates?limit=50`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          wabaTemplates = await tmplListRes.json();
+        } catch (e: any) {
+          wabaTemplates = { error: e.message };
+        }
+      }
+
+      // Directly query template 3061502297550653
       try {
         const tmplByIdRes = await fetch(
-          `https://graph.facebook.com/${version}/3061502297550653?fields=name,status,language,category,components,whatsapp_business_account`,
+          `https://graph.facebook.com/${version}/3061502297550653?fields=id,name,status,language,category,components`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -87,6 +110,8 @@ export async function GET() {
       env: envStatus,
       meta_account: metaApiCheck,
       meta_templates: metaTemplates,
+      waba_templates: wabaTemplates,
+      target_ids: targetIds,
       debug_token: debugTokenData?.data || null,
       db: {
         messages_total: msgCount ?? 0,
