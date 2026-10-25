@@ -181,7 +181,7 @@ export async function POST(req: Request) {
 
     const templateName = body.template || "class_booking_reminder2";
 
-    // Attempt 1: Named parameters, language 'en'
+    // Attempt 1: Named parameters, language 'en', explicit namespace
     const payload1 = {
       messaging_product: "whatsapp",
       recipient_type: "individual",
@@ -189,6 +189,7 @@ export async function POST(req: Request) {
       type: "template",
       template: {
         name: templateName,
+        namespace: "1ce35484_fc60_4009_8e0b_1bde266549ce",
         language: { code: "en" },
         components: [
           {
@@ -238,6 +239,7 @@ export async function POST(req: Request) {
         type: "template",
         template: {
           name: templateName,
+          namespace: "1ce35484_fc60_4009_8e0b_1bde266549ce",
           language: { code: "en" },
           components: [
             {
