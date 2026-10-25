@@ -46,8 +46,6 @@ export async function GET() {
       debugTokenData = await debugRes.json();
 
       // Query both known WABAs from the user's screenshot
-      let waba1: any = null;
-      let waba2: any = null;
       try {
         const res1 = await fetch(
           `https://graph.facebook.com/${version}/918072894571735?fields=id,name,currency,message_templates{id,name,status,language},phone_numbers{id,display_phone_number,verified_name}`,
