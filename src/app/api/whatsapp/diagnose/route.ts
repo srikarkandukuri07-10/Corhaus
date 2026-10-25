@@ -22,8 +22,8 @@ export async function GET() {
   let metaApiCheck: any = null;
   let metaTemplates: any = null;
   let debugTokenData: any = null;
-  let wabaDiscovery: any = null;
-  let phoneTemplates: any = null;
+  let waba1: any = null;
+  let waba2: any = null;
   let templateMeta: any = null;
   let phoneMeta: any = null;
   if (process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) {
@@ -45,18 +45,27 @@ export async function GET() {
       );
       debugTokenData = await debugRes.json();
 
-      // Query phone number's templates directly
-      let phoneTemplates: any = null;
+      // Query both known WABAs from the user's screenshot
+      let waba1: any = null;
+      let waba2: any = null;
       try {
-        const pTmplRes = await fetch(
-          `https://graph.facebook.com/${version}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/message_templates`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+        const res1 = await fetch(
+          `https://graph.facebook.com/${version}/918072894571735?fields=id,name,currency,message_templates{id,name,status,language},phone_numbers{id,display_phone_number,verified_name}`,
+          { headers: { Authorization: `Bearer ${token}` } }
         );
-        phoneTemplates = await pTmplRes.json();
+        waba1 = await res1.json();
       } catch (e: any) {
-        phoneTemplates = { error: e.message };
+        waba1 = { error: e.message };
+      }
+
+      try {
+        const res2 = await fetch(
+          `https://graph.facebook.com/${version}/1651335856436462?fields=id,name,currency,message_templates{id,name,status,language},phone_numbers{id,display_phone_number,verified_name}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        waba2 = await res2.json();
+      } catch (e: any) {
+        waba2 = { error: e.message };
       }
 
       // Query template node metadata
@@ -131,7 +140,8 @@ export async function GET() {
       env: envStatus,
       meta_account: metaApiCheck,
       meta_templates: metaTemplates,
-      phone_templates: phoneTemplates,
+      waba_918072894571735: waba1,
+      waba_1651335856436462: waba2,
       template_meta: templateMeta,
       phone_meta: phoneMeta,
       debug_token: debugTokenData?.data || null,
