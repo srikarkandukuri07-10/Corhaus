@@ -180,6 +180,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ action: "send_text", phone, result });
     }
 
+    if (action === "send_service_template") {
+      const { sendTemplate } = await import("@/lib/whatsapp/service");
+      const result = await sendTemplate(
+        "class_reminder",
+        phone,
+        {
+          member_name: memberName || "Srikar",
+          class_name: "Reformer Group Class",
+          class_date: "Today",
+          class_time: "7:00 PM",
+          trainer_name: "Rahul",
+          location_name: "Corhaus Studio - Hyderabad",
+        }
+      );
+      return NextResponse.json({ action: "send_service_template", phone, result });
+    }
+
     if (action === "create_template") {
       const targetWabaId = body.waba_id || "1639907817647653";
       const templatePayload = {
