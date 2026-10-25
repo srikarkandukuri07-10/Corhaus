@@ -166,16 +166,69 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
+    const action = body.action || "send";
+    const token = process.env.WHATSAPP_ACCESS_TOKEN;
+    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const version = process.env.WHATSAPP_GRAPH_VERSION || "v25.0";
+
+    if (action === "create_template") {
+      const targetWabaId = body.waba_id || "1639907817647653";
+      const templatePayload = {
+        name: body.name || "class_booking_reminder2",
+        category: "UTILITY",
+        language: "en",
+        components: [
+          {
+            type: "BODY",
+            text: "Hi {{member_name}},\n\nThis is a reminder for {{class_name}}.\n\nDate: {{class_date}}\nTime: {{class_time}}\nTrainer: {{trainer_name}}\nLocation: {{location_name}}\n\nPlease arrive a few minutes early.\n\nLogin to your member Dashboard and Scan the Attendance QR at the FrontDesk👇",
+            example: {
+              body_text_named_params: [
+                { param_name: "member_name", example: "Sarah" },
+                { param_name: "class_name", example: "Reformer Group class" },
+                { param_name: "class_date", example: "10/08/2026" },
+                { param_name: "class_time", example: "10:00AM" },
+                { param_name: "trainer_name", example: "Rahul" },
+                { param_name: "location_name", example: "Hyderabad" },
+              ],
+            },
+          },
+          {
+            type: "BUTTONS",
+            buttons: [
+              {
+                type: "URL",
+                text: "Dashboard",
+                url: "https://corhaus-x8w6.vercel.app/",
+              },
+            ],
+          },
+        ],
+        parameter_format: "NAMED",
+      };
+
+      const createRes = await fetch(`https://graph.facebook.com/${version}/${targetWabaId}/message_templates`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(templatePayload),
+      });
+      const createData = await createRes.json();
+      return NextResponse.json({
+        action: "create_template",
+        targetWabaId,
+        status: createRes.status,
+        result: createData,
+      });
+    }
+
     const phone = body.phone || "8309909784";
     const memberName = body.memberName || "Test_Member";
 
     const { normalizeIndianPhone } = await import("@/lib/whatsapp/phone");
     const norm = normalizeIndianPhone(phone);
     const toDigits = norm.ok ? norm.digits : phone.replace(/\D/g, "");
-
-    const token = process.env.WHATSAPP_ACCESS_TOKEN;
-    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const version = process.env.WHATSAPP_GRAPH_VERSION || "v25.0";
 
     const attempts: any[] = [];
 
