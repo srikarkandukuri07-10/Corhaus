@@ -189,7 +189,6 @@ export async function POST(req: Request) {
       type: "template",
       template: {
         name: templateName,
-        namespace: "1ce35484_fc60_4009_8e0b_1bde266549ce",
         language: { code: "en" },
         components: [
           {
@@ -239,7 +238,6 @@ export async function POST(req: Request) {
         type: "template",
         template: {
           name: templateName,
-          namespace: "1ce35484_fc60_4009_8e0b_1bde266549ce",
           language: { code: "en" },
           components: [
             {
@@ -307,6 +305,28 @@ export async function POST(req: Request) {
       const data3 = await res3.json();
       attempts.push({ mode: `named_en_US_${templateName}`, status: res3.status, response: data3 });
     }
+
+    // Test Meta's direct integration test template (from Developer Console screenshot)
+    const payload3p = {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: toDigits,
+      type: "template",
+      template: {
+        name: "3p_direct_integration_test_template",
+        language: { code: "en_US" },
+      },
+    };
+    const res3p = await fetch(`https://graph.facebook.com/${version}/${phoneId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload3p),
+    });
+    const data3p = await res3p.json();
+    attempts.push({ mode: "3p_direct_integration_test_template", status: res3p.status, response: data3p });
 
     // Also test sending default 'hello_world' template to see if this phone can send templates
     const payloadHelloWorld = {
