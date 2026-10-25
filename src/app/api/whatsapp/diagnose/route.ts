@@ -167,9 +167,18 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const action = body.action || "send";
+    const phone = body.phone || "8309909784";
+    const memberName = body.memberName || "Test_Member";
+
     const token = process.env.WHATSAPP_ACCESS_TOKEN;
     const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     const version = process.env.WHATSAPP_GRAPH_VERSION || "v25.0";
+
+    if (action === "send_text") {
+      const { sendText } = await import("@/lib/whatsapp/service");
+      const result = await sendText(phone, body.text || "Hello from Corhaus Pilates! Test message.");
+      return NextResponse.json({ action: "send_text", phone, result });
+    }
 
     if (action === "create_template") {
       const targetWabaId = body.waba_id || "1639907817647653";
@@ -222,9 +231,6 @@ export async function POST(req: Request) {
         result: createData,
       });
     }
-
-    const phone = body.phone || "8309909784";
-    const memberName = body.memberName || "Test_Member";
 
     const { normalizeIndianPhone } = await import("@/lib/whatsapp/phone");
     const norm = normalizeIndianPhone(phone);
