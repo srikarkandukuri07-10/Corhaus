@@ -225,7 +225,7 @@ export interface TemplateConfig {
  * Constant for class reminder template name.
  * Keep as a single easy-to-edit constant in case Meta requires resubmission (e.g. "_v2").
  */
-export const TEMPLATE_CLASS_REMINDER_NAME = "class_booking_reminder1";
+export const TEMPLATE_CLASS_REMINDER_NAME = "class_booking_reminder2";
 
 export const WHATSAPP_TEMPLATE_REGISTRY: Record<DashboardEvent, TemplateConfig> = {
   booking_confirmed: {
@@ -237,7 +237,7 @@ export const WHATSAPP_TEMPLATE_REGISTRY: Record<DashboardEvent, TemplateConfig> 
   class_reminder: {
     name: TEMPLATE_CLASS_REMINDER_NAME,
     language: "en",
-    paramFormat: "named",
+    paramFormat: "positional",
     params: [
       "member_name",
       "class_name",

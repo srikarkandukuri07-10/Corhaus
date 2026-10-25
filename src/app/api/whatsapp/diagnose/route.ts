@@ -179,7 +179,7 @@ export async function POST(req: Request) {
 
     const attempts: any[] = [];
 
-    const templateName = body.template || "class_booking_reminder1";
+    const templateName = body.template || "class_booking_reminder2";
 
     // Attempt 1: Named parameters, language 'en'
     const payload1 = {
