@@ -55,7 +55,7 @@ export async function GET() {
         "1557388568156933",
       ];
 
-      const allWabas: any[] = [];
+      allWabas = [];
       for (const wId of wabaIds) {
         try {
           const wRes = await fetch(
