@@ -68,7 +68,6 @@ export async function GET() {
       }
 
       // Directly query template 861956950314268 (class_booking_reminder2)
-      let template8619: any = null;
       try {
         const tRes = await fetch(
           `https://graph.facebook.com/${version}/861956950314268?fields=id,name,status,language,category,components,parameter_format`,
@@ -217,7 +216,19 @@ export async function POST(req: Request) {
     const data1 = await res1.json();
     attempts.push({ mode: `named_en_${templateName}`, status: res1.status, response: data1 });
 
-    // Attempt 2: Positional parameters, language 'en'
+    // Also test sending using phone ID 1425979940593630 (+91 89772 61346) if 1341655292370713 fails
+    if (data1.error?.code === 132001) {
+      const resAltPhone = await fetch(`https://graph.facebook.com/${version}/1425979940593630/messages`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload1),
+      });
+      const dataAltPhone = await resAltPhone.json();
+      attempts.push({ mode: `named_en_phone_1425979940593630`, status: resAltPhone.status, response: dataAltPhone });
+    }
     if (data1.error) {
       const payload2 = {
         messaging_product: "whatsapp",
