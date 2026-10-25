@@ -22,8 +22,7 @@ export async function GET() {
   let metaApiCheck: any = null;
   let metaTemplates: any = null;
   let debugTokenData: any = null;
-  let waba1: any = null;
-  let waba2: any = null;
+  let allWabas: any[] = [];
   let template8619: any = null;
   let templateMeta: any = null;
   let phoneMeta: any = null;
@@ -46,25 +45,28 @@ export async function GET() {
       );
       debugTokenData = await debugRes.json();
 
-      // Query both known WABAs from the user's screenshot
-      try {
-        const res1 = await fetch(
-          `https://graph.facebook.com/${version}/918072894571735?fields=id,name,currency,message_templates{id,name,status,language},phone_numbers{id,display_phone_number,verified_name}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        waba1 = await res1.json();
-      } catch (e: any) {
-        waba1 = { error: e.message };
-      }
+      // Query all 6 WABAs visible in the user's screenshot
+      const wabaIds = [
+        "918072894571735",
+        "1651335856436462",
+        "1591028608918240",
+        "1639907817647653",
+        "1739347020498801",
+        "1557388568156933",
+      ];
 
-      try {
-        const res2 = await fetch(
-          `https://graph.facebook.com/${version}/1651335856436462?fields=id,name,currency,message_templates{id,name,status,language},phone_numbers{id,display_phone_number,verified_name}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        waba2 = await res2.json();
-      } catch (e: any) {
-        waba2 = { error: e.message };
+      const allWabas: any[] = [];
+      for (const wId of wabaIds) {
+        try {
+          const wRes = await fetch(
+            `https://graph.facebook.com/${version}/${wId}?fields=id,name,message_template_namespace,phone_numbers{id,display_phone_number,verified_name},message_templates{id,name,status,language}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const wData = await wRes.json();
+          allWabas.push(wData);
+        } catch (e: any) {
+          allWabas.push({ id: wId, error: e.message });
+        }
       }
 
       // Directly query template 861956950314268 (class_booking_reminder2)
@@ -137,8 +139,7 @@ export async function GET() {
       env: envStatus,
       meta_account: metaApiCheck,
       meta_templates: metaTemplates,
-      waba_918072894571735: waba1,
-      waba_1651335856436462: waba2,
+      all_wabas: allWabas,
       template_8619: template8619,
       template_meta: templateMeta,
       phone_meta: phoneMeta,
