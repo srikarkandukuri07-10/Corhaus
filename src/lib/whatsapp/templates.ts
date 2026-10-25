@@ -237,7 +237,7 @@ export const WHATSAPP_TEMPLATE_REGISTRY: Record<DashboardEvent, TemplateConfig> 
   class_reminder: {
     name: TEMPLATE_CLASS_REMINDER_NAME,
     language: "en",
-    paramFormat: "positional",
+    paramFormat: "named",
     params: [
       "member_name",
       "class_name",

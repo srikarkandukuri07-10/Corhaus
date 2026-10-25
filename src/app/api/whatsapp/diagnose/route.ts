@@ -24,7 +24,7 @@ export async function GET() {
   let debugTokenData: any = null;
   let waba1: any = null;
   let waba2: any = null;
-  let template1129: any = null;
+  let template8619: any = null;
   let templateMeta: any = null;
   let phoneMeta: any = null;
   if (process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) {
@@ -67,16 +67,16 @@ export async function GET() {
         waba2 = { error: e.message };
       }
 
-      // Directly query template 1129483306192128 (class_booking_reminder1)
-      let template1129: any = null;
+      // Directly query template 861956950314268 (class_booking_reminder2)
+      let template8619: any = null;
       try {
         const tRes = await fetch(
-          `https://graph.facebook.com/${version}/1129483306192128?fields=id,name,status,language,category,components,parameter_format`,
+          `https://graph.facebook.com/${version}/861956950314268?fields=id,name,status,language,category,components,parameter_format`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        template1129 = await tRes.json();
+        template8619 = await tRes.json();
       } catch (tmplErr: any) {
-        template1129 = { error: tmplErr.message };
+        template8619 = { error: tmplErr.message };
       }
 
       // Query phone number metadata
@@ -140,7 +140,7 @@ export async function GET() {
       meta_templates: metaTemplates,
       waba_918072894571735: waba1,
       waba_1651335856436462: waba2,
-      template_1129: template1129,
+      template_8619: template8619,
       template_meta: templateMeta,
       phone_meta: phoneMeta,
       debug_token: debugTokenData?.data || null,
