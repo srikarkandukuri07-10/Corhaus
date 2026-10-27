@@ -156,9 +156,7 @@ export async function GET(req: Request) {
     const totalStaff = staffList.length;
     const totalTrainers = staffList.filter((s: any) => s.role === "Trainer").length;
     const activeStaff = staffList.filter((s: any) => s.employment_status === "Active").length;
-    const monthlyPayroll = staffList
-      .filter((s: any) => s.employment_status === "Active")
-      .reduce((sum: number, s: any) => sum + (Number(s.monthly_salary) || 0), 0);
+    const monthlyPayroll = 0;
 
     return NextResponse.json({
       staff: staffList,

@@ -579,8 +579,7 @@ export default function StaffPage() {
                     <th className="py-3.5 px-4">Location</th>
                     <th className="py-3.5 px-4">Phone Number</th>
                     <th className="py-3.5 px-4">Specialization</th>
-                    <th className="py-3.5 px-4">Compensation</th>
-                    <th className="py-3.5 px-4">Status</th>
+                                        <th className="py-3.5 px-4">Status</th>
                     <th className="py-3.5 px-4">Join Date</th>
                     <th className="py-3.5 px-5 text-right">Actions</th>
                   </tr>
@@ -621,11 +620,7 @@ export default function StaffPage() {
                           <span className="text-fg-5">—</span>
                         )}
                       </td>
-                      <td className="py-4 px-4">
-                        <p className="font-bold text-fg">₹{Number(staff.monthly_salary || 0).toLocaleString("en-IN")}/mo</p>
-                        <p className="text-[10px] text-fg-4">{staff.payment_type}</p>
-                      </td>
-                      <td className="py-4 px-4">
+                                            <td className="py-4 px-4">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
                           staff.employment_status === "Active"
                             ? "bg-emerald-100 text-emerald-700"
@@ -707,11 +702,7 @@ export default function StaffPage() {
                       <span className="text-fg-4 font-medium block">Phone</span>
                       <span className="font-mono font-bold text-fg">{staff.phone_number}</span>
                     </div>
-                    <div>
-                      <span className="text-fg-4 font-medium block">Salary</span>
-                      <span className="font-bold text-fg">₹{Number(staff.monthly_salary || 0).toLocaleString("en-IN")}/mo</span>
-                    </div>
-                    <div>
+                    <div className="col-span-2">
                       <span className="text-fg-4 font-medium block">Specialization</span>
                       <span className="font-medium text-fg truncate block">{staff.specialization || "—"}</span>
                     </div>
