@@ -147,6 +147,71 @@ function calculateWindowRemaining(lastInboundAt: string | null | undefined): {
   };
 }
 
+function parseHumanMessage(body: string | null | undefined): { isTemplate: boolean; templateLabel?: string; text: string } {
+  if (!body) return { isTemplate: false, text: "" };
+
+  if (body.startsWith("[Template:") || body.startsWith("[Test] Template:")) {
+    const headerEnd = body.indexOf("]");
+    const templateName = body.slice(body.indexOf("Template:") + 9, headerEnd).trim();
+    const paramsStr = body.slice(headerEnd + 1).trim();
+
+    const params: Record<string, string> = {};
+    paramsStr.split(",").forEach((part) => {
+      const eq = part.indexOf("=");
+      if (eq > 0) {
+        const k = part.slice(0, eq).trim();
+        const v = part.slice(eq + 1).trim();
+        params[k] = v;
+      }
+    });
+
+    if (templateName.includes("class_booking_reminder") || templateName.includes("class_reminder")) {
+      const member = params.member_name || "there";
+      const cls = params.class_name || "class";
+      const date = params.class_date || "Today";
+      const time = params.class_time ? ` at ${params.class_time}` : "";
+      const trainer = params.trainer_name ? ` with trainer ${params.trainer_name}` : "";
+      const loc = params.location_name ? ` at ${params.location_name}` : "";
+      return {
+        isTemplate: true,
+        templateLabel: "Class Reminder",
+        text: `Hi ${member}! This is a reminder for your upcoming ${cls} scheduled for ${date}${time}${trainer}${loc}. We look forward to seeing you!`,
+      };
+    }
+
+    if (templateName.includes("booking") || templateName.includes("confirmed")) {
+      const member = params.member_name || "there";
+      const cls = params.class_name || "class";
+      const date = params.class_date || "Today";
+      const time = params.class_time ? ` at ${params.class_time}` : "";
+      return {
+        isTemplate: true,
+        templateLabel: "Booking Confirmed",
+        text: `Hi ${member}! Your booking for ${cls} on ${date}${time} has been confirmed. See you at the studio!`,
+      };
+    }
+
+    if (templateName === "hello_world") {
+      return {
+        isTemplate: true,
+        templateLabel: "Test Message",
+        text: "Hello World! This is a test message from Corhaus Pilates via Meta WhatsApp Cloud API.",
+      };
+    }
+
+    const paramLines = Object.entries(params)
+      .map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`)
+      .join("\n");
+    return {
+      isTemplate: true,
+      templateLabel: templateName.replace(/_/g, " "),
+      text: paramLines || body,
+    };
+  }
+
+  return { isTemplate: false, text: body };
+}
+
 // ─── AVATAR COLOR GENERATOR ──────────────────────────────────────────────────
 
 const AVATAR_COLORS = [
@@ -548,7 +613,7 @@ export default function AdminWhatsAppInboxPage() {
                           hasUnread ? "text-fg font-semibold" : "text-fg-3"
                         }`}
                       >
-                        {c.lastMessagePreview || "No message content"}
+                        {parseHumanMessage(c.lastMessagePreview).text || "No message content"}
                       </p>
 
                       {hasUnread && (
@@ -727,7 +792,19 @@ export default function AdminWhatsAppInboxPage() {
                             )}
 
                             {/* Message Body */}
-                            <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                            {(() => {
+  const parsed = parseHumanMessage(m.body);
+  return (
+    <>
+      {parsed.isTemplate && parsed.templateLabel && (
+        <div className="mb-1 pb-1 border-b border-black/10 dark:border-white/10 flex items-center gap-1 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
+          <span>⚡ {parsed.templateLabel}</span>
+        </div>
+      )}
+      <p className="whitespace-pre-wrap break-words">{parsed.text}</p>
+    </>
+  );
+})()}
 
                             {/* Timestamp & Status Ticks */}
                             <div className="flex items-center justify-end gap-1 mt-1 -mb-0.5 text-[10px] select-none text-[#667781] dark:text-[#8696a0]">
