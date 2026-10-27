@@ -205,6 +205,42 @@ function computeMemberStatus(
   return { status: "Expired", daysLeft: 0 };
 }
 
+function compareMembersByExpiry(a: ApprovedMember, b: ApprovedMember): number {
+  const getPriority = (m: ApprovedMember) => {
+    const status = m.computedStatus;
+    if (status === "Expiring Soon") return 1;
+    if (status === "Active") return 2;
+    if (status === "Frozen") return 3;
+    return 4;
+  };
+
+  const priorityA = getPriority(a);
+  const priorityB = getPriority(b);
+
+  if (priorityA !== priorityB) {
+    return priorityA - priorityB;
+  }
+
+  // Within "Expiring Soon", sort by days remaining ascending (e.g. 1d, 2d, 7d)
+  if (priorityA === 1) {
+    const daysA = typeof a.daysLeft === "number" ? a.daysLeft : 999;
+    const daysB = typeof b.daysLeft === "number" ? b.daysLeft : 999;
+    if (daysA !== daysB) return daysA - daysB;
+  }
+
+  // Within "Active", sort by days remaining ascending (least days remaining first), then newest
+  if (priorityA === 2) {
+    const daysA = typeof a.daysLeft === "number" ? a.daysLeft : 99999;
+    const daysB = typeof b.daysLeft === "number" ? b.daysLeft : 99999;
+    if (daysA !== daysB) return daysA - daysB;
+  }
+
+  // Fallback: newest created members first
+  const timeA = new Date(a.created_at || 0).getTime();
+  const timeB = new Date(b.created_at || 0).getTime();
+  return timeB - timeA;
+}
+
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     Active: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
@@ -536,6 +572,7 @@ function MembersPageContent() {
       });
 
       startTransition(() => {
+        fullMembersList.sort(compareMembersByExpiry);
         setMembers(fullMembersList);
         setLoading(false);
       });
@@ -729,11 +766,7 @@ function MembersPageContent() {
     // Array.prototype.sort is stable, so the fetched order (newest first) is
     // preserved inside each group. filter() already returns a fresh array, so
     // sorting it does not mutate React state.
-    return matched.sort((a, b) => {
-      const aRank = a.activePlan ? 0 : 1;
-      const bRank = b.activePlan ? 0 : 1;
-      return aRank - bRank;
-    });
+    return matched.sort(compareMembersByExpiry);
   }, [members, statusFilter, searchQuery]);
 
   // Paginate the filtered list (10 per page, reset on search/filter change)

@@ -219,6 +219,34 @@ export async function GET(req: Request) {
       };
     });
 
+    const getSortPriority = (m: any) => {
+      const status = m.computedStatus;
+      if (status === "Expiring Soon") return 1;
+      if (status === "Active") return 2;
+      if (status === "Frozen") return 3;
+      return 4;
+    };
+
+    fullMembersList.sort((a: any, b: any) => {
+      const pA = getSortPriority(a);
+      const pB = getSortPriority(b);
+      if (pA !== pB) return pA - pB;
+
+      if (pA === 1) {
+        const dA = typeof a.daysLeft === "number" ? a.daysLeft : 999;
+        const dB = typeof b.daysLeft === "number" ? b.daysLeft : 999;
+        if (dA !== dB) return dA - dB;
+      }
+
+      if (pA === 2) {
+        const dA = typeof a.daysLeft === "number" ? a.daysLeft : 99999;
+        const dB = typeof b.daysLeft === "number" ? b.daysLeft : 99999;
+        if (dA !== dB) return dA - dB;
+      }
+
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
+
     return NextResponse.json({ members: fullMembersList, total: fullMembersList.length });
   } catch (err: any) {
     console.error("[ADMIN MEMBERS API] Error:", err);
