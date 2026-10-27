@@ -22,11 +22,19 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 2. Resolve reminder window (default 2 hours, or configurable via query param)
+  // 2. Resolve reminder window (default 30 minutes, or configurable via query param)
   const { searchParams } = new URL(req.url);
-  const hoursParam = searchParams.get("hours") || process.env.WHATSAPP_REMINDER_WINDOW_HOURS || "2";
-  const windowHours = Math.max(0.5, Math.min(24, parseFloat(hoursParam) || 2));
-  const windowMs = windowHours * 60 * 60 * 1000;
+  const minutesParam = searchParams.get("minutes") || process.env.WHATSAPP_REMINDER_WINDOW_MINUTES;
+  const hoursParam = searchParams.get("hours") || process.env.WHATSAPP_REMINDER_WINDOW_HOURS;
+
+  let windowMinutes = 30; // default 30 minutes before class
+  if (minutesParam) {
+    windowMinutes = Math.max(5, parseFloat(minutesParam) || 30);
+  } else if (hoursParam) {
+    windowMinutes = Math.max(5, (parseFloat(hoursParam) || 0.5) * 60);
+  }
+  const windowMs = windowMinutes * 60 * 60 * 1000;
+  const windowHours = windowMinutes / 60;
 
   const now = Date.now();
   const windowEnd = now + windowMs;
@@ -34,7 +42,7 @@ export async function GET(req: Request) {
   const supabase: any = getServiceClient();
 
   try {
-    // 3. Query candidate bookings that have not been reminded
+    // 3. Query candidate bookings that have not been reminded (avoid FK join to approved_members which does not exist)
     const { data: bookings, error: bkErr } = await supabase
       .from("bookings")
       .select(`
@@ -53,12 +61,6 @@ export async function GET(req: Request) {
           status,
           is_active,
           location_id
-        ),
-        approved_members (
-          id,
-          full_name,
-          phone_number,
-          membership_status
         )
       `)
       .is("reminder_sent_at", null)
@@ -101,18 +103,39 @@ export async function GET(req: Request) {
         continue;
       }
 
-      // Member resolution: check joined approved_members or fallback
-      let member = Array.isArray(b.approved_members) ? b.approved_members[0] : b.approved_members;
-      if (!member && b.member_id) {
-        const { data: fallbackMember } = await supabase
-          .from("approved_members")
-          .select("id, full_name, phone_number, membership_status")
+      // Member resolution: check profiles (auth UUID) or approved_members
+      let member: { full_name?: string | null; phone_number?: string | null } | null = null;
+      if (b.member_id) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone_number, email")
           .eq("id", b.member_id)
           .maybeSingle();
-        member = fallbackMember;
+
+        if (prof?.phone_number) {
+          member = prof;
+        }
+
+        if (!member) {
+          const { data: am } = await supabase
+            .from("approved_members")
+            .select("id, full_name, phone_number, email")
+            .eq("id", b.member_id)
+            .maybeSingle();
+          if (am?.phone_number) member = am;
+        }
+
+        if (!member && prof?.email) {
+          const { data: amByEmail } = await supabase
+            .from("approved_members")
+            .select("id, full_name, phone_number")
+            .ilike("email", prof.email)
+            .maybeSingle();
+          if (amByEmail?.phone_number) member = amByEmail;
+        }
       }
 
-      if (!member || (member.membership_status && member.membership_status.toLowerCase() !== "active")) {
+      if (!member || !member.phone_number) {
         skippedCount++;
         continue;
       }

@@ -17,7 +17,7 @@ export async function handleBookingConfirmed(bookingId: string): Promise<void> {
   try {
     const supabase: any = getServiceClient();
 
-    // Query booking details
+    // Query booking details (note: bookings.member_id references profiles(id); no FK to approved_members exists)
     const { data: booking, error: bkErr } = await supabase
       .from("bookings")
       .select(`
@@ -32,12 +32,6 @@ export async function handleBookingConfirmed(bookingId: string): Promise<void> {
           class_date,
           class_time,
           location_id
-        ),
-        approved_members (
-          id,
-          full_name,
-          phone_number,
-          membership_status
         )
       `)
       .eq("id", bookingId)
@@ -50,9 +44,6 @@ export async function handleBookingConfirmed(bookingId: string): Promise<void> {
 
     const bk = booking as any;
     let cls = Array.isArray(bk.classes) ? bk.classes[0] : bk.classes;
-    let member = Array.isArray(bk.approved_members)
-      ? bk.approved_members[0]
-      : bk.approved_members;
 
     // Fallback: If class wasn't joined via relation, fetch it directly
     if (!cls && bk.class_id) {
@@ -64,51 +55,46 @@ export async function handleBookingConfirmed(bookingId: string): Promise<void> {
       cls = c;
     }
 
-    // Fallback member lookup if not joined or missing phone number
-    if (!member?.phone_number && bk.member_id) {
-      // 1. Try approved_members by id
-      const { data: m } = await supabase
-        .from("approved_members")
-        .select("id, full_name, phone_number, membership_status, email")
+    // Resolve member details via profiles (auth UUID) or approved_members
+    let member: { full_name?: string | null; phone_number?: string | null; email?: string | null } | null = null;
+
+    if (bk.member_id) {
+      // 1. Try profiles table (satisfies FK on bookings.member_id)
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("id, full_name, phone_number, email")
         .eq("id", bk.member_id)
         .maybeSingle();
-      if (m?.phone_number) {
-        member = m;
+
+      if (prof) {
+        member = prof;
       }
 
-      // 2. If not found or missing phone, resolve via profiles table (auth.users ID)
+      // 2. Try approved_members by id (fallback if direct member UUID was used)
       if (!member?.phone_number) {
-        const { data: prof } = await supabase
-          .from("profiles")
+        const { data: am } = await supabase
+          .from("approved_members")
           .select("id, full_name, phone_number, email")
           .eq("id", bk.member_id)
           .maybeSingle();
+        if (am?.phone_number) {
+          member = am;
+        }
+      }
 
-        if (prof) {
-          if (prof.email) {
-            const { data: amByEmail } = await supabase
-              .from("approved_members")
-              .select("id, full_name, phone_number, membership_status, email")
-              .ilike("email", prof.email)
-              .maybeSingle();
-            if (amByEmail?.phone_number) member = amByEmail;
-          }
-
-          if (!member?.phone_number && prof.phone_number) {
-            const cleanPhone = prof.phone_number.replace(/\D/g, "");
-            const { data: amByPhone } = await supabase
-              .from("approved_members")
-              .select("id, full_name, phone_number, membership_status, email")
-              .or(`phone_number.eq.${cleanPhone},phone_number.ilike.%${cleanPhone.slice(-10)}%`)
-              .maybeSingle();
-            if (amByPhone) {
-              member = amByPhone;
-            } else {
-              member = prof;
-            }
-          } else if (!member?.phone_number) {
-            member = prof;
-          }
+      // 3. If phone is still missing or profile email exists, match approved_members by email
+      if ((!member?.phone_number || member.phone_number.length < 10) && prof?.email) {
+        const { data: amByEmail } = await supabase
+          .from("approved_members")
+          .select("id, full_name, phone_number, email")
+          .ilike("email", prof.email)
+          .maybeSingle();
+        if (amByEmail?.phone_number) {
+          member = {
+            full_name: member?.full_name || amByEmail.full_name,
+            phone_number: amByEmail.phone_number,
+            email: prof.email,
+          };
         }
       }
     }
