@@ -145,6 +145,127 @@ export async function handleBookingConfirmed(bookingId: string): Promise<void> {
 }
 
 /**
+ * Hook: Called when a personal training (PT) session is booked or rescheduled.
+ * Non-blocking, never throws.
+ */
+export async function handlePtSessionConfirmed(ptSessionId: string): Promise<void> {
+  try {
+    const supabase: any = getServiceClient();
+
+    // Query PT session details
+    const { data: sess, error: sessErr } = await supabase
+      .from("pt_sessions")
+      .select(`
+        id,
+        member_id,
+        trainer_name,
+        session_date,
+        session_time,
+        duration_minutes,
+        location_id,
+        purchased_plan_id
+      `)
+      .eq("id", ptSessionId)
+      .maybeSingle();
+
+    if (sessErr || !sess) {
+      console.warn("[whatsapp:events] PT session not found for confirmation:", ptSessionId, sessErr);
+      return;
+    }
+
+    // Resolve member details
+    let member: { full_name?: string | null; phone_number?: string | null; email?: string | null } | null = null;
+
+    if (sess.member_id) {
+      // 1. Try approved_members by id (standard for PT sessions)
+      const { data: am } = await supabase
+        .from("approved_members")
+        .select("id, full_name, phone_number, email")
+        .eq("id", sess.member_id)
+        .maybeSingle();
+
+      if (am?.phone_number) {
+        member = am;
+      }
+
+      // 2. Try profiles by id (if member_id was auth UUID)
+      if (!member?.phone_number) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone_number, email")
+          .eq("id", sess.member_id)
+          .maybeSingle();
+
+        if (prof?.phone_number) {
+          member = prof;
+        } else if (prof?.email) {
+          const { data: amByEmail } = await supabase
+            .from("approved_members")
+            .select("id, full_name, phone_number, email")
+            .ilike("email", prof.email)
+            .maybeSingle();
+          if (amByEmail?.phone_number) {
+            member = amByEmail;
+          }
+        }
+      }
+    }
+
+    if (!member?.phone_number) {
+      console.warn(`[whatsapp:events] No phone number found for PT session ${ptSessionId}`);
+      return;
+    }
+
+    const normPhone = normalizeIndianPhone(member.phone_number);
+    if (!normPhone.ok) {
+      console.warn(`[whatsapp:events] Invalid phone for PT session ${ptSessionId}: "${member.phone_number}" (${normPhone.reason})`);
+      return;
+    }
+
+    // Resolve plan name if available
+    let planName = "Personal Training Session";
+    if (sess.purchased_plan_id) {
+      const { data: plan } = await supabase
+        .from("member_purchased_plans")
+        .select("plan_name")
+        .eq("id", sess.purchased_plan_id)
+        .maybeSingle();
+      if (plan?.plan_name) planName = plan.plan_name;
+    }
+
+    // Resolve location name
+    let locationName = "Corhaus Pilates";
+    if (sess.location_id) {
+      const { data: loc } = await supabase
+        .from("locations")
+        .select("name")
+        .eq("id", sess.location_id)
+        .maybeSingle();
+      if (loc?.name) locationName = loc.name;
+    }
+
+    const sessionDateFormatted = sess.session_date ? formatIstDate(sess.session_date) : "";
+    const sessionTimeFormatted = sess.session_time ? formatIstTime(sess.session_time) : "";
+
+    const params: Record<string, string> = {
+      member_name: member.full_name || "Member",
+      class_name: planName,
+      class_date: sessionDateFormatted,
+      class_time: sessionTimeFormatted,
+      trainer_name: sess.trainer_name || "Trainer",
+      location_name: locationName,
+      booking_id: sess.id,
+    };
+
+    console.log(`[whatsapp:events] Sending PT booking confirmation to ${normPhone.digits} for session ${sess.id}...`);
+    const res = await sendTemplate("booking_confirmed", normPhone.digits, params, undefined, supabase);
+    console.log(`[whatsapp:events] PT confirmation result for ${normPhone.digits}:`, res);
+  } catch (err) {
+    console.error("[whatsapp:events] handlePtSessionConfirmed error:", err);
+  }
+}
+
+/**
  * Hook: Called when a payment is recorded.
  * Non-blocking, never throws.
  */

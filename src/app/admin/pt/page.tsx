@@ -464,6 +464,20 @@ export default function PtSchedulerPage() {
       .update({ sessions_remaining: Math.max(0, activePlan.sessions_remaining - requestedCount) })
       .eq("id", activePlan.id);
 
+    // Notify member via WhatsApp confirmation hook
+    if (insertedBooked && insertedBooked.length > 0) {
+      try {
+        const sessionIds = insertedBooked.map((s: any) => s.id);
+        fetch("/api/admin/pt/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionIds }),
+        }).catch((err) => console.warn("[PT Notify] Warning:", err));
+      } catch (notifyErr) {
+        console.warn("[PT Notify] Non-fatal notify error:", notifyErr);
+      }
+    }
+
     setActionLoading(false);
     if (planErr) {
       setActionError("Booked session, but failed to deduct sessions remaining: " + planErr.message);
@@ -521,6 +535,14 @@ export default function PtSchedulerPage() {
     if (error) {
       setActionError("Failed to reschedule: " + error.message);
     } else {
+      try {
+        fetch("/api/admin/pt/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: selectedSession.id }),
+        }).catch((err) => console.warn("[PT Reschedule Notify] Warning:", err));
+      } catch (_) {}
+
       setActionSuccess("Session rescheduled successfully!");
       setIsRescheduling(false);
       setShowDetailModal(false);
