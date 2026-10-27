@@ -212,6 +212,48 @@ function parseHumanMessage(body: string | null | undefined): { isTemplate: boole
   return { isTemplate: false, text: body };
 }
 
+function WhatsAppFormattedText({ text }: { text: string }) {
+  if (!text) return null;
+  const lines = text.split("\n");
+  return (
+    <span className="whitespace-pre-wrap break-words leading-relaxed">
+      {lines.map((line, lIdx) => {
+        const parts = line.split(/(\*.*?\*|_.*?_|~.*?~|https?:\/\/[^\s]+)/g);
+        return (
+          <span key={lIdx}>
+            {parts.map((part, pIdx) => {
+              if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+                return <strong key={pIdx} className="font-bold">{part.slice(1, -1)}</strong>;
+              }
+              if (part.startsWith("_") && part.endsWith("_") && part.length > 2) {
+                return <em key={pIdx} className="italic">{part.slice(1, -1)}</em>;
+              }
+              if (part.startsWith("~") && part.endsWith("~") && part.length > 2) {
+                return <del key={pIdx} className="line-through opacity-80">{part.slice(1, -1)}</del>;
+              }
+              if (part.startsWith("http://") || part.startsWith("https://")) {
+                return (
+                  <a
+                    key={pIdx}
+                    href={part}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline text-blue-600 dark:text-blue-400 hover:opacity-80 break-all"
+                  >
+                    {part}
+                  </a>
+                );
+              }
+              return part;
+            })}
+            {lIdx < lines.length - 1 && "\n"}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 // ─── AVATAR COLOR GENERATOR ──────────────────────────────────────────────────
 
 const AVATAR_COLORS = [
@@ -801,7 +843,7 @@ export default function AdminWhatsAppInboxPage() {
           <span>⚡ {parsed.templateLabel}</span>
         </div>
       )}
-      <p className="whitespace-pre-wrap break-words">{parsed.text}</p>
+      <WhatsAppFormattedText text={parsed.text} />
     </>
   );
 })()}
