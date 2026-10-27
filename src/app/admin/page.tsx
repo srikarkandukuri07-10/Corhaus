@@ -173,6 +173,7 @@ export default function AdminDashboard() {
         const { data: monthlyInvoices } = await supabase.from("invoices").select("amount_paid, grand_total, payment_status, created_at").gte("created_at", firstOfMonthIso);
         if (monthlyInvoices) {
           revTotal = monthlyInvoices.reduce((sum, inv) => {
+            if (inv.created_at && new Date(inv.created_at).getTime() < new Date("2026-11-01T00:00:00+05:30").getTime()) return sum;
             const status = (inv.payment_status || "").toLowerCase();
             if (status === "paid" || status === "completed") {
               const paid = inv.amount_paid != null && Number(inv.amount_paid) > 0 ? Number(inv.amount_paid) : Number(inv.grand_total || 0);

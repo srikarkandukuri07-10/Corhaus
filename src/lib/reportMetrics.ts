@@ -18,6 +18,15 @@
 
 const IST_TIME_ZONE = "Asia/Kolkata";
 
+/**
+ * Accounting baseline date: Corhaus starts fresh operations from November 1st, 2026 (IST).
+ * All revenue, financial metrics, and P&L summaries prior to this date are zeroed out
+ * so the dashboard and reports start with clean, real data from November onwards,
+ * while historical invoice records in the database are preserved.
+ */
+export const ACCOUNTING_START_DATE_IST = "2026-11-01T00:00:00+05:30";
+export const ACCOUNTING_START_MS = new Date(ACCOUNTING_START_DATE_IST).getTime();
+
 export type PeriodKey =
   | "last7days"
   | "last30days"
@@ -226,6 +235,7 @@ export function computeRevenue(invoices: RevenueInvoice[], range: PeriodRange): 
   for (const inv of invoices) {
     if (!isPaid(inv.payment_status)) continue;
     if (!inRange(inv.created_at, range)) continue;
+    if (inv.created_at && new Date(inv.created_at).getTime() < ACCOUNTING_START_MS) continue;
     total += invoiceRevenueAmount(inv);
   }
   return total;
@@ -236,6 +246,7 @@ export function computePendingPaymentsTotal(invoices: RevenueInvoice[]): number 
   let total = 0;
   for (const inv of invoices) {
     if (!isDueOrPartial(inv.payment_status)) continue;
+    if (inv.created_at && new Date(inv.created_at).getTime() < ACCOUNTING_START_MS) continue;
     const due = Number(inv.grand_total || 0) - Number(inv.amount_paid || 0);
     if (due > 0) total += due;
   }
@@ -260,6 +271,7 @@ export function computeProductSalesTotal(
     if (!isProduct) continue;
     const invDate = item.invoice_id ? invoiceDateById.get(item.invoice_id) : null;
     if (!inRange(invDate, range)) continue;
+    if (invDate && new Date(invDate).getTime() < ACCOUNTING_START_MS) continue;
     total += Number(item.total_price || 0);
   }
   return total;

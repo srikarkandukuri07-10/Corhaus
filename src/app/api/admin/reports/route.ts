@@ -12,6 +12,7 @@ import {
   computeRenewalRate,
   computeAvgRevenuePerMember,
   isDateInRange,
+  ACCOUNTING_START_MS,
   type PeriodKey,
 } from "@/lib/reportMetrics";
 
@@ -223,6 +224,7 @@ async function getAdminClient() {
     }
     invoices.forEach((inv: any) => {
       if (inv.payment_status === "paid" || inv.payment_status === "Paid") {
+        if (inv.created_at && new Date(inv.created_at).getTime() < ACCOUNTING_START_MS) return;
         const d = new Date(inv.created_at);
         const key = d.toLocaleString("en-US", { month: "short" });
         if (monthsMap.has(key)) {
@@ -249,6 +251,8 @@ async function getAdminClient() {
     const targetPlans = activeRange.key === "allTime" ? enrichedPurchasedPlans : filteredPurchasedPlans;
 
     targetPlans.forEach((p: any) => {
+      const planDate = p.created_at || p.valid_from;
+      if (planDate && new Date(planDate).getTime() < ACCOUNTING_START_MS) return;
       const cat = p.category || "Membership Plans";
       planRevenueMap.set(cat, (planRevenueMap.get(cat) || 0) + Number(p.price || 0));
     });
@@ -373,6 +377,8 @@ async function getAdminClient() {
     let groupRevenueTotal = 0;
 
     targetPlans.forEach((p: any) => {
+      const planDate = p.created_at || p.valid_from;
+      if (planDate && new Date(planDate).getTime() < ACCOUNTING_START_MS) return;
       const amt = Number(p.price || 0);
       const cat = (p.category || "").toLowerCase();
       if (cat.includes("pt")) ptRevenueTotal += amt;
@@ -382,15 +388,20 @@ async function getAdminClient() {
 
     let totalStaffSalaries = 0;
     let totalCommissionsPaid = 0;
-    trainerPerformance.forEach((tp: any) => {
-      totalStaffSalaries += tp.monthly_salary;
-      totalCommissionsPaid += tp.total_commission;
-    });
+    const isPreAccountingPeriod = activeRange.end.getTime() <= ACCOUNTING_START_MS;
+    if (!isPreAccountingPeriod) {
+      trainerPerformance.forEach((tp: any) => {
+        totalStaffSalaries += tp.monthly_salary;
+        totalCommissionsPaid += tp.total_commission;
+      });
+    }
 
     // Period-filtered expenses for P&L
     const targetExpenses = activeRange.key === "allTime" ? expensesList : filteredExpenses;
     let totalRecordedExpenses = 0;
     targetExpenses.forEach((e: any) => {
+      const expDate = e.expense_date || e.created_at;
+      if (expDate && new Date(expDate).getTime() < ACCOUNTING_START_MS) return;
       totalRecordedExpenses += Number(e.amount || 0);
     });
 
@@ -435,6 +446,7 @@ async function getAdminClient() {
         salaries: totalStaffSalaries,
         commissions: totalCommissionsPaid,
         recordedExpenses: totalRecordedExpenses,
+        operationalExpenses: totalRecordedExpenses,
         netProfit,
       },
       invoices: targetInvoices,
