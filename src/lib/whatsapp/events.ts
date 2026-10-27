@@ -49,27 +49,78 @@ export async function handleBookingConfirmed(bookingId: string): Promise<void> {
     }
 
     const bk = booking as any;
-    const cls = Array.isArray(bk.classes) ? bk.classes[0] : bk.classes;
+    let cls = Array.isArray(bk.classes) ? bk.classes[0] : bk.classes;
     let member = Array.isArray(bk.approved_members)
       ? bk.approved_members[0]
       : bk.approved_members;
 
-    // Fallback member lookup if not joined
-    if (!member && bk.member_id) {
+    // Fallback: If class wasn't joined via relation, fetch it directly
+    if (!cls && bk.class_id) {
+      const { data: c } = await supabase
+        .from("classes")
+        .select("id, title, instructor, class_date, class_time, location_id")
+        .eq("id", bk.class_id)
+        .maybeSingle();
+      cls = c;
+    }
+
+    // Fallback member lookup if not joined or missing phone number
+    if (!member?.phone_number && bk.member_id) {
+      // 1. Try approved_members by id
       const { data: m } = await supabase
         .from("approved_members")
-        .select("id, full_name, phone_number, membership_status")
+        .select("id, full_name, phone_number, membership_status, email")
         .eq("id", bk.member_id)
         .maybeSingle();
-      member = m;
+      if (m?.phone_number) {
+        member = m;
+      }
+
+      // 2. If not found or missing phone, resolve via profiles table (auth.users ID)
+      if (!member?.phone_number) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone_number, email")
+          .eq("id", bk.member_id)
+          .maybeSingle();
+
+        if (prof) {
+          if (prof.email) {
+            const { data: amByEmail } = await supabase
+              .from("approved_members")
+              .select("id, full_name, phone_number, membership_status, email")
+              .ilike("email", prof.email)
+              .maybeSingle();
+            if (amByEmail?.phone_number) member = amByEmail;
+          }
+
+          if (!member?.phone_number && prof.phone_number) {
+            const cleanPhone = prof.phone_number.replace(/\D/g, "");
+            const { data: amByPhone } = await supabase
+              .from("approved_members")
+              .select("id, full_name, phone_number, membership_status, email")
+              .or(`phone_number.eq.${cleanPhone},phone_number.ilike.%${cleanPhone.slice(-10)}%`)
+              .maybeSingle();
+            if (amByPhone) {
+              member = amByPhone;
+            } else {
+              member = prof;
+            }
+          } else if (!member?.phone_number) {
+            member = prof;
+          }
+        }
+      }
     }
 
     if (!member?.phone_number) {
+      console.warn(`[whatsapp:events] No phone number found for booking ${bookingId}`);
       return;
     }
 
     const normPhone = normalizeIndianPhone(member.phone_number);
     if (!normPhone.ok) {
+      console.warn(`[whatsapp:events] Invalid phone for booking ${bookingId}: "${member.phone_number}" (${normPhone.reason})`);
       return;
     }
 
@@ -98,8 +149,10 @@ export async function handleBookingConfirmed(bookingId: string): Promise<void> {
       booking_id: bk.id,
     };
 
-    // Send template (or dry-run). Catches <FILL_IN> placeholders safely without throwing.
-    await sendTemplate("booking_confirmed", normPhone.digits, params, undefined, supabase);
+    console.log(`[whatsapp:events] Sending booking confirmation to ${normPhone.digits} for booking ${bk.id}...`);
+    // Send template (or dry-run). Catches errors safely without throwing.
+    const res = await sendTemplate("booking_confirmed", normPhone.digits, params, undefined, supabase);
+    console.log(`[whatsapp:events] Booking confirmation result for ${normPhone.digits}:`, res);
   } catch (err) {
     console.error("[whatsapp:events] handleBookingConfirmed error:", err);
   }

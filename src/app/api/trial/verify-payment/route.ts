@@ -234,8 +234,16 @@ export async function POST(req: Request) {
           member_id: approvedMember.id,
           booking_status: "booked",
           created_at: new Date().toISOString(),
-        }).select("*").single();
-        // If booking fails due to duplicate or capacity, it's okay - trial is still booked
+        }).select("id").maybeSingle();
+
+        if (bookingData?.id) {
+          try {
+            const { handleBookingConfirmed } = await import("@/lib/whatsapp/events");
+            await handleBookingConfirmed(bookingData.id);
+          } catch (e) {
+            console.error("[trial:verify-payment] WhatsApp confirmation error:", e);
+          }
+        }
       }
     }
 

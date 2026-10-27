@@ -282,6 +282,140 @@ function MembersPageContent() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
+  // Edit Member Modal states
+  const [editingMember, setEditingMember] = useState<ApprovedMember | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editStatus, setEditStatus] = useState("active");
+  const [editLevel, setEditLevel] = useState("Beginner");
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSuccess, setEditSuccess] = useState<string | null>(null);
+
+  const handleOpenEdit = (member: ApprovedMember) => {
+    setEditingMember(member);
+    setEditName(member.full_name || "");
+    setEditEmail(member.email || "");
+    setEditPhone(member.phone_number || "");
+    setEditStatus(member.membership_status || "active");
+    setEditLevel(member.membership_level || "Beginner");
+    setEditError(null);
+    setEditSuccess(null);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMember) return;
+
+    if (!editName.trim()) {
+      setEditError("Full name is required.");
+      return;
+    }
+    const cleanPhone = editPhone.replace(/\D/g, "");
+    if (cleanPhone.length < 10) {
+      setEditError("Please enter a valid phone number (at least 10 digits).");
+      return;
+    }
+
+    setEditLoading(true);
+    setEditError(null);
+    setEditSuccess(null);
+
+    const payload = {
+      full_name: editName.trim(),
+      email: editEmail.trim() ? editEmail.trim().toLowerCase() : null,
+      phone_number: cleanPhone,
+      membership_status: editStatus,
+      membership_level: editLevel,
+    };
+
+    try {
+      const res = await fetch(`/api/admin/members/${editingMember.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update member.");
+      }
+
+      setEditSuccess("Member details updated successfully!");
+
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.id === editingMember.id
+            ? {
+                ...m,
+                full_name: payload.full_name,
+                email: payload.email || "",
+                phone_number: payload.phone_number,
+                membership_status: payload.membership_status,
+                membership_level: payload.membership_level,
+              }
+            : m
+        )
+      );
+
+      if (selectedMember?.id === editingMember.id) {
+        setSelectedMember((prev) =>
+          prev
+            ? {
+                ...prev,
+                full_name: payload.full_name,
+                email: payload.email || "",
+                phone_number: payload.phone_number,
+                membership_status: payload.membership_status,
+                membership_level: payload.membership_level,
+              }
+            : null
+        );
+      }
+
+      setTimeout(() => {
+        setEditingMember(null);
+        fetchMembers();
+      }, 700);
+    } catch (err: any) {
+      try {
+        const { error: sbErr } = await supabase
+          .from("approved_members")
+          .update(payload)
+          .eq("id", editingMember.id);
+
+        if (sbErr) {
+          setEditError(sbErr.message || err.message);
+        } else {
+          setEditSuccess("Member updated successfully!");
+          setMembers((prev) =>
+            prev.map((m) =>
+              m.id === editingMember.id
+                ? {
+                    ...m,
+                    full_name: payload.full_name,
+                    email: payload.email || "",
+                    phone_number: payload.phone_number,
+                    membership_status: payload.membership_status,
+                    membership_level: payload.membership_level,
+                  }
+                : m
+            )
+          );
+          setTimeout(() => {
+            setEditingMember(null);
+            fetchMembers();
+          }, 700);
+        }
+      } catch (fallbackErr: any) {
+        setEditError(fallbackErr.message || err.message);
+      }
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   // Member History Modal states
   const [historyMember, setHistoryMember] = useState<ApprovedMember | null>(null);
   const [historyLogs, setHistoryLogs] = useState<any[]>([]);
@@ -429,6 +563,7 @@ function MembersPageContent() {
   // Lock background scroll while any dialog/drawer is open
   useLockBody(
     showForm ||
+      !!editingMember ||
       !!selectedMember ||
       !!selectedInvoice ||
       !!historyMember ||
@@ -1208,6 +1343,12 @@ function MembersPageContent() {
                         <td className="py-2.5 px-2 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button
+                              onClick={() => handleOpenEdit(m)}
+                              className="px-2.5 py-1 rounded-xl bg-surface-2 border border-line-2 text-fg font-bold text-[11px] hover:bg-hover transition-colors shadow-xs"
+                            >
+                              Edit
+                            </button>
+                            <button
                               onClick={() => handleOpenDetails(m)}
                               className="px-2.5 py-1 rounded-xl bg-accent text-white font-bold text-[11px] hover:bg-accent-2 transition-colors shadow-xs"
                             >
@@ -1276,6 +1417,12 @@ function MembersPageContent() {
                     {/* Action buttons */}
                     <div className="flex gap-2">
                       <button
+                        onClick={() => handleOpenEdit(m)}
+                        className="flex-1 py-2 rounded-xl bg-surface-2 border border-line-2 text-fg font-bold text-xs hover:bg-hover transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
                         onClick={() => handleOpenDetails(m)}
                         className="flex-1 py-2 rounded-xl bg-accent text-white font-bold text-xs hover:bg-accent-2 transition-colors"
                       >
@@ -1298,6 +1445,148 @@ function MembersPageContent() {
 
       </div>
 
+      {/* ─── Edit Member Modal ─── */}
+      {editingMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-surface border border-border-input rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl relative space-y-5 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-border-input">
+              <div>
+                <h3 className="text-lg font-bold text-text-primary">Edit Member</h3>
+                <p className="text-xs text-text-secondary/60 mt-0.5">
+                  Update member details and membership level
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingMember(null)}
+                className="w-8 h-8 rounded-full bg-surface-2 border border-border-input flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-hover transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Error / Success Alerts */}
+            {editError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-xs font-medium">
+                {editError}
+              </div>
+            )}
+            {editSuccess && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-medium">
+                {editSuccess}
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary/70 mb-1">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="e.g. Rahul Sharma"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border-input bg-surface-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-text-gold transition-colors"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary/70 mb-1">
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="9876543210"
+                    className="w-full px-4 py-2.5 rounded-xl border border-border-input bg-surface-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-text-gold transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary/70 mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    placeholder="rahul@example.com"
+                    className="w-full px-4 py-2.5 rounded-xl border border-border-input bg-surface-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-text-gold transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary/70 mb-1">
+                    Membership Status
+                  </label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border-input bg-surface-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-text-gold transition-colors"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="frozen">Frozen</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary/70 mb-1">
+                    Membership Level
+                  </label>
+                  <select
+                    value={editLevel}
+                    onChange={(e) => setEditLevel(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border-input bg-surface-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-text-gold transition-colors"
+                  >
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                    <option value="VIP">VIP</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border-input">
+                <button
+                  type="button"
+                  onClick={() => setEditingMember(null)}
+                  disabled={editLoading}
+                  className="px-5 py-2.5 rounded-xl border border-border-input text-text-secondary/70 text-sm font-medium hover:bg-surface-2 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="px-6 py-2.5 rounded-xl bg-accent text-white text-sm font-bold hover:bg-accent-2 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-xs"
+                >
+                  {editLoading ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Member Details Drawer Modal */}
       {selectedMember && (
         <div
@@ -1314,12 +1603,20 @@ function MembersPageContent() {
                 <h2 className="text-base sm:text-lg font-serif text-text-primary truncate">Member Details</h2>
                 <p className="text-xs text-text-secondary/50 font-mono truncate">ID: {selectedMember.id.slice(0, 8)}</p>
               </div>
-              <button
-                onClick={() => setSelectedMember(null)}
-                className="w-8 h-8 rounded-full bg-surface-2 text-text-secondary hover:bg-hover flex items-center justify-center font-bold flex-shrink-0"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleOpenEdit(selectedMember)}
+                  className="px-3 py-1.5 rounded-xl bg-surface-2 border border-border-input text-xs font-bold text-text-primary hover:bg-hover transition-colors"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => setSelectedMember(null)}
+                  className="w-8 h-8 rounded-full bg-surface-2 text-text-secondary hover:bg-hover flex items-center justify-center font-bold flex-shrink-0"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {/* Member Profile Hero */}

@@ -106,6 +106,8 @@ export async function POST(req: Request) {
       .or(`member_id.eq.${authMemberId},member_id.eq.${approvedMemberId}`)
       .maybeSingle();
 
+    let confirmedBookingId: string | null = null;
+
     if (existingBooking) {
       if (existingBooking.booking_status === "booked" || existingBooking.booking_status === "confirmed") {
         return NextResponse.json({ success: true, message: "Member is already assigned to this class." });
@@ -135,44 +137,64 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: updateError.message }, { status: 500 });
       }
 
-      return NextResponse.json({ success: true, message: "Member assigned successfully!" });
-    }
+      confirmedBookingId = existingBooking.id;
+    } else {
+      // 4. Insert new booking using the auth UUID as member_id (satisfies FK constraint)
+      let insertPayload: any = {
+        member_id: authMemberId,  // auth.uid() → satisfies bookings_member_id_fkey → profiles(id)
+        class_id: classId,
+        booking_status: "booked",
+        notes: "Corhaus invite u to this session",
+        location_id: locationId,
+      };
 
-    // 4. Insert new booking using the auth UUID as member_id (satisfies FK constraint)
-    let insertPayload: any = {
-      member_id: authMemberId,  // auth.uid() → satisfies bookings_member_id_fkey → profiles(id)
-      class_id: classId,
-      booking_status: "booked",
-      notes: "Corhaus invite u to this session",
-      location_id: locationId,
-    };
-
-    let { error: insertError } = await serviceClient
-      .from("bookings")
-      .insert(insertPayload);
-
-    if (insertError && (insertError.message?.includes("notes") || insertError.message?.includes("Could not find"))) {
-      delete insertPayload.notes;
-      const res = await serviceClient
+      let { data: newBk, error: insertError } = await serviceClient
         .from("bookings")
-        .insert(insertPayload);
-      insertError = res.error;
+        .insert(insertPayload)
+        .select("id")
+        .maybeSingle();
+
+      if (insertError && (insertError.message?.includes("notes") || insertError.message?.includes("Could not find"))) {
+        delete insertPayload.notes;
+        const res = await serviceClient
+          .from("bookings")
+          .insert(insertPayload)
+          .select("id")
+          .maybeSingle();
+        insertError = res.error;
+        newBk = res.data;
+      }
+
+      // 5. If still failing, it might be because profiles table is missing this user.
+      //    Fallback: try with approved_members.id (for DBs where FK was changed to approved_members).
+      if (insertError && insertError.message?.includes("foreign key")) {
+        console.warn("[ASSIGN] Auth UUID failed FK, falling back to approved_members.id:", approvedMemberId);
+        insertPayload.member_id = approvedMemberId;
+        const res = await serviceClient
+          .from("bookings")
+          .insert(insertPayload)
+          .select("id")
+          .maybeSingle();
+        insertError = res.error;
+        newBk = res.data;
+      }
+
+      if (insertError) {
+        console.error("[ASSIGN] Insert error:", insertError);
+        return NextResponse.json({ error: insertError.message }, { status: 500 });
+      }
+
+      confirmedBookingId = newBk?.id || null;
     }
 
-    // 5. If still failing, it might be because profiles table is missing this user.
-    //    Fallback: try with approved_members.id (for DBs where FK was changed to approved_members).
-    if (insertError && insertError.message?.includes("foreign key")) {
-      console.warn("[ASSIGN] Auth UUID failed FK, falling back to approved_members.id:", approvedMemberId);
-      insertPayload.member_id = approvedMemberId;
-      const res = await serviceClient
-        .from("bookings")
-        .insert(insertPayload);
-      insertError = res.error;
-    }
-
-    if (insertError) {
-      console.error("[ASSIGN] Insert error:", insertError);
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+    // Trigger WhatsApp booking confirmation hook (non-blocking)
+    if (confirmedBookingId) {
+      try {
+        const { handleBookingConfirmed } = await import("@/lib/whatsapp/events");
+        await handleBookingConfirmed(confirmedBookingId);
+      } catch (waErr) {
+        console.error("[ASSIGN] WhatsApp booking confirmation error:", waErr);
+      }
     }
 
     return NextResponse.json({ success: true, message: "Member assigned successfully!" });

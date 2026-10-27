@@ -433,12 +433,21 @@ export async function fulfilTrialFromOrder(
           .eq("member_id", approvedMember.id)
           .maybeSingle();
         if (!existingBooking) {
-          await service.from("bookings").insert({
+          const { data: newBk } = await service.from("bookings").insert({
             class_id: cls.id,
             member_id: approvedMember.id,
             booking_status: "booked",
             created_at: new Date().toISOString(),
-          });
+          }).select("id").maybeSingle();
+
+          if (newBk?.id) {
+            try {
+              const { handleBookingConfirmed } = await import("@/lib/whatsapp/events");
+              await handleBookingConfirmed(newBk.id);
+            } catch (waErr) {
+              console.error("[trialFulfilment] WhatsApp confirmation error:", waErr);
+            }
+          }
         }
       }
     } catch {

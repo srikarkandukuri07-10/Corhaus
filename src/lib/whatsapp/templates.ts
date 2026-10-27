@@ -229,13 +229,20 @@ export const TEMPLATE_CLASS_REMINDER_NAME = "class_booking_reminder2";
 
 export const WHATSAPP_TEMPLATE_REGISTRY: Record<DashboardEvent, TemplateConfig> = {
   booking_confirmed: {
-    name: "<FILL_IN>",
+    name: process.env.WHATSAPP_BOOKING_TEMPLATE || TEMPLATE_CLASS_REMINDER_NAME,
     language: "en",
     paramFormat: "named",
-    params: ["<FILL_IN>"],
+    params: [
+      "member_name",
+      "class_name",
+      "class_date",
+      "class_time",
+      "trainer_name",
+      "location_name",
+    ],
   },
   class_reminder: {
-    name: TEMPLATE_CLASS_REMINDER_NAME,
+    name: process.env.WHATSAPP_REMINDER_TEMPLATE || TEMPLATE_CLASS_REMINDER_NAME,
     language: "en",
     paramFormat: "named",
     params: [
@@ -248,10 +255,19 @@ export const WHATSAPP_TEMPLATE_REGISTRY: Record<DashboardEvent, TemplateConfig> 
     ],
   },
   payment_receipt: {
-    name: "<FILL_IN>",
+    name: process.env.WHATSAPP_PAYMENT_TEMPLATE || "payment_receipt_v1",
     language: "en",
     paramFormat: "named",
-    params: ["<FILL_IN>"],
+    params: [
+      "member_name",
+      "invoice_number",
+      "amount",
+      "class_name",
+      "class_date",
+      "class_time",
+      "trainer_name",
+      "location_name",
+    ],
   },
 };
 
