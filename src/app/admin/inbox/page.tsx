@@ -722,15 +722,6 @@ export default function AdminWhatsAppInboxPage() {
                   </div>
                   <p className="text-[11px] text-fg-4 truncate flex items-center gap-1.5">
                     <span>{activeContact?.formattedPhone}</span>
-                    <span>&bull;</span>
-                    {replyWindow?.allowed ? (
-                      <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Window active ({windowRemaining.text})
-                      </span>
-                    ) : (
-                      <span className="text-amber-600 font-medium">Window expired</span>
-                    )}
                   </p>
                 </div>
               </div>
@@ -955,16 +946,7 @@ export default function AdminWhatsAppInboxPage() {
                         </div>
                       )}
 
-                      <div className="p-2.5 rounded-xl bg-surface-2 border border-line">
-                        <span className="text-[10px] uppercase font-bold text-fg-4 block">Meta 24h Window</span>
-                        <span
-                          className={`font-semibold ${
-                            replyWindow?.allowed ? "text-emerald-600" : "text-amber-600"
-                          }`}
-                        >
-                          {replyWindow?.allowed ? windowRemaining.text : "Window Closed"}
-                        </span>
-                      </div>
+
                     </div>
                   </div>
 
@@ -982,27 +964,8 @@ export default function AdminWhatsAppInboxPage() {
               )}
             </div>
 
-            {/* WhatsApp Input Bar & 24h Window Banner */}
+            {/* WhatsApp Input Bar */}
             <div className="border-t border-line bg-surface p-2.5 sm:p-3 shrink-0 shadow-xs z-10">
-              {/* Meta 24-hour service window pill */}
-              <div className="mb-2">
-                {replyWindow?.allowed ? (
-                  <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>24-hour reply window active ({windowRemaining.text})</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">
-                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <span>
-                      24h customer window closed. You can reply once the member sends a new message.
-                    </span>
-                  </div>
-                )}
-              </div>
-
               {sendError && (
                 <div className="mb-2 p-2 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-600 font-semibold">
                   {sendError}
@@ -1022,21 +985,17 @@ export default function AdminWhatsAppInboxPage() {
                         handleSendReply();
                       }
                     }}
-                    disabled={!replyWindow?.allowed || sending}
-                    placeholder={
-                      replyWindow?.allowed
-                        ? "Type a message... (Enter to send, Shift+Enter for new line)"
-                        : "24-hour service window closed"
-                    }
+                    disabled={sending}
+                    placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
                     rows={1}
-                    className="w-full resize-none bg-transparent text-xs sm:text-sm text-fg placeholder:text-fg-4 focus:outline-none max-h-24 leading-normal disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full resize-none bg-transparent text-xs sm:text-sm text-fg placeholder:text-fg-4 focus:outline-none max-h-24 leading-normal disabled:opacity-50"
                   />
                 </div>
 
                 {/* Circular WhatsApp Green Send Button */}
                 <button
                   type="submit"
-                  disabled={!replyWindow?.allowed || !replyText.trim() || sending}
+                  disabled={!replyText.trim() || sending}
                   className="w-10 h-10 rounded-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white flex items-center justify-center shrink-0 shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   title="Send message"
                 >

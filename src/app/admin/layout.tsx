@@ -314,23 +314,6 @@ export default function AdminLayout({
             </p>
             <div className="space-y-1">
               <Link
-                href="/admin/inbox"
-                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname === "/admin/inbox", "members.view")}`}
-              >
-                <div className="flex items-center gap-3">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.964 9.964 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                  <span>Inbox</span>
-                </div>
-                {inboxUnreadCount > 0 && (
-                  <span className="bg-accent text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                    {inboxUnreadCount > 99 ? "99+" : inboxUnreadCount}
-                  </span>
-                )}
-              </Link>
-
-              <Link
                 href="/admin/members"
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname === "/admin/members" || (pathname.startsWith("/admin/members") && !pathname.startsWith("/admin/members/history")), "members.view")}`}
               >
@@ -504,6 +487,28 @@ export default function AdminLayout({
               </Link>
             </div>
           </div>
+
+          {/* Section: INBOX (last but one in side navbar) */}
+          {hasPerm("members.view") && (
+            <div>
+              <Link
+                href="/admin/inbox"
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${navLinkClassWithPerm(pathname === "/admin/inbox", "members.view")}`}
+              >
+                <div className="flex items-center gap-3">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.964 9.964 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <span>Inbox</span>
+                </div>
+                {inboxUnreadCount > 0 && (
+                  <span className="bg-accent text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                    {inboxUnreadCount > 99 ? "99+" : inboxUnreadCount}
+                  </span>
+                )}
+              </Link>
+            </div>
+          )}
 
           {/* Section: SETTINGS */}
           {(role === "Manager" || role === "Owner") && (
@@ -683,6 +688,24 @@ export default function AdminLayout({
               </Link>
 
               <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 pt-3 pb-1">PEOPLE &amp; CLASSES</p>
+              {mobileLink("members.view", "/admin/members", "Members")}
+              {mobileLink("members.trial", "/admin/trial-members", "Trial Members")}
+              {mobileLink("members.trial", "/admin/leads", "Leads & Enquiries")}
+              {mobileLink("members.edit", "/admin/freeze", "Freeze Management")}
+              {mobileLink("classes.view", "/admin/classes", "Classes & Schedule")}
+              {mobileLink("classes.view", "/admin/previous-classes", "Previous Classes")}
+              {mobileLink("pt.view", "/admin/pt", "PT Scheduler")}
+              {mobileLink("attendance.scan", "/admin/scanner", "Attendance Scanner")}
+
+              <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 pt-4 pb-1">SALES &amp; BILLING</p>
+              {mobileLink("billing.view", "/admin/billing", "Billing")}
+              {mobileLink("packages.view", "/admin/packages", "Packages & Plans")}
+              {mobileLink("expenses.view", "/admin/expenses", "Expenses")}
+
+              <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 pt-4 pb-1">ANALYTICS</p>
+              {mobileLink("reports.view", "/admin/reports", "Reports & Analytics")}
+
+
               {hasPerm("members.view") && (
                 <Link
                   href="/admin/inbox"
@@ -705,23 +728,6 @@ export default function AdminLayout({
                   )}
                 </Link>
               )}
-              {mobileLink("members.view", "/admin/members", "Members")}
-              {mobileLink("members.trial", "/admin/trial-members", "Trial Members")}
-              {mobileLink("members.trial", "/admin/leads", "Leads & Enquiries")}
-              {mobileLink("members.edit", "/admin/freeze", "Freeze Management")}
-              {mobileLink("classes.view", "/admin/classes", "Classes & Schedule")}
-              {mobileLink("classes.view", "/admin/previous-classes", "Previous Classes")}
-              {mobileLink("pt.view", "/admin/pt", "PT Scheduler")}
-              {mobileLink("attendance.scan", "/admin/scanner", "Attendance Scanner")}
-
-              <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 pt-4 pb-1">SALES &amp; BILLING</p>
-              {mobileLink("billing.view", "/admin/billing", "Billing")}
-              {mobileLink("packages.view", "/admin/packages", "Packages & Plans")}
-              {mobileLink("expenses.view", "/admin/expenses", "Expenses")}
-
-              <p className="text-[10px] font-bold text-on-rail-3 uppercase tracking-[0.12em] px-3 pt-4 pb-1">ANALYTICS</p>
-              {mobileLink("reports.view", "/admin/reports", "Reports & Analytics")}
-
 
               {(role === "Manager" || role === "Owner") && (
                 <>
