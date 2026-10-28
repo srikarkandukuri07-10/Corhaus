@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense, Component } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import Logo from "@/components/logo";
@@ -78,12 +77,30 @@ export function safeErrorMessage(err: any): string {
   return "An unexpected error occurred while signing in. Please check your credentials and try again.";
 }
 
+function EyeIcon({ visible }: { visible: boolean }) {
+  if (visible) {
+    return (
+      <svg className="w-4 h-4 text-fg-4 hover:text-fg transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+      </svg>
+    );
+  }
+  return (
+    <svg className="w-4 h-4 text-fg-4 hover:text-fg transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+  );
+}
+
 function LoginForm() {
   const [mode, setMode] = useState<"initial" | "subsequent">("initial");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [forgotCode, setForgotCode] = useState("");
   const [step, setStep] = useState<"email" | "password" | "setup_password" | "forgot_password_request" | "forgot_password_verify">("email");
   const [staffInfo, setStaffInfo] = useState<{ role: string; name?: string } | null>(null);
@@ -164,11 +181,9 @@ function LoginForm() {
       setStaffInfo({ role: roleName, name: checkData.name });
 
       if (checkData.hasPassword) {
-        // User already has an established password -> prompt for password
         setStep("password");
         setInfoMsg(`Welcome back${checkData.name ? `, ${checkData.name}` : ""}! Please enter your password to sign in.`);
       } else {
-        // First-time login -> prompt to establish password
         setStep("setup_password");
         setInfoMsg(
           checkData.accountType === "staff"
@@ -225,7 +240,6 @@ function LoginForm() {
         return;
       }
 
-      // Mark this browser as having logged in so future sessions default to email + password
       try {
         localStorage.setItem("corhaus_has_logged_in", "true");
         localStorage.setItem("corhaus_saved_email", cleanEmail);
@@ -487,9 +501,6 @@ function LoginForm() {
                   className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
                   placeholder="Enter 10-digit phone number"
                 />
-                <p className="text-[11px] text-fg-5 mt-1">
-                  We verify your membership or staff profile by this number.
-                </p>
               </div>
 
               <div>
@@ -530,6 +541,8 @@ function LoginForm() {
                   type="button"
                   onClick={() => {
                     setMode("subsequent");
+                    setPassword("");
+                    setShowPassword(false);
                     setError(null);
                     setInfoMsg(null);
                   }}
@@ -563,15 +576,26 @@ function LoginForm() {
                 <label className="block text-sm font-medium text-fg/70 mb-1.5">
                   Password <span className="text-accent">*</span>
                 </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
-                  placeholder="Enter your password"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    className="w-full px-4 py-3 pr-11 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-fg-4 hover:text-fg focus:outline-none transition-colors"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    <EyeIcon visible={showPassword} />
+                  </button>
+                </div>
               </div>
 
               <button
@@ -607,6 +631,7 @@ function LoginForm() {
                   onClick={() => {
                     setMode("initial");
                     setPassword("");
+                    setShowPassword(false);
                     setError(null);
                     setInfoMsg(null);
                   }}
@@ -633,15 +658,26 @@ function LoginForm() {
 
               <div>
                 <label className="block text-sm font-medium text-fg/70 mb-1.5">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoFocus
-                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
-                  placeholder="Enter your password"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoFocus
+                    className="w-full px-4 py-3 pr-11 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-fg-4 hover:text-fg focus:outline-none transition-colors"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    <EyeIcon visible={showPassword} />
+                  </button>
+                </div>
               </div>
 
               <button
@@ -676,6 +712,7 @@ function LoginForm() {
                   onClick={() => {
                     setStep("email");
                     setPassword("");
+                    setShowPassword(false);
                     setError(null);
                     setInfoMsg(null);
                   }}
@@ -702,29 +739,51 @@ function LoginForm() {
 
               <div>
                 <label className="block text-sm font-medium text-fg/70 mb-1.5">New Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  autoFocus
-                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
-                  placeholder="Create a strong password (min 6 chars)"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    autoFocus
+                    className="w-full px-4 py-3 pr-11 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
+                    placeholder="Create a strong password (min 6 chars)"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-fg-4 hover:text-fg focus:outline-none transition-colors"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    <EyeIcon visible={showPassword} />
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-fg/70 mb-1.5">Confirm Password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
-                  placeholder="Confirm your password"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="w-full px-4 py-3 pr-11 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
+                    placeholder="Confirm your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-fg-4 hover:text-fg focus:outline-none transition-colors"
+                    tabIndex={-1}
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  >
+                    <EyeIcon visible={showConfirmPassword} />
+                  </button>
+                </div>
               </div>
 
               <button
@@ -747,7 +806,9 @@ function LoginForm() {
                 onClick={() => {
                   setStep("email");
                   setPassword("");
+                  setShowPassword(false);
                   setConfirmPassword("");
+                  setShowConfirmPassword(false);
                   setError(null);
                   setInfoMsg(null);
                 }}
@@ -832,7 +893,7 @@ function LoginForm() {
             </form>
           )}
 
-          {/* ─── ALTERNATIVE SIGN-IN (GOOGLE & SIGNUP LINK) ────────────────────── */}
+          {/* ─── ALTERNATIVE SIGN-IN (GOOGLE) ──────────────────────────────────── */}
           {step === "email" && (
             <>
               <div className="relative my-6">
@@ -866,8 +927,6 @@ function LoginForm() {
                   </span>
                 )}
               </button>
-
-
             </>
           )}
         </div>

@@ -55,7 +55,8 @@ export async function POST(request: Request) {
         if (
           existingUser?.user_metadata?.has_password ||
           existingUser?.user_metadata?.password_set_at ||
-          (existingUser?.identities && existingUser.identities.some((i: any) => i.provider === "email" && (existingUser as any).encrypted_password))
+          (existingUser as any)?.encrypted_password ||
+          (existingUser?.identities && existingUser.identities.some((i: any) => i.provider === "email"))
         ) {
           return true;
         }
@@ -79,13 +80,26 @@ export async function POST(request: Request) {
     // ─── 2. CHECK PHONE FIRST (Staff or Member) ───────────────────────────────
     if (normalizedPhone) {
       // (a) Check Staff by Phone
-      const { data: staffList } = await serviceClient
+      let matchingStaff: any = null;
+      const { data: staffByPhone } = await serviceClient
         .from("staff_members")
-        .select("id, role, full_name, email, phone_number, employment_status");
+        .select("id, role, full_name, email, phone_number, employment_status")
+        .ilike("phone_number", `%${normalizedPhone}%`)
+        .limit(10);
 
-      const matchingStaff = (staffList || []).find(
+      matchingStaff = (staffByPhone || []).find(
         (s) => normalizePhoneNumber(s.phone_number) === normalizedPhone
       );
+
+      if (!matchingStaff) {
+        // Fallback: check all staff
+        const { data: allStaff } = await serviceClient
+          .from("staff_members")
+          .select("id, role, full_name, email, phone_number, employment_status");
+        matchingStaff = (allStaff || []).find(
+          (s) => normalizePhoneNumber(s.phone_number) === normalizedPhone
+        );
+      }
 
       if (matchingStaff) {
         if (matchingStaff.employment_status === "Inactive") {
@@ -112,13 +126,28 @@ export async function POST(request: Request) {
       }
 
       // (b) Check Approved Members by Phone
-      const { data: allMembers } = await serviceClient
+      let matchingMembers: any[] = [];
+      const { data: membersByPhone } = await serviceClient
         .from("approved_members")
-        .select("id, full_name, email, phone_number, membership_status, location_id");
+        .select("id, full_name, email, phone_number, membership_status, location_id")
+        .ilike("phone_number", `%${normalizedPhone}%`)
+        .limit(20);
 
-      const matchingMembers = (allMembers || []).filter(
+      matchingMembers = (membersByPhone || []).filter(
         (m) => normalizePhoneNumber(m.phone_number) === normalizedPhone
       );
+
+      if (matchingMembers.length === 0) {
+        // Fallback: full query in case digits are stored in unusual format
+        const { data: allMembers } = await serviceClient
+          .from("approved_members")
+          .select("id, full_name, email, phone_number, membership_status, location_id")
+          .limit(2000);
+
+        matchingMembers = (allMembers || []).filter(
+          (m) => normalizePhoneNumber(m.phone_number) === normalizedPhone
+        );
+      }
 
       if (matchingMembers.length > 0) {
         const activeMember = matchingMembers.find(

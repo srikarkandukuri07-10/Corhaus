@@ -52,7 +52,9 @@ export async function POST(request: Request) {
     if (!staff && normalizedPhone) {
       const { data: staffList } = await serviceClient
         .from("staff_members")
-        .select("id, role, full_name, phone_number, email, employment_status");
+        .select("id, role, full_name, phone_number, email, employment_status")
+        .ilike("phone_number", `%${normalizedPhone}%`)
+        .limit(10);
       staff = (staffList || []).find(
         (s) => normalizePhoneNumber(s.phone_number) === normalizedPhone
       ) || null;
@@ -80,13 +82,26 @@ export async function POST(request: Request) {
       }
 
       if (!isMember && normalizedPhone) {
-        const { data: allMembers } = await serviceClient
+        let matching: any[] = [];
+        const { data: byPhone } = await serviceClient
           .from("approved_members")
-          .select("id, full_name, phone_number, membership_status, email");
+          .select("id, full_name, phone_number, membership_status, email")
+          .ilike("phone_number", `%${normalizedPhone}%`)
+          .limit(10);
 
-        const matching = (allMembers || []).filter(
+        matching = (byPhone || []).filter(
           (m) => normalizePhoneNumber(m.phone_number) === normalizedPhone
         );
+
+        if (matching.length === 0) {
+          const { data: allMembers } = await serviceClient
+            .from("approved_members")
+            .select("id, full_name, phone_number, membership_status, email")
+            .limit(2000);
+          matching = (allMembers || []).filter(
+            (m) => normalizePhoneNumber(m.phone_number) === normalizedPhone
+          );
+        }
 
         const activeMem = matching.find(
           (m) => (m.membership_status || "").toLowerCase() === "active"
