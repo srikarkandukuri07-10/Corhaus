@@ -4,6 +4,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { isAdminEmail, isDeveloperEmail } from "@/lib/constants";
 import { rateLimit } from "@/lib/rateLimit";
+import { normalizePhoneNumber } from "@/lib/auth-canonical";
 
 export async function POST(request: Request) {
   try {
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { email, password } = await request.json();
+    const { email, password, phone } = await request.json();
     if (!email || !password || typeof password !== "string" || password.length < 6) {
       return NextResponse.json(
         { error: "Password must be at least 6 characters long." },
@@ -26,6 +27,8 @@ export async function POST(request: Request) {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhone = normalizePhoneNumber(phone);
+
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -34,13 +37,26 @@ export async function POST(request: Request) {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Check staff email
-    const { data: staff } = await serviceClient
-      .from("staff_members")
-      .select("id, role, full_name, phone_number, employment_status")
-      .ilike("email", normalizedEmail)
-      .limit(1)
-      .maybeSingle();
+    // Check staff email or phone
+    let staff: any = null;
+    if (normalizedEmail) {
+      const { data } = await serviceClient
+        .from("staff_members")
+        .select("id, role, full_name, phone_number, email, employment_status")
+        .ilike("email", normalizedEmail)
+        .limit(1)
+        .maybeSingle();
+      staff = data;
+    }
+
+    if (!staff && normalizedPhone) {
+      const { data: staffList } = await serviceClient
+        .from("staff_members")
+        .select("id, role, full_name, phone_number, email, employment_status");
+      staff = (staffList || []).find(
+        (s) => normalizePhoneNumber(s.phone_number) === normalizedPhone
+      ) || null;
+    }
 
     const isStaff = !!staff || isAdminEmail(normalizedEmail) || normalizedEmail === "admin@corhaus.com";
     const isDev = isDeveloperEmail(normalizedEmail);
@@ -49,16 +65,45 @@ export async function POST(request: Request) {
     let memberData: any = null;
 
     if (!isStaff && !isDev) {
-      const { data: member } = await serviceClient
-        .from("approved_members")
-        .select("id, full_name, phone_number, membership_status")
-        .ilike("email", normalizedEmail)
-        .limit(1)
-        .maybeSingle();
+      if (normalizedEmail) {
+        const { data: member } = await serviceClient
+          .from("approved_members")
+          .select("id, full_name, phone_number, membership_status, email")
+          .ilike("email", normalizedEmail)
+          .limit(1)
+          .maybeSingle();
 
-      if (member && (member.membership_status || "").toLowerCase() === "active") {
-        isMember = true;
-        memberData = member;
+        if (member && (member.membership_status || "").toLowerCase() === "active") {
+          isMember = true;
+          memberData = member;
+        }
+      }
+
+      if (!isMember && normalizedPhone) {
+        const { data: allMembers } = await serviceClient
+          .from("approved_members")
+          .select("id, full_name, phone_number, membership_status, email");
+
+        const matching = (allMembers || []).filter(
+          (m) => normalizePhoneNumber(m.phone_number) === normalizedPhone
+        );
+
+        const activeMem = matching.find(
+          (m) => (m.membership_status || "").toLowerCase() === "active"
+        ) || matching[0];
+
+        if (activeMem && (activeMem.membership_status || "").toLowerCase() === "active") {
+          isMember = true;
+          memberData = activeMem;
+
+          // Register email on this member row if not already set
+          try {
+            await serviceClient
+              .from("approved_members")
+              .update({ email: normalizedEmail })
+              .eq("id", activeMem.id);
+          } catch (_) {}
+        }
       }
     }
 
@@ -75,8 +120,6 @@ export async function POST(request: Request) {
         { status: 403 }
       );
     }
-
-    const accountType = isDev ? "developer" : isStaff ? "staff" : "member";
 
     // Find or create user in Supabase Auth and set password
     const { data: usersData } = await serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
@@ -139,7 +182,7 @@ export async function POST(request: Request) {
       { onConflict: "id" }
     );
 
-    // Authenticate session
+    // Authenticate session (1 week session)
     const cookieStore = await cookies();
     const cookieHeaderMap = new Map<string, { name: string; value: string; options: any }>();
     const ssrClient = createServerClient(url, anonKey, {
@@ -152,8 +195,6 @@ export async function POST(request: Request) {
               maxAge: 604800, // 1 week session
               secure: true,
               sameSite: "lax" as const,
-              // NOTE: no httpOnly — the browser client must read these cookies
-              // (matches the Google callback route).
             };
             cookieHeaderMap.set(name, { name, value, options: customizedOptions });
           });
@@ -175,13 +216,12 @@ export async function POST(request: Request) {
     }
 
     const redirectUrl = isDev ? "/developer/support" : isStaff ? "/admin" : "/member";
-    // Session must come from the sign-in response (see login route): getSession()
-    // re-reads the request cookie jar and returns null here.
     const { data: sessionData } = await ssrClient.auth.getSession();
     const freshSession = pwdSession || sessionData.session;
     const sessionTokens = freshSession
       ? { access_token: freshSession.access_token, refresh_token: freshSession.refresh_token }
       : null;
+
     const response = NextResponse.json({
       success: true,
       redirectUrl,
@@ -200,4 +240,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense, Component } from "react";
+import { useState, useEffect, Suspense, Component } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -79,15 +79,14 @@ export function safeErrorMessage(err: any): string {
 }
 
 function LoginForm() {
+  const [mode, setMode] = useState<"initial" | "subsequent">("initial");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // Optional second identifier. Members migrated without an email are matched
-  // on their phone number instead; staff and developers are unaffected.
   const [phone, setPhone] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [forgotCode, setForgotCode] = useState("");
   const [step, setStep] = useState<"email" | "password" | "setup_password" | "forgot_password_request" | "forgot_password_verify">("email");
-  const [staffInfo, setStaffInfo] = useState<{ role: string } | null>(null);
+  const [staffInfo, setStaffInfo] = useState<{ role: string; name?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -104,20 +103,38 @@ function LoginForm() {
       ? "Your sign-in didn't complete in this browser. Please sign in again — and if this keeps happening, reload the page to load the latest version before signing in."
       : null;
 
-  // NOTE: no onAuthStateChange auto-redirect here on purpose. After a
-  // password sign-in the handler below navigates exactly once to the
-  // role-specific URL. A second competing full-page navigation (e.g. to "/")
-  // races it and only adds failure surface.
+  // On mount, check if user has previously logged in on this browser
+  useEffect(() => {
+    try {
+      const hasLoggedIn = localStorage.getItem("corhaus_has_logged_in") === "true";
+      const savedEmail = localStorage.getItem("corhaus_saved_email") || "";
+      if (hasLoggedIn) {
+        setMode("subsequent");
+        if (savedEmail) setEmail(savedEmail);
+      } else {
+        setMode("initial");
+      }
+    } catch (_) {}
+  }, []);
 
-  async function handleCheckEmail(e: React.FormEvent) {
+  // ─── 1. INITIAL SIGN-IN HANDLER (Phone + Email) ─────────────────────────────
+  async function handleInitialSignIn(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setInfoMsg(null);
 
-    const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail) {
-      setError("Please enter your email address.");
+    const cleanPhone = phone.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanPhone || cleanPhone.replace(/\D/g, "").length < 10) {
+      setError("Please enter a valid 10-digit phone number.");
+      setLoading(false);
+      return;
+    }
+
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError("Please enter a valid email address.");
       setLoading(false);
       return;
     }
@@ -126,40 +143,39 @@ function LoginForm() {
       const checkRes = await fetch("/api/auth/check-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Phone is optional and only used for members whose record has no email
-        // on file (migrated from the previous system).
         body: JSON.stringify({
-          email: normalizedEmail,
-          phone: phone.trim() || undefined,
+          phone: cleanPhone,
+          email: cleanEmail,
         }),
       });
       const checkData = await checkRes.json().catch(() => null);
 
       if (!checkRes.ok || !checkData?.approved) {
-        setError(checkData?.error || "You do not currently have access to the Corhaus Member Portal. Please contact Corhaus staff to activate your membership.");
+        setError(checkData?.error || "No active account found for this phone number. Please contact Corhaus staff to activate your membership.");
         return;
       }
 
-      if (checkData.accountType === "staff" || checkData.accountType === "member" || checkData.accountType === "developer") {
-        const roleName = checkData.accountType === "staff"
-          ? (checkData.staffRole || "Staff")
-          : checkData.accountType === "developer"
-          ? "Developer"
-          : "Member";
-        
-        setStaffInfo({ role: roleName });
-        if (checkData.hasPassword) {
-          setStep("password");
-          setInfoMsg(`${roleName} Account — Enter your password to sign in.`);
-        } else {
-          setStep("setup_password");
-          setInfoMsg(`Your ${roleName.toLowerCase()} account does not have a password set yet. Please establish your password below.`);
-        }
-        return;
-      }
+      const roleName = checkData.accountType === "staff"
+        ? (checkData.staffRole || "Staff")
+        : checkData.accountType === "developer"
+        ? "Developer"
+        : "Member";
 
-      // Fallback
-      setError("Unrecognized account type.");
+      setStaffInfo({ role: roleName, name: checkData.name });
+
+      if (checkData.hasPassword) {
+        // User already has an established password -> prompt for password
+        setStep("password");
+        setInfoMsg(`Welcome back${checkData.name ? `, ${checkData.name}` : ""}! Please enter your password to sign in.`);
+      } else {
+        // First-time login -> prompt to establish password
+        setStep("setup_password");
+        setInfoMsg(
+          checkData.accountType === "staff"
+            ? `First-Time Setup — Please set a password for your staff account (${checkData.email || cleanEmail}).`
+            : `First-Time Setup — Welcome${checkData.name ? `, ${checkData.name}` : ""}! Please set a password for your account (${cleanEmail}).`
+        );
+      }
     } catch (err: any) {
       setError(safeErrorMessage(err));
     } finally {
@@ -167,7 +183,63 @@ function LoginForm() {
     }
   }
 
-  async function handleStaffLoginWithPassword(e: React.FormEvent) {
+  // ─── 2. SUBSEQUENT LOGIN HANDLER (Email + Password) ─────────────────────────
+  async function handleSubsequentLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setInfoMsg(null);
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError("Please enter a valid email address.");
+      setLoading(false);
+      return;
+    }
+
+    if (!password) {
+      setError("Please enter your password.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail, password }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (data?.needsStaffPasswordSetup) {
+        setStaffInfo({ role: data.staffRole || "Member" });
+        setStep("setup_password");
+        setInfoMsg("Your account does not have a password set yet. Please establish your password below.");
+        setLoading(false);
+        return;
+      }
+
+      if (!res.ok || !data?.success || !data?.redirectUrl) {
+        setError(data?.error || "Invalid credentials. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      // Mark this browser as having logged in so future sessions default to email + password
+      try {
+        localStorage.setItem("corhaus_has_logged_in", "true");
+        localStorage.setItem("corhaus_saved_email", cleanEmail);
+      } catch (_) {}
+
+      window.location.href = data.redirectUrl;
+    } catch (err: any) {
+      setError(safeErrorMessage(err));
+      setLoading(false);
+    }
+  }
+
+  // ─── 3. PASSWORD SUBMISSION HANDLER ─────────────────────────────────────────
+  async function handlePasswordLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -182,7 +254,11 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password, phone: phone.trim() || undefined }),
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+          phone: phone.trim() || undefined,
+        }),
       });
       const data = await res.json().catch(() => null);
 
@@ -192,9 +268,11 @@ function LoginForm() {
         return;
       }
 
-      // The API response sets readable session cookies (same-origin fetch
-      // stores Set-Cookie), which both the proxy and the browser Supabase
-      // client read directly — no client-side session write needed.
+      try {
+        localStorage.setItem("corhaus_has_logged_in", "true");
+        localStorage.setItem("corhaus_saved_email", email.trim().toLowerCase());
+      } catch (_) {}
+
       window.location.href = data.redirectUrl;
     } catch (err: any) {
       setError(safeErrorMessage(err));
@@ -202,7 +280,8 @@ function LoginForm() {
     }
   }
 
-  async function handleStaffPasswordSetup(e: React.FormEvent) {
+  // ─── 4. FIRST-TIME PASSWORD SETUP HANDLER ──────────────────────────────────
+  async function handlePasswordSetup(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -223,7 +302,11 @@ function LoginForm() {
       const res = await fetch("/api/auth/staff-set-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password, phone: phone.trim() || undefined }),
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+          phone: phone.trim() || undefined,
+        }),
       });
       const data = await res.json().catch(() => null);
 
@@ -233,8 +316,11 @@ function LoginForm() {
         return;
       }
 
-      // Same as password sign-in above: the API response cookies already carry
-      // the readable session — navigate directly.
+      try {
+        localStorage.setItem("corhaus_has_logged_in", "true");
+        localStorage.setItem("corhaus_saved_email", email.trim().toLowerCase());
+      } catch (_) {}
+
       window.location.href = data.redirectUrl;
     } catch (err: any) {
       setError(safeErrorMessage(err));
@@ -242,6 +328,7 @@ function LoginForm() {
     }
   }
 
+  // ─── 5. FORGOT PASSWORD HANDLERS ───────────────────────────────────────────
   async function handleRequestForgotCode(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -339,17 +426,32 @@ function LoginForm() {
         </div>
 
         <div className="bg-surface rounded-2xl shadow-lg shadow-rail/5 p-4 sm:p-8 border border-line w-full">
-          <h2 className="text-xl font-medium text-fg mb-6">
+          <h2 className="text-xl font-medium text-fg mb-2">
             {step === "email"
-              ? "Welcome back"
+              ? mode === "initial"
+                ? "Sign In"
+                : "Welcome Back"
               : step === "password"
-              ? `Sign In (${staffInfo?.role || "Account"})`
+              ? "Enter Your Password"
               : step === "setup_password"
-              ? `First-Time Setup (${staffInfo?.role || "Account"})`
+              ? "Set Your Password"
               : step === "forgot_password_request"
               ? "Forgot Password"
               : "Enter Verification Code"}
           </h2>
+          <p className="text-xs text-fg-4 mb-6">
+            {step === "email"
+              ? mode === "initial"
+                ? "Enter your phone number and email ID to verify your account."
+                : "Sign in with your email ID and password."
+              : step === "password"
+              ? "Enter your password to access your dashboard."
+              : step === "setup_password"
+              ? "Please establish a password for your account."
+              : step === "forgot_password_request"
+              ? "Request a verification code to reset your password."
+              : "Enter the 5-digit code provided to continue."}
+          </p>
 
           {notApprovedError && (
             <div className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-400/20 text-red-500 text-sm leading-relaxed">
@@ -367,10 +469,33 @@ function LoginForm() {
             </div>
           )}
 
-          {step === "email" && (
-            <form onSubmit={handleCheckEmail} className="space-y-4">
+          {/* ─── STEP: EMAIL (Initial vs Subsequent Mode) ────────────────────────── */}
+          {step === "email" && mode === "initial" && (
+            <form onSubmit={handleInitialSignIn} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-fg/70 mb-1.5">Email</label>
+                <label className="block text-sm font-medium text-fg/70 mb-1.5">
+                  Phone Number <span className="text-accent">*</span>
+                </label>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s-]/g, ""))}
+                  required
+                  autoFocus
+                  autoComplete="tel"
+                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
+                  placeholder="Enter 10-digit phone number"
+                />
+                <p className="text-[11px] text-fg-5 mt-1">
+                  We verify your membership or staff profile by this number.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-fg/70 mb-1.5">
+                  Email ID <span className="text-accent">*</span>
+                </label>
                 <input
                   type="email"
                   value={email}
@@ -380,23 +505,8 @@ function LoginForm() {
                   className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
                   placeholder="you@example.com"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-fg/70 mb-1.5">
-                  Phone number <span className="text-fg-5 font-normal">(if you do not have an email on file)</span>
-                </label>
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s-]/g, ""))}
-                  autoComplete="tel"
-                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
-                  placeholder="98765 43210"
-                />
-                <p className="text-xs text-fg-5 mt-1.5">
-                  We will match your membership on either your email or this number.
+                <p className="text-[11px] text-fg-5 mt-1">
+                  This email will be registered to your profile for future logins.
                 </p>
               </div>
 
@@ -414,11 +524,103 @@ function LoginForm() {
                   "Continue"
                 )}
               </button>
+
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("subsequent");
+                    setError(null);
+                    setInfoMsg(null);
+                  }}
+                  className="text-xs text-accent hover:text-accent-dark font-medium transition-colors"
+                >
+                  Already set your password? Sign in with Email &amp; Password &rarr;
+                </button>
+              </div>
             </form>
           )}
 
+          {step === "email" && mode === "subsequent" && (
+            <form onSubmit={handleSubsequentLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-fg/70 mb-1.5">
+                  Email ID <span className="text-accent">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoFocus
+                  autoComplete="email"
+                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
+                  placeholder="you@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-fg/70 mb-1.5">
+                  Password <span className="text-accent">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
+                  placeholder="Enter your password"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-xl bg-rail text-white font-medium hover:bg-rail/90 transition-colors disabled:opacity-50 [touch-action:manipulation]"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Signing in...
+                  </span>
+                ) : (
+                  "Sign In"
+                )}
+              </button>
+
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("forgot_password_request");
+                    setError(null);
+                    setInfoMsg(null);
+                  }}
+                  className="text-xs text-accent hover:text-accent-dark font-medium"
+                >
+                  Forgot password?
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("initial");
+                    setPassword("");
+                    setError(null);
+                    setInfoMsg(null);
+                  }}
+                  className="text-xs text-fg-4 hover:text-fg font-medium"
+                >
+                  Sign in with Phone &rarr;
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ─── STEP: PASSWORD (After Phone/Email Verification) ────────────────── */}
           {step === "password" && (
-            <form onSubmit={handleStaffLoginWithPassword} className="space-y-4">
+            <form onSubmit={handlePasswordLogin} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-fg/70 mb-1.5">Email</label>
                 <input
@@ -471,17 +673,23 @@ function LoginForm() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setStep("email"); setError(null); setInfoMsg(null); }}
+                  onClick={() => {
+                    setStep("email");
+                    setPassword("");
+                    setError(null);
+                    setInfoMsg(null);
+                  }}
                   className="text-xs text-fg-4 hover:text-fg font-medium"
                 >
-                  &larr; Use a different email
+                  &larr; Back
                 </button>
               </div>
             </form>
           )}
 
+          {/* ─── STEP: SETUP PASSWORD (First-Time Login) ───────────────────────── */}
           {step === "setup_password" && (
-            <form onSubmit={handleStaffPasswordSetup} className="space-y-4">
+            <form onSubmit={handlePasswordSetup} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-fg/70 mb-1.5">Email</label>
                 <input
@@ -493,7 +701,7 @@ function LoginForm() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-fg/70 mb-1.5">Set Password</label>
+                <label className="block text-sm font-medium text-fg/70 mb-1.5">New Password</label>
                 <input
                   type="password"
                   value={password}
@@ -515,7 +723,7 @@ function LoginForm() {
                   required
                   minLength={6}
                   className="w-full px-4 py-3 rounded-xl border border-line bg-surface-2/50 text-fg placeholder:text-fg-5 transition-all focus:outline-none focus:border-accent"
-                  placeholder="Confirm password"
+                  placeholder="Confirm your password"
                 />
               </div>
 
@@ -530,20 +738,27 @@ function LoginForm() {
                     Setting password...
                   </span>
                 ) : (
-                  "Set Password & Access Portal"
+                  "Set Password & Enter Portal"
                 )}
               </button>
 
               <button
                 type="button"
-                onClick={() => { setStep("email"); setError(null); setInfoMsg(null); }}
+                onClick={() => {
+                  setStep("email");
+                  setPassword("");
+                  setConfirmPassword("");
+                  setError(null);
+                  setInfoMsg(null);
+                }}
                 className="w-full text-xs text-center text-fg-4 hover:text-fg font-medium pt-1"
               >
-                &larr; Use a different email
+                &larr; Back
               </button>
             </form>
           )}
 
+          {/* ─── STEP: FORGOT PASSWORD REQUEST ──────────────────────────────────── */}
           {step === "forgot_password_request" && (
             <form onSubmit={handleRequestForgotCode} className="space-y-4">
               <div>
@@ -566,14 +781,19 @@ function LoginForm() {
 
               <button
                 type="button"
-                onClick={() => { setStep("password"); setError(null); setInfoMsg(null); }}
+                onClick={() => {
+                  setStep("email");
+                  setError(null);
+                  setInfoMsg(null);
+                }}
                 className="w-full text-xs text-center text-fg-4 hover:text-fg font-medium pt-1 block"
               >
-                &larr; Back to password sign-in
+                &larr; Back to sign-in
               </button>
             </form>
           )}
 
+          {/* ─── STEP: FORGOT PASSWORD VERIFY ───────────────────────────────────── */}
           {step === "forgot_password_verify" && (
             <form onSubmit={handleVerifyForgotCode} className="space-y-4">
               <div>
@@ -600,7 +820,11 @@ function LoginForm() {
 
               <button
                 type="button"
-                onClick={() => { setStep("forgot_password_request"); setError(null); setInfoMsg(null); }}
+                onClick={() => {
+                  setStep("forgot_password_request");
+                  setError(null);
+                  setInfoMsg(null);
+                }}
                 className="w-full text-xs text-center text-fg-4 hover:text-fg font-medium pt-1 block"
               >
                 &larr; Request a new code
@@ -608,6 +832,7 @@ function LoginForm() {
             </form>
           )}
 
+          {/* ─── ALTERNATIVE SIGN-IN (GOOGLE & SIGNUP LINK) ────────────────────── */}
           {step === "email" && (
             <>
               <div className="relative my-6">

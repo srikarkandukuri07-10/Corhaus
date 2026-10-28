@@ -146,12 +146,27 @@ export async function POST(request: Request) {
     }
 
     // ─── 2. STAFF IDENTITY (Manager, Owner, Receptionist, Trainer, Staff) ────
-    const { data: staff } = await serviceClient
-      .from("staff_members")
-      .select("id, role, full_name, phone_number, employment_status")
-      .ilike("email", normalizedEmail)
-      .limit(1)
-      .maybeSingle();
+    let staff: any = null;
+    if (normalizedEmail) {
+      const { data } = await serviceClient
+        .from("staff_members")
+        .select("id, role, full_name, phone_number, employment_status")
+        .ilike("email", normalizedEmail)
+        .limit(1)
+        .maybeSingle();
+      staff = data;
+    }
+
+    if (!staff && phone) {
+      const { normalizePhoneNumber } = await import("@/lib/auth-canonical");
+      const normP = normalizePhoneNumber(phone);
+      if (normP) {
+        const { data: staffList } = await serviceClient
+          .from("staff_members")
+          .select("id, role, full_name, phone_number, employment_status");
+        staff = (staffList || []).find((s) => normalizePhoneNumber(s.phone_number) === normP) || null;
+      }
+    }
 
     const isStaffEmail = !!staff || isAdminEmail(normalizedEmail) || normalizedEmail === "admin@corhaus.com";
 
