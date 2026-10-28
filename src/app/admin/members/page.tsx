@@ -296,6 +296,7 @@ function MembersPageContent() {
 
   // Selected member drawer detail
   const [selectedMember, setSelectedMember] = useState<ApprovedMember | null>(null);
+  const [detailsTab, setDetailsTab] = useState<"personal" | "billing" | "invoices">("personal");
 
   // Selected bill detail modal
   const [selectedInvoice, setSelectedInvoice] = useState<FullInvoiceRecord | null>(null);
@@ -908,6 +909,7 @@ function MembersPageContent() {
   async function handleOpenDetails(member: ApprovedMember) {
     setSelectedMember(member);
     setSelectedReferral(null);
+    setDetailsTab("personal");
 
     // 1. Fetch attendance session logs
     // attendance.member_id may store the auth uid (profiles.id) rather than
@@ -948,26 +950,80 @@ function MembersPageContent() {
       classes: Array.isArray(l.classes) ? l.classes[0] || null : l.classes || null,
     }));
 
-    // 3. Relational query: fetch all completed bills for this member (newest first)
-    const { data: custData } = await supabase
-      .from("customers")
-      .select("id")
-      .eq("approved_member_id", member.id);
+    // 3. Relational query: fetch all completed bills for this member (by customer_id, phone, or email)
+    const custIds: string[] = [];
+    try {
+      const { data: c1 } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("approved_member_id", member.id);
+      c1?.forEach((c) => { if (c?.id && !custIds.includes(c.id)) custIds.push(c.id); });
 
-    const custIds = custData?.map((c) => c.id).filter(Boolean) || [];
+      const cleanPhone = (member.phone_number || "").replace(/\D/g, "");
+      if (cleanPhone.length >= 10) {
+        const { data: c2 } = await supabase
+          .from("customers")
+          .select("id")
+          .ilike("phone", `%${cleanPhone.slice(-10)}%`);
+        c2?.forEach((c) => { if (c?.id && !custIds.includes(c.id)) custIds.push(c.id); });
+      }
+
+      if (member.email) {
+        const { data: c3 } = await supabase
+          .from("customers")
+          .select("id")
+          .ilike("email", member.email.trim());
+        c3?.forEach((c) => { if (c?.id && !custIds.includes(c.id)) custIds.push(c.id); });
+      }
+    } catch (e) {
+      console.warn("Error querying customers for member:", e);
+    }
+
+    let rawInvoices: any[] = [];
+    try {
+      if (custIds.length > 0) {
+        const { data: inv1 } = await supabase
+          .from("invoices")
+          .select("*")
+          .in("customer_id", custIds);
+        if (inv1) rawInvoices.push(...inv1);
+      }
+
+      const cleanPhone = (member.phone_number || "").replace(/\D/g, "");
+      if (cleanPhone.length >= 10) {
+        const { data: inv2 } = await supabase
+          .from("invoices")
+          .select("*")
+          .ilike("customer_phone", `%${cleanPhone.slice(-10)}%`);
+        if (inv2) rawInvoices.push(...inv2);
+      }
+
+      if (member.email) {
+        const { data: inv3 } = await supabase
+          .from("invoices")
+          .select("*")
+          .ilike("customer_email", member.email.trim());
+        if (inv3) rawInvoices.push(...inv3);
+      }
+    } catch (e) {
+      console.warn("Error querying invoices for member:", e);
+    }
+
+    const uniqueInvMap = new Map<string, any>();
+    rawInvoices.forEach((inv) => {
+      if (inv && inv.id && !uniqueInvMap.has(inv.id)) {
+        uniqueInvMap.set(inv.id, inv);
+      }
+    });
+
+    const uniqueInvoices = Array.from(uniqueInvMap.values()).sort(
+      (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    );
 
     let fullBillingHistory: FullInvoiceRecord[] = [];
-
-    if (custIds.length > 0) {
-      const { data: invoicesData } = await supabase
-        .from("invoices")
-        .select("*")
-        .in("customer_id", custIds)
-        .order("created_at", { ascending: false });
-
-      if (invoicesData && invoicesData.length > 0) {
-      const invIds = invoicesData.map((inv) => inv.id);
-      const createdByIds = [...new Set(invoicesData.map((inv) => inv.created_by).filter(Boolean))];
+    if (uniqueInvoices.length > 0) {
+      const invIds = uniqueInvoices.map((inv) => inv.id);
+      const createdByIds = [...new Set(uniqueInvoices.map((inv) => inv.created_by).filter(Boolean))];
 
       // Fetch invoice line items
       const { data: itemsData } = await supabase
@@ -998,13 +1054,12 @@ function MembersPageContent() {
         });
       }
 
-      fullBillingHistory = invoicesData.map((inv) => ({
+      fullBillingHistory = uniqueInvoices.map((inv) => ({
         ...inv,
         created_by_name: inv.created_by ? profilesMap.get(inv.created_by) || "Super Admin" : "Super Admin",
         items: itemsByInvMap.get(inv.id) || [],
       }));
     }
-  }
 
     // 4. Fetch active discount for member
     let activeDisc = null;
@@ -1652,251 +1707,450 @@ function MembersPageContent() {
               </div>
             </div>
 
-            {/* Member Profile Hero */}
-            <div className="flex items-center gap-3 sm:gap-4 bg-surface-2 p-3 sm:p-4 rounded-2xl border border-border-input min-w-0">
-              <div className="w-12 h-12 rounded-full overflow-hidden border border-border-input bg-surface flex items-center justify-center font-bold text-lg text-text-secondary flex-shrink-0">
-                {selectedMember.avatar_url ? (
-                  <img src={selectedMember.avatar_url} alt={selectedMember.full_name} className="w-full h-full object-cover" />
-                ) : (
-                  selectedMember.full_name.charAt(0).toUpperCase()
+            {/* Clean 3-Category Tabs */}
+            <div className="grid grid-cols-3 gap-1 p-1 bg-surface-2 rounded-2xl border border-border-input text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setDetailsTab("personal")}
+                className={`py-2 px-1 text-center rounded-xl transition-all duration-150 ${
+                  detailsTab === "personal"
+                    ? "bg-accent text-white shadow-xs font-bold"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                Personal Info
+              </button>
+              <button
+                type="button"
+                onClick={() => setDetailsTab("billing")}
+                className={`py-2 px-1 text-center rounded-xl transition-all duration-150 ${
+                  detailsTab === "billing"
+                    ? "bg-accent text-white shadow-xs font-bold"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                Billing &amp; Plan
+              </button>
+              <button
+                type="button"
+                onClick={() => setDetailsTab("invoices")}
+                className={`py-2 px-1 text-center rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 ${
+                  detailsTab === "invoices"
+                    ? "bg-accent text-white shadow-xs font-bold"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                <span>Invoices</span>
+                {selectedMember.billingHistory && selectedMember.billingHistory.length > 0 && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      detailsTab === "invoices"
+                        ? "bg-white/20 text-white"
+                        : "bg-surface text-text-gold border border-border-input"
+                    }`}
+                  >
+                    {selectedMember.billingHistory.length}
+                  </span>
                 )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="font-semibold text-text-primary text-base truncate">{selectedMember.full_name}</h3>
-                <p className="text-xs text-text-secondary/60 truncate">{selectedMember.phone_number}</p>
-                <p className="text-xs text-text-secondary/60 truncate break-all">{selectedMember.email}</p>
-              </div>
+              </button>
             </div>
 
-            {/* Package Info Card */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider">Package Info</h4>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                <div className="bg-surface-2 p-3 rounded-xl border border-border-input">
-                  <span className="text-[10px] text-text-secondary/50 block">Package</span>
-                  <span className="text-xs font-bold text-text-primary">
-                    {selectedMember.activePlan?.plan_name || <span className="font-normal italic text-text-secondary/50">No package selected</span>}
-                  </span>
+            {/* ════════════════════════════════════════════════════════════════ */}
+            {/* CATEGORY 1: PERSONAL INFO                                       */}
+            {/* ════════════════════════════════════════════════════════════════ */}
+            {detailsTab === "personal" && (
+              <div className="space-y-4 animate-fade-in">
+                {/* Member Profile Hero */}
+                <div className="flex items-center gap-3 sm:gap-4 bg-surface-2 p-3.5 sm:p-4 rounded-2xl border border-border-input min-w-0">
+                  <div className="w-14 h-14 rounded-full overflow-hidden border border-border-input bg-surface flex items-center justify-center font-bold text-xl text-text-secondary flex-shrink-0 shadow-xs">
+                    {selectedMember.avatar_url ? (
+                      <img src={selectedMember.avatar_url} alt={selectedMember.full_name} className="w-full h-full object-cover" />
+                    ) : (
+                      selectedMember.full_name.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-text-primary text-base truncate">{selectedMember.full_name}</h3>
+                      <StatusBadge status={selectedMember.membership_status || "Active"} />
+                    </div>
+                    <p className="text-xs text-text-secondary/70 truncate mt-0.5">{selectedMember.phone_number}</p>
+                    <p className="text-xs text-text-secondary/70 truncate break-all">{selectedMember.email}</p>
+                  </div>
                 </div>
-                <div className="bg-surface-2 p-3 rounded-xl border border-border-input">
-                  <span className="text-[10px] text-text-secondary/50 block">Classes / Sessions</span>
-                  <span className="text-xs font-bold text-text-primary">
-                    {selectedMember.activePlan ? formatSessionsDisplay(selectedMember.activePlan).text : "No Sessions"}
-                  </span>
-                </div>
-                <div className="bg-surface-2 p-3 rounded-xl border border-border-input">
-                  <span className="text-[10px] text-text-secondary/50 block">Start Date</span>
-                  <span className="text-xs font-bold text-text-primary">
-                    {selectedMember.activePlan?.valid_from ? formatDate(selectedMember.activePlan.valid_from) : "N/A"}
-                  </span>
-                </div>
-                <div className="bg-surface-2 p-3 rounded-xl border border-border-input">
-                  <span className="text-[10px] text-text-secondary/50 block">End Date</span>
-                  <span className="text-xs font-bold text-text-primary">
-                    {selectedMember.activePlan?.valid_until ? formatDate(selectedMember.activePlan.valid_until) : "N/A"}
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            {/* Validity Status Highlight */}
-            <div className={`p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-2 border ${
-              selectedMember.activePlan
-                ? "bg-emerald-500/10 border-emerald-500/20"
-                : "bg-surface-2 border-border-input"
-            }`}>
-              <div>
-                <span className="text-[11px] font-bold text-emerald-500 block uppercase tracking-wider">Validity Status</span>
-                <span className="text-sm font-extrabold text-text-primary mt-0.5 block">
-                  {selectedMember.activePlan
-                    ? (selectedMember.daysLeft !== null && selectedMember.daysLeft !== undefined
-                        ? `${selectedMember.daysLeft} days remaining`
-                        : "Active Plan")
-                    : "No Active Plan (Pending Billing)"}
-                </span>
-              </div>
-              <StatusBadge status={selectedMember.activePlan ? (selectedMember.computedStatus || "Active") : "No Package"} />
-            </div>
+                {/* Personal & Account Details Grid */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider">Account Details</h4>
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs">
+                    <div className="bg-surface-2 p-3 rounded-xl border border-border-input">
+                      <span className="text-[10px] text-text-secondary/50 block font-medium">Member ID</span>
+                      <span className="font-mono font-semibold text-text-primary truncate block" title={selectedMember.id}>
+                        {selectedMember.id.slice(0, 10)}...
+                      </span>
+                    </div>
+                    <div className="bg-surface-2 p-3 rounded-xl border border-border-input">
+                      <span className="text-[10px] text-text-secondary/50 block font-medium">Joined Date</span>
+                      <span className="font-semibold text-text-primary block">
+                        {formatDate(selectedMember.created_at)}
+                      </span>
+                    </div>
+                    <div className="bg-surface-2 p-3 rounded-xl border border-border-input">
+                      <span className="text-[10px] text-text-secondary/50 block font-medium">Skill Level</span>
+                      <span className="font-semibold text-text-primary block">
+                        {selectedMember.membership_level || "Beginner"}
+                      </span>
+                    </div>
+                    <div className="bg-surface-2 p-3 rounded-xl border border-border-input">
+                      <span className="text-[10px] text-text-secondary/50 block font-medium">Total Attendance</span>
+                      <span className="font-semibold text-text-primary block">
+                        {selectedMember.sessionLogs?.length ?? 0} sessions
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-            {/* Active Member Discount Card */}
-            {selectedMember.activeDiscount ? (
-              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[11px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M17 17h.01M7 7l10 10M7 7a4 4 0 115.657 5.657M17 17a4 4 0 11-5.657-5.657" />
-                    </svg>
-                    Active Member Discount
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-500 text-white shadow-xs flex-shrink-0">
-                    {selectedMember.activeDiscount.discount_type === "percentage"
-                      ? `${selectedMember.activeDiscount.discount_value}% OFF`
-                      : `₹${selectedMember.activeDiscount.discount_value.toLocaleString("en-IN")} OFF`}
-                  </span>
+                {/* Referral Program Info (if available) */}
+                {selectedReferral && (
+                  <div className="p-3.5 rounded-2xl bg-surface-2 border border-border-input space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-text-gold uppercase tracking-wider">Referral Code</span>
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-surface border border-border-gold text-text-gold">
+                        {selectedReferral.code}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-text-secondary/70">
+                      <span>Successful Referrals:</span>
+                      <strong className="text-text-primary">{selectedReferral.successful_referrals}</strong>
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Session Logs */}
+                <div className="space-y-2 pt-2 border-t border-border-input">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider">Recent Attendance</h4>
+                    <span className="text-[11px] text-text-secondary/40 font-medium">Latest 10</span>
+                  </div>
+                  {selectedMember.sessionLogs && selectedMember.sessionLogs.length > 0 ? (
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                      {selectedMember.sessionLogs.map((log) => (
+                        <div key={log.id} className="text-xs p-2.5 rounded-xl bg-surface-2 border border-border-input flex items-center justify-between">
+                          <div className="min-w-0 flex-1 pr-2">
+                            <span className="font-semibold text-text-primary block truncate">
+                              {log.classes?.title || "Pilates Session"}
+                            </span>
+                            <span className="text-[10px] text-emerald-500 font-medium">
+                              {log.attendance_status || "Attended"}
+                            </span>
+                          </div>
+                          <span className="text-text-secondary/60 font-mono text-[11px] flex-shrink-0">
+                            {new Date(log.scanned_at).toLocaleDateString("en-IN")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-text-secondary/50 bg-surface-2 p-3 rounded-xl border border-border-input text-center">
+                      No attendance session logs recorded yet
+                    </p>
+                  )}
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-1">
-                  <span className="text-text-secondary/70 font-medium">
-                    Reason: <strong className="text-text-primary">{selectedMember.activeDiscount.reason}</strong> ({selectedMember.activeDiscount.source})
-                  </span>
-                  <span className="text-[10px] text-emerald-500 font-bold">Auto-Applies on Next Bill</span>
+
+                {/* Actions Panel */}
+                <div className="space-y-2 pt-2 border-t border-border-input">
+                  <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Member Actions</h4>
+                  {selectedMember.membership_status === "active" ? (
+                    <button
+                      onClick={() => handleUpdateMemberStatus(selectedMember, "frozen")}
+                      className="w-full py-2.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-800 text-xs font-semibold hover:bg-blue-100 transition-colors shadow-2xs"
+                    >
+                      Freeze Membership
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleUpdateMemberStatus(selectedMember, "active")}
+                      className="w-full py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors shadow-2xs"
+                    >
+                      Unfreeze / Activate Membership
+                    </button>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      onClick={() => handleOpenEdit(selectedMember)}
+                      className="w-full py-2.5 rounded-xl border border-border-input bg-surface-2 text-text-primary text-xs font-semibold hover:bg-hover transition-colors shadow-2xs"
+                    >
+                      Edit Profile
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDeleteConfirmEmail("");
+                        setDeletingMember(selectedMember);
+                      }}
+                      className="w-full py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-colors shadow-2xs"
+                    >
+                      Delete Member
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="p-3 rounded-2xl bg-surface-2 border border-border-input flex items-center justify-between text-xs text-text-secondary/70">
-                <span>Active Discount: <span className="font-semibold text-text-secondary">No Active Discount</span></span>
-                <Link
-                  href="/admin/discounts"
-                  className="text-xs text-text-gold font-bold hover:underline"
-                >
-                  + Add Discount
-                </Link>
               </div>
             )}
 
-            {/* ─── DEDICATED BILLING HISTORY SECTION ──────────────────────────── */}
-            <div className="space-y-3 pt-2 border-t border-border-input">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
-                  <span>Billing History</span>
-                  {selectedMember.billingHistory && selectedMember.billingHistory.length > 0 && (
-                    <span className="bg-bg-button text-white text-[10px] px-2 py-0.5 rounded-full font-sans">
-                      {selectedMember.billingHistory.length}
+            {/* ════════════════════════════════════════════════════════════════ */}
+            {/* CATEGORY 2: BILLING & PLAN INFO                                 */}
+            {/* ════════════════════════════════════════════════════════════════ */}
+            {detailsTab === "billing" && (
+              <div className="space-y-4 animate-fade-in">
+                {/* Active Package Card */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider">Active Package</h4>
+                    <StatusBadge status={selectedMember.activePlan ? (selectedMember.computedStatus || "Active") : "No Package"} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                    <div className="bg-surface-2 p-3 rounded-xl border border-border-input col-span-2">
+                      <span className="text-[10px] text-text-secondary/50 block">Package Plan</span>
+                      <span className="text-sm font-bold text-text-primary block mt-0.5">
+                        {selectedMember.activePlan?.plan_name || (
+                          <span className="font-normal italic text-text-secondary/50">No active package</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="bg-surface-2 p-3 rounded-xl border border-border-input">
+                      <span className="text-[10px] text-text-secondary/50 block">Classes / Sessions</span>
+                      <span className="text-xs font-bold text-text-primary block mt-0.5">
+                        {selectedMember.activePlan ? formatSessionsDisplay(selectedMember.activePlan).text : "No Sessions"}
+                      </span>
+                    </div>
+                    <div className="bg-surface-2 p-3 rounded-xl border border-border-input">
+                      <span className="text-[10px] text-text-secondary/50 block">Days Left</span>
+                      <span className="text-xs font-bold text-text-primary block mt-0.5">
+                        {selectedMember.daysLeft !== null && selectedMember.daysLeft !== undefined
+                          ? `${selectedMember.daysLeft} days`
+                          : "N/A"}
+                      </span>
+                    </div>
+                    <div className="bg-surface-2 p-3 rounded-xl border border-border-input">
+                      <span className="text-[10px] text-text-secondary/50 block">Valid From</span>
+                      <span className="text-xs font-bold text-text-primary block mt-0.5">
+                        {selectedMember.activePlan?.valid_from ? formatDate(selectedMember.activePlan.valid_from) : "N/A"}
+                      </span>
+                    </div>
+                    <div className="bg-surface-2 p-3 rounded-xl border border-border-input">
+                      <span className="text-[10px] text-text-secondary/50 block">Valid Until</span>
+                      <span className="text-xs font-bold text-text-primary block mt-0.5">
+                        {selectedMember.activePlan?.valid_until ? formatDate(selectedMember.activePlan.valid_until) : "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Validity Status Highlight */}
+                <div className={`p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-2 border ${
+                  selectedMember.activePlan
+                    ? "bg-emerald-500/10 border-emerald-500/20"
+                    : "bg-surface-2 border-border-input"
+                }`}>
+                  <div>
+                    <span className="text-[11px] font-bold text-emerald-500 block uppercase tracking-wider">Validity Status</span>
+                    <span className="text-sm font-extrabold text-text-primary mt-0.5 block">
+                      {selectedMember.activePlan
+                        ? (selectedMember.daysLeft !== null && selectedMember.daysLeft !== undefined
+                            ? `${selectedMember.daysLeft} days remaining`
+                            : "Active Plan")
+                        : "No Active Plan (Pending Billing)"}
                     </span>
-                  )}
-                </h4>
-                <span className="text-[11px] text-text-secondary/40 font-medium">Newest first</span>
-              </div>
+                  </div>
+                  <StatusBadge status={selectedMember.activePlan ? (selectedMember.computedStatus || "Active") : "No Package"} />
+                </div>
 
-              {selectedMember.billingHistory && selectedMember.billingHistory.length > 0 ? (
-                <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                  {selectedMember.billingHistory.map((inv) => (
-                    <div
-                      key={inv.id}
-                      onClick={() => setSelectedInvoice(inv)}
-                      className="p-3.5 rounded-xl bg-surface-2 border border-border-input hover:border-border-gold transition-all cursor-pointer space-y-2 group shadow-2xs"
+                {/* Active Member Discount Card */}
+                {selectedMember.activeDiscount ? (
+                  <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M17 17h.01M7 7l10 10M7 7a4 4 0 115.657 5.657M17 17a4 4 0 11-5.657-5.657" />
+                        </svg>
+                        Active Member Discount
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-500 text-white shadow-xs flex-shrink-0">
+                        {selectedMember.activeDiscount.discount_type === "percentage"
+                          ? `${selectedMember.activeDiscount.discount_value}% OFF`
+                          : `₹${selectedMember.activeDiscount.discount_value.toLocaleString("en-IN")} OFF`}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-1">
+                      <span className="text-text-secondary/70 font-medium">
+                        Reason: <strong className="text-text-primary">{selectedMember.activeDiscount.reason}</strong> ({selectedMember.activeDiscount.source})
+                      </span>
+                      <span className="text-[10px] text-emerald-500 font-bold">Auto-Applies on Next Bill</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-surface-2 border border-border-input flex items-center justify-between text-xs text-text-secondary/70">
+                    <div>
+                      <span className="text-[10px] text-text-secondary/50 block font-medium uppercase tracking-wider">Member Discount</span>
+                      <span className="font-semibold text-text-secondary block mt-0.5">No Active Discount</span>
+                    </div>
+                    <Link
+                      href="/admin/discounts"
+                      className="px-3 py-1.5 rounded-xl bg-surface border border-border-gold text-xs text-text-gold font-bold hover:bg-hover transition-colors shadow-2xs"
                     >
-                      {/* Row Header */}
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-2 min-w-0">
-                          <span className="font-mono text-xs font-bold text-text-primary group-hover:text-text-gold transition-colors truncate">
-                            {inv.invoice_number}
-                          </span>
-                          <StatusBadge status={inv.payment_status} />
-                        </div>
-                        <span className="text-[11px] text-text-secondary/50 flex-shrink-0">
-                          {formatDate(inv.created_at)}
-                        </span>
-                      </div>
+                      + Add Discount
+                    </Link>
+                  </div>
+                )}
 
-                      {/* Items Summary */}
-                      <div className="space-y-1">
-                        {inv.items && inv.items.length > 0 ? (
-                          inv.items.map((it) => (
-                            <div key={it.id} className="flex flex-wrap items-center justify-between gap-1 text-xs">
-                              <div className="flex items-center gap-2 min-w-0 flex-1 truncate pr-2">
-                                <span className="font-medium text-text-primary truncate">{it.name}</span>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface text-text-gold border border-border-input font-semibold flex-shrink-0">
-                                  {it.category}
+                {/* All Purchased Packages History */}
+                <div className="space-y-2 pt-2 border-t border-border-input">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider">Purchased Packages History</h4>
+                    <span className="text-[11px] text-text-secondary/40 font-medium">
+                      {selectedMember.allPlans ? `${selectedMember.allPlans.length} plans` : "0 plans"}
+                    </span>
+                  </div>
+                  {selectedMember.allPlans && selectedMember.allPlans.length > 0 ? (
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {selectedMember.allPlans.map((plan) => (
+                        <div key={plan.id} className="p-3 rounded-xl bg-surface-2 border border-border-input space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-semibold text-xs text-text-primary truncate">{plan.plan_name}</span>
+                            <StatusBadge status={plan.status || "Active"} />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-text-secondary/60">
+                            <span>
+                              {formatSessionsDisplay(plan).text}
+                            </span>
+                            <span>
+                              {plan.valid_from ? formatDate(plan.valid_from) : "N/A"} — {plan.valid_until ? formatDate(plan.valid_until) : "N/A"}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-text-secondary/50 bg-surface-2 p-3 rounded-xl border border-border-input text-center">
+                      No packages recorded for this member yet
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ════════════════════════════════════════════════════════════════ */}
+            {/* CATEGORY 3: INVOICES (DEDICATED SECTION)                        */}
+            {/* ════════════════════════════════════════════════════════════════ */}
+            {detailsTab === "invoices" && (
+              <div className="space-y-3 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
+                      <span>All Invoices</span>
+                      {selectedMember.billingHistory && selectedMember.billingHistory.length > 0 && (
+                        <span className="bg-accent text-white text-[10px] px-2 py-0.5 rounded-full font-sans font-bold">
+                          {selectedMember.billingHistory.length}
+                        </span>
+                      )}
+                    </h4>
+                    <p className="text-[11px] text-text-secondary/60 mt-0.5">Click any invoice to view and print full receipt</p>
+                  </div>
+                  <span className="text-[11px] text-text-secondary/40 font-medium">Newest first</span>
+                </div>
+
+                {selectedMember.billingHistory && selectedMember.billingHistory.length > 0 ? (
+                  <div className="space-y-3 max-h-[58dvh] overflow-y-auto pr-1">
+                    {selectedMember.billingHistory.map((inv) => (
+                      <div
+                        key={inv.id}
+                        onClick={() => setSelectedInvoice(inv)}
+                        className="p-3.5 rounded-2xl bg-surface-2 border border-border-input hover:border-accent transition-all cursor-pointer space-y-2.5 group shadow-2xs hover:shadow-xs"
+                      >
+                        {/* Invoice Top Row */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-mono text-xs font-bold text-text-primary group-hover:text-accent transition-colors truncate">
+                              {inv.invoice_number}
+                            </span>
+                            <StatusBadge status={inv.payment_status} />
+                          </div>
+                          <span className="text-[11px] text-text-secondary/60 flex-shrink-0 font-medium">
+                            {formatDate(inv.created_at)}
+                          </span>
+                        </div>
+
+                        {/* Items breakdown */}
+                        <div className="space-y-1 bg-surface p-2.5 rounded-xl border border-border-input/60">
+                          {inv.items && inv.items.length > 0 ? (
+                            inv.items.map((it) => (
+                              <div key={it.id} className="flex items-center justify-between gap-1 text-xs">
+                                <div className="flex items-center gap-1.5 min-w-0 flex-1 truncate pr-2">
+                                  <span className="font-medium text-text-primary truncate">{it.name}</span>
+                                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface-2 text-text-gold font-semibold flex-shrink-0">
+                                    {it.category}
+                                  </span>
+                                </div>
+                                <span className="font-semibold text-text-secondary flex-shrink-0">
+                                  x{it.quantity} • {fmt(it.total_price)}
                                 </span>
                               </div>
-                              <span className="font-semibold text-text-secondary flex-shrink-0">
-                                x{it.quantity} • {fmt(it.total_price)}
-                              </span>
+                            ))
+                          ) : (
+                            <div className="flex items-center justify-between gap-1 text-xs">
+                              <span className="font-medium text-text-primary">Pilates Membership / Service</span>
+                              <span className="font-semibold text-text-secondary">{fmt(inv.grand_total)}</span>
                             </div>
-                          ))
-                        ) : (
-                          <div className="flex flex-wrap items-center justify-between gap-1 text-xs">
-                            <span className="font-medium text-text-primary">Pilates Plan</span>
-                            <span className="font-semibold text-text-secondary">{fmt(inv.grand_total)}</span>
-                          </div>
-                        )}
+                          )}
 
-                        {inv.discount_amount > 0 && (
-                          <div className="flex flex-wrap items-center justify-between gap-1 text-xs text-emerald-500 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg mt-1">
-                            <span className="min-w-0">Discount Applied ({inv.discount_type === "percentage" ? `${inv.discount_value}% OFF` : fmt(inv.discount_value)})</span>
-                            <span className="flex-shrink-0">− {fmt(inv.discount_amount)}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Payment & Staff Info Footer */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-text-secondary/60 pt-1.5 border-t border-border-input/60">
-                        <div className="flex flex-wrap items-center gap-2 min-w-0">
-                          <span>Paid via <strong className="text-text-primary">{inv.payment_method || "UPI"}</strong></span>
-                          <span>•</span>
-                          <span className="truncate">Staff: <strong className="text-text-primary">{inv.created_by_name}</strong></span>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <span className="font-bold text-text-primary text-xs leading-none block">
-                            {fmt(inv.grand_total)}
-                          </span>
-                          {inv.payment_status === "due" && (
-                            <span className="text-[10px] text-amber-500 font-bold block mt-0.5">
-                              Paid: {fmt(inv.amount_paid || 0)} • Due: {fmt(inv.grand_total - (inv.amount_paid || 0))}
-                            </span>
+                          {inv.discount_amount > 0 && (
+                            <div className="flex items-center justify-between gap-1 text-xs text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-lg mt-1">
+                              <span>Discount Applied ({inv.discount_type === "percentage" ? `${inv.discount_value}% OFF` : fmt(inv.discount_value)})</span>
+                              <span>− {fmt(inv.discount_amount)}</span>
+                            </div>
                           )}
                         </div>
+
+                        {/* Invoice Bottom Row */}
+                        <div className="flex items-center justify-between gap-2 text-[11px] text-text-secondary/70 pt-1 border-t border-border-input/60">
+                          <div className="min-w-0 truncate">
+                            <span>Paid via <strong className="text-text-primary">{inv.payment_method || "UPI"}</strong></span>
+                            <span className="mx-1">•</span>
+                            <span className="truncate">Staff: <strong className="text-text-primary">{inv.created_by_name}</strong></span>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <span className="font-black text-text-primary text-sm leading-none block">
+                              {fmt(inv.grand_total)}
+                            </span>
+                            {inv.payment_status === "due" && (
+                              <span className="text-[10px] text-amber-500 font-bold block mt-0.5">
+                                Paid: {fmt(inv.amount_paid || 0)} • Due: {fmt(inv.grand_total - (inv.amount_paid || 0))}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="text-center pt-1">
+                          <span className="text-[11px] font-bold text-accent group-hover:underline inline-flex items-center gap-1">
+                            View Receipt &amp; Print Details →
+                          </span>
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 px-4 bg-surface-2 rounded-2xl border border-border-input space-y-2">
+                    <div className="w-10 h-10 mx-auto rounded-full bg-surface border border-border-input flex items-center justify-center text-text-secondary">
+                      🧾
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 px-4 bg-surface-2 rounded-xl border border-border-input">
-                  <p className="text-xs text-text-secondary/50">No completed bills recorded for this member yet</p>
-                  <p className="text-[10px] text-text-secondary/40 mt-1">Completed bills from POS will automatically sync here</p>
-                </div>
-              )}
-            </div>
-
-            {/* Session Logs */}
-            <div className="space-y-3 pt-2 border-t border-border-input">
-              <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider">Session Logs</h4>
-              {selectedMember.sessionLogs && selectedMember.sessionLogs.length > 0 ? (
-                <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                  {selectedMember.sessionLogs.map((log) => (
-                    <div key={log.id} className="text-xs p-2.5 rounded-xl bg-surface-2 border border-border-input flex justify-between">
-                      <span className="font-semibold text-text-primary">{log.classes?.title || "Pilates Session"}</span>
-                      <span className="text-text-secondary/50 font-mono">{new Date(log.scanned_at).toLocaleDateString("en-IN")}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-text-secondary/40 bg-surface-2 p-3 rounded-xl border border-border-input text-center">
-                  No session logs recorded yet
-                </p>
-              )}
-            </div>
-
-            {/* Actions Panel */}
-            <div className="space-y-2 pt-2 border-t border-border-input">
-              <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Actions</h4>
-
-              {selectedMember.membership_status === "active" ? (
-                <button
-                  onClick={() => handleUpdateMemberStatus(selectedMember, "frozen")}
-                  className="w-full py-2.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-800 text-xs font-semibold hover:bg-blue-100"
-                >
-                  Freeze Membership
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleUpdateMemberStatus(selectedMember, "active")}
-                  className="w-full py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-semibold hover:bg-emerald-100"
-                >
-                  Unfreeze / Activate Membership
-                </button>
-              )}
-
-              <button
-                onClick={() => {
-                  setDeleteConfirmEmail("");
-                  setDeletingMember(selectedMember);
-                }}
-                className="w-full py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100"
-              >
-                Delete Member
-              </button>
-            </div>
+                    <p className="text-xs font-semibold text-text-primary">No invoices found for this member yet</p>
+                    <p className="text-[11px] text-text-secondary/60 max-w-xs mx-auto">
+                      Any bills created from the Billing POS system will automatically sync and show up here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

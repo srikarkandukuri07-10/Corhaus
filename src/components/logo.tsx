@@ -107,11 +107,11 @@ export default function Logo({
         <div
           className={`flex flex-col items-center justify-center text-center leading-none select-none w-full ${className}`}
           style={{
-            height: 52,
+            minHeight: 56,
             background: "#F6EFE6",
-            borderRadius: "10px",
+            borderRadius: "12px",
             border: "1px solid rgba(107, 68, 42, 0.08)",
-            padding: "6px 12px",
+            padding: "10px 20px",
           }}
         >
           <span
@@ -158,11 +158,12 @@ export default function Logo({
       <div
         className={`flex flex-col items-center justify-center text-center leading-none select-none shrink-0 ${className}`}
         style={{
-          width: imgSize,
-          height: imgSize,
+          minWidth: imgSize + 8,
+          minHeight: imgSize + 8,
           background: "#F6EFE6",
-          borderRadius: "10px",
+          borderRadius: "12px",
           border: "1px solid rgba(107, 68, 42, 0.08)",
+          padding: "8px 14px",
         }}
       >
         <span
