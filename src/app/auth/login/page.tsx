@@ -867,12 +867,7 @@ function LoginForm() {
                 )}
               </button>
 
-              <p className="mt-6 text-center text-sm text-fg-4">
-                Don&apos;t have an account?{" "}
-                <Link href="/auth/signup" className="text-accent font-medium hover:text-accent-dark transition-colors">
-                  Sign up
-                </Link>
-              </p>
+
             </>
           )}
         </div>

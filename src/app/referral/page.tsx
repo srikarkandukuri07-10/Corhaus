@@ -136,12 +136,12 @@ export default function ReferralPage() {
           </form>
 
           <p className="mt-6 text-center text-sm text-fg-4">
-            Don't have a code?{" "}
+            Already a member?{" "}
             <Link
-              href="/auth/signup"
+              href="/auth/login"
               className="text-accent font-medium hover:text-accent-dark transition-colors"
             >
-              Sign up here
+              Sign in here
             </Link>
           </p>
         </div>
