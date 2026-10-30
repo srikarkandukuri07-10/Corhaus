@@ -43,7 +43,7 @@ function getServiceClient() {
 export async function getTrialScheduleSettings(): Promise<TrialScheduleSettings> {
   try {
     const supabase = getServiceClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("admin_notifications")
       .select("message")
       .eq("type", "trial_slot_settings")
@@ -51,7 +51,7 @@ export async function getTrialScheduleSettings(): Promise<TrialScheduleSettings>
       .limit(1)
       .maybeSingle();
 
-    if (!data?.message) return DEFAULT_TRIAL_SCHEDULE_SETTINGS;
+    if (error || !data?.message) return DEFAULT_TRIAL_SCHEDULE_SETTINGS;
 
     const parsed = JSON.parse(data.message);
     if (!parsed || !Array.isArray(parsed.slots)) return DEFAULT_TRIAL_SCHEDULE_SETTINGS;
@@ -88,17 +88,21 @@ export async function saveTrialScheduleSettings(settings: Partial<TrialScheduleS
     .limit(1);
 
   if (existing && existing.length > 0) {
-    await supabase
+    const { error: updErr } = await supabase
       .from("admin_notifications")
       .update({ message: jsonString, is_read: true })
       .eq("id", existing[0].id);
+
+    if (updErr) throw new Error("Failed to update trial slot settings: " + updErr.message);
   } else {
-    await supabase.from("admin_notifications").insert({
+    const { error: insErr } = await supabase.from("admin_notifications").insert({
       type: "trial_slot_settings",
-      title: "Trial Slot Settings",
+      email: "admin@corhaus.com",
       message: jsonString,
       is_read: true,
     });
+
+    if (insErr) throw new Error("Failed to save trial slot settings: " + insErr.message);
   }
 
   return updated;

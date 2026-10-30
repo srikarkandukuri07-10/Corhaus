@@ -105,40 +105,22 @@ export default function Logo({
     if (isWhiteVariant) {
       const bannerFallback = (
         <div
-          className={`flex flex-col items-center justify-center text-center leading-none select-none w-full ${className}`}
+          className={`flex items-center justify-center w-full overflow-hidden select-none ${className}`}
           style={{
+            height: 56,
             minHeight: 56,
-            background: "#F6EFE6",
+            background: "#EFE7DD",
             borderRadius: "12px",
             border: "1px solid rgba(107, 68, 42, 0.08)",
-            padding: "10px 20px",
+            padding: "6px 14px",
           }}
         >
-          <span
-            className="tracking-tight"
-            style={{
-              fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif",
-              fontSize: "22px",
-              fontWeight: 700,
-              color: "#6B3A26",
-              lineHeight: 1,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Corhaus
-          </span>
-          <span
-            className="tracking-[0.14em] lowercase"
-            style={{
-              fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif",
-              fontSize: "9px",
-              fontWeight: 600,
-              color: "#6B3A26",
-              marginTop: "2px",
-            }}
-          >
-            pilates for everyone
-          </span>
+          <img
+            src="/corhaus-logo-banner.png"
+            alt="Corhaus - Pilates for everyone"
+            className="h-full w-auto object-contain"
+            style={{ maxHeight: 44, width: "auto", objectFit: "contain" }}
+          />
         </div>
       );
       if (href) {
@@ -156,38 +138,21 @@ export default function Logo({
   if (isWhiteVariant) {
     const fallbackCream = (
       <div
-        className={`flex flex-col items-center justify-center text-center leading-none select-none shrink-0 ${className}`}
+        className={`flex items-center justify-center overflow-hidden select-none shrink-0 ${className}`}
         style={{
-          minWidth: imgSize + 8,
-          minHeight: imgSize + 8,
-          background: "#F6EFE6",
+          width: imgSize + 12,
+          height: imgSize + 12,
+          background: "#EFE7DD",
           borderRadius: "12px",
           border: "1px solid rgba(107, 68, 42, 0.08)",
-          padding: "8px 14px",
+          padding: "4px",
         }}
       >
-        <span
-          className="font-normal tracking-tight"
-          style={{
-            fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif",
-            fontSize: size === "lg" ? "13px" : size === "sm" ? "10px" : "11.5px",
-            color: "#6B3A26",
-            lineHeight: 1,
-          }}
-        >
-          Corhaus
-        </span>
-        <span
-          className="tracking-[0.14em] lowercase"
-          style={{
-            fontFamily: "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif",
-            fontSize: size === "lg" ? "5.5px" : size === "sm" ? "4px" : "4.8px",
-            color: "#8B6A4F",
-            marginTop: "1px",
-          }}
-        >
-          pilates for everyone
-        </span>
+        <img
+          src="/corhaus-logo.png"
+          alt="Corhaus"
+          className="w-full h-full object-contain"
+        />
       </div>
     );
     if (href) {
