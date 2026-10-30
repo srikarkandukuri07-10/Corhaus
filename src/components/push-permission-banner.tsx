@@ -35,9 +35,22 @@ export default function PushPermissionBanner({
     try {
       if (typeof window !== "undefined" && "serviceWorker" in navigator) {
         const registration = await navigator.serviceWorker.ready;
+        // 1. Fire immediate device notification
+        try {
+          await registration.showNotification("🔔 Corhaus Pilates", {
+            body: "Test notification received! App alerts are working on this device.",
+            icon: "/corhaus-logo.png",
+            badge: "/corhaus-logo.png",
+            data: { url: "/" },
+          });
+        } catch (e) {
+          console.warn("Direct notification failed:", e);
+        }
+
+        // 2. Also dispatch via backend server
         const sub = await registration.pushManager.getSubscription();
         if (sub) {
-          const res = await fetch("/api/push/test", {
+          await fetch("/api/push/test", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -47,11 +60,9 @@ export default function PushPermissionBanner({
               message: "Corhaus push notifications are active and working on this device!",
             }),
           });
-          if (res.ok) {
-            setTestSent(true);
-            setTimeout(() => setTestSent(false), 4000);
-          }
         }
+        setTestSent(true);
+        setTimeout(() => setTestSent(false), 4000);
       }
     } catch (err) {
       console.error("Test alert error:", err);

@@ -13,6 +13,9 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+const DEFAULT_VAPID_PUBLIC_KEY =
+  "BHoJHnPNCIOTSVgdT4KjMFKTZAJRl4Lu77BosYYzmymPGgDWsyHioP0wF01bkJZ9isYcdYTw8xgcihSUTqVr6ns";
+
 export function usePushNotifications({
   role = "member",
   userId,
@@ -51,13 +54,7 @@ export function usePushNotifications({
       }
 
       const registration = await navigator.serviceWorker.ready;
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-
-      if (!vapidKey) {
-        console.warn("[PUSH] NEXT_PUBLIC_VAPID_PUBLIC_KEY is missing");
-        setLoading(false);
-        return false;
-      }
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
 
       let sub = await registration.pushManager.getSubscription();
       if (!sub) {
@@ -65,6 +62,18 @@ export function usePushNotifications({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidKey),
         });
+      }
+
+      // Show instant device notification right away
+      try {
+        await registration.showNotification("🎉 Notifications Enabled!", {
+          body: "You will now receive lock-screen alerts from Corhaus Pilates.",
+          icon: "/corhaus-logo.png",
+          badge: "/corhaus-logo.png",
+          data: { url: "/" },
+        });
+      } catch (notifErr) {
+        console.warn("Immediate notification error:", notifErr);
       }
 
       // Send subscription to server
@@ -81,7 +90,7 @@ export function usePushNotifications({
       if (res.ok) {
         setIsSubscribed(true);
         setLoading(false);
-        // Automatically send an instant welcome test push
+        // Also trigger server-side push test
         fetch("/api/push/test", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

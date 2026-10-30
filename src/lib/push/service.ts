@@ -17,6 +17,9 @@ export interface NotificationPayload {
   data?: Record<string, any>;
 }
 
+const DEFAULT_VAPID_PUBLIC_KEY = "BHoJHnPNCIOTSVgdT4KjMFKTZAJRl4Lu77BosYYzmymPGgDWsyHioP0wF01bkJZ9isYcdYTw8xgcihSUTqVr6ns";
+const DEFAULT_VAPID_PRIVATE_KEY = "LDhMFzUCKEqiBrcVpSid2TX0b-GsUI88Hqde4v1J1o8";
+
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -24,14 +27,9 @@ function getServiceClient() {
 }
 
 function ensureVapidConfig() {
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY || DEFAULT_VAPID_PRIVATE_KEY;
   const subject = process.env.VAPID_SUBJECT || "mailto:admin@corhaus.com";
-
-  if (!publicKey || !privateKey) {
-    console.warn("[PUSH] VAPID keys not configured in environment");
-    return false;
-  }
 
   try {
     webpush.setVapidDetails(subject, publicKey, privateKey);
