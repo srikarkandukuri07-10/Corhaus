@@ -97,6 +97,7 @@ export default function PackagesAndPlansPage() {
   const [formValidityDays, setFormValidityDays] = useState("");
   const [formSubcategory, setFormSubcategory] = useState("");
   const [formIsActive, setFormIsActive] = useState(true);
+  const [formStockQuantity, setFormStockQuantity] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // Load plans & count active subscribers from member_purchased_plans
@@ -149,6 +150,7 @@ export default function PackagesAndPlansPage() {
     setFormSessions("");
     setFormValidityDays("");
     setFormSubcategory("");
+    setFormStockQuantity("");
     setFormIsActive(true);
     setShowCreateModal(true);
   };
@@ -163,6 +165,7 @@ export default function PackagesAndPlansPage() {
     setFormSessions(plan.sessions?.toString() || "");
     setFormValidityDays(plan.validity_days?.toString() || "");
     setFormSubcategory(plan.subcategory || "");
+    setFormStockQuantity(plan.stock_quantity !== null && plan.stock_quantity !== undefined ? plan.stock_quantity.toString() : "");
     setFormIsActive(plan.is_active);
     setShowCreateModal(true);
     setMenuOpenId(null);
@@ -213,6 +216,7 @@ export default function PackagesAndPlansPage() {
     const sessionsNum = formSessions ? parseInt(formSessions, 10) : null;
     const validityNum = formValidityDays ? parseInt(formValidityDays, 10) : null;
 
+    const stockNum = formStockQuantity.trim() ? parseInt(formStockQuantity, 10) : null;
     const payload = {
       category: formCategory,
       name: formName,
@@ -220,9 +224,10 @@ export default function PackagesAndPlansPage() {
       price: priceNum,
       sessions: sessionsNum,
       validity_days: validityNum,
+      stock_quantity: stockNum,
       subcategory: formSubcategory || null,
       is_active: formIsActive,
-      grants_member_dashboard_access: true,
+      grants_member_dashboard_access: formCategory !== "Other Charges",
       ...(activeLocationId ? { location_id: activeLocationId } : {}),
     };
 
@@ -440,10 +445,38 @@ export default function PackagesAndPlansPage() {
 
                 {/* Tags Row */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[11px] font-extrabold rounded-full">
-                    {plan.sessions ? `${plan.sessions} Sessions` : "Unlimited"}{" "}
-                    {plan.validity_days ? `• ${plan.validity_days}d` : ""}
-                  </span>
+                  {activeTab === "Other Charges" ? (
+                    <>
+                      <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[11px] font-extrabold rounded-full">
+                        {plan.sessions ? `${plan.sessions} Sessions` : "Unlimited"}
+                      </span>
+                      {plan.stock_quantity !== null && plan.stock_quantity !== undefined ? (
+                        <span className={`px-2.5 py-1 text-[11px] font-extrabold rounded-full border ${
+                          plan.stock_quantity > 0
+                            ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                            : "bg-red-500/10 text-red-500 border-red-500/20"
+                        }`}>
+                          {plan.stock_quantity > 0 ? `Stock: ${plan.stock_quantity}` : "Out of stock"}
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 bg-surface-2 text-fg-3 border border-line text-[11px] font-medium rounded-full">
+                          Unlimited Stock
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[11px] font-extrabold rounded-full">
+                        {plan.sessions ? `${plan.sessions} Sessions` : "Unlimited"}{" "}
+                        {plan.validity_days ? `• ${plan.validity_days}d` : ""}
+                      </span>
+                      {plan.stock_quantity !== null && plan.stock_quantity !== undefined && (
+                        <span className="px-2.5 py-1 bg-blue-500/10 text-blue-600 border border-blue-500/20 text-[11px] font-extrabold rounded-full">
+                          Stock: {plan.stock_quantity}
+                        </span>
+                      )}
+                    </>
+                  )}
 
                   {plan.subcategory === "Couple" && (
                     <span className="px-2.5 py-1 bg-purple-500/10 text-purple-500 border border-purple-500/20 text-[11px] font-extrabold rounded-full flex items-center gap-1">
@@ -474,9 +507,11 @@ export default function PackagesAndPlansPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                     <span>
-                      {plan.active_subscribers_count && plan.active_subscribers_count > 0
-                        ? `${plan.active_subscribers_count} active`
-                        : "No active subscribers"}
+                      {activeTab === "Other Charges"
+                        ? "No active subscribers"
+                        : plan.active_subscribers_count && plan.active_subscribers_count > 0
+                          ? `${plan.active_subscribers_count} active`
+                          : "No active subscribers"}
                     </span>
                   </div>
 
@@ -591,6 +626,20 @@ export default function PackagesAndPlansPage() {
                     <option value="Couple">Couple</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-fg mb-1">
+                  Stock Quantity <span className="font-normal text-fg-4">(e.g. 5 waterbottles; leave empty for unlimited)</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Leave empty for unlimited stock"
+                  value={formStockQuantity}
+                  onChange={(e) => setFormStockQuantity(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-line-2 bg-surface-2 text-fg focus:ring-1 focus:ring-accent focus:outline-none font-mono"
+                />
               </div>
 
               <div>

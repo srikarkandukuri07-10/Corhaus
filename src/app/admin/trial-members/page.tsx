@@ -8,6 +8,7 @@ import { formatDate, formatTime } from "@/lib/date-utils";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { TrialSlot, TrialScheduleSettings, DEFAULT_TRIAL_SCHEDULE_SETTINGS } from "@/lib/trialSettings";
 
 interface TrialMember {
   id: string;
@@ -72,6 +73,102 @@ export default function TrialMembersPage() {
   // Available options for dropdowns
   const [availableClasses, setAvailableClasses] = useState<ClassOption[]>([]);
   const [availableStaff, setAvailableStaff] = useState<StaffOption[]>([]);
+
+  // Slot timings & customization modal states
+  const [showSlotSettingsModal, setShowSlotSettingsModal] = useState(false);
+  const [slotSettings, setSlotSettings] = useState<TrialScheduleSettings>(DEFAULT_TRIAL_SCHEDULE_SETTINGS);
+  const [slotSettingsLoading, setSlotSettingsLoading] = useState(false);
+  const [slotSettingsSaving, setSlotSettingsSaving] = useState(false);
+  const [slotSettingsSuccess, setSlotSettingsSuccess] = useState<string | null>(null);
+  const [slotSettingsError, setSlotSettingsError] = useState<string | null>(null);
+
+  // New slot form state
+  const [newSlotLabel, setNewSlotLabel] = useState("");
+  const [newSlotValue, setNewSlotValue] = useState("06:00");
+  const [newSlotPeriod, setNewSlotPeriod] = useState<"Morning" | "Evening">("Morning");
+
+  async function handleOpenSlotSettings() {
+    setShowSlotSettingsModal(true);
+    setSlotSettingsLoading(true);
+    setSlotSettingsSuccess(null);
+    setSlotSettingsError(null);
+    try {
+      const res = await fetch("/api/admin/trial-settings");
+      const json = await res.json();
+      if (res.ok && json.settings) {
+        setSlotSettings(json.settings);
+      }
+    } catch (e: any) {
+      setSlotSettingsError(e.message || "Failed to load trial settings");
+    } finally {
+      setSlotSettingsLoading(false);
+    }
+  }
+
+  async function handleSaveSlotSettings() {
+    setSlotSettingsSaving(true);
+    setSlotSettingsSuccess(null);
+    setSlotSettingsError(null);
+    try {
+      const res = await fetch("/api/admin/trial-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(slotSettings),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to save settings");
+      setSlotSettings(json.settings);
+      setSlotSettingsSuccess("Trial class slot timings updated successfully! Changes are immediately live on /book-trial.");
+      setTimeout(() => setSlotSettingsSuccess(null), 4000);
+    } catch (e: any) {
+      setSlotSettingsError(e.message || "Failed to save settings");
+    } finally {
+      setSlotSettingsSaving(false);
+    }
+  }
+
+  function handleAddSlot() {
+    if (!newSlotLabel.trim() || !newSlotValue) return;
+    const newSlot: TrialSlot = {
+      id: "slot_" + Date.now(),
+      label: newSlotLabel.trim(),
+      value: newSlotValue,
+      period: newSlotPeriod,
+      capacity: 10,
+      isActive: true,
+    };
+    setSlotSettings((prev) => ({
+      ...prev,
+      slots: [...prev.slots, newSlot],
+    }));
+    setNewSlotLabel("");
+  }
+
+  function handleRemoveSlot(id: string) {
+    setSlotSettings((prev) => ({
+      ...prev,
+      slots: prev.slots.filter((s) => s.id !== id),
+    }));
+  }
+
+  function handleToggleSlotActive(id: string) {
+    setSlotSettings((prev) => ({
+      ...prev,
+      slots: prev.slots.map((s) => (s.id === id ? { ...s, isActive: !s.isActive } : s)),
+    }));
+  }
+
+  function handleToggleDayOfWeek(day: number) {
+    setSlotSettings((prev) => {
+      const exists = prev.enabledDaysOfWeek.includes(day);
+      return {
+        ...prev,
+        enabledDaysOfWeek: exists
+          ? prev.enabledDaysOfWeek.filter((d) => d !== day)
+          : [...prev.enabledDaysOfWeek, day].sort(),
+      };
+    });
+  }
 
   // Search & Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -532,6 +629,16 @@ export default function TrialMembersPage() {
             >
               Open
             </a>
+            <button
+              onClick={handleOpenSlotSettings}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-surface-2 border border-line-2 text-accent text-xs font-bold hover:bg-hover transition-colors shrink-0"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Customize Slot Timings
+            </button>
           </div>
         </div>
       </div>
@@ -1275,6 +1382,298 @@ export default function TrialMembersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOMIZE TRIAL SLOTS & TIMINGS MODAL */}
+      {showSlotSettingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-surface border border-line-2 rounded-3xl max-w-2xl w-full p-4 sm:p-6 space-y-5 shadow-2xl max-h-[92dvh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-line-2 pb-4">
+              <div>
+                <h3 className="text-lg font-serif font-bold text-fg">Customize Trial Class Timings &amp; Slots</h3>
+                <p className="text-xs text-fg-3 mt-0.5">
+                  Changes made here immediately reflect on the public trial booking page (/book-trial).
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSlotSettingsModal(false)}
+                className="w-8 h-8 rounded-full bg-surface-2 text-fg-3 hover:text-fg font-bold flex items-center justify-center flex-shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+
+            {slotSettingsSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 text-xs font-bold">
+                ✓ {slotSettingsSuccess}
+              </div>
+            )}
+            {slotSettingsError && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 text-xs font-bold">
+                ✕ {slotSettingsError}
+              </div>
+            )}
+
+            {slotSettingsLoading ? (
+              <div className="py-12 text-center text-xs text-fg-3">Loading settings...</div>
+            ) : (
+              <div className="space-y-6 text-xs">
+                {/* 1. Date Availability Section */}
+                <div className="bg-surface-2 p-4 rounded-2xl border border-line-2 space-y-3">
+                  <h4 className="font-bold text-fg uppercase tracking-wider text-[11px] flex items-center gap-2">
+                    <span>1. Date Availability &amp; Booking Window</span>
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-fg-3 font-semibold mb-1">Days in Advance to Book</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={slotSettings.daysAhead}
+                        onChange={(e) =>
+                          setSlotSettings({ ...slotSettings, daysAhead: parseInt(e.target.value, 10) || 14 })
+                        }
+                        className="w-full px-3 py-2 rounded-xl border border-line-2 bg-surface text-fg focus:ring-1 focus:ring-accent outline-none font-mono"
+                      />
+                      <span className="text-[10px] text-fg-4 mt-0.5 block">e.g. 14 gives next 14 calendar days</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-fg-3 font-semibold mb-1">Available Days of Week</label>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {[
+                          { day: 1, label: "Mon" },
+                          { day: 2, label: "Tue" },
+                          { day: 3, label: "Wed" },
+                          { day: 4, label: "Thu" },
+                          { day: 5, label: "Fri" },
+                          { day: 6, label: "Sat" },
+                          { day: 0, label: "Sun" },
+                        ].map((d) => {
+                          const active = slotSettings.enabledDaysOfWeek.includes(d.day);
+                          return (
+                            <button
+                              key={d.day}
+                              type="button"
+                              onClick={() => handleToggleDayOfWeek(d.day)}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                active
+                                  ? "bg-accent text-white shadow-xs"
+                                  : "bg-surface border border-line-2 text-fg-4 hover:text-fg"
+                              }`}
+                            >
+                              {d.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <span className="text-[10px] text-fg-4 mt-1 block">Toggle days when trial classes are held</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Morning Slots */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-fg uppercase tracking-wider text-[11px]">
+                      2. Morning Reformer Slots ({slotSettings.slots.filter((s) => s.period === "Morning").length})
+                    </h4>
+                    <span className="text-[10px] text-fg-4">Active slots show on /book-trial</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {slotSettings.slots
+                      .filter((s) => s.period === "Morning")
+                      .map((slot) => (
+                        <div
+                          key={slot.id}
+                          className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-surface-2 border border-line-2"
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="font-mono text-xs font-bold text-accent bg-surface px-2 py-0.5 rounded-md border border-line-2">
+                              {slot.value}
+                            </span>
+                            <input
+                              type="text"
+                              value={slot.label}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSlotSettings((prev) => ({
+                                  ...prev,
+                                  slots: prev.slots.map((s) => (s.id === slot.id ? { ...s, label: val } : s)),
+                                }));
+                              }}
+                              className="px-2 py-1 bg-surface border border-line-2 rounded-lg text-xs text-fg flex-1 min-w-[120px]"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSlotActive(slot.id)}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+                                slot.isActive
+                                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                  : "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                              }`}
+                            >
+                              {slot.isActive ? "Active" : "Disabled"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSlot(slot.id)}
+                              className="text-red-500 hover:text-red-700 p-1 font-bold"
+                              title="Delete Slot"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                {/* 3. Evening Slots */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-fg uppercase tracking-wider text-[11px]">
+                      3. Evening Reformer Slots ({slotSettings.slots.filter((s) => s.period === "Evening").length})
+                    </h4>
+                    <span className="text-[10px] text-fg-4">Active slots show on /book-trial</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {slotSettings.slots
+                      .filter((s) => s.period === "Evening")
+                      .map((slot) => (
+                        <div
+                          key={slot.id}
+                          className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-surface-2 border border-line-2"
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="font-mono text-xs font-bold text-accent bg-surface px-2 py-0.5 rounded-md border border-line-2">
+                              {slot.value}
+                            </span>
+                            <input
+                              type="text"
+                              value={slot.label}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSlotSettings((prev) => ({
+                                  ...prev,
+                                  slots: prev.slots.map((s) => (s.id === slot.id ? { ...s, label: val } : s)),
+                                }));
+                              }}
+                              className="px-2 py-1 bg-surface border border-line-2 rounded-lg text-xs text-fg flex-1 min-w-[120px]"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSlotActive(slot.id)}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+                                slot.isActive
+                                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                  : "bg-gray-500/10 text-gray-400 border-gray-500/20"
+                              }`}
+                            >
+                              {slot.isActive ? "Active" : "Disabled"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSlot(slot.id)}
+                              className="text-red-500 hover:text-red-700 p-1 font-bold"
+                              title="Delete Slot"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                {/* 4. Add New Slot Panel */}
+                <div className="p-3.5 rounded-2xl bg-surface border border-dashed border-line-2 space-y-2">
+                  <h5 className="font-bold text-fg text-xs">+ Add New Slot</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                    <div>
+                      <label className="text-[10px] text-fg-3 block mb-0.5 font-semibold">Period</label>
+                      <select
+                        value={newSlotPeriod}
+                        onChange={(e) => setNewSlotPeriod(e.target.value as "Morning" | "Evening")}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-line-2 bg-surface-2 text-fg text-xs"
+                      >
+                        <option value="Morning">Morning</option>
+                        <option value="Evening">Evening</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-fg-3 block mb-0.5 font-semibold">Time (HH:MM)</label>
+                      <input
+                        type="time"
+                        value={newSlotValue}
+                        onChange={(e) => setNewSlotValue(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-line-2 bg-surface-2 text-fg text-xs font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-fg-3 block mb-0.5 font-semibold">Display Label</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 10:00 - 11:00 AM"
+                        value={newSlotLabel}
+                        onChange={(e) => setNewSlotLabel(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-line-2 bg-surface-2 text-fg text-xs"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={handleAddSlot}
+                        className="w-full py-1.5 rounded-lg bg-accent text-white font-bold hover:bg-accent-2 transition-colors text-xs"
+                      >
+                        Add Slot
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Modal Footer Controls */}
+                <div className="flex items-center justify-between gap-3 pt-4 border-t border-line-2">
+                  <button
+                    type="button"
+                    onClick={() => setSlotSettings(DEFAULT_TRIAL_SCHEDULE_SETTINGS)}
+                    className="text-xs text-fg-4 hover:text-fg underline font-semibold"
+                  >
+                    Reset to Defaults
+                  </button>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowSlotSettingsModal(false)}
+                      className="px-4 py-2 rounded-xl bg-surface-2 border border-line-2 text-fg font-semibold hover:bg-hover"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={slotSettingsSaving}
+                      onClick={handleSaveSlotSettings}
+                      className="px-5 py-2 rounded-xl bg-accent text-white font-bold hover:bg-accent-2 transition-all shadow-md shadow-accent/20 disabled:opacity-50"
+                    >
+                      {slotSettingsSaving ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

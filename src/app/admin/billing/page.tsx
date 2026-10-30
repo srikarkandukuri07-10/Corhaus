@@ -264,7 +264,12 @@ export default function CreateBillPage() {
       : Math.min(val, subtotal);
   }, [subtotal, discountType, discountValue, showDiscount]);
 
-  const grandTotal = subtotal - discountAmount;
+  const baseTotal = Math.max(0, subtotal - discountAmount);
+
+  // Payment method surcharge: UPI adds 4%, Card adds 2%
+  const surchargePercentage = paymentMethod === "UPI" ? 4 : paymentMethod === "Card" ? 2 : 0;
+  const surchargeAmount = Math.round((baseTotal * (surchargePercentage / 100)) * 100) / 100;
+  const grandTotal = baseTotal + surchargeAmount;
 
   // ── Collection maths ──────────────────────────────────────────────────────
   // "Fully paying" -> the exact grand total is collected.
@@ -341,9 +346,15 @@ export default function CreateBillPage() {
 
   // ── Cart helpers ─────────────────────────────────────────
   function addToCart(item: BillingPlanItem) {
+    if (item.stock_quantity !== null && item.stock_quantity !== undefined && item.stock_quantity <= 0) return;
     setCartItems((prev) => {
       const existing = prev.find((c) => c.id === item.id);
-      if (existing) return prev.map((c) => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
+      if (existing) {
+        if (item.stock_quantity !== null && item.stock_quantity !== undefined && existing.quantity >= item.stock_quantity) {
+          return prev;
+        }
+        return prev.map((c) => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
+      }
       return [...prev, {
         cartId: `${item.id}-${Date.now()}`,
         id: item.id, name: item.name, category: item.category,
@@ -359,7 +370,16 @@ export default function CreateBillPage() {
   }
 
   function updateQty(cartId: string, delta: number) {
-    setCartItems((prev) => prev.map((c) => c.cartId === cartId ? { ...c, quantity: Math.max(1, c.quantity + delta) } : c));
+    setCartItems((prev) => prev.map((c) => {
+      if (c.cartId === cartId) {
+        const targetQty = c.quantity + delta;
+        if (delta > 0 && c.stock_quantity !== null && c.stock_quantity !== undefined && targetQty > c.stock_quantity) {
+          return c;
+        }
+        return { ...c, quantity: Math.max(1, targetQty) };
+      }
+      return c;
+    }));
   }
 
   function removeFromCart(cartId: string) {
@@ -480,7 +500,14 @@ export default function CreateBillPage() {
         payment_method:  collectedNow > 0 ? paymentMethod : null,
         amount_paid:     collectedNow,
         transaction_reference: transactionRef.trim() || null,
-        notes: notes.trim() || null,
+        notes: (() => {
+          let n = notes.trim() || null;
+          if (surchargeAmount > 0) {
+            const sn = `[${paymentMethod} Surcharge (${surchargePercentage}%): ₹${surchargeAmount}]`;
+            n = n ? `${n} ${sn}` : sn;
+          }
+          return n;
+        })(),
         created_by: user?.id || null,
       }).select("id").single();
       const invoiceId = invoice!.id;
@@ -512,15 +539,29 @@ export default function CreateBillPage() {
       );
       if (ie) throw new Error("Items save failed: " + ie.message);
 
-      // 5. Decrement product stock (active-branch catalogue rows only)
-      for (const item of cartItems) {
-        if (item.stock_quantity !== null && item.stock_quantity !== undefined) {
-          let stockQ = supabase.from("billing_plan_items")
-            .update({ stock_quantity: Math.max(0, item.stock_quantity - item.quantity) })
-            .eq("id", item.id);
-          if (activeLocationId) stockQ = stockQ.eq("location_id", activeLocationId);
-          await stockQ;
+      // 5. Decrement product stock via server service role API & update local catalogue
+      try {
+        const stockItemsToDec = cartItems
+          .filter((i) => i.id)
+          .map((i) => ({ id: i.id, quantity: i.quantity }));
+        if (stockItemsToDec.length > 0) {
+          await fetch("/api/admin/billing/decrement-stock", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items: stockItemsToDec }),
+          });
+          setAllItems((prev) =>
+            prev.map((p) => {
+              const bought = cartItems.find((c) => c.id === p.id);
+              if (bought && p.stock_quantity !== null && p.stock_quantity !== undefined) {
+                return { ...p, stock_quantity: Math.max(0, p.stock_quantity - bought.quantity) };
+              }
+              return p;
+            })
+          );
         }
+      } catch (stockErr) {
+        console.error("Stock decrement error:", stockErr);
       }
 
       // 6. Grant dashboard access for package items (regardless of partial/due payment)
@@ -1140,6 +1181,13 @@ export default function CreateBillPage() {
                     <span className="flex-shrink-0">− {fmt(discountAmount)}</span>
                   </div>
                 )}
+
+                {surchargeAmount > 0 && (
+                  <div className="flex items-center justify-between gap-2 flex-wrap text-xs text-amber-600 font-bold">
+                    <span className="min-w-0 break-words">{paymentMethod} Surcharge ({surchargePercentage}%)</span>
+                    <span className="flex-shrink-0">+ {fmt(surchargeAmount)}</span>
+                  </div>
+                )}
               </div>
 
               {/* Payment */}
@@ -1271,20 +1319,32 @@ export default function CreateBillPage() {
                     Paid by
                   </label>
                   <div className="grid grid-cols-4 gap-1.5">
-                    {PAYMENT_METHODS.map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => setPaymentMethod(m)}
-                        className={`py-2.5 rounded-xl text-[11px] font-bold transition-colors ${
-                          paymentMethod === m
-                            ? "bg-rail text-white"
-                            : "bg-surface border border-line text-fg-3 hover:bg-hover"
-                        }`}
-                      >
-                        {m}
-                      </button>
-                    ))}
+                    {PAYMENT_METHODS.map((m) => {
+                      const badge = m === "UPI" ? "+4%" : m === "Card" ? "+2%" : null;
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setPaymentMethod(m)}
+                          className={`py-2.5 rounded-xl text-[11px] font-bold transition-colors flex items-center justify-center gap-1 ${
+                            paymentMethod === m
+                              ? "bg-rail text-white shadow-xs"
+                              : "bg-surface border border-line text-fg-3 hover:bg-hover"
+                          }`}
+                        >
+                          <span>{m}</span>
+                          {badge && (
+                            <span
+                              className={`text-[9px] px-1 py-0.2 rounded-md font-extrabold ${
+                                paymentMethod === m ? "bg-white/20 text-white" : "bg-accent/10 text-accent"
+                              }`}
+                            >
+                              {badge}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

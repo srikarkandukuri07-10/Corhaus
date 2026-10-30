@@ -2285,6 +2285,12 @@ function MembersPageContent() {
                   <span className="flex-shrink-0">− {fmt(selectedInvoice.discount_amount)}</span>
                 </div>
               )}
+              {selectedInvoice.grand_total > (selectedInvoice.subtotal - (selectedInvoice.discount_amount || 0)) && (
+                <div className="flex flex-wrap justify-between gap-2 text-amber-600 font-semibold">
+                  <span className="min-w-0">{selectedInvoice.payment_method || "Payment"} Surcharge</span>
+                  <span className="flex-shrink-0">+ {fmt(selectedInvoice.grand_total - (selectedInvoice.subtotal - (selectedInvoice.discount_amount || 0)))}</span>
+                </div>
+              )}
               <div className="flex flex-wrap justify-between gap-2 text-text-secondary/70">
                 <span>Tax / GST</span>
                 <span>₹0 (Included)</span>

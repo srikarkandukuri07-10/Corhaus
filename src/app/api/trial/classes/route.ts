@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getTrialScheduleSettings } from "@/lib/trialSettings";
 
 export async function GET(req: Request) {
   try {
@@ -54,8 +55,9 @@ export async function GET(req: Request) {
       booked_count: bookedMap[c.id] || 0,
     }));
 
-    // Filter to only include classes that are not full (or show full as disabled)
-    return NextResponse.json({ classes: enriched });
+    const slotSettings = await getTrialScheduleSettings();
+
+    return NextResponse.json({ classes: enriched, slotSettings });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
   }

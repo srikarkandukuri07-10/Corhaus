@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import SiteFooter from "@/components/site-footer";
+import { TrialSlot, TrialScheduleSettings, DEFAULT_TRIAL_SLOTS, DEFAULT_TRIAL_SCHEDULE_SETTINGS } from "@/lib/trialSettings";
 
 interface ClassOption {
   id: string;
@@ -27,6 +28,7 @@ const TIME_SLOTS = [
 
 export default function BookTrialPage() {
   const [classes, setClasses] = useState<ClassOption[]>([]);
+  const [slotSettings, setSlotSettings] = useState<TrialScheduleSettings>(DEFAULT_TRIAL_SCHEDULE_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(() => {
     const tomorrow = new Date();
@@ -81,15 +83,23 @@ export default function BookTrialPage() {
 
   const upcomingDates = useMemo(() => {
     const dates = [];
-    for (let i = 1; i <= 14; i++) {
+    const limit = slotSettings.daysAhead || 14;
+    for (let i = 1; i <= limit; i++) {
       const d = new Date();
       d.setDate(d.getDate() + i);
+      const dayOfWeek = d.getDay(); // 0 = Sunday
       const iso = d.toISOString().split("T")[0];
+      if (slotSettings.enabledDaysOfWeek && !slotSettings.enabledDaysOfWeek.includes(dayOfWeek)) {
+        continue;
+      }
+      if (slotSettings.blockedDates && slotSettings.blockedDates.includes(iso)) {
+        continue;
+      }
       const label = d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
       dates.push({ iso, label });
     }
     return dates;
-  }, []);
+  }, [slotSettings]);
 
   useEffect(() => {
     async function load() {
@@ -97,8 +107,12 @@ export default function BookTrialPage() {
         const qs = branchSlug ? `?branch=${encodeURIComponent(branchSlug)}` : "";
         const res = await fetch(`/api/trial/classes${qs}`, { cache: "no-store" });
         const json = await res.json();
-        if (res.ok) setClasses(json.classes || []);
-        else setError(json.error || "Failed to load classes");
+        if (res.ok) {
+          setClasses(json.classes || []);
+          if (json.slotSettings) setSlotSettings(json.slotSettings);
+        } else {
+          setError(json.error || "Failed to load classes");
+        }
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -264,37 +278,43 @@ export default function BookTrialPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">Morning Reformer — 6 AM to 10 AM <span className="text-red-500">*</span></label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {TIME_SLOTS.filter(s => s.period === "Morning").map(slot => {
-                  const avail = getSlotAvailability(selectedDate, slot.value);
-                  const isSelected = selectedSlot === slot.value;
-                  return (
-                    <button key={slot.value} type="button" onClick={() => setSelectedSlot(slot.value)} className={`p-3 rounded-xl border-2 text-xs font-bold ${isSelected ? "bg-black text-white border-black" : avail.available ? "bg-white text-gray-900 border-gray-200 hover:border-black" : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"}`}>
-                      <div>{slot.label}</div>
-                      <div className="text-[10px] font-normal mt-1">{avail.available ? `${avail.spotsLeft} spots left` : "Full"}{avail.isNew ? " • New" : ""}</div>
-                    </button>
-                  );
-                })}
+            {/* Morning Slots */}
+            {slotSettings.slots.filter(s => s.period === "Morning" && s.isActive).length > 0 && (
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Morning Reformer Slots <span className="text-red-500">*</span></label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {slotSettings.slots.filter(s => s.period === "Morning" && s.isActive).map(slot => {
+                    const avail = getSlotAvailability(selectedDate, slot.value);
+                    const isSelected = selectedSlot === slot.value;
+                    return (
+                      <button key={slot.value} type="button" onClick={() => setSelectedSlot(slot.value)} className={`p-3 rounded-xl border-2 text-xs font-bold ${isSelected ? "bg-black text-white border-black" : avail.available ? "bg-white text-gray-900 border-gray-200 hover:border-black" : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"}`}>
+                        <div>{slot.label}</div>
+                        <div className="text-[10px] font-normal mt-1">{avail.available ? `${avail.spotsLeft} spots left` : "Full"}{avail.isNew ? " • New" : ""}</div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">Evening Reformer — 4 PM to 8 PM <span className="text-red-500">*</span></label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {TIME_SLOTS.filter(s => s.period === "Evening").map(slot => {
-                  const avail = getSlotAvailability(selectedDate, slot.value);
-                  const isSelected = selectedSlot === slot.value;
-                  return (
-                    <button key={slot.value} type="button" onClick={() => setSelectedSlot(slot.value)} className={`p-3 rounded-xl border-2 text-xs font-bold ${isSelected ? "bg-black text-white border-black" : avail.available ? "bg-white text-gray-900 border-gray-200 hover:border-black" : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"}`}>
-                      <div>{slot.label}</div>
-                      <div className="text-[10px] font-normal mt-1">{avail.available ? `${avail.spotsLeft} spots left` : "Full"}</div>
-                    </button>
-                  );
-                })}
+            {/* Evening Slots */}
+            {slotSettings.slots.filter(s => s.period === "Evening" && s.isActive).length > 0 && (
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Evening Reformer Slots <span className="text-red-500">*</span></label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {slotSettings.slots.filter(s => s.period === "Evening" && s.isActive).map(slot => {
+                    const avail = getSlotAvailability(selectedDate, slot.value);
+                    const isSelected = selectedSlot === slot.value;
+                    return (
+                      <button key={slot.value} type="button" onClick={() => setSelectedSlot(slot.value)} className={`p-3 rounded-xl border-2 text-xs font-bold ${isSelected ? "bg-black text-white border-black" : avail.available ? "bg-white text-gray-900 border-gray-200 hover:border-black" : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"}`}>
+                        <div>{slot.label}</div>
+                        <div className="text-[10px] font-normal mt-1">{avail.available ? `${avail.spotsLeft} spots left` : "Full"}</div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             <button type="submit" disabled={submitting || loading || !selectedSlot} className="w-full py-4 rounded-xl bg-black text-white font-extrabold text-sm hover:bg-gray-900 disabled:opacity-50">
               {submitting ? "Processing..." : rzpReady ? "Pay & Book Trial" : "Loading payment..."}

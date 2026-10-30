@@ -466,6 +466,13 @@ export default function InvoicesPage() {
                               valueClass="text-green-600"
                             />
                           )}
+                          {inv.grand_total > (inv.subtotal - (inv.discount_amount || 0)) && (
+                            <DetailRow
+                              label={`${inv.payment_method || "Payment"} Surcharge`}
+                              value={"+ " + fmt(inv.grand_total - (inv.subtotal - (inv.discount_amount || 0)))}
+                              valueClass="text-amber-600 font-semibold"
+                            />
+                          )}
                           <DetailRow
                             label="Grand Total"
                             value={fmt(inv.grand_total)}
