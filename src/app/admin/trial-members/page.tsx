@@ -7,6 +7,7 @@ import Pagination, { usePagination } from "@/components/pagination";
 import { formatDate, formatTime } from "@/lib/date-utils";
 
 import Link from "next/link";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useRouter } from "next/navigation";
 import { TrialSlot, TrialScheduleSettings, DEFAULT_TRIAL_SCHEDULE_SETTINGS } from "@/lib/trialSettings";
 
@@ -840,6 +841,14 @@ export default function TrialMembersPage() {
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                          <Link
+                            href={`/admin/inbox?phone=${encodeURIComponent(item.phone_number || "")}&name=${encodeURIComponent(item.full_name || "")}`}
+                            onClick={(e) => e.stopPropagation()}
+                            title={`Chat with ${item.full_name} on WhatsApp`}
+                            className="w-7 h-7 rounded-xl bg-emerald-600/10 hover:bg-emerald-600 border border-emerald-600/30 hover:border-emerald-600 text-emerald-600 hover:text-white flex items-center justify-center transition-all shadow-xs"
+                          >
+                            <WhatsAppIcon className="w-3.5 h-3.5" />
+                          </Link>
                           {item.status !== "Converted" ? (
                             <>
                               <button
@@ -918,8 +927,18 @@ export default function TrialMembersPage() {
                   className="p-4 rounded-xl bg-surface-2/60 border border-line-2 space-y-3 text-xs cursor-pointer hover:bg-hover/50 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-bold text-sm text-fg">{item.full_name}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-sm text-fg truncate">{item.full_name}</p>
+                        <Link
+                          href={`/admin/inbox?phone=${encodeURIComponent(item.phone_number || "")}&name=${encodeURIComponent(item.full_name || "")}`}
+                          onClick={(e) => e.stopPropagation()}
+                          title="Chat on WhatsApp"
+                          className="w-6 h-6 rounded-lg bg-emerald-600/10 hover:bg-emerald-600 border border-emerald-600/30 text-emerald-600 hover:text-white flex items-center justify-center transition-all shrink-0"
+                        >
+                          <WhatsAppIcon className="w-3 h-3" />
+                        </Link>
+                      </div>
                       <p className="text-fg-3 text-[11px] mt-0.5">{item.phone_number} {item.email ? `• ${item.email}` : ""}</p>
                       {item.invoice_id && (
                         <Link
@@ -1258,9 +1277,18 @@ export default function TrialMembersPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-fg-3 uppercase tracking-wider text-[10px] mb-1">
-                    Phone Number
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-fg-3 uppercase tracking-wider text-[10px]">
+                      Phone Number
+                    </label>
+                    <Link
+                      href={`/admin/inbox?phone=${encodeURIComponent(editingTrial.phone_number || "")}&name=${encodeURIComponent(editingTrial.full_name || "")}`}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-500"
+                    >
+                      <WhatsAppIcon className="w-3 h-3" />
+                      <span>Chat on WhatsApp</span>
+                    </Link>
+                  </div>
                   <input
                     type="tel"
                     required

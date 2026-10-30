@@ -5,6 +5,8 @@ import { useLockBody } from "@/lib/useLockBody";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Pagination, { usePagination } from "@/components/pagination";
+import Link from "next/link";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 interface Lead {
   id: string;
@@ -767,7 +769,14 @@ export default function LeadsPage() {
                         <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${convertBadge(l.convertibility)}`}>{l.convertibility}</span>
                         <span className="text-[11px] text-fg-4 px-1 py-0.5">{l.source}</span>
                       </div>
-                      <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex gap-2 mt-3 items-center" onClick={(e) => e.stopPropagation()}>
+                        <Link
+                          href={`/admin/inbox?phone=${encodeURIComponent(l.phone_number || "")}&name=${encodeURIComponent(l.full_name || "")}`}
+                          title={`Chat with ${l.full_name} on WhatsApp`}
+                          className="p-1.5 rounded-lg bg-emerald-600/10 hover:bg-emerald-600 border border-emerald-600/30 text-emerald-600 hover:text-white flex items-center justify-center transition-all shadow-xs shrink-0"
+                        >
+                          <WhatsAppIcon className="w-3.5 h-3.5" />
+                        </Link>
                         <button className={btnPrimary + " flex-1 !py-1.5 !px-2 !text-[11px]"} onClick={() => handleConvert(l.id)}>Convert to Member</button>
                         <button className={btnGhost + " !py-1.5 !px-2 !text-[11px]"} onClick={() => { setDetailId(l.id); setTimeout(openEditFromDetail, 0); }}>Edit</button>
                       </div>
@@ -889,7 +898,14 @@ export default function LeadsPage() {
                         </td>
                         <td className="p-3 text-fg-3 text-xs whitespace-nowrap">{fmtDate(l.created_at)}</td>
                         <td className="p-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex gap-2 justify-end">
+                          <div className="flex gap-1.5 justify-end items-center">
+                            <Link
+                              href={`/admin/inbox?phone=${encodeURIComponent(l.phone_number || "")}&name=${encodeURIComponent(l.full_name || "")}`}
+                              title={`Chat with ${l.full_name} on WhatsApp`}
+                              className="w-7 h-7 rounded-xl bg-emerald-600/10 hover:bg-emerald-600 border border-emerald-600/30 hover:border-emerald-600 text-emerald-600 hover:text-white flex items-center justify-center transition-all shadow-xs"
+                            >
+                              <WhatsAppIcon className="w-3.5 h-3.5" />
+                            </Link>
                             <button className={btnPrimary + " !py-1.5 !px-3 !text-xs"} onClick={() => handleConvert(l.id)}>Convert to Member</button>
                             <button className={btnGhost + " !py-1.5 !px-3 !text-xs"} onClick={() => { setDetailId(l.id); setTimeout(openEditFromDetail, 0); }}>Edit</button>
                           </div>
@@ -905,8 +921,18 @@ export default function LeadsPage() {
                 {leadsPage.pageItems.map((l) => (
                   <div key={l.id} className="p-4 rounded-xl bg-surface-2/60 border border-line space-y-3 text-xs" onClick={() => setDetailId(l.id)}>
                     <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-bold text-sm text-fg">{l.full_name}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-sm text-fg truncate">{l.full_name}</p>
+                          <Link
+                            href={`/admin/inbox?phone=${encodeURIComponent(l.phone_number || "")}&name=${encodeURIComponent(l.full_name || "")}`}
+                            onClick={(e) => e.stopPropagation()}
+                            title="Chat on WhatsApp"
+                            className="w-6 h-6 rounded-lg bg-emerald-600/10 hover:bg-emerald-600 border border-emerald-600/30 text-emerald-600 hover:text-white flex items-center justify-center transition-all shrink-0"
+                          >
+                            <WhatsAppIcon className="w-3 h-3" />
+                          </Link>
+                        </div>
                         <p className="text-fg-4 text-[11px] mt-0.5">{l.phone_number}</p>
                       </div>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${convertBadge(l.convertibility)} shrink-0`}>
@@ -950,6 +976,15 @@ export default function LeadsPage() {
               <div>
                 <h2 className="text-lg font-bold text-fg">{detail.full_name}</h2>
                 <p className="text-xs text-fg-4">{detail.phone_number} · {detail.email}</p>
+                <div className="mt-2">
+                  <Link
+                    href={`/admin/inbox?phone=${encodeURIComponent(detail.phone_number || "")}&name=${encodeURIComponent(detail.full_name || "")}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-xs"
+                  >
+                    <WhatsAppIcon className="w-3.5 h-3.5" />
+                    <span>Chat on WhatsApp</span>
+                  </Link>
+                </div>
               </div>
               <button className="w-8 h-8 rounded-full bg-surface-2 text-fg-3 font-bold" onClick={() => setDetailId(null)}>×</button>
             </div>

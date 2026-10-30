@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -68,7 +70,6 @@ function formatConversationTime(isoStr: string | null | undefined): string {
     const d = new Date(isoStr);
     const now = new Date();
 
-    // Reset times to compare dates in local/IST
     const msgDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const diffDays = Math.round((today.getTime() - msgDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -191,6 +192,17 @@ function parseHumanMessage(body: string | null | undefined): { isTemplate: boole
       };
     }
 
+    if (templateName.includes("payment") || templateName.includes("receipt")) {
+      const member = params.member_name || "there";
+      const invoice = params.invoice_number ? ` (Inv #${params.invoice_number})` : "";
+      const amount = params.amount ? ` of ${params.amount}` : "";
+      return {
+        isTemplate: true,
+        templateLabel: "Payment Receipt",
+        text: `Hi ${member}! Thank you for your payment${amount}${invoice}. Your receipt has been generated and confirmed.`,
+      };
+    }
+
     if (templateName === "hello_world") {
       return {
         isTemplate: true,
@@ -277,9 +289,13 @@ function getAvatarColor(key: string): string {
   return AVATAR_COLORS[idx];
 }
 
-// ─── MAIN INBOX COMPONENT ────────────────────────────────────────────────────
+// ─── INNER INBOX COMPONENT ───────────────────────────────────────────────────
 
-export default function AdminWhatsAppInboxPage() {
+function AdminWhatsAppInboxInner() {
+  const searchParams = useSearchParams();
+  const queryPhone = searchParams.get("phone");
+  const queryName = searchParams.get("name");
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -295,6 +311,7 @@ export default function AdminWhatsAppInboxPage() {
   const [loadingChat, setLoadingChat] = useState(false);
   const [showMemberDetails, setShowMemberDetails] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -344,13 +361,13 @@ export default function AdminWhatsAppInboxPage() {
         if (selectedPhoneRef.current === phone) {
           setMessages(data.messages || []);
           setReplyWindow(data.replyWindow || null);
-          setActiveContact({
-            id: data.member?.id || null,
-            name: data.member?.name || null,
+          setActiveContact((prev) => ({
+            id: data.member?.id || prev?.id || null,
+            name: data.member?.name || prev?.name || null,
             phone: data.phone,
             formattedPhone: data.formattedPhone,
-            email: data.member?.email || null,
-          });
+            email: data.member?.email || prev?.email || null,
+          }));
         }
       }
     } catch (err) {
@@ -380,12 +397,68 @@ export default function AdminWhatsAppInboxPage() {
     };
   }, [fetchConversations, fetchMessagesForPhone]);
 
+  // Deep linking via query param (?phone=...&name=...)
+  useEffect(() => {
+    if (!queryPhone) return;
+    const rawDigits = queryPhone.replace(/\D/g, "");
+    if (!rawDigits) return;
+
+    const targetDigits = rawDigits.length === 10 ? `91${rawDigits}` : rawDigits;
+    const last10 = rawDigits.slice(-10);
+
+    // Format display phone
+    const formatted = rawDigits.length === 10
+      ? `+91 ${rawDigits.slice(0, 5)} ${rawDigits.slice(5)}`
+      : `+${rawDigits}`;
+
+    // Look for match in existing conversations
+    const matched = conversations.find((c) => c.phone === targetDigits || c.phone.endsWith(last10));
+
+    if (matched) {
+      setSelectedPhone(matched.phone);
+      setActiveContact({
+        id: matched.memberId,
+        name: matched.memberName || queryName || null,
+        phone: matched.phone,
+        formattedPhone: matched.formattedPhone,
+      });
+      fetchMessagesForPhone(matched.phone, false);
+    } else {
+      // Synthesize new conversation draft item
+      const draftConv: Conversation = {
+        phone: targetDigits,
+        formattedPhone: formatted,
+        memberId: null,
+        memberName: queryName || null,
+        lastInboundAt: null,
+        lastMessageAt: new Date().toISOString(),
+        lastMessagePreview: "Draft conversation",
+        unreadCount: 0,
+      };
+
+      setConversations((prev) => {
+        if (prev.some((c) => c.phone === targetDigits || c.phone.endsWith(last10))) return prev;
+        return [draftConv, ...prev];
+      });
+
+      setSelectedPhone(targetDigits);
+      setActiveContact({
+        id: null,
+        name: queryName || null,
+        phone: targetDigits,
+        formattedPhone: formatted,
+      });
+      fetchMessagesForPhone(targetDigits, false);
+    }
+  }, [queryPhone, queryName, conversations.length, fetchMessagesForPhone]);
+
   // When clicking a conversation
   const handleSelectConversation = async (c: Conversation) => {
     setSelectedPhone(c.phone);
     setSendError(null);
     setReplyText("");
     setShowMemberDetails(false);
+    setShowTemplateMenu(false);
     setActiveContact({
       id: c.memberId,
       name: c.memberName,
@@ -461,6 +534,51 @@ export default function AdminWhatsAppInboxPage() {
     }
   };
 
+  // Send approved WhatsApp template (works even when 24h window is closed)
+  const handleSendTemplate = async (templateEvent: string) => {
+    if (!selectedPhone || sending) return;
+    setSending(true);
+    setSendError(null);
+    setShowTemplateMenu(false);
+
+    const contactName = activeContact?.name?.replace(/\s*\((Trial|Lead)\)/, "").trim() || "there";
+    const defaultParams: Record<string, string> = {
+      member_name: contactName,
+      class_name: "Pilates Session",
+      class_date: "Upcoming",
+      class_time: "Scheduled Time",
+      trainer_name: "Corhaus Instructor",
+      location_name: "Corhaus Studio",
+      invoice_number: `INV-${Date.now().toString().slice(-6)}`,
+      amount: "Rs. 1,000",
+    };
+
+    try {
+      const res = await fetch(`/api/admin/whatsapp/conversations/${selectedPhone}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          template: templateEvent,
+          params: defaultParams,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setSendError(data.error || "Failed to send template message.");
+      } else {
+        await fetchMessagesForPhone(selectedPhone, true);
+        await fetchConversations(true);
+        setTimeout(() => scrollToBottom(true), 50);
+      }
+    } catch (err: unknown) {
+      setSendError(err instanceof Error ? err.message : "Network error.");
+    } finally {
+      setSending(false);
+    }
+  };
+
   // Filter conversations
   const filteredConversations = useMemo(() => {
     return conversations.filter((c) => {
@@ -494,9 +612,7 @@ export default function AdminWhatsAppInboxPage() {
         <div className="h-16 px-4 bg-surface-2/80 border-b border-line flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.964 9.964 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
+              <WhatsAppIcon className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="text-base font-bold text-fg leading-tight">WhatsApp Chats</h1>
@@ -589,13 +705,11 @@ export default function AdminWhatsAppInboxPage() {
           ) : filteredConversations.length === 0 ? (
             <div className="p-8 text-center text-xs text-fg-4 space-y-1.5">
               <div className="w-10 h-10 rounded-full bg-surface-2 text-fg-4 flex items-center justify-center mx-auto mb-2">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.964 9.964 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
+                <WhatsAppIcon className="w-5 h-5 opacity-40" />
               </div>
               <p className="font-semibold text-fg">No conversations found</p>
               <p className="text-fg-4 text-[11px]">
-                {searchQuery ? "Try a different search term" : "Incoming member replies will appear here."}
+                {searchQuery ? "Try a different search term" : "Click WhatsApp on any member, trial member, or lead to start."}
               </p>
             </div>
           ) : (
@@ -722,6 +836,11 @@ export default function AdminWhatsAppInboxPage() {
                   </div>
                   <p className="text-[11px] text-fg-4 truncate flex items-center gap-1.5">
                     <span>{activeContact?.formattedPhone}</span>
+                    {replyWindow && (
+                      <span className={`text-[10px] font-medium px-1.5 py-0.2 rounded ${windowRemaining.allowed ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
+                        • {windowRemaining.text}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -774,13 +893,11 @@ export default function AdminWhatsAppInboxPage() {
                 ) : messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center space-y-2">
                     <div className="w-12 h-12 rounded-2xl bg-white/70 dark:bg-surface/70 border border-line flex items-center justify-center text-fg-4">
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.964 9.964 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
+                      <WhatsAppIcon className="w-6 h-6 opacity-40 text-emerald-600" />
                     </div>
                     <p className="text-xs font-semibold text-fg">No message history yet</p>
                     <p className="text-[11px] text-fg-4 max-w-xs">
-                      Send a message to begin conversation with this member.
+                      Send a message or template below to begin conversation with this contact.
                     </p>
                   </div>
                 ) : (
@@ -826,18 +943,18 @@ export default function AdminWhatsAppInboxPage() {
 
                             {/* Message Body */}
                             {(() => {
-  const parsed = parseHumanMessage(m.body);
-  return (
-    <>
-      {parsed.isTemplate && parsed.templateLabel && (
-        <div className="mb-1 pb-1 border-b border-black/10 dark:border-white/10 flex items-center gap-1 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
-          <span>⚡ {parsed.templateLabel}</span>
-        </div>
-      )}
-      <WhatsAppFormattedText text={parsed.text} />
-    </>
-  );
-})()}
+                              const parsed = parseHumanMessage(m.body);
+                              return (
+                                <>
+                                  {parsed.isTemplate && parsed.templateLabel && (
+                                    <div className="mb-1 pb-1 border-b border-black/10 dark:border-white/10 flex items-center gap-1 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
+                                      <span>⚡ {parsed.templateLabel}</span>
+                                    </div>
+                                  )}
+                                  <WhatsAppFormattedText text={parsed.text} />
+                                </>
+                              );
+                            })()}
 
                             {/* Timestamp & Status Ticks */}
                             <div className="flex items-center justify-end gap-1 mt-1 -mb-0.5 text-[10px] select-none text-[#667781] dark:text-[#8696a0]">
@@ -933,7 +1050,7 @@ export default function AdminWhatsAppInboxPage() {
 
                     <div className="space-y-2 text-xs">
                       <div className="p-2.5 rounded-xl bg-surface-2 border border-line">
-                        <span className="text-[10px] uppercase font-bold text-fg-4 block">Membership Status</span>
+                        <span className="text-[10px] uppercase font-bold text-fg-4 block">Status</span>
                         <span className="font-semibold text-fg">
                           {activeContact?.id ? "Active Studio Member" : "Non-member / Inquiry"}
                         </span>
@@ -945,8 +1062,6 @@ export default function AdminWhatsAppInboxPage() {
                           <span className="font-semibold text-fg break-all">{activeContact.email}</span>
                         </div>
                       )}
-
-
                     </div>
                   </div>
 
@@ -965,15 +1080,89 @@ export default function AdminWhatsAppInboxPage() {
             </div>
 
             {/* WhatsApp Input Bar */}
-            <div className="border-t border-line bg-surface p-2.5 sm:p-3 shrink-0 shadow-xs z-10">
+            <div className="border-t border-line bg-surface p-2.5 sm:p-3 shrink-0 shadow-xs z-10 space-y-2">
+              {/* Window Closed / Quick Template Notice */}
+              {replyWindow && !replyWindow.allowed && (
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+                    <span className="font-bold">⚠️ 24h Window Closed</span>
+                    <span className="text-[11px] text-fg-3 hidden sm:inline">• Send an approved template to re-open</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      disabled={sending}
+                      onClick={() => handleSendTemplate("class_reminder")}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] transition-colors shadow-2xs"
+                    >
+                      ⚡ Class Reminder
+                    </button>
+                    <button
+                      type="button"
+                      disabled={sending}
+                      onClick={() => handleSendTemplate("booking_confirmed")}
+                      className="px-2.5 py-1 rounded-lg bg-surface-2 border border-line hover:bg-hover text-fg font-bold text-[11px] transition-colors"
+                    >
+                      ⚡ Confirmation
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {sendError && (
-                <div className="mb-2 p-2 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-600 font-semibold">
-                  {sendError}
+                <div className="p-2 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-600 font-semibold flex items-center justify-between">
+                  <span>{sendError}</span>
+                  <button onClick={() => setSendError(null)} className="text-red-500 font-bold ml-2">✕</button>
                 </div>
               )}
 
               {/* Chat Input Pill (WhatsApp Style) */}
-              <form onSubmit={handleSendReply} className="flex items-end gap-2">
+              <form onSubmit={handleSendReply} className="flex items-end gap-2 relative">
+                {/* Template menu popup */}
+                {showTemplateMenu && (
+                  <div className="absolute bottom-full mb-2 left-0 w-64 bg-surface border border-line rounded-2xl shadow-xl p-2 space-y-1 z-30">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-fg-4 px-2 py-1">Quick Templates</p>
+                    <button
+                      type="button"
+                      onClick={() => handleSendTemplate("class_reminder")}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-fg hover:bg-surface-2 transition-colors flex items-center justify-between"
+                    >
+                      <span>⚡ Class Reminder</span>
+                      <span className="text-[10px] text-fg-4 font-mono">Meta approved</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSendTemplate("booking_confirmed")}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-fg hover:bg-surface-2 transition-colors flex items-center justify-between"
+                    >
+                      <span>⚡ Booking Confirmation</span>
+                      <span className="text-[10px] text-fg-4 font-mono">Meta approved</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSendTemplate("payment_receipt")}
+                      className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-fg hover:bg-surface-2 transition-colors flex items-center justify-between"
+                    >
+                      <span>⚡ Payment Receipt</span>
+                      <span className="text-[10px] text-fg-4 font-mono">Meta approved</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Templates dropdown button */}
+                <button
+                  type="button"
+                  onClick={() => setShowTemplateMenu((v) => !v)}
+                  title="Send Meta WhatsApp Template"
+                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 transition-colors ${
+                    showTemplateMenu
+                      ? "bg-emerald-600 border-emerald-600 text-white"
+                      : "bg-surface-2 border-line-2 text-fg-3 hover:text-fg hover:bg-surface-2/80"
+                  }`}
+                >
+                  <span className="text-sm font-bold">⚡</span>
+                </button>
+
                 <div className="flex-1 bg-surface-2 border border-line-2 rounded-2xl flex items-center px-3 py-1.5 focus-within:border-emerald-600 transition-colors">
                   <textarea
                     ref={textareaRef}
@@ -1014,27 +1203,42 @@ export default function AdminWhatsAppInboxPage() {
           /* ─── EMPTY STATE (WhatsApp Web Style) ─────────────────────────── */
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
             <div className="w-20 h-20 rounded-3xl bg-surface border border-line shadow-sm flex items-center justify-center text-emerald-600">
-              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.964 9.964 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
+              <WhatsAppIcon className="w-10 h-10 text-emerald-600" />
             </div>
 
             <div className="space-y-1.5 max-w-sm">
               <h2 className="text-lg font-bold text-fg">WhatsApp for Corhaus</h2>
               <p className="text-xs text-fg-3 leading-relaxed">
-                Send and receive messages with your members directly through the official WhatsApp Cloud API.
+                Send and receive messages with your members, trial members, and leads directly through the official WhatsApp Cloud API.
               </p>
             </div>
 
             <div className="pt-4 border-t border-line/60 flex items-center gap-1.5 text-[11px] text-fg-4 font-medium">
-              <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
+              <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600" />
               <span>Meta WhatsApp Cloud API &bull; End-to-end encrypted</span>
             </div>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+// ─── MAIN EXPORT WITH SUSPENSE BOUNDARY ──────────────────────────────────────
+
+export default function AdminWhatsAppInboxPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="w-full h-[calc(100dvh-130px)] min-h-[580px] rounded-2xl border border-line-2 bg-surface flex items-center justify-center">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-6 h-6 border-2 border-emerald-600/30 border-t-emerald-600 rounded-full animate-spin" />
+            <p className="text-xs text-fg-4">Loading WhatsApp Inbox...</p>
+          </div>
+        </div>
+      }
+    >
+      <AdminWhatsAppInboxInner />
+    </Suspense>
   );
 }

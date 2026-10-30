@@ -7,6 +7,7 @@ import Pagination, { usePagination } from "@/components/pagination";
 import { useActiveLocation } from "@/lib/useActiveLocation";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1430,6 +1431,13 @@ function MembersPageContent() {
                         </td>
                         <td className="py-2.5 px-2 text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <Link
+                              href={`/admin/inbox?phone=${encodeURIComponent(m.phone_number || "")}&name=${encodeURIComponent(m.full_name || "")}`}
+                              title={`Chat with ${m.full_name} on WhatsApp`}
+                              className="w-7 h-7 rounded-xl bg-emerald-600/10 hover:bg-emerald-600 border border-emerald-600/30 hover:border-emerald-600 text-emerald-600 hover:text-white flex items-center justify-center transition-all shadow-xs"
+                            >
+                              <WhatsAppIcon className="w-3.5 h-3.5" />
+                            </Link>
                             <button
                               onClick={() => handleOpenEdit(m)}
                               className="px-2.5 py-1 rounded-xl bg-surface-2 border border-line-2 text-fg font-bold text-[11px] hover:bg-hover transition-colors shadow-xs"
@@ -1503,7 +1511,14 @@ function MembersPageContent() {
                     </div>
 
                     {/* Action buttons */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                      <Link
+                        href={`/admin/inbox?phone=${encodeURIComponent(m.phone_number || "")}&name=${encodeURIComponent(m.full_name || "")}`}
+                        title={`Chat with ${m.full_name} on WhatsApp`}
+                        className="p-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600 border border-emerald-600/30 text-emerald-600 hover:text-white flex items-center justify-center transition-all shadow-xs shrink-0"
+                      >
+                        <WhatsAppIcon className="w-4 h-4" />
+                      </Link>
                       <button
                         onClick={() => handleOpenEdit(m)}
                         className="flex-1 py-2 rounded-xl bg-surface-2 border border-line-2 text-fg font-bold text-xs hover:bg-hover transition-colors"
@@ -1773,6 +1788,13 @@ function MembersPageContent() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-text-primary text-base truncate">{selectedMember.full_name}</h3>
                       <StatusBadge status={selectedMember.membership_status || "Active"} />
+                      <Link
+                        href={`/admin/inbox?phone=${encodeURIComponent(selectedMember.phone_number || "")}&name=${encodeURIComponent(selectedMember.full_name || "")}`}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-600/10 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-600/30 text-[11px] font-bold transition-all shadow-xs ml-auto"
+                      >
+                        <WhatsAppIcon className="w-3.5 h-3.5" />
+                        <span>Chat on WhatsApp</span>
+                      </Link>
                     </div>
                     <p className="text-xs text-text-secondary/70 truncate mt-0.5">{selectedMember.phone_number}</p>
                     <p className="text-xs text-text-secondary/70 truncate break-all">{selectedMember.email}</p>

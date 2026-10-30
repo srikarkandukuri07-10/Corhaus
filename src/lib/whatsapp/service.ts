@@ -475,16 +475,18 @@ export async function sendText(
   const digits = norm.digits;
   const member = await matchMemberByPhone(supabase, digits);
 
-  // Check 24-hour reply window
-  const windowCheck = await checkReplyWindow(digits, supabase);
-  if (!windowCheck.allowed) {
-    return {
-      success: false,
-      status: "failed",
-      errorCode: "WINDOW_CLOSED",
-      errorMessage:
-        "24-hour reply window closed. You can reply after the member messages again.",
-    };
+  // Check 24-hour reply window for production Meta API sends
+  if (isWhatsAppSendingEnabled()) {
+    const windowCheck = await checkReplyWindow(digits, supabase);
+    if (!windowCheck.allowed) {
+      return {
+        success: false,
+        status: "failed",
+        errorCode: "WINDOW_CLOSED",
+        errorMessage:
+          "24-hour reply window closed. You can reply after the member messages again or send an approved template.",
+      };
+    }
   }
 
   const cleanText = text.trim();

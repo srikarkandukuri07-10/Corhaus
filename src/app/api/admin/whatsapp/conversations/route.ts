@@ -86,18 +86,88 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: convErr.message }, { status: 500 });
     }
 
+    // Resolve names for non-member contacts (leads and trial members)
+    const nameOverrides: Record<string, string> = {};
+    try {
+      const { data: trials } = await supabase
+        .from("trial_members")
+        .select("full_name, phone_number");
+
+      (trials || []).forEach((t: any) => {
+        const rawDigits = (t.phone_number || "").replace(/\D/g, "");
+        if (rawDigits) {
+          nameOverrides[rawDigits] = `${t.full_name} (Trial)`;
+          if (rawDigits.length === 10) nameOverrides[`91${rawDigits}`] = `${t.full_name} (Trial)`;
+        }
+      });
+
+      const { data: leads } = await supabase
+        .from("leads")
+        .select("full_name, phone_number");
+
+      (leads || []).forEach((l: any) => {
+        const rawDigits = (l.phone_number || "").replace(/\D/g, "");
+        if (rawDigits) {
+          if (!nameOverrides[rawDigits]) nameOverrides[rawDigits] = `${l.full_name} (Lead)`;
+          if (rawDigits.length === 10 && !nameOverrides[`91${rawDigits}`]) {
+            nameOverrides[`91${rawDigits}`] = `${l.full_name} (Lead)`;
+          }
+        }
+      });
+    } catch (e) {
+      console.warn("[whatsapp:conversations] Could not resolve lead/trial names:", e);
+    }
+
     const conversations = (convs || []).map((c: any) => {
       const member = Array.isArray(c.approved_members) ? c.approved_members[0] : c.approved_members;
       return {
         phone: c.phone,
         formattedPhone: formatIndianPhone(c.phone),
         memberId: c.member_id,
-        memberName: member?.full_name || null,
+        memberName: member?.full_name || nameOverrides[c.phone] || null,
         lastInboundAt: c.last_inbound_at,
         lastMessageAt: c.last_message_at,
         lastMessagePreview: c.last_message_preview || "",
         unreadCount: c.unread_count || 0,
       };
+    });
+
+    // Check recent messages for any phones not yet in whatsapp_conversations table
+    const existingPhones = new Set(conversations.map((c: any) => c.phone));
+    try {
+      const { data: recentMsgs } = await supabase
+        .from("whatsapp_messages")
+        .select("phone, created_at, body, direction")
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (recentMsgs) {
+        const seenExtra = new Set<string>();
+        for (const m of recentMsgs) {
+          if (m.phone && !existingPhones.has(m.phone) && !seenExtra.has(m.phone)) {
+            seenExtra.add(m.phone);
+            conversations.push({
+              phone: m.phone,
+              formattedPhone: formatIndianPhone(m.phone),
+              memberId: null,
+              memberName: nameOverrides[m.phone] || null,
+              lastInboundAt: m.direction === "in" ? m.created_at : null,
+              lastMessageAt: m.created_at,
+              lastMessagePreview: m.body || "",
+              unreadCount: 0,
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("[whatsapp:conversations] Could not check orphan messages:", e);
+    }
+
+    // Sort all conversations by lastMessageAt descending
+    conversations.sort((a: any, b: any) => {
+      const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+      const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+      return timeB - timeA;
     });
 
     const totalUnreadCount = conversations.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0);

@@ -94,12 +94,45 @@ export async function GET(
 
     // 3. Resolve conversation metadata and 24-hour reply window
     const member = await matchMemberByPhone(supabase, digits);
+    let contactInfo: { id: string | null; name: string | null; email: string | null; type?: string } | null = member
+      ? { id: member.id, name: member.full_name, email: member.email, type: "member" }
+      : null;
+
+    if (!contactInfo) {
+      const last10 = digits.slice(-10);
+      try {
+        const { data: trial } = await supabase
+          .from("trial_members")
+          .select("id, full_name, email, phone_number")
+          .or(`phone_number.ilike.%${last10}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (trial) {
+          contactInfo = { id: trial.id, name: `${trial.full_name} (Trial)`, email: trial.email, type: "trial" };
+        } else {
+          const { data: lead } = await supabase
+            .from("leads")
+            .select("id, full_name, email, phone_number")
+            .or(`phone_number.ilike.%${last10}%`)
+            .limit(1)
+            .maybeSingle();
+
+          if (lead) {
+            contactInfo = { id: lead.id, name: `${lead.full_name} (Lead)`, email: lead.email, type: "lead" };
+          }
+        }
+      } catch (lookupErr) {
+        console.warn("[whatsapp:messages] Non-member contact lookup error:", lookupErr);
+      }
+    }
+
     const replyWindow = await checkReplyWindow(digits, supabase);
 
     return NextResponse.json({
       phone: digits,
       formattedPhone: formatIndianPhone(digits),
-      member: member ? { id: member.id, name: member.full_name, email: member.email } : null,
+      member: contactInfo,
       replyWindow,
       messages: messages || [],
     });
@@ -125,6 +158,23 @@ export async function POST(
 
     const body = await req.json();
     const text = (body.text || "").trim();
+    const template = body.template;
+    const templateParams = body.params || {};
+
+    if (template) {
+      const { sendTemplate } = await import("@/lib/whatsapp/service");
+      const result = await sendTemplate(template, digits, templateParams);
+      if (!result.success) {
+        return NextResponse.json(
+          { error: result.errorMessage || "Failed to send template message.", errorCode: result.errorCode },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        result,
+      });
+    }
 
     if (!text) {
       return NextResponse.json({ error: "Message text is required" }, { status: 400 });
