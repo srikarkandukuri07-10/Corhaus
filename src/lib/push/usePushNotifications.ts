@@ -81,6 +81,17 @@ export function usePushNotifications({
       if (res.ok) {
         setIsSubscribed(true);
         setLoading(false);
+        // Automatically send an instant welcome test push
+        fetch("/api/push/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subscription: sub.toJSON(),
+            target: "single",
+            title: "🎉 Notifications Enabled!",
+            message: "You will now receive lock-screen alerts from Corhaus Pilates.",
+          }),
+        }).catch(() => {});
         return true;
       }
     } catch (err) {
