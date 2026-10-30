@@ -22,7 +22,7 @@ self.addEventListener("push", (event) => {
     title: "Corhaus Pilates",
     body: "You have a new update from Corhaus Pilates.",
     icon: "/corhaus-logo.png",
-    badge: "/corhaus-logo.png",
+    badge: "/corhaus-badge.png",
     data: { url: "/" },
   };
 
@@ -40,7 +40,7 @@ self.addEventListener("push", (event) => {
   const options = {
     body: data.body,
     icon: data.icon || "/corhaus-logo.png",
-    badge: data.badge || "/corhaus-logo.png",
+    badge: data.badge || "/corhaus-badge.png",
     vibrate: [100, 50, 100],
     data: data.data || { url: "/" },
     tag: data.tag || `corhaus-${Date.now()}`,

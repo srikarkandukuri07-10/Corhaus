@@ -40,7 +40,7 @@ export default function PushPermissionBanner({
           await registration.showNotification("🔔 Corhaus Pilates", {
             body: "Test notification received! App alerts are working on this device.",
             icon: "/corhaus-logo.png",
-            badge: "/corhaus-logo.png",
+            badge: "/corhaus-badge.png",
             data: { url: "/" },
           });
         } catch (e) {

@@ -69,7 +69,7 @@ export function usePushNotifications({
         await registration.showNotification("🎉 Notifications Enabled!", {
           body: "You will now receive lock-screen alerts from Corhaus Pilates.",
           icon: "/corhaus-logo.png",
-          badge: "/corhaus-logo.png",
+          badge: "/corhaus-badge.png",
           data: { url: "/" },
         });
       } catch (notifErr) {

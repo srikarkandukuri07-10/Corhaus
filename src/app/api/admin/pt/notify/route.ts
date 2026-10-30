@@ -36,6 +36,33 @@ export async function POST(req: Request) {
       }
     }
 
+    // Send Web Push notification to members for scheduled PT sessions
+    try {
+      const { data: ptRows } = await supabase
+        .from("pt_sessions")
+        .select("id, member_id, trainer_name, session_date, session_time")
+        .in("id", sessionIds);
+
+      if (ptRows && ptRows.length > 0) {
+        const { sendPushToUser } = await import("@/lib/push/service");
+        for (const s of ptRows) {
+          if (s.member_id) {
+            const dateStr = s.session_date || "upcoming date";
+            const timeStr = s.session_time ? ` at ${s.session_time}` : "";
+            const trainerStr = s.trainer_name ? ` with ${s.trainer_name}` : "";
+            await sendPushToUser(s.member_id, {
+              title: "PT Session Booked! 🧘",
+              body: `Your Personal Training session${trainerStr} is scheduled on ${dateStr}${timeStr}.`,
+              url: "/member/bookings",
+              tag: `pt-${s.id}`,
+            });
+          }
+        }
+      }
+    } catch (pushErr) {
+      console.error("[PT Notify API] Push error:", pushErr);
+    }
+
     return NextResponse.json({ success: true, count: sessionIds.length });
   } catch (err: any) {
     console.error("[PT Notify API] Error:", err);

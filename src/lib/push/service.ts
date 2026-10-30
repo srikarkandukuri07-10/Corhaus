@@ -62,7 +62,7 @@ export async function sendPushNotification(
     title: payload.title,
     body: payload.body,
     icon: payload.icon || "/corhaus-logo.png",
-    badge: payload.badge || "/corhaus-logo.png",
+    badge: payload.badge || "/corhaus-badge.png",
     data: {
       url: payload.url || "/",
       ...payload.data,

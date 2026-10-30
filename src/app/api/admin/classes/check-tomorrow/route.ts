@@ -8,6 +8,10 @@ function getServiceClient() {
   return createClient(url, key);
 }
 
+export async function POST() {
+  return GET();
+}
+
 export async function GET() {
   try {
     const supabase = getServiceClient();
