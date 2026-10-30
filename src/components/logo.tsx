@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 
 interface LogoProps {
@@ -22,7 +21,7 @@ export default function Logo({
 
   // Auto-fetch business profile logo if not explicitly provided
   useEffect(() => {
-    if (logoUrlProp !== undefined) return; // controlled via prop
+    if (logoUrlProp !== undefined) return;
     let cancelled = false;
     fetch("/api/admin/settings/business-profile", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
@@ -37,139 +36,49 @@ export default function Logo({
 
   const logoUrl = logoUrlProp !== undefined ? logoUrlProp : fetchedLogoUrl;
 
-  // Square logo image — somewhat rounded, not too rounded
-  // banner = rectangle that fills header, taller for clear text (increased per feedback)
-  const isBanner = size === "banner";
-  const imgSize = isBanner ? 52 : size === "lg" ? 44 : size === "sm" ? 32 : 38;
+  // Strict 1:1 square dimensions — never a rectangle, preserves exact image dimensions
+  const squareDim = size === "banner" ? 72 : size === "lg" ? 56 : size === "sm" ? 36 : 44;
 
-  if (logoUrl) {
-    // Use object-contain so rectangular logos fully fit without stretching text
-    if (isBanner) {
-      const bannerEl = (
-        <span
-          className={`inline-flex items-center justify-center overflow-hidden ${className}`}
-          style={{ width: "100%", height: imgSize, borderRadius: "10px", background: "transparent" }}
-        >
-          <Image
-            src={logoUrl}
-            alt="Corhaus logo"
-            width={320}
-            height={80}
-            className="object-contain"
-            style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            unoptimized
-            priority={false}
-          />
-        </span>
-      );
-      if (href) {
-        return (
-          <Link href={href} className="flex items-center w-full hover:opacity-90 transition-opacity">
-            {bannerEl}
-          </Link>
-        );
-      }
-      return bannerEl;
-    }
-    const imageEl = (
-      <span
-        className="inline-flex items-center justify-center overflow-hidden shrink-0"
-        style={{ width: imgSize, height: imgSize, borderRadius: "10px", background: "transparent" }}
-      >
-        <Image
-          src={logoUrl}
-          alt="Corhaus logo"
-          width={imgSize}
-          height={imgSize}
-          className="object-contain"
-          style={{ width: "100%", height: "100%", objectFit: "contain" }}
-          unoptimized
-          priority={false}
-        />
-      </span>
-    );
-    if (href) {
-      return (
-        <Link href={href} className={`inline-flex items-center hover:opacity-90 transition-opacity ${className}`}>
-          {imageEl}
-        </Link>
-      );
-    }
-    return imageEl;
-  }
-
-  // Fallback: for admin rail (variant white) show cream square/rectangle matching 2nd photo;
-  // for other variants (auto/dark) keep original text logo to avoid breaking light pages
   const isWhiteVariant = variant === "white";
-  if (isBanner) {
-    if (isWhiteVariant) {
-      const bannerFallback = (
-        <div
-          className={`flex items-center justify-center w-full overflow-hidden select-none ${className}`}
-          style={{
-            height: 56,
-            minHeight: 56,
-            background: "#EFE7DD",
-            borderRadius: "12px",
-            border: "1px solid rgba(107, 68, 42, 0.08)",
-            padding: "6px 14px",
-          }}
-        >
-          <img
-            src="/corhaus-logo-banner.png"
-            alt="Corhaus - Pilates for everyone"
-            className="h-full w-auto object-contain"
-            style={{ maxHeight: 44, width: "auto", objectFit: "contain" }}
-          />
-        </div>
-      );
-      if (href) {
-        return (
-          <Link href={href} className="flex items-center w-full hover:opacity-90 transition-opacity">
-            {bannerFallback}
-          </Link>
-        );
-      }
-      return bannerFallback;
-    }
-    // non-white banner fallback: keep text
-  }
 
-  if (isWhiteVariant) {
-    const fallbackCream = (
-      <div
-        className={`flex items-center justify-center overflow-hidden select-none shrink-0 ${className}`}
+  // When a custom uploaded logo exists or when in admin rail (variant="white" or size="banner"),
+  // display the exact square logo image with 1:1 aspect ratio.
+  if (logoUrl || isWhiteVariant || size === "banner") {
+    const srcToUse = logoUrl || "/corhaus-logo.png";
+    const imageSquare = (
+      <span
+        className={`inline-flex items-center justify-center overflow-hidden shrink-0 aspect-square shadow-xs ${className}`}
         style={{
-          width: imgSize + 12,
-          height: imgSize + 12,
-          background: "#EFE7DD",
-          borderRadius: "12px",
-          border: "1px solid rgba(107, 68, 42, 0.08)",
-          padding: "4px",
+          width: squareDim,
+          height: squareDim,
+          borderRadius: "14px",
         }}
       >
         <img
-          src="/corhaus-logo.png"
-          alt="Corhaus"
-          className="w-full h-full object-contain"
+          src={srcToUse}
+          alt="Corhaus - Pilates for everyone"
+          className="w-full h-full object-cover"
+          style={{ width: "100%", height: "100%", aspectRatio: "1 / 1" }}
         />
-      </div>
+      </span>
     );
+
     if (href) {
       return (
-        <Link href={href} className="inline-flex items-center hover:opacity-90 transition-opacity">
-          {fallbackCream}
+        <Link href={href} className="inline-flex items-center justify-center hover:opacity-90 transition-opacity">
+          {imageSquare}
         </Link>
       );
     }
-    return fallbackCream;
+    return imageSquare;
   }
 
-  // Non-white variants: original text logo (for login/member light pages)
+  // Non-white variants without custom logo: original text logo for light pages
   const titleSizeClass = size === "lg" ? "text-3xl" : size === "sm" ? "text-xl" : "text-2xl";
   const taglineSizeClass = size === "lg" ? "text-[11px]" : size === "sm" ? "text-[9px]" : "text-[10px]";
   const mainTextColor = variant === "gold" ? "text-amber-400" : variant === "dark" ? "text-fg" : "text-fg dark:text-white";
   const tagtextColor = variant === "gold" ? "text-amber-300/90" : variant === "dark" ? "text-fg-3" : "text-fg-3 dark:text-white/85";
+
   const textContent = (
     <div className={`inline-flex flex-col text-left leading-none select-none ${className}`}>
       <div className={`flex items-baseline ${mainTextColor}`}>
@@ -185,6 +94,7 @@ export default function Logo({
       </p>
     </div>
   );
+
   if (href) {
     return (
       <Link href={href} className="inline-block hover:opacity-90 transition-opacity">
