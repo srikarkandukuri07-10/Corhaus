@@ -88,8 +88,8 @@ export default function PWAInstaller() {
   return (
     <div className="fixed bottom-6 left-6 right-6 md:left-auto md:max-w-sm z-50 bg-surface rounded-2xl border border-line shadow-xl p-5 animate-slide-up">
       <div className="flex gap-4">
-        <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border border-line bg-surface-2 flex items-center justify-center">
-          <img src="/icon-192.jpg" alt="Corhaus logo" className="w-full h-full object-cover" />
+        <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border border-line bg-surface-2 flex items-center justify-center p-1">
+          <img src="/corhaus-logo.png" alt="Corhaus logo" className="w-full h-full object-contain aspect-square" />
         </div>
         <div className="flex-1">
           <h4 className="font-semibold text-fg text-sm font-medium">Install Corhaus App</h4>

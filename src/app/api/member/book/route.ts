@@ -214,6 +214,45 @@ export async function POST(req: Request) {
       }
     }
 
+    // 13. Send Web Push notification to the member about their booking and remaining sessions/days
+    try {
+      const { sendPushToUser } = await import("@/lib/push/service");
+      const remaining = plan.sessions_total !== null ? Math.max(0, (plan.sessions_remaining ?? 1) - 1) : null;
+      let sessionNote = "";
+      if (remaining !== null && plan.sessions_total !== null) {
+        sessionNote = " • " + remaining + " of " + plan.sessions_total + " sessions left";
+      }
+      let validityNote = "";
+      if (plan.valid_until) {
+        const diffDays = Math.max(0, Math.ceil((new Date(plan.valid_until).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+        validityNote = " • " + diffDays + " days valid";
+      }
+
+      const statusTitle = bookingStatus === "waitlisted" ? "Added to Waitlist ⏳" : "Class Booked! 🎉";
+      const classTitle = cls.title || cls.name || "Class";
+      const classTime = cls.start_time ? (" at " + cls.start_time) : "";
+      const classDate = cls.date || cls.class_date || todayStr;
+      const pushBody = classTitle + " on " + classDate + classTime + "." + sessionNote + validityNote;
+
+      // Notify both user.id (auth UUID) and amData.id (approved member UUID)
+      await Promise.allSettled([
+        sendPushToUser(user.id, {
+          title: statusTitle,
+          body: pushBody,
+          url: "/member/bookings",
+          tag: "booking-" + newBooking.id,
+        }),
+        sendPushToUser(amData.id, {
+          title: statusTitle,
+          body: pushBody,
+          url: "/member/bookings",
+          tag: "booking-" + newBooking.id,
+        }),
+      ]);
+    } catch (pushErr) {
+      console.error("[book] push notification error:", pushErr);
+    }
+
     return NextResponse.json({
       success: true,
       bookingId: newBooking.id,

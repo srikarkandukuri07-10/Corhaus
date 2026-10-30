@@ -262,6 +262,20 @@ export async function POST(req: Request) {
       orderId: razorpay_order_id,
     });
 
+    // Notify admins of new trial payment via Web Push
+    try {
+      const { sendPushToRole } = await import("@/lib/push/service");
+      const amt = payment.amount ? Number(payment.amount) / 100 : 0;
+      await sendPushToRole("admin", {
+        title: "💰 Trial Payment Received!",
+        body: "₹" + amt + " received from " + full_name.trim() + " for " + (cls?.title || "Trial") + ".",
+        url: "/admin/billing/invoices",
+        tag: "payment-trial-" + trialRes.data.id,
+      });
+    } catch (pushErr) {
+      console.error("[trial:verify-payment] push error:", pushErr);
+    }
+
     return NextResponse.json({ success: true, trialId: trialRes.data.id, invoiceId, message: "Trial booked successfully" });
   } catch (err: any) {
     console.error("verify-payment error:", err);

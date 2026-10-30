@@ -10,6 +10,9 @@ import LogoutButton from "@/components/logout-button";
 import ProfileModal from "@/components/profile-modal";
 import NotificationsButton from "@/components/notifications-button";
 import ThemeToggle from "@/components/theme-toggle";
+import StudioHolidayBanner from "@/components/studio-holiday-banner";
+import PushPermissionBanner from "@/components/push-permission-banner";
+import PwaInstallPrompt from "@/components/pwa-install-prompt";
 
 export default function MemberLayout({
   children,
@@ -226,6 +229,18 @@ export default function MemberLayout({
     );
   }
 
+  useEffect(() => {
+    if (!isMember) return;
+    const LAST_REMINDER_KEY = "corhaus_member_session_rem_ts";
+    const lastCheck = localStorage.getItem(LAST_REMINDER_KEY);
+    const now = Date.now();
+    // Remind every 3 days if browser notification is granted
+    if (!lastCheck || (now - Number(lastCheck)) > 259200000) {
+      localStorage.setItem(LAST_REMINDER_KEY, String(now));
+      fetch("/api/member/reminders", { method: "POST" }).catch(() => {});
+    }
+  }, [isMember]);
+
   if (!isMember) return null;
 
   const navItems = [
@@ -283,6 +298,7 @@ export default function MemberLayout({
 
   return (
     <div className="min-h-screen bg-canvas">
+      <StudioHolidayBanner />
       <header className="bg-bar border-b border-line sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16 gap-3">
@@ -348,6 +364,7 @@ export default function MemberLayout({
         </div>
         <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
       </header>
+      <PushPermissionBanner role="member" />
 
       {needsPassword && showPasswordBanner && (
         <div className="bg-rail text-white px-4 pr-10 py-3 flex items-center justify-between animate-fade-in relative z-40">
@@ -368,6 +385,7 @@ export default function MemberLayout({
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 pb-24 sm:pb-8 min-w-0">
         {children}
       </main>
+      <PwaInstallPrompt />
 
       <nav className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-bar border-t border-line">
         <div className="flex items-stretch">

@@ -7,6 +7,8 @@ import Logo from "@/components/logo";
 import NotificationsButton from "@/components/notifications-button";
 import LocationSwitcher from "@/components/location-switcher";
 import ThemeToggle from "@/components/theme-toggle";
+import PushPermissionBanner from "@/components/push-permission-banner";
+import PwaInstallPrompt from "@/components/pwa-install-prompt";
 import { PERMISSIONS_REFRESH_EVENT } from "@/lib/usePermissions";
 
 export default function AdminLayout({
@@ -41,6 +43,15 @@ export default function AdminLayout({
   }, []);
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const checkedKey = `chk_tmr_${new Date().toISOString().split("T")[0]}`;
+    if (!sessionStorage.getItem(checkedKey)) {
+      sessionStorage.setItem(checkedKey, "1");
+      fetch("/api/admin/classes/check-tomorrow", { method: "POST" }).catch(() => {});
+    }
+  }, [isAdmin]);
   useEffect(() => {
     async function checkAuth() {
       try {
@@ -778,6 +789,7 @@ export default function AdminLayout({
           </div>
 
           <div className="flex items-center gap-2 xl:gap-3 flex-shrink-0">
+            <PwaInstallPrompt compact />
             <ThemeToggle />
             {hasPerm("staff.view") ? (
               <Link
@@ -849,6 +861,8 @@ export default function AdminLayout({
           </div>
         </header>
 
+        {/* Push Notification Banner */}
+        <PushPermissionBanner role="admin" />
         {/* Page Content Body */}
         <div className="p-3 sm:p-5 lg:p-8 flex-1 max-w-[1440px] w-full mx-auto min-w-0 max-w-full overflow-x-hidden">{children}</div>
       </main>

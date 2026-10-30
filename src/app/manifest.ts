@@ -4,34 +4,28 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Corhaus Pilates",
     short_name: "Corhaus",
-    description: "Premium Pilates and wellness studio. Book your classes with ease.",
+    description: "Premium Pilates and wellness studio. Book your classes and manage memberships with ease.",
     start_url: "/",
     display: "standalone",
-    background_color: "#FAF7F2", // brand-cream
-    theme_color: "#1C1C2E", // brand-navy
+    background_color: "#FAF7F2",
+    theme_color: "#1C1C2E",
     icons: [
       {
-        src: "/icon-192.jpg",
+        src: "/corhaus-logo.png",
         sizes: "192x192",
-        type: "image/jpeg",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icon-192-maskable.jpg",
-        sizes: "192x192",
-        type: "image/jpeg",
-        purpose: "maskable",
-      },
-      {
-        src: "/icon-512.jpg",
+        src: "/corhaus-logo.png",
         sizes: "512x512",
-        type: "image/jpeg",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icon-512-maskable.jpg",
+        src: "/corhaus-logo.png",
         sizes: "512x512",
-        type: "image/jpeg",
+        type: "image/png",
         purpose: "maskable",
       },
     ],

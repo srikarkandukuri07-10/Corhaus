@@ -197,6 +197,56 @@ export async function POST(req: Request) {
       }
     }
 
+    // Send Web Push notification to member for staff-assigned booking
+    try {
+      const { sendPushToUser } = await import("@/lib/push/service");
+      const { data: clsData } = await serviceClient
+        .from("classes")
+        .select("title, name, date, class_date, start_time")
+        .eq("id", classId)
+        .maybeSingle();
+
+      const { data: memberPlan } = await serviceClient
+        .from("member_purchased_plans")
+        .select("sessions_total, sessions_remaining, valid_until")
+        .eq("approved_member_id", approvedMemberId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let planText = "";
+      if (memberPlan?.sessions_total !== null && memberPlan?.sessions_remaining !== undefined) {
+        planText += " • " + memberPlan.sessions_remaining + " sessions left";
+      }
+      if (memberPlan?.valid_until) {
+        const diffDays = Math.max(0, Math.ceil((new Date(memberPlan.valid_until).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+        planText += " • " + diffDays + " days valid";
+      }
+
+      const classLabel = clsData?.title || clsData?.name || "Class";
+      const classDate = clsData?.date || clsData?.class_date || "";
+      const classTime = clsData?.start_time ? (" at " + clsData.start_time) : "";
+      const pushMsg = "Staff scheduled you for " + classLabel + (classDate ? " on " + classDate : "") + classTime + "." + planText;
+
+      await Promise.allSettled([
+        sendPushToUser(authMemberId, {
+          title: "Session Booked by Studio 📅",
+          body: pushMsg,
+          url: "/member/bookings",
+          tag: "assigned-" + (confirmedBookingId || classId),
+        }),
+        sendPushToUser(approvedMemberId, {
+          title: "Session Booked by Studio 📅",
+          body: pushMsg,
+          url: "/member/bookings",
+          tag: "assigned-" + (confirmedBookingId || classId),
+        }),
+      ]);
+    } catch (pushErr) {
+      console.error("[ASSIGN] push notification error:", pushErr);
+    }
+
     return NextResponse.json({ success: true, message: "Member assigned successfully!" });
   } catch (err: any) {
     console.error("POST /api/admin/classes/assign error:", err);

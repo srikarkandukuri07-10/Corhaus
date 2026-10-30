@@ -125,7 +125,7 @@ function formatSlotHour(time24: string): string {
 
 export default function AdminClassesModulePage() {
   const { hasPerm } = usePermissions();
-  const [activeTab, setActiveTab] = useState<"class_types" | "schedule" | "sessions">("schedule");
+  const [activeTab, setActiveTab] = useState<"class_types" | "schedule" | "sessions" | "holidays">("schedule");
   const [calendarView, setCalendarView] = useState<"day" | "week" | "month">("week");
   const [weekOffset, setWeekOffset] = useState(0);
   const [mobileDayOffset, setMobileDayOffset] = useState(0);
@@ -1026,6 +1026,18 @@ export default function AdminClassesModulePage() {
         >
           <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           Sessions
+        </button>
+
+        <button
+          onClick={() => setActiveTab("holidays")}
+          className={`px-6 py-3 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap flex items-center ${
+            activeTab === "holidays"
+              ? "bg-red-600 text-white shadow-lg shadow-red-600/25"
+              : "text-fg-3 hover:text-fg hover:bg-surface"
+          }`}
+        >
+          <span className="mr-1.5 text-sm">🏖️</span>
+          Studio Holidays
         </button>
       </div>
 

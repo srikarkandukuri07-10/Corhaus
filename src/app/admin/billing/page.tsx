@@ -638,6 +638,21 @@ export default function CreateBillPage() {
       setCompletedInvoiceId(invoiceId);
       setCompletedOutstanding(dueAfter);
       setCompletedCollected(collectedNow);
+
+      // Trigger Web Push notification to Admin & Member if payment was collected
+      if (collectedNow > 0) {
+        fetch("/api/push/notify-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: collectedNow,
+            memberName: selectedMember?.full_name || walkinName.trim() || "Customer",
+            memberId: selectedMember?.id || null,
+            invoiceNumber: invNum,
+            paymentMethod: paymentMethod,
+          }),
+        }).catch((err) => console.error("Push payment alert error:", err));
+      }
     } catch (err: unknown) {
       setError((err as Error).message || "Failed to complete bill.");
     } finally {

@@ -112,6 +112,38 @@ export async function POST(req: Request) {
           paymentMethod: "Razorpay",
         });
 
+        if (settled.ok && !settled.alreadyPaid) {
+          try {
+            const { data: invData } = await service
+              .from("invoices")
+              .select("invoice_number, customer_name, customer_id")
+              .eq("id", invoiceId)
+              .maybeSingle();
+
+            const { sendPushToRole, sendPushToUser } = await import("@/lib/push/service");
+            const cName = invData?.customer_name || "Member";
+            const iNum = invData?.invoice_number || invoiceId;
+
+            await sendPushToRole("admin", {
+              title: "💰 Online Payment Received!",
+              body: "₹" + amountRupees + " paid online by " + cName + " for invoice #" + iNum + ".",
+              url: "/admin/billing/invoices",
+              tag: "pay-settled-" + invoiceId,
+            });
+
+            if (invData?.customer_id) {
+              await sendPushToUser(invData.customer_id, {
+                title: "Payment Received! 💳",
+                body: "Your payment of ₹" + amountRupees + " for invoice #" + iNum + " was received. Thank you!",
+                url: "/member/bookings",
+                tag: "pay-conf-" + invoiceId,
+              });
+            }
+          } catch (pushErr) {
+            console.error("[razorpay webhook] push alert error:", pushErr);
+          }
+        }
+
         return NextResponse.json({
           received: true,
           handled: true,
